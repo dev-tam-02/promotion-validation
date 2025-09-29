@@ -1,0 +1,89 @@
+version: '3.9'
+
+services:
+  validation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: promix/validation:latest
+    container_name: validation
+    environment:
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8083
+
+      # Kafka configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: validation-service
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+      SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: org.apache.kafka.common.serialization.StringSerializer
+      SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: io.confluent.kafka.serializers.KafkaAvroSerializer
+
+      # Schema Registry (if using Confluent)
+      SCHEMA_REGISTRY_URL: http://localhost:8081
+
+      # JVM options
+      JAVA_OPTS: >
+        -Xms512m
+        -Xmx1g
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -XX:+UseStringDeduplication
+        -XX:+ExitOnOutOfMemoryError
+        -XX:+HeapDumpOnOutOfMemoryError
+        -XX:HeapDumpPath=/tmp/heapdump.hprof
+        -Djava.security.egd=file:/dev/./urandom
+        -Dspring.jmx.enabled=true
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port=9093
+        -Dcom.sun.management.jmxremote.rmi.port=9093
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+
+      # Debug configuration
+      DEBUG_OPTS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5003
+
+    ports:
+      - "8083:8083"    # Application port
+      - "5003:5003"    # Debug port
+      - "9093:9093"    # JMX port
+
+    volumes:
+      - ./logs:/app/logs
+      - heap-dumps:/tmp
+
+    networks:
+      - promix-network
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+    restart: unless-stopped
+
+volumes:
+  heap-dumps:
+    driver: local
+
+networks:
+  promix-network:
+    external: true
+    name: promix-network

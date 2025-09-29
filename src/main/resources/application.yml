@@ -1,0 +1,57 @@
+# validation Service Configuration - Simplified
+
+spring:
+  application:
+    name: validation
+
+  # MariaDB Configuration (Required)
+  datasource:
+    url: jdbc:mariadb://promotion-mariadb:3306/validation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+    username: root
+    password: ${DB_PASSWORD:123123a@}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      ddl-auto: none
+
+# Server Configuration
+server:
+  port: 6014
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://service-registry:8761/eureka
+
+# Promix Platform Configuration - Only essential overrides
+promix:
+  # Kafka Configuration
+  messaging:
+    kafka:
+      bootstrap-servers:
+        - kafka-1:9092
+        - kafka-2:9093
+        - kafka-3:9094
+      client-id: validation
+      consumer:
+        group-id: validation-group
+
+  # Cache Configuration
+  cache:
+    redis:
+      enabled: true
+      prefix: "validation-cache:"
+      default-ttl: 30m
+
+
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    vn.viettel.vds.promotion.validation: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"

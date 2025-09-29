@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: validation-test
+  data:
+    mongodb:
+      database: validation-test
+      host: localhost
+      port: 27017
+
+validation:
+  engine:
+    base-url: http://localhost:8094
+    timeout:
+      connect: 5s
+      read: 30s
+
+logging:
+  level:
+    vn.viettel.vds.promotion.validation: DEBUG
