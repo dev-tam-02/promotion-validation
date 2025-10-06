@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Op
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.OperatorEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Operator;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
 import java.util.Optional;

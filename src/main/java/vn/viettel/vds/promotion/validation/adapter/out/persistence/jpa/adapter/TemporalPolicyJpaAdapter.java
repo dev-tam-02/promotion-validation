@@ -10,7 +10,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Te
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.TemporalPolicyEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.TemporalPolicyJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.TemporalPolicyPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.TemporalPolicy;
+import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
 
 import java.time.Instant;
 import java.util.List;

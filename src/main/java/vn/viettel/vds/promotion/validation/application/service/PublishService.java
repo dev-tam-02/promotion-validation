@@ -9,10 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.PublishJob;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleTemporalLink;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 import com.promix.platform.outbox.service.OutboxService;
 
 import java.time.Instant;
@@ -164,8 +164,8 @@ public class PublishService {
 
         // Calculate operators fingerprint
         List<String> operatorNames = rule.getNodes().stream()
-                .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
-                .map(Rule.RuleNode::getOperatorName)
+                .filter(node -> node.getType() == RuleNode.NodeType.COND)
+                .map(RuleNode::getOperatorName)
                 .filter(name -> name != null)
                 .distinct()
                 .toList();

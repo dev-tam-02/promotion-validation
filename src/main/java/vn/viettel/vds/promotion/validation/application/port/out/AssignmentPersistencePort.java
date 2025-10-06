@@ -2,7 +2,7 @@ package vn.viettel.vds.promotion.validation.application.port.out;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
 import java.util.List;

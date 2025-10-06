@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleVersionEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleVersionJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.util.List;
 import java.util.Optional;

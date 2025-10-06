@@ -131,7 +131,7 @@ public class SettingValidationRuleCommandHandler {
             }
 
             // ✅ FIXED: Create rule assignment with campaign ID
-            vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment =
+            vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
                     createRuleAssignment(assignRuleData, campaignId, priority, notes);
 
             // Convert to JPA entity and save
@@ -250,7 +250,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * ✅ FIXED: Create RuleAssignment entity with campaign ID
      */
-    private vn.viettel.vds.promotion.validation.domain.entity.Assignment createRuleAssignment(
+    private vn.viettel.vds.promotion.validation.domain.model.Assignment createRuleAssignment(
             vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
             String campaignId,  // ✅ Changed from ApplicabilityScope to campaignId
             Integer priority,
@@ -268,14 +268,14 @@ public class SettingValidationRuleCommandHandler {
         }
 
         // ✅ FIXED: Create Subject with campaign ID
-        vn.viettel.vds.promotion.validation.domain.entity.Assignment.Subject subject =
-                new vn.viettel.vds.promotion.validation.domain.entity.Assignment.Subject();
+        vn.viettel.vds.promotion.validation.domain.model.Assignment.Subject subject =
+                new vn.viettel.vds.promotion.validation.domain.model.Assignment.Subject();
         subject.setType("campaign");      // ✅ Always "campaign"
         subject.setKey(campaignId);       // ✅ Campaign ID from command.subject
 
         // Create and configure assignment
-        vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment =
-                new vn.viettel.vds.promotion.validation.domain.entity.Assignment();
+        vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
+                new vn.viettel.vds.promotion.validation.domain.model.Assignment();
         assignment.setId(assignmentId);
         assignment.setRuleId(ruleId);
         assignment.setSubject(subject);
@@ -356,7 +356,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Deploy rule to validation-engine after successful assignment creation
      */
-    private void deployRuleToEngine(vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment, String ruleId) {
+    private void deployRuleToEngine(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment, String ruleId) {
         try {
             // Get the validation rule details
             var validationRule = validationRuleRepository.findById(ruleId);
@@ -415,7 +415,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Convert domain Assignment to JPA AssignmentEntity
      */
-    private AssignmentEntity toAssignmentEntity(vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment) {
+    private AssignmentEntity toAssignmentEntity(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment) {
         AssignmentEntity entity = new AssignmentEntity();
         entity.setId(assignment.getId());
         entity.setTenantId(assignment.getTenantId());
@@ -456,13 +456,13 @@ public class SettingValidationRuleCommandHandler {
         private final boolean success;
         private final String errorCode;
         private final String errorMessage;
-        private final vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment;
+        private final vn.viettel.vds.promotion.validation.domain.model.Assignment assignment;
         private final ApplicabilityScope applicabilityData;
         private final String timeFrameId;
         private final TimeFrame timeframeData;
 
         private CommandProcessingResult(boolean success, String errorCode, String errorMessage,
-                                        vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment, ApplicabilityScope applicabilityData,
+                                        vn.viettel.vds.promotion.validation.domain.model.Assignment assignment, ApplicabilityScope applicabilityData,
                                         String timeFrameId, TimeFrame timeframeData) {
             this.success = success;
             this.errorCode = errorCode;
@@ -473,7 +473,7 @@ public class SettingValidationRuleCommandHandler {
             this.timeframeData = timeframeData;
         }
 
-        public static CommandProcessingResult success(vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment,
+        public static CommandProcessingResult success(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment,
                                                       ApplicabilityScope applicabilityData,
                                                       String timeFrameId,
                                                       TimeFrame timeframeData) {
@@ -497,7 +497,7 @@ public class SettingValidationRuleCommandHandler {
             return errorMessage;
         }
 
-        public vn.viettel.vds.promotion.validation.domain.entity.Assignment getAssignment() {
+        public vn.viettel.vds.promotion.validation.domain.model.Assignment getAssignment() {
             return assignment;
         }
 

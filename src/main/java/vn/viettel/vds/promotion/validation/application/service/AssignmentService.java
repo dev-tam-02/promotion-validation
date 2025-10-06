@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
 import java.util.List;

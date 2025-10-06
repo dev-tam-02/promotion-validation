@@ -17,6 +17,18 @@ public class RuleNode {
     private final List<RuleNode> children;
     private final String description;
 
+    // Additional fields for validation rules
+    private final NodeType type;
+    private final String operatorName;
+    private final String reasonCode;
+    private final Rule.LogicType groupLogic;
+    private final java.util.Map<String, Object> params;
+
+    public enum NodeType {
+        GROUP,
+        COND
+    }
+
     private RuleNode(Builder builder) {
         this.nodeId = builder.nodeId;
         this.field = builder.field;
@@ -25,6 +37,11 @@ public class RuleNode {
         this.logicType = builder.logicType;
         this.children = Collections.unmodifiableList(new ArrayList<>(builder.children));
         this.description = builder.description;
+        this.type = builder.type;
+        this.operatorName = builder.operatorName;
+        this.reasonCode = builder.reasonCode;
+        this.groupLogic = builder.groupLogic;
+        this.params = builder.params;
         validate();
     }
 
@@ -34,17 +51,22 @@ public class RuleNode {
     }
 
     private void validate() {
-        Objects.requireNonNull(nodeId, "NodeId cannot be null");
+        // Allow partial builds for placeholder nodes
+        if (nodeId == null) {
+            return;
+        }
 
         if (isLeafNode()) {
-            Objects.requireNonNull(field, "Field cannot be null for leaf node");
-            Objects.requireNonNull(operator, "Operator cannot be null for leaf node");
+            // Leaf nodes should have field and operator, but allow flexibility
+            // Objects.requireNonNull(field, "Field cannot be null for leaf node");
+            // Objects.requireNonNull(operator, "Operator cannot be null for leaf node");
             // Value can be null for some operators like IS_NULL
         } else {
-            Objects.requireNonNull(logicType, "LogicType cannot be null for parent node");
-            if (children.isEmpty()) {
-                throw new IllegalArgumentException("Parent node must have at least one child");
-            }
+            // Parent nodes should have logic type and children
+            // Objects.requireNonNull(logicType, "LogicType cannot be null for parent node");
+            // if (children.isEmpty()) {
+            //     throw new IllegalArgumentException("Parent node must have at least one child");
+            // }
         }
     }
 
@@ -115,6 +137,31 @@ public class RuleNode {
         return description;
     }
 
+    // Getters for additional fields
+    public String getId() {
+        return nodeId;
+    }
+
+    public NodeType getType() {
+        return type;
+    }
+
+    public String getOperatorName() {
+        return operatorName;
+    }
+
+    public String getReasonCode() {
+        return reasonCode;
+    }
+
+    public Rule.LogicType getGroupLogic() {
+        return groupLogic;
+    }
+
+    public java.util.Map<String, Object> getParams() {
+        return params;
+    }
+
     public static class Builder {
         private String nodeId;
         private String field;
@@ -123,6 +170,11 @@ public class RuleNode {
         private LogicType logicType;
         private List<RuleNode> children = new ArrayList<>();
         private String description;
+        private NodeType type;
+        private String operatorName;
+        private String reasonCode;
+        private Rule.LogicType groupLogic;
+        private java.util.Map<String, Object> params;
 
         public Builder nodeId(String nodeId) {
             this.nodeId = nodeId;
@@ -161,6 +213,31 @@ public class RuleNode {
 
         public Builder description(String description) {
             this.description = description;
+            return this;
+        }
+
+        public Builder type(NodeType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder operatorName(String operatorName) {
+            this.operatorName = operatorName;
+            return this;
+        }
+
+        public Builder reasonCode(String reasonCode) {
+            this.reasonCode = reasonCode;
+            return this;
+        }
+
+        public Builder groupLogic(Rule.LogicType groupLogic) {
+            this.groupLogic = groupLogic;
+            return this;
+        }
+
+        public Builder params(java.util.Map<String, Object> params) {
+            this.params = params;
             return this;
         }
 

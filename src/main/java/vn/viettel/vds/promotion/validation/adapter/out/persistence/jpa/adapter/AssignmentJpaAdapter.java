@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.As
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.AssignmentEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
 import java.util.List;

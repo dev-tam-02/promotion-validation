@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
 import java.util.List;

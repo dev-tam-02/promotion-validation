@@ -19,7 +19,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEng
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsRequest;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Operator;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.time.Instant;
 import java.util.List;

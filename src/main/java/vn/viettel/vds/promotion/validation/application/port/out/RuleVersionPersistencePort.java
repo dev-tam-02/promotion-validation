@@ -2,7 +2,7 @@ package vn.viettel.vds.promotion.validation.application.port.out;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.util.List;
 import java.util.Optional;

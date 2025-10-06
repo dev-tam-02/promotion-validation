@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Au
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.AuditLogEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AuditLogJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.AuditLogPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.AuditLog;
+import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
 import java.time.Instant;
 import java.util.List;

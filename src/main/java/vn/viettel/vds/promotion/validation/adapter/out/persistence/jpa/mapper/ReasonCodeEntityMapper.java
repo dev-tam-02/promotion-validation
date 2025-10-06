@@ -2,7 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
 import org.mapstruct.Mapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ReasonCodeEntity;
-import vn.viettel.vds.promotion.validation.domain.entity.ReasonCode;
+import vn.viettel.vds.promotion.validation.domain.model.ReasonCode;
 
 import java.util.HashMap;
 import java.util.List;

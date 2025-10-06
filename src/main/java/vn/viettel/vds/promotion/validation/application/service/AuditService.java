@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.AuditLogPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.AuditLog;
+import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
 import java.time.Instant;
 import java.util.HashMap;

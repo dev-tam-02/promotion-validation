@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Pu
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.PublishJobEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.PublishJobJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.PublishJob;
+import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 
 import java.time.Instant;
 import java.util.List;

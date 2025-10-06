@@ -6,10 +6,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -185,9 +186,9 @@ public class RulePublishingService {
         validateNodeStructure(rule.getNodes());
     }
 
-    private void validateNodeStructure(List<Rule.RuleNode> nodes) {
-        Map<String, Rule.RuleNode> nodeMap = new HashMap<>();
-        for (Rule.RuleNode node : nodes) {
+    private void validateNodeStructure(List<RuleNode> nodes) {
+        Map<String, RuleNode> nodeMap = new HashMap<>();
+        for (RuleNode node : nodes) {
             if (node.getId() == null || node.getId().isBlank()) {
                 throw new IllegalArgumentException("Node must have an ID");
             }
@@ -198,9 +199,9 @@ public class RulePublishingService {
         }
 
         // Validate references
-        for (Rule.RuleNode node : nodes) {
-            if (Rule.RuleNode.NodeType.GROUP.equals(node.getType()) && node.getChildren() != null) {
-                for (Rule.RuleNode childNode : node.getChildren()) {
+        for (RuleNode node : nodes) {
+            if (RuleNode.NodeType.GROUP.equals(node.getType()) && node.getChildren() != null) {
+                for (RuleNode childNode : node.getChildren()) {
                     if (!nodeMap.containsKey(childNode.getId())) {
                         throw new IllegalArgumentException("Node references non-existent child: " + childNode.getId());
                     }
@@ -222,10 +223,10 @@ public class RulePublishingService {
         return validationEngineClient.compile(compileRequest);
     }
 
-    private List<RuleNodeDto> convertToNodeDtos(List<Rule.RuleNode> nodes) {
+    private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {
         List<RuleNodeDto> dtos = new ArrayList<>();
 
-        for (Rule.RuleNode node : nodes) {
+        for (RuleNode node : nodes) {
             RuleNodeDto dto = new RuleNodeDto();
             dto.setId(node.getId());
             dto.setType(node.getType().name());
@@ -238,7 +239,7 @@ public class RulePublishingService {
             // Convert children nodes to IDs
             if (node.getChildren() != null) {
                 List<String> childIds = new ArrayList<>();
-                for (Rule.RuleNode child : node.getChildren()) {
+                for (RuleNode child : node.getChildren()) {
                     childIds.add(child.getId());
                 }
                 dto.setChildren(childIds);
@@ -251,10 +252,10 @@ public class RulePublishingService {
         return dtos;
     }
 
-    private String generateOperatorFingerprint(List<Rule.RuleNode> nodes) {
+    private String generateOperatorFingerprint(List<RuleNode> nodes) {
         // Generate a fingerprint based on operators used
         StringBuilder fingerprint = new StringBuilder();
-        for (Rule.RuleNode node : nodes) {
+        for (RuleNode node : nodes) {
             if (node.getOperatorName() != null) {
                 fingerprint.append(node.getOperatorName())
                         .append(":")
@@ -358,7 +359,7 @@ public class RulePublishingService {
 
         // Convert nodes
         if (rule.getNodes() != null) {
-            List<ValidationRule.RuleNode> validationNodes = rule.getNodes().stream()
+            List<RuleNode> validationNodes = rule.getNodes().stream()
                     .map(this::convertRuleNodeToValidationNode)
                     .collect(Collectors.toList());
             validationRule.setNodes(validationNodes);
@@ -379,8 +380,8 @@ public class RulePublishingService {
         return validationRule;
     }
 
-    private ValidationRule.RuleNode convertRuleNodeToValidationNode(Rule.RuleNode ruleNode) {
-        ValidationRule.RuleNode validationNode = new ValidationRule.RuleNode();
+    private RuleNode convertRuleNodeToValidationNode(RuleNode ruleNode) {
+        RuleNode validationNode = new RuleNode();
         validationNode.setId(ruleNode.getId());
         validationNode.setType(ruleNode.getType() != null ? ruleNode.getType().name() : null);
         validationNode.setGroupLogic(ruleNode.getGroupLogic() != null ? ruleNode.getGroupLogic().name() : null);
@@ -388,7 +389,7 @@ public class RulePublishingService {
         // Convert children from List<RuleNode> to List<String> (IDs only)
         if (ruleNode.getChildren() != null) {
             List<String> childIds = ruleNode.getChildren().stream()
-                    .map(Rule.RuleNode::getId)
+                    .map(RuleNode::getId)
                     .collect(Collectors.toList());
             validationNode.setChildren(childIds);
         }
@@ -396,7 +397,7 @@ public class RulePublishingService {
         validationNode.setOperatorName(ruleNode.getOperatorName());
         validationNode.setParams(ruleNode.getParams());
         validationNode.setReasonCode(ruleNode.getReasonCode());
-        // Note: Rule.RuleNode doesn't have order field, so we skip it
+        // Note: RuleNode doesn't have order field, so we skip it
         return validationNode;
     }
 

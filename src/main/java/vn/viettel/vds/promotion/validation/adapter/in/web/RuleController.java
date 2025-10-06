@@ -21,7 +21,7 @@ import vn.viettel.vds.promotion.validation.application.service.AssignmentService
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Map;

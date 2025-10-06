@@ -1,7 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.factory;
 
 import vn.viettel.vds.promotion.validation.domain.model.LogicType;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleAggregate;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
@@ -18,7 +18,7 @@ public class RuleFactory {
     /**
      * Create a new rule with basic information
      */
-    public Rule createRule(
+    public RuleAggregate createRule(
             String tenantId,
             String code,
             String name,
@@ -31,7 +31,7 @@ public class RuleFactory {
         Objects.requireNonNull(logicType, "LogicType cannot be null");
         Objects.requireNonNull(createdBy, "CreatedBy cannot be null");
 
-        return new Rule(
+        return new RuleAggregate(
                 TenantId.of(tenantId),
                 RuleCode.of(code),
                 RuleName.of(name),
@@ -43,7 +43,7 @@ public class RuleFactory {
     /**
      * Create a rule with nodes
      */
-    public Rule createRuleWithNodes(
+    public RuleAggregate createRuleWithNodes(
             String tenantId,
             String code,
             String name,
@@ -52,7 +52,7 @@ public class RuleFactory {
             List<RuleNode> nodes,
             String createdBy
     ) {
-        Rule rule = createRule(tenantId, code, name, logicType, createdBy);
+        RuleAggregate rule = createRule(tenantId, code, name, logicType, createdBy);
 
         if (description != null) {
             rule.update(rule.getName(), description, logicType, nodes, createdBy);
@@ -66,7 +66,7 @@ public class RuleFactory {
     /**
      * Create a simple condition rule (single node)
      */
-    public Rule createSimpleConditionRule(
+    public RuleAggregate createSimpleConditionRule(
             String tenantId,
             String code,
             String name,
@@ -96,7 +96,7 @@ public class RuleFactory {
     /**
      * Create a composite rule with multiple conditions
      */
-    public Rule createCompositeRule(
+    public RuleAggregate createCompositeRule(
             String tenantId,
             String code,
             String name,
@@ -122,7 +122,7 @@ public class RuleFactory {
     /**
      * Create a rule from template
      */
-    public Rule createFromTemplate(
+    public RuleAggregate createFromTemplate(
             RuleTemplate template,
             String tenantId,
             String code,

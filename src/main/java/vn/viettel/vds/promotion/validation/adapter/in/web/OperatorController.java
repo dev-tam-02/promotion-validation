@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.OperatorMapper;
 import vn.viettel.vds.promotion.validation.application.service.OperatorService;
-import vn.viettel.vds.promotion.validation.domain.entity.Operator;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
 

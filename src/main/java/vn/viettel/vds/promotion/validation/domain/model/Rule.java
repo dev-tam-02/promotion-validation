@@ -1,428 +1,114 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
-import vn.viettel.vds.promotion.validation.domain.valueobject.*;
+import lombok.Builder;
+import lombok.Data;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Core domain entity representing a validation rule
- * This is the aggregate root for rule management
+ * Simple domain model for Rule persistence operations.
+ * This is used by application services and ports for CRUD operations.
+ *
+ * Note: This is different from RuleAggregate which is a DDD aggregate root with value objects.
  */
+@Data
+@Builder(toBuilder = true)
 public class Rule {
-    private final RuleId id;
-    private final TenantId tenantId;
-    private final RuleCode code;
-    private final Instant createdAt;
-    private RuleName name;
+    private String id;
+    private String tenantId;
+    private String code;
+    private String name;
     private String description;
-    private LogicType logicType;
-    private List<RuleNode> nodes;
-    private RuleStatus status;
-    private Version version;
-    private Instant updatedAt;
-    private String createdBy;
-    private String updatedBy;
+    private String state;
+    private Long ruleVersion;
+    private String logic;
+    private Map<String, Object> dsl;
     private Instant publishedAt;
     private String publishedBy;
 
-    // Constructor for creating new rule
-    public Rule(TenantId tenantId, RuleCode code, RuleName name, LogicType logicType, String createdBy) {
-        this.id = RuleId.generate();
-        this.tenantId = Objects.requireNonNull(tenantId, "TenantId cannot be null");
-        this.code = Objects.requireNonNull(code, "RuleCode cannot be null");
-        this.name = Objects.requireNonNull(name, "RuleName cannot be null");
-        this.logicType = Objects.requireNonNull(logicType, "LogicType cannot be null");
-        this.nodes = new ArrayList<>();
-        this.status = RuleStatus.DRAFT;
-        this.version = Version.initial();
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.createdBy = Objects.requireNonNull(createdBy, "CreatedBy cannot be null");
-        this.updatedBy = createdBy;
-    }
+    // Audit fields
+    private Instant createdAt;
+    private Instant updatedAt;
+    private String createdBy;
+    private String updatedBy;
+    private Long version;
 
-    // Constructor for reconstituting from persistence
-    private Rule(Builder builder) {
-        this.id = builder.id;
-        this.tenantId = builder.tenantId;
-        this.code = builder.code;
-        this.name = builder.name;
-        this.description = builder.description;
-        this.logicType = builder.logicType;
-        this.nodes = new ArrayList<>(builder.nodes);
-        this.status = builder.status;
-        this.version = builder.version;
-        this.createdAt = builder.createdAt;
-        this.updatedAt = builder.updatedAt;
-        this.createdBy = builder.createdBy;
-        this.updatedBy = builder.updatedBy;
-        this.publishedAt = builder.publishedAt;
-        this.publishedBy = builder.publishedBy;
-    }
+    // Additional fields from RuleJpaEntity
+    private String ruleCode;
+    private String notes;
+    private String expression;
+    private String type;
+    private Boolean active;
+    private Integer priority;
+    private Integer latestVersion;
+    private Map<String, String> configuration;
+    private List<String> targetSegments;
+    private String campaignId;
+    private String ruleSetId;
+    private List<RuleNode> nodes;
+    private Map<String, Object> limits;
 
-    // Business Methods
-
-    // Builder for reconstitution from persistence
-    public static Builder builder() {
-        return new Builder();
+    /**
+     * Rule state enum
+     */
+    public enum RuleState {
+        DRAFT,
+        PUBLISHED,
+        ARCHIVED,
+        DEPRECATED
     }
 
     /**
-     * Evaluate this rule against the given context
+     * Logic type enum
      */
-    public ValidationResult evaluate(ValidationContext context) {
-        if (status != RuleStatus.PUBLISHED) {
-            return ValidationResult.skipped(id, "Rule is not published");
-        }
-
-        try {
-            boolean result = evaluateNodes(context);
-            String message = result ? "Rule passed" : "Rule failed";
-            return result ?
-                    ValidationResult.passed(id.getValue(), message) :
-                    ValidationResult.failed(id.getValue(), message);
-        } catch (Exception e) {
-            return ValidationResult.error(id.getValue(), "Error evaluating rule: " + e.getMessage());
-        }
+    public enum LogicType {
+        ALL,  // AND
+        ANY,  // OR
+        NONE  // NOT
     }
 
-    private boolean evaluateNodes(ValidationContext context) {
-        if (nodes.isEmpty()) {
-            return true; // No conditions means always pass
-        }
-
-        // Convert ValidationContext to the format expected by RuleNode
-        Map<String, Object> contextData = new HashMap<>();
-
-        // Extract customer data if present
-        if (context.getCustomer() != null) {
-            contextData.put("customerId", context.getCustomer().getCustomerId());
-            contextData.put("segment", context.getCustomer().getSegment());
-            contextData.put("tier", context.getCustomer().getTier());
-            contextData.put("totalPurchaseAmount", context.getCustomer().getTotalPurchaseAmount());
-            contextData.put("transactionCount", context.getCustomer().getTransactionCount());
-        }
-
-        // Extract order data if present
-        if (context.getOrder() != null) {
-            contextData.put("orderId", context.getOrder().getOrderId());
-            contextData.put("orderValue", context.getOrder().getOrderValue());
-            contextData.put("itemCount", context.getOrder().getItemCount());
-            contextData.put("channel", context.getOrder().getChannel());
-        }
-
-        // Add metadata
-        if (context.getMetadata() != null) {
-            contextData.putAll(context.getMetadata());
-        }
-
-        // Create node evaluation context
-        vn.viettel.vds.promotion.validation.domain.model.ValidationContext nodeContext =
-                vn.viettel.vds.promotion.validation.domain.model.ValidationContext.of(contextData);
-
-        switch (logicType) {
-            case AND:
-                return nodes.stream().allMatch(node -> node.evaluate(nodeContext));
-            case OR:
-                return nodes.stream().anyMatch(node -> node.evaluate(nodeContext));
-            case NOT:
-                if (nodes.size() != 1) {
-                    throw new IllegalStateException("NOT logic requires exactly one node");
-                }
-                return !nodes.get(0).evaluate(nodeContext);
-            case XOR:
-                long trueCount = nodes.stream()
-                        .filter(node -> node.evaluate(nodeContext))
-                        .count();
-                return trueCount == 1;
-            default:
-                throw new UnsupportedOperationException("Logic type not supported: " + logicType);
-        }
+    public Rule() {
+        this.dsl = new HashMap<>();
+        this.configuration = new HashMap<>();
+        this.targetSegments = new ArrayList<>();
     }
 
-    /**
-     * Update rule details
-     */
-    public void update(RuleName name, String description, LogicType logicType, List<RuleNode> nodes, String updatedBy) {
-        if (!canBeModified()) {
-            throw new IllegalStateException("Rule cannot be modified in status: " + status);
-        }
-
-        this.name = Objects.requireNonNull(name, "Name cannot be null");
+    public Rule(String id, String tenantId, String code, String name, String description, String state,
+                Long ruleVersion, String logic, Map<String, Object> dsl, Instant publishedAt, String publishedBy,
+                Instant createdAt, Instant updatedAt, String createdBy, String updatedBy, Long version,
+                String ruleCode, String notes, String expression, String type, Boolean active, Integer priority,
+                Integer latestVersion, Map<String, String> configuration, List<String> targetSegments,
+                String campaignId, String ruleSetId) {
+        this.id = id;
+        this.tenantId = tenantId;
+        this.code = code;
+        this.name = name;
         this.description = description;
-        this.logicType = Objects.requireNonNull(logicType, "LogicType cannot be null");
-        this.nodes = new ArrayList<>(nodes != null ? nodes : Collections.emptyList());
-        this.updatedAt = Instant.now();
-        this.updatedBy = Objects.requireNonNull(updatedBy, "UpdatedBy cannot be null");
-
-        // Increment patch version for updates
-        this.version = version.incrementPatch();
-    }
-
-    /**
-     * Submit rule for review
-     */
-    public void submitForReview(String submittedBy) {
-        if (status != RuleStatus.DRAFT) {
-            throw new IllegalStateException("Only draft rules can be submitted for review");
-        }
-
-        this.status = RuleStatus.PENDING_REVIEW;
-        this.updatedAt = Instant.now();
-        this.updatedBy = submittedBy;
-    }
-
-    /**
-     * Approve the rule
-     */
-    public void approve(String approvedBy) {
-        if (status != RuleStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Only rules pending review can be approved");
-        }
-
-        this.status = RuleStatus.APPROVED;
-        this.updatedAt = Instant.now();
-        this.updatedBy = approvedBy;
-    }
-
-    /**
-     * Reject the rule back to draft
-     */
-    public void reject(String rejectedBy, String reason) {
-        if (status != RuleStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Only rules pending review can be rejected");
-        }
-
-        this.status = RuleStatus.DRAFT;
-        this.updatedAt = Instant.now();
-        this.updatedBy = rejectedBy;
-        // Could store rejection reason in audit log
-    }
-
-    /**
-     * Publish the rule
-     */
-    public void publish(String publishedBy) {
-        if (status != RuleStatus.APPROVED) {
-            throw new IllegalStateException("Only approved rules can be published");
-        }
-
-        this.status = RuleStatus.PUBLISHED;
-        this.publishedAt = Instant.now();
+        this.state = state;
+        this.ruleVersion = ruleVersion;
+        this.logic = logic;
+        this.dsl = dsl != null ? dsl : new HashMap<>();
+        this.publishedAt = publishedAt;
         this.publishedBy = publishedBy;
-        this.updatedAt = Instant.now();
-        this.updatedBy = publishedBy;
-
-        // Increment minor version on publish
-        this.version = version.incrementMinor();
-    }
-
-    /**
-     * Deprecate the rule
-     */
-    public void deprecate(String deprecatedBy) {
-        if (status != RuleStatus.PUBLISHED) {
-            throw new IllegalStateException("Only published rules can be deprecated");
-        }
-
-        this.status = RuleStatus.DEPRECATED;
-        this.updatedAt = Instant.now();
-        this.updatedBy = deprecatedBy;
-    }
-
-    /**
-     * Archive the rule
-     */
-    public void archive(String archivedBy) {
-        if (status == RuleStatus.ARCHIVED) {
-            throw new IllegalStateException("Rule is already archived");
-        }
-
-        this.status = RuleStatus.ARCHIVED;
-        this.updatedAt = Instant.now();
-        this.updatedBy = archivedBy;
-    }
-
-    /**
-     * Check if rule can be modified
-     */
-    public boolean canBeModified() {
-        return status.isEditable();
-    }
-
-    /**
-     * Check if rule is active
-     */
-    public boolean isActive() {
-        return status.isActive();
-    }
-
-    /**
-     * Clone this rule as a new draft
-     */
-    public Rule cloneAsDraft(String clonedBy) {
-        Rule cloned = new Rule(tenantId, RuleCode.of(code.getValue() + "_COPY"), name, logicType, clonedBy);
-        cloned.description = this.description + " (Copy)";
-        cloned.nodes = new ArrayList<>(this.nodes);
-        return cloned;
-    }
-
-    // Getters
-    public RuleId getId() {
-        return id;
-    }
-
-    public TenantId getTenantId() {
-        return tenantId;
-    }
-
-    public RuleCode getCode() {
-        return code;
-    }
-
-    public RuleName getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public LogicType getLogicType() {
-        return logicType;
-    }
-
-    public List<RuleNode> getNodes() {
-        return Collections.unmodifiableList(nodes);
-    }
-
-    public RuleStatus getStatus() {
-        return status;
-    }
-
-    public Version getVersion() {
-        return version;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public Instant getPublishedAt() {
-        return publishedAt;
-    }
-
-    public String getPublishedBy() {
-        return publishedBy;
-    }
-
-    public static class Builder {
-        private RuleId id;
-        private TenantId tenantId;
-        private RuleCode code;
-        private RuleName name;
-        private String description;
-        private LogicType logicType;
-        private List<RuleNode> nodes = new ArrayList<>();
-        private RuleStatus status;
-        private Version version;
-        private Instant createdAt;
-        private Instant updatedAt;
-        private String createdBy;
-        private String updatedBy;
-        private Instant publishedAt;
-        private String publishedBy;
-
-        public Builder id(RuleId id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder tenantId(TenantId tenantId) {
-            this.tenantId = tenantId;
-            return this;
-        }
-
-        public Builder code(RuleCode code) {
-            this.code = code;
-            return this;
-        }
-
-        public Builder name(RuleName name) {
-            this.name = name;
-            return this;
-        }
-
-        public Builder description(String description) {
-            this.description = description;
-            return this;
-        }
-
-        public Builder logicType(LogicType logicType) {
-            this.logicType = logicType;
-            return this;
-        }
-
-        public Builder nodes(List<RuleNode> nodes) {
-            this.nodes = nodes != null ? nodes : new ArrayList<>();
-            return this;
-        }
-
-        public Builder status(RuleStatus status) {
-            this.status = status;
-            return this;
-        }
-
-        public Builder version(Version version) {
-            this.version = version;
-            return this;
-        }
-
-        public Builder createdAt(Instant createdAt) {
-            this.createdAt = createdAt;
-            return this;
-        }
-
-        public Builder updatedAt(Instant updatedAt) {
-            this.updatedAt = updatedAt;
-            return this;
-        }
-
-        public Builder createdBy(String createdBy) {
-            this.createdBy = createdBy;
-            return this;
-        }
-
-        public Builder updatedBy(String updatedBy) {
-            this.updatedBy = updatedBy;
-            return this;
-        }
-
-        public Builder publishedAt(Instant publishedAt) {
-            this.publishedAt = publishedAt;
-            return this;
-        }
-
-        public Builder publishedBy(String publishedBy) {
-            this.publishedBy = publishedBy;
-            return this;
-        }
-
-        public Rule build() {
-            return new Rule(this);
-        }
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.createdBy = createdBy;
+        this.updatedBy = updatedBy;
+        this.version = version;
+        this.ruleCode = ruleCode;
+        this.notes = notes;
+        this.expression = expression;
+        this.type = type;
+        this.active = active;
+        this.priority = priority;
+        this.latestVersion = latestVersion;
+        this.configuration = configuration != null ? configuration : new HashMap<>();
+        this.targetSegments = targetSegments != null ? targetSegments : new ArrayList<>();
+        this.campaignId = campaignId;
+        this.ruleSetId = ruleSetId;
     }
 }

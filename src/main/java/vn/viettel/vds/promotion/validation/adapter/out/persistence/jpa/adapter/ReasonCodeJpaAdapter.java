@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Re
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.ReasonCodeEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ReasonCodeJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.ReasonCodePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.ReasonCode;
+import vn.viettel.vds.promotion.validation.domain.model.ReasonCode;
 
 import java.util.List;
 import java.util.Optional;

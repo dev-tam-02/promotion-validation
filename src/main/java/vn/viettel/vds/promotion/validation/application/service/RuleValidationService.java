@@ -3,7 +3,8 @@ package vn.viettel.vds.promotion.validation.application.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ public class RuleValidationService {
     /**
      * Comprehensive rule linting/validation
      */
-    public LintResult lintRule(String tenantId, List<Rule.RuleNode> nodes) {
+    public LintResult lintRule(String tenantId, List<RuleNode> nodes) {
         logger.debug("Linting rule: tenant={}, nodeCount={}", tenantId, nodes.size());
 
         List<LintIssue> issues = new ArrayList<>();
@@ -112,7 +113,7 @@ public class RuleValidationService {
         return new ValidationResult(isValid, issues);
     }
 
-    private void validateBasicStructure(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
+    private void validateBasicStructure(List<RuleNode> nodes, List<LintIssue> issues) {
         if (nodes == null || nodes.isEmpty()) {
             issues.add(new LintIssue("nodes", "Rule must have at least one node", null));
             return;
@@ -120,7 +121,7 @@ public class RuleValidationService {
 
         Set<String> nodeIds = new HashSet<>();
         for (int i = 0; i < nodes.size(); i++) {
-            Rule.RuleNode node = nodes.get(i);
+            RuleNode node = nodes.get(i);
             String path = "nodes[" + i + "]";
 
             // Validate node ID
@@ -150,7 +151,7 @@ public class RuleValidationService {
         }
     }
 
-    private void validateGroupNode(Rule.RuleNode node, String path, List<LintIssue> issues) {
+    private void validateGroupNode(RuleNode node, String path, List<LintIssue> issues) {
         if (node.getGroupLogic() == null) {
             issues.add(new LintIssue(path + ".groupLogic", "Group logic is required for GROUP nodes", null));
         }
@@ -160,7 +161,7 @@ public class RuleValidationService {
         }
     }
 
-    private void validateConditionNode(Rule.RuleNode node, String path, List<LintIssue> issues) {
+    private void validateConditionNode(RuleNode node, String path, List<LintIssue> issues) {
         if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
             issues.add(new LintIssue(path + ".operatorName", "Operator name is required for COND nodes", null));
         }
@@ -170,22 +171,22 @@ public class RuleValidationService {
         }
     }
 
-    private void validateNodeLimits(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
+    private void validateNodeLimits(List<RuleNode> nodes, List<LintIssue> issues) {
         if (nodes.size() > MAX_NODES) {
             issues.add(new LintIssue("nodes",
                     "Too many nodes (" + nodes.size() + "). Maximum allowed: " + MAX_NODES, null));
         }
     }
 
-    private void validateTreeStructure(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
-        Map<String, Rule.RuleNode> nodeMap = nodes.stream()
+    private void validateTreeStructure(List<RuleNode> nodes, List<LintIssue> issues) {
+        Map<String, RuleNode> nodeMap = nodes.stream()
                 .filter(node -> node.getId() != null)
-                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+                .collect(Collectors.toMap(RuleNode::getId, node -> node));
 
         // Validate references and calculate depth
-        for (Rule.RuleNode node : nodes) {
-            if (node.getType() == Rule.RuleNode.NodeType.GROUP && node.getChildren() != null) {
-                for (Rule.RuleNode child : node.getChildren()) {
+        for (RuleNode node : nodes) {
+            if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+                for (RuleNode child : node.getChildren()) {
                     String childId = child.getId();
                     if (childId != null && !nodeMap.containsKey(childId)) {
                         issues.add(new LintIssue("nodes",
@@ -207,10 +208,10 @@ public class RuleValidationService {
         }
     }
 
-    private void validateOperators(String tenantId, List<Rule.RuleNode> nodes, List<LintIssue> issues) {
+    private void validateOperators(String tenantId, List<RuleNode> nodes, List<LintIssue> issues) {
         for (int i = 0; i < nodes.size(); i++) {
-            Rule.RuleNode node = nodes.get(i);
-            if (node.getType() == Rule.RuleNode.NodeType.COND && node.getOperatorName() != null) {
+            RuleNode node = nodes.get(i);
+            if (node.getType() == RuleNode.NodeType.COND && node.getOperatorName() != null) {
                 String path = "nodes[" + i + "]";
 
                 try {
@@ -253,10 +254,10 @@ public class RuleValidationService {
         }
     }
 
-    private void validateReasonCodes(String tenantId, List<Rule.RuleNode> nodes, List<LintIssue> issues) {
+    private void validateReasonCodes(String tenantId, List<RuleNode> nodes, List<LintIssue> issues) {
         for (int i = 0; i < nodes.size(); i++) {
-            Rule.RuleNode node = nodes.get(i);
-            if (node.getType() == Rule.RuleNode.NodeType.COND && node.getReasonCode() != null) {
+            RuleNode node = nodes.get(i);
+            if (node.getType() == RuleNode.NodeType.COND && node.getReasonCode() != null) {
                 String path = "nodes[" + i + "].reasonCode";
 
                 try {
@@ -272,15 +273,15 @@ public class RuleValidationService {
         }
     }
 
-    private void validateNoCircularReferences(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
-        Map<String, Rule.RuleNode> nodeMap = nodes.stream()
+    private void validateNoCircularReferences(List<RuleNode> nodes, List<LintIssue> issues) {
+        Map<String, RuleNode> nodeMap = nodes.stream()
                 .filter(node -> node.getId() != null)
-                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+                .collect(Collectors.toMap(RuleNode::getId, node -> node));
 
         Set<String> visited = new HashSet<>();
         Set<String> recursionStack = new HashSet<>();
 
-        for (Rule.RuleNode node : nodes) {
+        for (RuleNode node : nodes) {
             if (node.getId() != null && !visited.contains(node.getId())) {
                 if (hasCircularReference(node.getId(), nodeMap, visited, recursionStack)) {
                     issues.add(new LintIssue("nodes",
@@ -291,14 +292,14 @@ public class RuleValidationService {
         }
     }
 
-    private boolean hasCircularReference(String nodeId, Map<String, Rule.RuleNode> nodeMap,
+    private boolean hasCircularReference(String nodeId, Map<String, RuleNode> nodeMap,
                                          Set<String> visited, Set<String> recursionStack) {
         visited.add(nodeId);
         recursionStack.add(nodeId);
 
-        Rule.RuleNode node = nodeMap.get(nodeId);
+        RuleNode node = nodeMap.get(nodeId);
         if (node != null && node.getChildren() != null) {
-            for (Rule.RuleNode child : node.getChildren()) {
+            for (RuleNode child : node.getChildren()) {
                 String childId = child.getId();
                 if (childId == null) continue;
                 if (!visited.contains(childId)) {
@@ -315,19 +316,19 @@ public class RuleValidationService {
         return false;
     }
 
-    private int calculateMaxDepth(List<Rule.RuleNode> nodes, Map<String, Rule.RuleNode> nodeMap) {
+    private int calculateMaxDepth(List<RuleNode> nodes, Map<String, RuleNode> nodeMap) {
         int maxDepth = 0;
 
         // Find root nodes (nodes not referenced by any parent)
         Set<String> referencedNodes = nodes.stream()
                 .filter(node -> node.getChildren() != null)
                 .flatMap(node -> node.getChildren().stream()
-                        .map(Rule.RuleNode::getId)
+                        .map(RuleNode::getId)
                         .filter(id -> id != null))
                 .collect(Collectors.toSet());
 
         List<String> rootNodes = nodes.stream()
-                .map(Rule.RuleNode::getId)
+                .map(RuleNode::getId)
                 .filter(id -> id != null && !referencedNodes.contains(id))
                 .collect(Collectors.toList());
 
@@ -339,13 +340,13 @@ public class RuleValidationService {
         return maxDepth;
     }
 
-    private int calculateDepthRecursive(String nodeId, Map<String, Rule.RuleNode> nodeMap, Set<String> visited) {
+    private int calculateDepthRecursive(String nodeId, Map<String, RuleNode> nodeMap, Set<String> visited) {
         if (visited.contains(nodeId)) {
             return 0; // Avoid infinite recursion
         }
 
         visited.add(nodeId);
-        Rule.RuleNode node = nodeMap.get(nodeId);
+        RuleNode node = nodeMap.get(nodeId);
 
         if (node == null || node.getChildren() == null || node.getChildren().isEmpty()) {
             visited.remove(nodeId);
@@ -353,7 +354,7 @@ public class RuleValidationService {
         }
 
         int maxChildDepth = 0;
-        for (Rule.RuleNode child : node.getChildren()) {
+        for (RuleNode child : node.getChildren()) {
             String childId = child.getId();
             if (childId == null) continue;
             int childDepth = calculateDepthRecursive(childId, nodeMap, visited);
@@ -364,10 +365,10 @@ public class RuleValidationService {
         return 1 + maxChildDepth;
     }
 
-    private Set<String> extractOperatorNames(List<Rule.RuleNode> nodes) {
+    private Set<String> extractOperatorNames(List<RuleNode> nodes) {
         return nodes.stream()
-                .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
-                .map(Rule.RuleNode::getOperatorName)
+                .filter(node -> node.getType() == RuleNode.NodeType.COND)
+                .map(RuleNode::getOperatorName)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }

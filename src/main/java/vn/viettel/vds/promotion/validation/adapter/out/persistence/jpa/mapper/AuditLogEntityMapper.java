@@ -3,7 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AuditLogEntity;
-import vn.viettel.vds.promotion.validation.domain.entity.AuditLog;
+import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
 import java.util.List;
 

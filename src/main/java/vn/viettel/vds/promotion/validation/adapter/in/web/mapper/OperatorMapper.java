@@ -4,7 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.OperatorResponse;
-import vn.viettel.vds.promotion.validation.domain.entity.Operator;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 @Mapper(componentModel = "spring")
 public interface OperatorMapper {

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity.RuleDocument;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity.RuleNodeDocument;
 import vn.viettel.vds.promotion.validation.domain.model.LogicType;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleAggregate;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
 import vn.viettel.vds.promotion.validation.domain.valueobject.*;
@@ -13,15 +13,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Mapper between Rule domain objects and RuleDocument entities
+ * Mapper between RuleAggregate domain objects and RuleDocument entities
  */
 @Component
 public class RuleDomainMapper {
 
     /**
-     * Convert domain Rule to RuleDocument
+     * Convert domain RuleAggregate to RuleDocument
      */
-    public RuleDocument toDocument(Rule rule) {
+    public RuleDocument toDocument(RuleAggregate rule) {
         RuleDocument document = new RuleDocument();
         document.setId(rule.getId().getValue());
         document.setTenantId(rule.getTenantId().getValue());
@@ -50,9 +50,9 @@ public class RuleDomainMapper {
     }
 
     /**
-     * Convert RuleDocument to domain Rule
+     * Convert RuleDocument to domain RuleAggregate
      */
-    public Rule toDomain(RuleDocument document) {
+    public RuleAggregate toDomain(RuleDocument document) {
         // Map nodes
         List<RuleNode> nodes = null;
         if (document.getNodes() != null) {
@@ -61,7 +61,7 @@ public class RuleDomainMapper {
                     .collect(Collectors.toList());
         }
 
-        return Rule.builder()
+        return RuleAggregate.builder()
                 .id(RuleId.of(document.getId()))
                 .tenantId(TenantId.of(document.getTenantId()))
                 .code(RuleCode.of(document.getCode()))

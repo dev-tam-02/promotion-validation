@@ -6,7 +6,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleTemporalLinkEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleTemporalLink;
+import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 
 import java.util.List;
 import java.util.Optional;

@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.util.List;
 import java.util.Optional;

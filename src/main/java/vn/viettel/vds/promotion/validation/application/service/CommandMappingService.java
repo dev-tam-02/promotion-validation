@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule;
 import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.port.out;
 
-import vn.viettel.vds.promotion.validation.domain.entity.RuleTemporalLink;
+import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 
 import java.util.List;
 import java.util.Optional;

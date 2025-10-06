@@ -2,7 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
 import org.mapstruct.Mapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.util.List;
 

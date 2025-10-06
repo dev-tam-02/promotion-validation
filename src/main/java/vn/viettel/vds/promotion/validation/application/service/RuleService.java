@@ -11,7 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
 import java.util.List;
@@ -57,7 +58,7 @@ public class RuleService {
      * Create a new rule
      */
     public Rule createRule(String tenantId, String code, String name, Rule.LogicType logic,
-                           List<Rule.RuleNode> nodes, String createdBy) {
+                           List<RuleNode> nodes, String createdBy) {
         logger.info("Creating rule: tenant={}, code={}", tenantId, code);
 
         // Check if rule with same code already exists
@@ -96,7 +97,7 @@ public class RuleService {
      * Update an existing rule (only if in DRAFT state)
      */
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
-                           List<Rule.RuleNode> nodes, String updatedBy) {
+                           List<RuleNode> nodes, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = getRuleById(ruleId);
@@ -232,24 +233,24 @@ public class RuleService {
         return rulePersistencePort.save(rule);
     }
 
-    private void validateRuleNodes(List<Rule.RuleNode> nodes) {
+    private void validateRuleNodes(List<RuleNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Rule must have at least one node", 400));
         }
 
         // Validate each node
-        for (Rule.RuleNode node : nodes) {
+        for (RuleNode node : nodes) {
             validateRuleNode(node);
         }
 
         // Check for node ID uniqueness
-        long uniqueIds = nodes.stream().map(Rule.RuleNode::getId).distinct().count();
+        long uniqueIds = nodes.stream().map(RuleNode::getId).distinct().count();
         if (uniqueIds != nodes.size()) {
             throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Rule node IDs must be unique", 400));
         }
     }
 
-    private void validateRuleNode(Rule.RuleNode node) {
+    private void validateRuleNode(RuleNode node) {
         if (node.getId() == null || node.getId().trim().isEmpty()) {
             throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Node ID is required", 400));
         }

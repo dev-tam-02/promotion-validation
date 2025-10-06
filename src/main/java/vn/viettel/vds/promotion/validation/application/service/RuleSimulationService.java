@@ -3,8 +3,9 @@ package vn.viettel.vds.promotion.validation.application.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.domain.entity.Rule;
-import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -41,7 +42,7 @@ public class RuleSimulationService {
 
         try {
             // Get rule or rule version
-            List<Rule.RuleNode> nodes;
+            List<RuleNode> nodes;
             Rule.LogicType rootLogic;
 
             if (version != null) {
@@ -110,22 +111,22 @@ public class RuleSimulationService {
         return new BatchSimulationResult(stats, results);
     }
 
-    private SimulationResult executeSimulation(List<Rule.RuleNode> nodes, Rule.LogicType rootLogic,
+    private SimulationResult executeSimulation(List<RuleNode> nodes, Rule.LogicType rootLogic,
                                                SimulationContext context, ExplainLevel explainLevel) {
         // Build node map for easy lookup
-        Map<String, Rule.RuleNode> nodeMap = nodes.stream()
-                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+        Map<String, RuleNode> nodeMap = nodes.stream()
+                .collect(Collectors.toMap(RuleNode::getId, node -> node));
 
         // Find root nodes (not referenced by any parent)
         Set<String> referencedNodes = nodes.stream()
                 .filter(node -> node.getChildren() != null)
                 .flatMap(node -> node.getChildren().stream()
-                        .map(Rule.RuleNode::getId)
+                        .map(RuleNode::getId)
                         .filter(id -> id != null))
                 .collect(Collectors.toSet());
 
         List<String> rootNodeIds = nodes.stream()
-                .map(Rule.RuleNode::getId)
+                .map(RuleNode::getId)
                 .filter(id -> !referencedNodes.contains(id))
                 .collect(Collectors.toList());
 
@@ -148,8 +149,8 @@ public class RuleSimulationService {
         return new SimulationResult(finalDecision, reasonCodes, explain);
     }
 
-    private NodeResult evaluateNode(String nodeId, Map<String, Rule.RuleNode> nodeMap, EvaluationContext context) {
-        Rule.RuleNode node = nodeMap.get(nodeId);
+    private NodeResult evaluateNode(String nodeId, Map<String, RuleNode> nodeMap, EvaluationContext context) {
+        RuleNode node = nodeMap.get(nodeId);
         if (node == null) {
             context.addExplanation("Node not found: " + nodeId);
             return new NodeResult(Decision.ERROR, List.of("NODE_NOT_FOUND"));
@@ -168,7 +169,7 @@ public class RuleSimulationService {
         }
     }
 
-    private NodeResult evaluateGroupNode(Rule.RuleNode node, Map<String, Rule.RuleNode> nodeMap, EvaluationContext context) {
+    private NodeResult evaluateGroupNode(RuleNode node, Map<String, RuleNode> nodeMap, EvaluationContext context) {
         if (node.getChildren() == null || node.getChildren().isEmpty()) {
             context.addExplanation("Group node has no children: " + node.getId());
             return new NodeResult(Decision.ERROR, List.of("EMPTY_GROUP"));
@@ -189,7 +190,7 @@ public class RuleSimulationService {
         return new NodeResult(groupDecision, reasonCodes);
     }
 
-    private NodeResult evaluateConditionNode(Rule.RuleNode node, EvaluationContext context) {
+    private NodeResult evaluateConditionNode(RuleNode node, EvaluationContext context) {
         try {
             // Simulate operator evaluation
             // In a real implementation, this would call the actual operator evaluation logic
@@ -214,7 +215,7 @@ public class RuleSimulationService {
         }
     }
 
-    private Decision simulateOperatorEvaluation(Rule.RuleNode node, SimulationContext context) {
+    private Decision simulateOperatorEvaluation(RuleNode node, SimulationContext context) {
         // This is a simplified simulation - in reality, this would involve
         // actual operator execution against the context data
 

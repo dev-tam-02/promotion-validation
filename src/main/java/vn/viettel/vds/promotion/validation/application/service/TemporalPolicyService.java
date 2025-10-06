@@ -10,7 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.TemporalPolicyPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.entity.TemporalPolicy;
+import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
+import vn.viettel.vds.promotion.validation.domain.model.TimeOfDayWindow;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -41,7 +42,7 @@ public class TemporalPolicyService {
      */
     public TemporalPolicy createTemporalPolicy(String tenantId, String name, String timezone,
                                                String rrule, List<String> rdate, String exrule,
-                                               List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
+                                               List<String> exdate, List<TimeOfDayWindow> timeWindows) {
         logger.info("Creating temporal policy: tenant={}, name={}", tenantId, name);
 
         // Check if policy with same name already exists
@@ -82,10 +83,13 @@ public class TemporalPolicyService {
      */
     public TemporalPolicy updateTemporalPolicy(String policyId, String name, String timezone,
                                                String rrule, List<String> rdate, String exrule,
-                                               List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
+                                               List<String> exdate, List<TimeOfDayWindow> timeWindows) {
         logger.info("Updating temporal policy: id={}", policyId);
 
         TemporalPolicy policy = getTemporalPolicyById(policyId);
+
+        // Use toBuilder() to create a mutable copy
+        TemporalPolicy.TemporalPolicyBuilder builder = policy.toBuilder();
 
         if (name != null) {
             // Check if new name conflicts with existing policy
@@ -94,36 +98,37 @@ public class TemporalPolicyService {
                 throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
                         "Temporal policy with name '" + name + "' already exists", 400));
             }
-            policy.setName(name);
+            builder.name(name);
         }
 
         if (timezone != null) {
             validateTimezone(timezone);
-            policy.setTz(timezone);
+            builder.tz(timezone);
         }
 
         if (rrule != null) {
             validateRRule(rrule);
-            policy.setRrule(rrule);
+            builder.rrule(rrule);
         }
 
         if (rdate != null) {
-            policy.setRdate(rdate);
+            builder.rdate(rdate);
         }
 
         if (exrule != null) {
-            policy.setExrule(exrule);
+            builder.exrule(exrule);
         }
 
         if (exdate != null) {
-            policy.setExdate(exdate);
+            builder.exdate(exdate);
         }
 
         if (timeWindows != null) {
-            policy.setTimeOfDayWindows(timeWindows);
+            builder.timeOfDayWindows(timeWindows);
         }
 
-        policy.setUpdatedAt(Instant.now());
+        builder.updatedAt(Instant.now());
+        policy = builder.build();
 
         TemporalPolicy saved = temporalPolicyPersistencePort.save(policy);
 
@@ -234,7 +239,7 @@ public class TemporalPolicyService {
             // Generate daily windows for the range
             ZonedDateTime current = start.toLocalDate().atStartOfDay(zoneId);
             while (current.isBefore(end)) {
-                for (TemporalPolicy.TimeOfDayWindow window : policy.getTimeOfDayWindows()) {
+                for (TimeOfDayWindow window : policy.getTimeOfDayWindows()) {
                     // Parse time strings (assumed format: HH:mm)
                     String[] startParts = window.getStart().split(":");
                     String[] endParts = window.getEnd().split(":");
@@ -268,7 +273,7 @@ public class TemporalPolicyService {
 
         ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone));
 
-        for (TemporalPolicy.TimeOfDayWindow window : policy.getTimeOfDayWindows()) {
+        for (TimeOfDayWindow window : policy.getTimeOfDayWindows()) {
             String[] startParts = window.getStart().split(":");
             String[] endParts = window.getEnd().split(":");
 
