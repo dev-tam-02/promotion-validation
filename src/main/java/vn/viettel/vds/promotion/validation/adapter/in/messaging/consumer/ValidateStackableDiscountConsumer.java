@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.in.messaging.consumer;
 
-import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,6 @@ import vn.viettel.vds.promotion.validation.application.port.in.dto.ValidateStack
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnPromixMongo
 public class ValidateStackableDiscountConsumer {
 
     private final ValidateStackableDiscountUseCase validateUseCase;

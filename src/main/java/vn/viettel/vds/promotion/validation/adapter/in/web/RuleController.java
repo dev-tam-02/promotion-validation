@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
-import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +31,6 @@ import java.util.Optional;
 @ResponseWrapper
 @RequestMapping("/v1/rules")
 @Tag(name = "Rules", description = "Rule management API")
-@ConditionalOnPromixMongo
 public class RuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleController.class);

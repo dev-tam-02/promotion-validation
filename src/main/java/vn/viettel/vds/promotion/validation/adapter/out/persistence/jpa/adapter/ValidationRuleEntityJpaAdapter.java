@@ -8,8 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity.ValidationRule;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
-import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +20,6 @@ import vn.viettel.vds.promotion.validation.application.service.ValidationSetting
 @ResponseWrapper
 @RequiredArgsConstructor
 @Slf4j
-@ConditionalOnPromixMongo
 public class ValidationSettingsController {
 
     private final ValidationSettingsService validationSettingsService;
