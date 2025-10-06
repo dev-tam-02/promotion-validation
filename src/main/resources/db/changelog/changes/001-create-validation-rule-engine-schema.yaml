@@ -1,0 +1,1490 @@
+databaseChangeLog:
+  # Core validation rules table
+  - changeSet:
+      id: 001-create-validation-rules-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: validation_rules
+            remarks: Validation rules with state management and versioning
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(100)
+                  remarks: Rule code identifier
+              - column:
+                  name: name
+                  type: varchar(200)
+                  remarks: Rule name
+                  constraints:
+                    nullable: false
+              - column:
+                  name: state
+                  type: varchar(20)
+                  remarks: Rule state (draft, published, archived)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rule_version
+                  type: bigint
+                  remarks: Rule version number
+                  constraints:
+                    nullable: false
+              - column:
+                  name: logic
+                  type: varchar(50)
+                  remarks: Root logic for rule evaluation
+              - column:
+                  name: dsl
+                  type: text
+                  remarks: DSL snapshot in JSON format
+              - column:
+                  name: published_at
+                  type: timestamp
+                  remarks: When rule was published
+              - column:
+                  name: published_by
+                  type: varchar(50)
+                  remarks: Who published the rule
+              - column:
+                  name: created_at
+                  type: timestamp
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  remarks: Last update timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(100)
+                  remarks: Creator
+              - column:
+                  name: updated_by
+                  type: varchar(100)
+                  remarks: Last updater
+
+        - createIndex:
+            indexName: idx_validation_rules_state_version
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: state
+              - column:
+                  name: rule_version
+                  descending: true
+
+        - createIndex:
+            indexName: idx_validation_rules_code
+            tableName: validation_rules
+            unique: true
+            columns:
+              - column:
+                  name: code
+
+  # Rule nodes table (tree structure)
+  - changeSet:
+      id: 001-create-rule-nodes-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_nodes
+            remarks: Rule nodes forming tree structure for complex rules
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: node_id
+                  type: varchar(100)
+                  remarks: Node identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(20)
+                  remarks: Node type (GROUP or COND)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: group_logic
+                  type: varchar(20)
+                  remarks: Logic for GROUP type (ALL, ANY, NONE)
+              - column:
+                  name: children_ids
+                  type: text
+                  remarks: JSON array of child node IDs
+              - column:
+                  name: node_order
+                  type: int
+                  remarks: Order of node in parent
+              - column:
+                  name: operator_name
+                  type: varchar(100)
+                  remarks: Operator name for COND type
+              - column:
+                  name: params
+                  type: text
+                  remarks: JSON parameters for operator
+              - column:
+                  name: reason_code
+                  type: varchar(100)
+                  remarks: Reason code for failed validation
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rule_nodes_validation_rule
+                    references: validation_rules(id)
+              - column:
+                  name: parent_id
+                  type: varchar(36)
+                  remarks: Self-referencing parent node
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_rule_nodes_validation_rule_id
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: validation_rule_id
+
+        - createIndex:
+            indexName: idx_rule_nodes_parent_id
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: parent_id
+
+        - createIndex:
+            indexName: idx_rule_nodes_node_order
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+
+        - addForeignKeyConstraint:
+            baseTableName: rule_nodes
+            baseColumnNames: parent_id
+            constraintName: fk_rule_nodes_parent
+            referencedTableName: rule_nodes
+            referencedColumnNames: id
+
+  # Rule usage limits
+  - changeSet:
+      id: 001-create-rule-usage-limits-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_usage_limits
+            remarks: Usage limits for validation rules
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_usage_limits_validation_rule
+                    references: validation_rules(id)
+              - column:
+                  name: per_code_total
+                  type: int
+                  remarks: Total usage limit per code
+              - column:
+                  name: per_customer
+                  type: int
+                  remarks: Usage limit per customer
+              - column:
+                  name: per_day
+                  type: int
+                  remarks: Daily usage limit
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  # Operators registry
+  - changeSet:
+      id: 001-create-operators-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: operators
+            remarks: Operator registry with JSON schemas
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(50)
+                  remarks: Tenant identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  remarks: Operator name
+                  constraints:
+                    nullable: false
+              - column:
+                  name: operator_version
+                  type: int
+                  remarks: Operator version
+                  constraints:
+                    nullable: false
+              - column:
+                  name: context
+                  type: varchar(100)
+                  remarks: Operator context (order, customer, time, etc.)
+              - column:
+                  name: json_schema
+                  type: text
+                  remarks: JSON Schema for operator parameters
+              - column:
+                  name: compiler_id
+                  type: varchar(100)
+                  remarks: Compiler template ID
+              - column:
+                  name: status
+                  type: varchar(20)
+                  remarks: Operator status (ACTIVE, DEPRECATED)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_operators_name_version
+            tableName: operators
+            unique: true
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: name
+              - column:
+                  name: operator_version
+
+        - createIndex:
+            indexName: idx_operators_context_status
+            tableName: operators
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: context
+              - column:
+                  name: status
+
+  # Temporal policies (RRULE-based time windows)
+  - changeSet:
+      id: 001-create-temporal-policies-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: temporal_policies
+            remarks: Temporal policies using RRULE format
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(50)
+                  remarks: Tenant identifier
+              - column:
+                  name: name
+                  type: varchar(200)
+                  remarks: Policy name
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tz
+                  type: varchar(50)
+                  remarks: Timezone
+              - column:
+                  name: start_ts
+                  type: timestamp
+                  remarks: Start timestamp
+              - column:
+                  name: end_ts
+                  type: timestamp
+                  remarks: End timestamp
+              - column:
+                  name: rrule
+                  type: varchar(1000)
+                  remarks: RRULE recurrence rule
+              - column:
+                  name: rdate
+                  type: text
+                  remarks: RDATE list as JSON
+              - column:
+                  name: exrule
+                  type: varchar(1000)
+                  remarks: EXRULE exclusion rule
+              - column:
+                  name: exdate
+                  type: text
+                  remarks: EXDATE list as JSON
+              - column:
+                  name: metadata
+                  type: text
+                  remarks: Additional metadata as JSON
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  # Temporal policy windows (time of day)
+  - changeSet:
+      id: 001-create-temporal-policy-windows-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: temporal_policy_windows
+            remarks: Time of day windows for temporal policies
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: temporal_policy_id
+                  type: varchar(36)
+                  remarks: Foreign key to temporal_policies
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_policy_windows_policy
+                    references: temporal_policies(id)
+              - column:
+                  name: start_time
+                  type: time
+                  remarks: Window start time
+              - column:
+                  name: end_time
+                  type: time
+                  remarks: Window end time
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_policy_windows_policy_id
+            tableName: temporal_policy_windows
+            columns:
+              - column:
+                  name: temporal_policy_id
+
+  # Time exceptions
+  - changeSet:
+      id: 001-create-time-exceptions-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: time_exceptions
+            remarks: Time exceptions for temporal policies
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: temporal_policy_id
+                  type: varchar(36)
+                  remarks: Foreign key to temporal_policies
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_time_exceptions_policy
+                    references: temporal_policies(id)
+              - column:
+                  name: from_ts
+                  type: timestamp
+                  remarks: Exception start time
+              - column:
+                  name: to_ts
+                  type: timestamp
+                  remarks: Exception end time
+              - column:
+                  name: mode
+                  type: varchar(20)
+                  remarks: Exception mode (ALLOW, DENY)
+              - column:
+                  name: reason
+                  type: varchar(500)
+                  remarks: Exception reason
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_time_exceptions_policy_id
+            tableName: time_exceptions
+            columns:
+              - column:
+                  name: temporal_policy_id
+
+  # Rule temporal links
+  - changeSet:
+      id: 001-create-rule-temporal-links-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_temporal_links
+            remarks: Links between rules and temporal policies
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_temporal_links_rule
+                    references: validation_rules(id)
+              - column:
+                  name: temporal_policy_id
+                  type: varchar(36)
+                  remarks: Foreign key to temporal_policies
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_temporal_links_policy
+                    references: temporal_policies(id)
+              - column:
+                  name: mode
+                  type: varchar(20)
+                  remarks: Link mode (ALLOW, DENY)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_temporal_links_rule_id
+            tableName: rule_temporal_links
+            columns:
+              - column:
+                  name: validation_rule_id
+
+        - createIndex:
+            indexName: idx_temporal_links_policy_id
+            tableName: rule_temporal_links
+            columns:
+              - column:
+                  name: temporal_policy_id
+
+  # Rule assignments
+  - changeSet:
+      id: 001-create-rule-assignments-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_assignments
+            remarks: Assignment of rules to subjects (vouchers, campaigns, etc.)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_assignments_rule
+                    references: validation_rules(id)
+              - column:
+                  name: subject_type
+                  type: varchar(50)
+                  remarks: Subject type (voucher, campaign, tier, reward)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_key
+                  type: varchar(255)
+                  remarks: Subject identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignment_version
+                  type: int
+                  remarks: Assignment version
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: boolean
+                  remarks: Whether assignment is active
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_from
+                  type: timestamp
+                  remarks: Assignment validity start
+              - column:
+                  name: valid_to
+                  type: timestamp
+                  remarks: Assignment validity end
+              - column:
+                  name: traffic_percent
+                  type: int
+                  remarks: Traffic percentage for canary rollout
+                  defaultValueNumeric: 100
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_assignments_subject
+            tableName: rule_assignments
+            columns:
+              - column:
+                  name: subject_type
+              - column:
+                  name: subject_key
+              - column:
+                  name: active
+
+        - createIndex:
+            indexName: idx_assignments_rule_version
+            tableName: rule_assignments
+            columns:
+              - column:
+                  name: validation_rule_id
+              - column:
+                  name: assignment_version
+                  descending: true
+
+  # Rule bundles (compiled artifacts)
+  - changeSet:
+      id: 001-create-rule-bundles-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_bundles
+            remarks: Immutable compiled rule bundles (Drools KieModule)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bundles_rule
+                    references: validation_rules(id)
+              - column:
+                  name: bundle_hash
+                  type: varchar(255)
+                  remarks: Immutable bundle hash (SHA256)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: subject_type
+                  type: varchar(50)
+                  remarks: Subject type
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_key
+                  type: varchar(255)
+                  remarks: Subject identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rule_version
+                  type: bigint
+                  remarks: Rule version
+                  constraints:
+                    nullable: false
+              - column:
+                  name: assignment_version
+                  type: int
+                  remarks: Assignment version
+                  constraints:
+                    nullable: false
+              - column:
+                  name: kie_module_bytes
+                  type: longblob
+                  remarks: Compiled Drools KieModule bytes
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_bundles_subject_versions
+            tableName: rule_bundles
+            columns:
+              - column:
+                  name: subject_type
+              - column:
+                  name: subject_key
+              - column:
+                  name: rule_version
+                  descending: true
+              - column:
+                  name: assignment_version
+                  descending: true
+
+  # Resources (external data sources)
+  - changeSet:
+      id: 001-create-resources-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: resources
+            remarks: External resources for selector options
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: label
+                  type: varchar(255)
+                  remarks: Resource label
+              - column:
+                  name: endpoint
+                  type: varchar(500)
+                  remarks: API endpoint URL
+              - column:
+                  name: method
+                  type: varchar(20)
+                  remarks: HTTP method
+              - column:
+                  name: auth_method
+                  type: varchar(50)
+                  remarks: Authentication method
+              - column:
+                  name: auth_config
+                  type: varchar(500)
+                  remarks: Auth configuration reference
+              - column:
+                  name: headers
+                  type: text
+                  remarks: HTTP headers as JSON
+              - column:
+                  name: field_key
+                  type: varchar(100)
+                  remarks: Key field name
+              - column:
+                  name: field_value
+                  type: varchar(100)
+                  remarks: Value field name
+              - column:
+                  name: timeout_seconds
+                  type: int
+                  remarks: Timeout in seconds
+              - column:
+                  name: retry_count
+                  type: int
+                  remarks: Retry count
+              - column:
+                  name: backoff_ms
+                  type: int
+                  remarks: Backoff milliseconds
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  # Operator resources
+  - changeSet:
+      id: 001-create-operator-resources-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: operator_resources
+            remarks: Link between operators and resources
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: operator_name
+                  type: varchar(100)
+                  remarks: Operator name
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_id
+                  type: varchar(36)
+                  remarks: Foreign key to resources
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_operator_resources_resource
+                    references: resources(id)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_operator_resources_operator
+            tableName: operator_resources
+            columns:
+              - column:
+                  name: operator_name
+
+        - createIndex:
+            indexName: idx_operator_resources_resource
+            tableName: operator_resources
+            columns:
+              - column:
+                  name: resource_id
+
+  # Operator registry
+  - changeSet:
+      id: 001-create-operator-registry-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: operator_registry
+            remarks: Registry of available operators with contexts
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: operator_id
+                  type: varchar(100)
+                  remarks: Operator unique identifier
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: context
+                  type: varchar(100)
+                  remarks: Operator context
+              - column:
+                  name: json_schema
+                  type: text
+                  remarks: JSON Schema for parameters
+              - column:
+                  name: compiler_id
+                  type: varchar(100)
+                  remarks: Compiler template ID
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_operator_registry_context
+            tableName: operator_registry
+            columns:
+              - column:
+                  name: context
+
+  # Reason codes
+  - changeSet:
+      id: 001-create-reason-codes-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: reason_codes
+            remarks: Reason codes for validation failures
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(100)
+                  remarks: Reason code
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: description
+                  type: varchar(500)
+                  remarks: Code description
+              - column:
+                  name: message_template
+                  type: varchar(1000)
+                  remarks: Message template
+              - column:
+                  name: category
+                  type: varchar(50)
+                  remarks: Category for grouping
+              - column:
+                  name: severity
+                  type: varchar(20)
+                  remarks: Severity level
+              - column:
+                  name: active
+                  type: boolean
+                  remarks: Whether code is active
+                  defaultValueBoolean: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_reason_codes_category
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: category
+
+  # Audit logs
+  - changeSet:
+      id: 001-create-admin-audit-logs-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: admin_audit_logs
+            remarks: Audit logs for rule management actions
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: varchar(100)
+                  remarks: Entity type (Rule, Operator, Assignment, etc.)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_id
+                  type: varchar(100)
+                  remarks: Entity identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: varchar(50)
+                  remarks: Action performed
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: varchar(100)
+                  remarks: User who performed action
+                  constraints:
+                    nullable: false
+              - column:
+                  name: details
+                  type: text
+                  remarks: Action details as JSON
+              - column:
+                  name: snapshot_before
+                  type: text
+                  remarks: Entity state before action
+              - column:
+                  name: snapshot_after
+                  type: text
+                  remarks: Entity state after action
+              - column:
+                  name: timestamp
+                  type: timestamp
+                  remarks: When action occurred
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_audit_logs_entity
+            tableName: admin_audit_logs
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_id
+
+        - createIndex:
+            indexName: idx_audit_logs_timestamp
+            tableName: admin_audit_logs
+            columns:
+              - column:
+                  name: timestamp
+                  descending: true
+
+        - createIndex:
+            indexName: idx_audit_logs_actor
+            tableName: admin_audit_logs
+            columns:
+              - column:
+                  name: actor_id
+
+  # Publish jobs
+  - changeSet:
+      id: 001-create-publish-jobs-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: publish_jobs
+            remarks: Asynchronous publish job tracking
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_publish_jobs_rule
+                    references: validation_rules(id)
+              - column:
+                  name: status
+                  type: varchar(50)
+                  remarks: Job status (PENDING, RUNNING, COMPLETED, FAILED)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: initiated_by
+                  type: varchar(100)
+                  remarks: User who initiated publish
+                  constraints:
+                    nullable: false
+              - column:
+                  name: error_message
+                  type: text
+                  remarks: Error message if failed
+              - column:
+                  name: started_at
+                  type: timestamp
+                  remarks: When job started
+              - column:
+                  name: completed_at
+                  type: timestamp
+                  remarks: When job completed
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_publish_jobs_status
+            tableName: publish_jobs
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            indexName: idx_publish_jobs_rule_id
+            tableName: publish_jobs
+            columns:
+              - column:
+                  name: validation_rule_id
+
+  # Rule versions
+  - changeSet:
+      id: 001-create-rule-versions-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_versions
+            remarks: Historical versions of rules
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rule_versions_rule
+                    references: validation_rules(id)
+              - column:
+                  name: version_number
+                  type: bigint
+                  remarks: Version number
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot
+                  type: text
+                  remarks: Complete rule snapshot as JSON
+                  constraints:
+                    nullable: false
+              - column:
+                  name: change_summary
+                  type: varchar(1000)
+                  remarks: Summary of changes
+              - column:
+                  name: created_by
+                  type: varchar(100)
+                  remarks: Who created this version
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_rule_versions_rule_version
+            tableName: rule_versions
+            unique: true
+            columns:
+              - column:
+                  name: validation_rule_id
+              - column:
+                  name: version_number
+                  descending: true
+
+  # Assignments (alternative structure)
+  - changeSet:
+      id: 001-create-assignments-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: assignments
+            remarks: Alternative assignment structure
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: varchar(100)
+                  remarks: Entity type
+              - column:
+                  name: entity_id
+                  type: varchar(100)
+                  remarks: Entity identifier
+              - column:
+                  name: rule_id
+                  type: varchar(100)
+                  remarks: Rule identifier
+              - column:
+                  name: priority
+                  type: int
+                  remarks: Assignment priority
+              - column:
+                  name: active
+                  type: boolean
+                  remarks: Whether assignment is active
+                  defaultValueBoolean: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_assignments_entity
+            tableName: assignments
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_id
+
+  # Rule assignment subjects
+  - changeSet:
+      id: 001-create-rule-assignment-subjects-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_assignment_subjects
+            remarks: Subjects for rule assignments
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rule_assignment_id
+                  type: varchar(36)
+                  remarks: Foreign key to rule_assignments
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_assignment_subjects_assignment
+                    references: rule_assignments(id)
+              - column:
+                  name: subject_type
+                  type: varchar(50)
+                  remarks: Subject type
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject_key
+                  type: varchar(255)
+                  remarks: Subject identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_assignment_subjects_assignment
+            tableName: rule_assignment_subjects
+            columns:
+              - column:
+                  name: rule_assignment_id
+
+  # Rule time frames
+  - changeSet:
+      id: 001-create-rule-time-frames-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_time_frames
+            remarks: Time frames for rules
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_rule_time_frames_rule
+                    references: validation_rules(id)
+              - column:
+                  name: start_time
+                  type: timestamp
+                  remarks: Frame start time
+              - column:
+                  name: end_time
+                  type: timestamp
+                  remarks: Frame end time
+              - column:
+                  name: timezone
+                  type: varchar(50)
+                  remarks: Timezone
+              - column:
+                  name: recurrence_rule
+                  type: varchar(1000)
+                  remarks: Recurrence rule
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_rule_time_frames_rule_id
+            tableName: rule_time_frames
+            columns:
+              - column:
+                  name: validation_rule_id
+
+  # Time links
+  - changeSet:
+      id: 001-create-time-links-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: time_links
+            remarks: Links between entities and time frames
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: varchar(100)
+                  remarks: Entity type
+              - column:
+                  name: entity_id
+                  type: varchar(100)
+                  remarks: Entity identifier
+              - column:
+                  name: time_frame_id
+                  type: varchar(100)
+                  remarks: Time frame identifier
+              - column:
+                  name: link_mode
+                  type: varchar(20)
+                  remarks: Link mode (ALLOW, DENY)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_time_links_entity
+            tableName: time_links
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_id
+
+  # Additional table for RuleJpaEntity (validation_rules alternative structure)
+  - changeSet:
+      id: 001-create-rule-configuration-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_configuration
+            remarks: Configuration key-value pairs for rules (from RuleJpaEntity)
+            columns:
+              - column:
+                  name: rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+              - column:
+                  name: config_key
+                  type: varchar(255)
+                  remarks: Configuration key
+                  constraints:
+                    nullable: false
+              - column:
+                  name: config_value
+                  type: text
+                  remarks: Configuration value
+
+        - addPrimaryKey:
+            tableName: rule_configuration
+            columnNames: rule_id, config_key
+            constraintName: pk_rule_configuration
+
+  # Rule target segments
+  - changeSet:
+      id: 001-create-rule-target-segments-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_target_segments
+            remarks: Target segments for rules
+            columns:
+              - column:
+                  name: rule_id
+                  type: varchar(36)
+                  remarks: Foreign key to validation_rules
+                  constraints:
+                    nullable: false
+              - column:
+                  name: segment
+                  type: varchar(255)
+                  remarks: Segment identifier
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            tableName: rule_target_segments
+            columnNames: rule_id, segment
+            constraintName: pk_rule_target_segments

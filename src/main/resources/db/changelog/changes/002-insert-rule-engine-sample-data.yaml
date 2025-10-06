@@ -1,0 +1,666 @@
+databaseChangeLog:
+  # Sample operators
+  - changeSet:
+      id: 002-insert-sample-operators
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: operators
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0001-7000-8000-000000000001
+              - column:
+                  name: tenant_id
+                  value: default
+              - column:
+                  name: name
+                  value: order.total.gte
+              - column:
+                  name: operator_version
+                  valueNumeric: 1
+              - column:
+                  name: context
+                  value: order
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","properties":{"amount":{"type":"number"},"currency":{"type":"string"}},"required":["amount"]}'
+              - column:
+                  name: compiler_id
+                  value: tpl_order_total_gte_v1
+              - column:
+                  name: status
+                  value: ACTIVE
+              - column:
+                  name: created_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: updated_at
+                  valueDate: 2025-01-01T00:00:00
+
+        - insert:
+            tableName: operators
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0001-7000-8000-000000000002
+              - column:
+                  name: tenant_id
+                  value: default
+              - column:
+                  name: name
+                  value: customer.in_segment
+              - column:
+                  name: operator_version
+                  valueNumeric: 1
+              - column:
+                  name: context
+                  value: customer
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","properties":{"segments":{"type":"array","items":{"type":"string"}}},"required":["segments"]}'
+              - column:
+                  name: compiler_id
+                  value: tpl_customer_segment_v1
+              - column:
+                  name: status
+                  value: ACTIVE
+              - column:
+                  name: created_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: updated_at
+                  valueDate: 2025-01-01T00:00:00
+
+        - insert:
+            tableName: operators
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0001-7000-8000-000000000003
+              - column:
+                  name: tenant_id
+                  value: default
+              - column:
+                  name: name
+                  value: time.window.active
+              - column:
+                  name: operator_version
+                  valueNumeric: 1
+              - column:
+                  name: context
+                  value: time
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","properties":{"policyId":{"type":"string"},"tz":{"type":"string"}},"required":["policyId"]}'
+              - column:
+                  name: compiler_id
+                  value: tpl_time_window_v1
+              - column:
+                  name: status
+                  value: ACTIVE
+              - column:
+                  name: created_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: updated_at
+                  valueDate: 2025-01-01T00:00:00
+
+  # Sample temporal policies
+  - changeSet:
+      id: 002-insert-sample-temporal-policies
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: temporal_policies
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0002-7000-8000-000000000001
+              - column:
+                  name: tenant_id
+                  value: default
+              - column:
+                  name: name
+                  value: Weekend Mornings
+              - column:
+                  name: tz
+                  value: Asia/Bangkok
+              - column:
+                  name: rrule
+                  value: FREQ=WEEKLY;BYDAY=SA,SU;BYHOUR=9,10,11;BYMINUTE=0;BYSECOND=0
+              - column:
+                  name: rdate
+                  value: '[]'
+              - column:
+                  name: exdate
+                  value: '["2025-10-20T09:00:00+07:00"]'
+              - column:
+                  name: metadata
+                  value: '{}'
+
+        - insert:
+            tableName: temporal_policies
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0002-7000-8000-000000000002
+              - column:
+                  name: tenant_id
+                  value: default
+              - column:
+                  name: name
+                  value: Business Hours
+              - column:
+                  name: tz
+                  value: Asia/Bangkok
+              - column:
+                  name: rrule
+                  value: FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16,17;BYMINUTE=0;BYSECOND=0
+              - column:
+                  name: rdate
+                  value: '[]'
+              - column:
+                  name: exdate
+                  value: '[]'
+              - column:
+                  name: metadata
+                  value: '{}'
+
+  # Sample temporal policy windows
+  - changeSet:
+      id: 002-insert-sample-policy-windows
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: temporal_policy_windows
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0003-7000-8000-000000000001
+              - column:
+                  name: temporal_policy_id
+                  value: 01932b6f-0002-7000-8000-000000000001
+              - column:
+                  name: start_time
+                  value: 09:00:00
+              - column:
+                  name: end_time
+                  value: 12:00:00
+
+        - insert:
+            tableName: temporal_policy_windows
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0003-7000-8000-000000000002
+              - column:
+                  name: temporal_policy_id
+                  value: 01932b6f-0002-7000-8000-000000000002
+              - column:
+                  name: start_time
+                  value: 09:00:00
+              - column:
+                  name: end_time
+                  value: 17:00:00
+
+  # Sample reason codes
+  - changeSet:
+      id: 002-insert-sample-reason-codes
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0004-7000-8000-000000000001
+              - column:
+                  name: code
+                  value: ORDER_TOTAL_MIN
+              - column:
+                  name: description
+                  value: Order total does not meet minimum requirement
+              - column:
+                  name: message_template
+                  value: Order total must be at least {amount} {currency}
+              - column:
+                  name: category
+                  value: ORDER_VALIDATION
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: active
+                  valueBoolean: true
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0004-7000-8000-000000000002
+              - column:
+                  name: code
+                  value: AUDIENCE_SEGMENT
+              - column:
+                  name: description
+                  value: Customer not in target segment
+              - column:
+                  name: message_template
+                  value: This promotion is only available for {segments} customers
+              - column:
+                  name: category
+                  value: CUSTOMER_VALIDATION
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: active
+                  valueBoolean: true
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0004-7000-8000-000000000003
+              - column:
+                  name: code
+                  value: TIME_WINDOW
+              - column:
+                  name: description
+                  value: Outside valid time window
+              - column:
+                  name: message_template
+                  value: Promotion is not active at this time
+              - column:
+                  name: category
+                  value: TIME_VALIDATION
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: active
+                  valueBoolean: true
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0004-7000-8000-000000000004
+              - column:
+                  name: code
+                  value: META_MATCH
+              - column:
+                  name: description
+                  value: Metadata does not match required criteria
+              - column:
+                  name: message_template
+                  value: {field} must be {value}
+              - column:
+                  name: category
+                  value: METADATA_VALIDATION
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: active
+                  valueBoolean: true
+
+  # Sample validation rule
+  - changeSet:
+      id: 002-insert-sample-validation-rules
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: code
+                  value: WEEKEND_VIP_500K
+              - column:
+                  name: name
+                  value: Weekend VIP ≥500k, HCM express
+              - column:
+                  name: state
+                  value: published
+              - column:
+                  name: rule_version
+                  valueNumeric: 1
+              - column:
+                  name: logic
+                  value: ALL
+              - column:
+                  name: dsl
+                  value: '{}'
+              - column:
+                  name: published_at
+                  valueDate: 2025-01-01T10:00:00
+              - column:
+                  name: published_by
+                  value: admin
+              - column:
+                  name: created_by
+                  value: admin
+              - column:
+                  name: updated_by
+                  value: admin
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0005-7000-8000-000000000002
+              - column:
+                  name: code
+                  value: BUSINESS_HOURS_PROMO
+              - column:
+                  name: name
+                  value: Business Hours Promotion
+              - column:
+                  name: state
+                  value: draft
+              - column:
+                  name: rule_version
+                  valueNumeric: 1
+              - column:
+                  name: logic
+                  value: ALL
+              - column:
+                  name: dsl
+                  value: '{}'
+              - column:
+                  name: created_by
+                  value: admin
+              - column:
+                  name: updated_by
+                  value: admin
+
+  # Sample rule nodes for first rule
+  - changeSet:
+      id: 002-insert-sample-rule-nodes
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000001
+              - column:
+                  name: node_id
+                  value: n1
+              - column:
+                  name: type
+                  value: GROUP
+              - column:
+                  name: group_logic
+                  value: ALL
+              - column:
+                  name: children_ids
+                  value: '["n2","n3","n4"]'
+              - column:
+                  name: node_order
+                  valueNumeric: 0
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000002
+              - column:
+                  name: node_id
+                  value: n2
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: time.window.active
+              - column:
+                  name: params
+                  value: '{"policyId":"01932b6f-0002-7000-8000-000000000001","tz":"Asia/Bangkok"}'
+              - column:
+                  name: reason_code
+                  value: TIME_WINDOW
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000001
+
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000003
+              - column:
+                  name: node_id
+                  value: n3
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: order.total.gte
+              - column:
+                  name: params
+                  value: '{"amount":500000,"currency":"VND"}'
+              - column:
+                  name: reason_code
+                  value: ORDER_TOTAL_MIN
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000001
+
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000004
+              - column:
+                  name: node_id
+                  value: n4
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: customer.in_segment
+              - column:
+                  name: params
+                  value: '{"segments":["VIP"]}'
+              - column:
+                  name: reason_code
+                  value: AUDIENCE_SEGMENT
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000001
+
+  # Sample rule usage limits
+  - changeSet:
+      id: 002-insert-sample-usage-limits
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: rule_usage_limits
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0007-7000-8000-000000000001
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: per_code_total
+                  valueNumeric: 1000
+              - column:
+                  name: per_customer
+                  valueNumeric: 3
+              - column:
+                  name: per_day
+                  valueNumeric: 200
+
+  # Sample rule temporal link
+  - changeSet:
+      id: 002-insert-sample-temporal-links
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: rule_temporal_links
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0008-7000-8000-000000000001
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: temporal_policy_id
+                  value: 01932b6f-0002-7000-8000-000000000001
+              - column:
+                  name: mode
+                  value: ALLOW
+
+  # Sample rule assignment
+  - changeSet:
+      id: 002-insert-sample-assignments
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: rule_assignments
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0009-7000-8000-000000000001
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000001
+              - column:
+                  name: subject_type
+                  value: voucher
+              - column:
+                  name: subject_key
+                  value: SAVE20
+              - column:
+                  name: assignment_version
+                  valueNumeric: 1
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: valid_from
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: valid_to
+                  valueDate: 2025-12-31T23:59:59
+              - column:
+                  name: traffic_percent
+                  valueNumeric: 100
+
+  # Sample resources
+  - changeSet:
+      id: 002-insert-sample-resources
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: resources
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-000a-7000-8000-000000000001
+              - column:
+                  name: label
+                  value: CDP Segments
+              - column:
+                  name: endpoint
+                  value: https://cdp.example.com/api/segments
+              - column:
+                  name: method
+                  value: GET
+              - column:
+                  name: auth_method
+                  value: bearer
+              - column:
+                  name: auth_config
+                  value: secret/cdp-token
+              - column:
+                  name: headers
+                  value: '{"Accept":"application/json"}'
+              - column:
+                  name: field_key
+                  value: id
+              - column:
+                  name: field_value
+                  value: name
+              - column:
+                  name: timeout_seconds
+                  valueNumeric: 5
+              - column:
+                  name: retry_count
+                  valueNumeric: 2
+              - column:
+                  name: backoff_ms
+                  valueNumeric: 200
+
+  # Sample operator registry
+  - changeSet:
+      id: 002-insert-sample-operator-registry
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: operator_registry
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-000b-7000-8000-000000000001
+              - column:
+                  name: operator_id
+                  value: order.total.gte
+              - column:
+                  name: context
+                  value: order
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","properties":{"amount":{"type":"number"},"currency":{"type":"string"}},"required":["amount"]}'
+              - column:
+                  name: compiler_id
+                  value: tpl_order_total_gte_v1
+
+        - insert:
+            tableName: operator_registry
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-000b-7000-8000-000000000002
+              - column:
+                  name: operator_id
+                  value: customer.in_segment
+              - column:
+                  name: context
+                  value: customer
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","properties":{"segments":{"type":"array","items":{"type":"string"}}},"required":["segments"]}'
+              - column:
+                  name: compiler_id
+                  value: tpl_customer_segment_v1

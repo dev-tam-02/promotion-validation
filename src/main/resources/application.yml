@@ -34,10 +34,7 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
-    default-schema: validation
     drop-first: false
-    contexts: dev,test
-    labels: validation-schema,sample-data
 
 # Server Configuration
 server:
@@ -250,6 +247,10 @@ kafka:
 logging:
   level:
     root: INFO
+    # Enable DEBUG for Liquibase to see migration logs
+    liquibase: INFO
+    liquibase.changelog: DEBUG
+    liquibase.executor: DEBUG
     # Enable DEBUG for Outbox Scheduler to see batch job execution logs
     com.promix.platform.outbox.autoconfigure.OutboxSchedulerConfiguration: DEBUG
     # Enable DEBUG for Spring Batch to see job execution details
