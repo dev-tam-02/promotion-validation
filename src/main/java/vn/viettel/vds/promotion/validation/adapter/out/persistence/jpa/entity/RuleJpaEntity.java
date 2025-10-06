@@ -57,9 +57,11 @@ public class RuleJpaEntity {
     private String state;
 
     @Column(name = "active")
+    @Builder.Default
     private Boolean active = true;
 
     @Column(name = "priority")
+    @Builder.Default
     private Integer priority = 100;
 
     @Column(name = "latest_version")
@@ -75,6 +77,7 @@ public class RuleJpaEntity {
     )
     @MapKeyColumn(name = "config_key")
     @Column(name = "config_value", columnDefinition = "TEXT")
+    @Builder.Default
     private Map<String, String> configuration = new HashMap<>();
 
     @ElementCollection
@@ -83,6 +86,7 @@ public class RuleJpaEntity {
             joinColumns = @JoinColumn(name = "rule_id")
     )
     @Column(name = "segment")
+    @Builder.Default
     private List<String> targetSegments = new ArrayList<>();
 
     @Column(name = "campaign_id")

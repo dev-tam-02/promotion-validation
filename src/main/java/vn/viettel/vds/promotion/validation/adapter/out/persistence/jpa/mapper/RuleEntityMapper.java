@@ -11,12 +11,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * MapStruct mapper for converting between RuleJpaEntity (persistence) and Rule (domain).
+ *
+ * <p>Mapping Notes:</p>
+ * <ul>
+ *   <li><strong>ruleVersion, publishedAt, publishedBy</strong>: These fields exist in the domain model
+ *       but are not persisted in the RuleJpaEntity table. They are managed separately in a rule_versions
+ *       table or versioning system.</li>
+ *   <li><strong>nodes</strong>: Rule node tree structure is stored in a separate rule_nodes table and
+ *       loaded via dedicated services, not through this basic entity mapping.</li>
+ *   <li><strong>limits</strong>: Dynamic limits are calculated from configuration or stored elsewhere,
+ *       not in the main rules table.</li>
+ *   <li><strong>version (JPA)</strong>: The JPA @Version field for optimistic locking is different from
+ *       the domain's latestVersion field which tracks business version numbers.</li>
+ * </ul>
+ */
 @Mapper(componentModel = "spring")
 public interface RuleEntityMapper {
 
     @Mapping(target = "dsl", source = "configuration", qualifiedByName = "stringMapToObjectMap")
     @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
+    @Mapping(target = "ruleVersion", ignore = true)  // Stored in separate rule_versions table
+    @Mapping(target = "publishedAt", ignore = true)  // Stored in separate rule_versions table
+    @Mapping(target = "publishedBy", ignore = true)  // Stored in separate rule_versions table
+    @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
+    @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
     Rule toDomain(RuleJpaEntity entity);
 
     @Mapping(target = "configuration", source = "dsl", qualifiedByName = "objectMapToStringMap")
