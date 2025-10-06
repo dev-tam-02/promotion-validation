@@ -6,10 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.ValidationRuleRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity.ValidationRule;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Rule;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.entity.ValidationRule;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,15 +25,15 @@ public class RulePublishingService {
     private static final Logger logger = LoggerFactory.getLogger(RulePublishingService.class);
 
     private final ValidationEngineClient validationEngineClient;
-    private final RuleRepository ruleRepository;
-    private final ValidationRuleRepository validationRuleRepository;
+    private final RulePersistencePort rulePersistencePort;
+    private final ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
-                               RuleRepository ruleRepository,
-                               ValidationRuleRepository validationRuleRepository) {
+                                 RulePersistencePort rulePersistencePort,
+                                 ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort) {
         this.validationEngineClient = validationEngineClient;
-        this.ruleRepository = ruleRepository;
-        this.validationRuleRepository = validationRuleRepository;
+        this.rulePersistencePort = rulePersistencePort;
+        this.validationRuleEntityPersistencePort = validationRuleEntityPersistencePort;
     }
 
     public RulePublishResult publishRule(String tenantId, String ruleId) {
@@ -41,8 +41,8 @@ public class RulePublishingService {
 
         try {
             // Find the rule to publish
-            Rule rule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Validate rule before publishing
             validateRuleForPublishing(rule);
@@ -56,7 +56,7 @@ public class RulePublishingService {
             }
 
             // Warm up the compiled bundle
-            warmupBundle(compileResponse);
+            warmup(compileResponse);
 
             // Verify the bundle is working
             boolean verificationResult = verifyRuleExecution(rule, compileResponse.getBundleHash());
@@ -73,11 +73,11 @@ public class RulePublishingService {
             // rule.setArtifactSize(compileResponse.getArtifactSize());
             rule.setUpdatedAt(Instant.now());
 
-            ruleRepository.save(rule);
+            rulePersistencePort.save(rule);
 
             // Create ValidationRule from published Rule for SettingValidationRuleCommandHandler
             ValidationRule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
-            validationRuleRepository.save(validationRule);
+            validationRuleEntityPersistencePort.save(validationRule);
 
             logger.info("Rule published successfully: ruleId={}, bundleHash={}, validationRuleId={}",
                     ruleId, compileResponse.getBundleHash(), validationRule.getId());
@@ -113,9 +113,9 @@ public class RulePublishingService {
         }
 
         logger.info("Batch publishing completed: total={}, successful={}, failed={}",
-                   results.size(),
-                   results.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum(),
-                   results.stream().mapToLong(r -> r.isSuccess() ? 0 : 1).sum());
+                results.size(),
+                results.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum(),
+                results.stream().mapToLong(r -> r.isSuccess() ? 0 : 1).sum());
 
         return results;
     }
@@ -124,8 +124,8 @@ public class RulePublishingService {
         logger.info("Unpublishing rule: tenantId={}, ruleId={}", tenantId, ruleId);
 
         try {
-            Rule rule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (rule.getState() != Rule.RuleState.PUBLISHED) {
                 return RulePublishResult.failed(ruleId, "Rule is not published, cannot unpublish");
@@ -137,7 +137,7 @@ public class RulePublishingService {
             // rule.setBundleHash(null);
             rule.setUpdatedAt(Instant.now());
 
-            ruleRepository.save(rule);
+            rulePersistencePort.save(rule);
 
             logger.info("Rule unpublished successfully: ruleId={}", ruleId);
             return RulePublishResult.success(ruleId, null, 0L);
@@ -150,8 +150,8 @@ public class RulePublishingService {
 
     public RuleDeploymentStatus getDeploymentStatus(String tenantId, String ruleId) {
         try {
-            Rule rule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (rule.getState() != Rule.RuleState.PUBLISHED) {
                 return new RuleDeploymentStatus(ruleId, "NOT_DEPLOYED", false, null);
@@ -160,10 +160,10 @@ public class RulePublishingService {
             // Note: bundleHash not available in current entity, would need to enhance model
             // For now, assume deployed if published
             return new RuleDeploymentStatus(
-                ruleId,
-                "DEPLOYED",
-                true,
-                null // bundleHash not available
+                    ruleId,
+                    "DEPLOYED",
+                    true,
+                    null // bundleHash not available
             );
 
         } catch (Exception e) {
@@ -219,7 +219,7 @@ public class RulePublishingService {
         compileRequest.setNodes(nodeDtos);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
 
-        return validationEngineClient.compileRule(compileRequest);
+        return validationEngineClient.compile(compileRequest);
     }
 
     private List<RuleNodeDto> convertToNodeDtos(List<Rule.RuleNode> nodes) {
@@ -257,22 +257,22 @@ public class RulePublishingService {
         for (Rule.RuleNode node : nodes) {
             if (node.getOperatorName() != null) {
                 fingerprint.append(node.getOperatorName())
-                          .append(":")
-                          .append("latest") // operatorVersion not available in current model
-                          .append(";");
+                        .append(":")
+                        .append("latest") // operatorVersion not available in current model
+                        .append(";");
             }
         }
         return fingerprint.toString();
     }
 
-    private void warmupBundle(CompileResponse compileResponse) {
+    private void warmup(CompileResponse compileResponse) {
         if (compileResponse.getArtifactBytes() != null) {
             WarmupRequest warmupRequest = new WarmupRequest(
-                compileResponse.getBundleHash(),
-                compileResponse.getArtifactBytes()
+                    compileResponse.getBundleHash(),
+                    compileResponse.getArtifactBytes()
             );
 
-            validationEngineClient.warmupBundle(warmupRequest);
+            validationEngineClient.warmup(warmupRequest);
             logger.debug("Bundle warmed up: bundleHash={}", compileResponse.getBundleHash());
         }
     }
@@ -281,13 +281,13 @@ public class RulePublishingService {
         try {
             // Create a simple test execution to verify the rule works
             ExecuteRequest testRequest = createTestExecuteRequest(rule, bundleHash);
-            ExecuteResponse response = validationEngineClient.executeRule(testRequest);
+            ExecuteResponse response = validationEngineClient.execute(testRequest);
 
             boolean isValid = response.isOk() &&
-                            (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
+                    (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
 
             logger.debug("Rule verification completed: ruleId={}, valid={}, decision={}",
-                        rule.getId(), isValid, response.getDecision());
+                    rule.getId(), isValid, response.getDecision());
 
             return isValid;
 
@@ -349,9 +349,9 @@ public class RulePublishingService {
         if (rule.getLimits() != null) {
             Map<String, Object> limitsMap = rule.getLimits();
             ValidationRule.UsageLimits limits = new ValidationRule.UsageLimits(
-                (Integer) limitsMap.get("perCodeTotal"),
-                (Integer) limitsMap.get("perCustomer"),
-                (Integer) limitsMap.get("perDay")
+                    (Integer) limitsMap.get("perCodeTotal"),
+                    (Integer) limitsMap.get("perCustomer"),
+                    (Integer) limitsMap.get("perDay")
             );
             validationRule.setLimits(limits);
         }
@@ -359,8 +359,8 @@ public class RulePublishingService {
         // Convert nodes
         if (rule.getNodes() != null) {
             List<ValidationRule.RuleNode> validationNodes = rule.getNodes().stream()
-                .map(this::convertRuleNodeToValidationNode)
-                .collect(Collectors.toList());
+                    .map(this::convertRuleNodeToValidationNode)
+                    .collect(Collectors.toList());
             validationRule.setNodes(validationNodes);
         }
 
@@ -388,8 +388,8 @@ public class RulePublishingService {
         // Convert children from List<RuleNode> to List<String> (IDs only)
         if (ruleNode.getChildren() != null) {
             List<String> childIds = ruleNode.getChildren().stream()
-                .map(Rule.RuleNode::getId)
-                .collect(Collectors.toList());
+                    .map(Rule.RuleNode::getId)
+                    .collect(Collectors.toList());
             validationNode.setChildren(childIds);
         }
 
@@ -409,7 +409,7 @@ public class RulePublishingService {
         private final String errorMessage;
 
         private RulePublishResult(String ruleId, boolean success, String bundleHash,
-                                 Long artifactSize, String errorMessage) {
+                                  Long artifactSize, String errorMessage) {
             this.ruleId = ruleId;
             this.success = success;
             this.bundleHash = bundleHash;
@@ -426,11 +426,25 @@ public class RulePublishingService {
         }
 
         // Getters
-        public String getRuleId() { return ruleId; }
-        public boolean isSuccess() { return success; }
-        public String getBundleHash() { return bundleHash; }
-        public Long getArtifactSize() { return artifactSize; }
-        public String getErrorMessage() { return errorMessage; }
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getBundleHash() {
+            return bundleHash;
+        }
+
+        public Long getArtifactSize() {
+            return artifactSize;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
     }
 
     public static class RuleDeploymentStatus {
@@ -447,9 +461,20 @@ public class RulePublishingService {
         }
 
         // Getters
-        public String getRuleId() { return ruleId; }
-        public String getStatus() { return status; }
-        public boolean isDeployed() { return deployed; }
-        public String getBundleHash() { return bundleHash; }
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public boolean isDeployed() {
+            return deployed;
+        }
+
+        public String getBundleHash() {
+            return bundleHash;
+        }
     }
 }

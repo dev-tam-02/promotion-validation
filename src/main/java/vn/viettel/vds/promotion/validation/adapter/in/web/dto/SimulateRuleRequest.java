@@ -23,12 +23,27 @@ public class SimulateRuleRequest {
     private String explain = "NONE";
 
     // Getters and setters
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
+    public Integer getVersion() {
+        return version;
+    }
 
-    public Map<String, Object> getContext() { return context; }
-    public void setContext(Map<String, Object> context) { this.context = context; }
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
 
-    public String getExplain() { return explain; }
-    public void setExplain(String explain) { this.explain = explain; }
+    public Map<String, Object> getContext() {
+        return context;
+    }
+
+    public void setContext(Map<String, Object> context) {
+        this.context = context;
+    }
+
+    public String getExplain() {
+        return explain;
+    }
+
+    public void setExplain(String explain) {
+        this.explain = explain;
+    }
 }

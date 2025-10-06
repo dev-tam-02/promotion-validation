@@ -30,9 +30,9 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
     private final String baseUrl;
 
     public OrderResolver(
-        @Qualifier("orderServiceCircuitBreaker") CircuitBreaker circuitBreaker,
-        @Qualifier("orderServiceRetry") Retry retry,
-        ObjectMapper objectMapper
+            @Qualifier("orderServiceCircuitBreaker") CircuitBreaker circuitBreaker,
+            @Qualifier("orderServiceRetry") Retry retry,
+            ObjectMapper objectMapper
     ) {
         super(circuitBreaker, retry);
         this.objectMapper = objectMapper;
@@ -40,9 +40,9 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
         // Use Java 21 HTTP Client with virtual threads
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
-            .build();
+                .connectTimeout(Duration.ofSeconds(5))
+                .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+                .build();
     }
 
     @Override
@@ -60,15 +60,16 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/orders/" + request.orderId() + "/details"))
-                .timeout(Duration.ofMillis(getTimeoutMs()))
-                .GET()
-                .build();
+                    .uri(URI.create(baseUrl + "/api/orders/" + request.orderId() + "/details"))
+                    .timeout(Duration.ofMillis(getTimeoutMs()))
+                    .GET()
+                    .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                Map<String, Object> orderData = objectMapper.readValue(response.body(), new TypeReference<>() {});
+                Map<String, Object> orderData = objectMapper.readValue(response.body(), new TypeReference<>() {
+                });
                 OrderFact result = mapToOrderFact(orderData);
                 log.debug("Successfully resolved order facts for: {}", request.orderId());
                 return result;
@@ -111,11 +112,11 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
     @Override
     protected OrderFact getPartialResult(FactRequest request) {
         return OrderFact.builder()
-            .orderId(request.orderId())
-            .customerId(request.customerId())
-            .status("UNKNOWN")
-            .totalAmount(BigDecimal.ZERO)
-            .build();
+                .orderId(request.orderId())
+                .customerId(request.customerId())
+                .status("UNKNOWN")
+                .totalAmount(BigDecimal.ZERO)
+                .build();
     }
 
     private OrderFact mapToOrderFact(Map<String, Object> data) {
@@ -157,23 +158,23 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("items") != null) {
             List<Map<String, Object>> itemsData = (List<Map<String, Object>>) data.get("items");
             List<OrderItemFact> items = itemsData.stream()
-                .map(this::mapToOrderItemFact)
-                .collect(Collectors.toList());
+                    .map(this::mapToOrderItemFact)
+                    .collect(Collectors.toList());
             builder.items(items);
 
             // Calculate derived fields
             if (!items.isEmpty()) {
                 BigDecimal cheapest = items.stream()
-                    .map(OrderItemFact::unitPrice)
-                    .min(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO);
+                        .map(OrderItemFact::unitPrice)
+                        .min(BigDecimal::compareTo)
+                        .orElse(BigDecimal.ZERO);
                 BigDecimal mostExpensive = items.stream()
-                    .map(OrderItemFact::unitPrice)
-                    .max(BigDecimal::compareTo)
-                    .orElse(BigDecimal.ZERO);
+                        .map(OrderItemFact::unitPrice)
+                        .max(BigDecimal::compareTo)
+                        .orElse(BigDecimal.ZERO);
                 Integer totalQuantity = items.stream()
-                    .mapToInt(OrderItemFact::quantity)
-                    .sum();
+                        .mapToInt(OrderItemFact::quantity)
+                        .sum();
 
                 builder.cheapestItemPrice(cheapest);
                 builder.mostExpensiveItemPrice(mostExpensive);
@@ -183,8 +184,8 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("appliedDiscounts") != null) {
             List<Map<String, Object>> discountsData = (List<Map<String, Object>>) data.get("appliedDiscounts");
             List<DiscountFact> discounts = discountsData.stream()
-                .map(this::mapToDiscountFact)
-                .collect(Collectors.toList());
+                    .map(this::mapToDiscountFact)
+                    .collect(Collectors.toList());
             builder.appliedDiscounts(discounts);
         }
         if (data.get("metadata") != null) {

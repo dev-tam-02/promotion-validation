@@ -24,11 +24,11 @@ public class ResilienceMonitoringController {
     private final FallbackService fallbackService;
 
     public ResilienceMonitoringController(ResilienceOrchestrator resilienceOrchestrator,
-                                        CircuitBreakerService circuitBreakerService,
-                                        RetryService retryService,
-                                        TimeoutService timeoutService,
-                                        BulkheadService bulkheadService,
-                                        FallbackService fallbackService) {
+                                          CircuitBreakerService circuitBreakerService,
+                                          RetryService retryService,
+                                          TimeoutService timeoutService,
+                                          BulkheadService bulkheadService,
+                                          FallbackService fallbackService) {
         this.resilienceOrchestrator = resilienceOrchestrator;
         this.circuitBreakerService = circuitBreakerService;
         this.retryService = retryService;
@@ -115,25 +115,25 @@ public class ResilienceMonitoringController {
 
         Map<String, Object> components = new HashMap<>();
         components.put("circuitBreaker", Map.of(
-            "state", status.getCircuitBreakerStatus().getState(),
-            "failureRate", status.getCircuitBreakerStatus().getFailureRate(),
-            "healthy", status.getCircuitBreakerStatus().isHealthy()
+                "state", status.getCircuitBreakerStatus().getState(),
+                "failureRate", status.getCircuitBreakerStatus().getFailureRate(),
+                "healthy", status.getCircuitBreakerStatus().isHealthy()
         ));
         components.put("retry", Map.of(
-            "successRate", status.getRetryStatus().getSuccessRate(),
-            "totalCalls", status.getRetryStatus().getTotalCalls()
+                "successRate", status.getRetryStatus().getSuccessRate(),
+                "totalCalls", status.getRetryStatus().getTotalCalls()
         ));
         components.put("timeout", Map.of(
-            "timeoutRate", status.getTimeoutStatus().getTimeoutRate(),
-            "successRate", status.getTimeoutStatus().getSuccessRate()
+                "timeoutRate", status.getTimeoutStatus().getTimeoutRate(),
+                "successRate", status.getTimeoutStatus().getSuccessRate()
         ));
         components.put("bulkhead", Map.of(
-            "utilization", status.getBulkheadStatus().getUtilizationRate(),
-            "atCapacity", status.getBulkheadStatus().isAtCapacity()
+                "utilization", status.getBulkheadStatus().getUtilizationRate(),
+                "atCapacity", status.getBulkheadStatus().isAtCapacity()
         ));
         components.put("fallback", Map.of(
-            "totalExecutions", status.getFallbackStats().getTotalFallbackExecutions(),
-            "mostUsedStrategy", status.getFallbackStats().getMostUsedStrategy()
+                "totalExecutions", status.getFallbackStats().getTotalFallbackExecutions(),
+                "mostUsedStrategy", status.getFallbackStats().getMostUsedStrategy()
         ));
 
         health.put("components", components);

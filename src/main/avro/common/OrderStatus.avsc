@@ -1,7 +1,0 @@
-{
-  "type": "enum",
-  "namespace": "vn.viettel.vds.promotion.schema.common",
-  "name": "OrderStatus",
-  "doc": "Order processing status",
-  "symbols": ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"]
-}

@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleVersionRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Rule;
 import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
 
@@ -19,15 +19,15 @@ public class RuleVersioningService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleVersioningService.class);
 
-    private final RuleRepository ruleRepository;
-    private final RuleVersionRepository ruleVersionRepository;
+    private final RulePersistencePort rulePersistencePort;
+    private final RuleVersionPersistencePort ruleVersionPersistencePort;
     private final RulePublishingService rulePublishingService;
 
-    public RuleVersioningService(RuleRepository ruleRepository,
-                               RuleVersionRepository ruleVersionRepository,
-                               RulePublishingService rulePublishingService) {
-        this.ruleRepository = ruleRepository;
-        this.ruleVersionRepository = ruleVersionRepository;
+    public RuleVersioningService(RulePersistencePort rulePersistencePort,
+                                 RuleVersionPersistencePort ruleVersionPersistencePort,
+                                 RulePublishingService rulePublishingService) {
+        this.rulePersistencePort = rulePersistencePort;
+        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.rulePublishingService = rulePublishingService;
     }
 
@@ -35,8 +35,8 @@ public class RuleVersioningService {
         logger.info("Creating new version for rule: tenantId={}, ruleId={}", tenantId, ruleId);
 
         try {
-            Rule currentRule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Create new version
             Rule newVersion = createRuleCopy(currentRule);
@@ -46,12 +46,12 @@ public class RuleVersioningService {
             newVersion.setCreatedAt(Instant.now());
             newVersion.setUpdatedAt(Instant.now());
 
-            Rule savedRule = ruleRepository.save(newVersion);
+            Rule savedRule = rulePersistencePort.save(newVersion);
 
             logger.info("New rule version created: ruleId={}, version={}", ruleId, savedRule.getLatestVersion());
 
             return RuleVersionResult.success(savedRule.getId(), savedRule.getLatestVersion(),
-                "New version created successfully");
+                    "New version created successfully");
 
         } catch (Exception e) {
             logger.error("Failed to create new version: tenantId={}, ruleId={}", tenantId, ruleId, e);
@@ -61,17 +61,17 @@ public class RuleVersioningService {
 
     public RuleVersionResult rollbackToVersion(String tenantId, String ruleId, Integer targetVersion) {
         logger.info("Rolling back rule to version: tenantId={}, ruleId={}, targetVersion={}",
-                   tenantId, ruleId, targetVersion);
+                tenantId, ruleId, targetVersion);
 
         RuleVersion targetRuleVersion = null;
         try {
             // Find current active rule
-            Rule currentRule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Find target version
             // Find target version from version repository
-            Optional<RuleVersion> targetVersionOpt = ruleVersionRepository.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, targetVersion);
+            Optional<RuleVersion> targetVersionOpt = ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, targetVersion);
             targetRuleVersion = targetVersionOpt.orElseThrow(() -> new IllegalArgumentException(
                     "Target version not found: " + ruleId + " v" + targetVersion));
 
@@ -94,22 +94,22 @@ public class RuleVersioningService {
 
             // Add rollback metadata using notes field
             String rollbackInfo = String.format("Rolled back from version %d to %d at %s",
-                currentRule.getLatestVersion(), targetRuleVersion.getVersion(), Instant.now());
+                    currentRule.getLatestVersion(), targetRuleVersion.getVersion(), Instant.now());
             rolledBackRule.setNotes(rollbackInfo);
 
-            Rule savedRule = ruleRepository.save(rolledBackRule);
+            Rule savedRule = rulePersistencePort.save(rolledBackRule);
 
             logger.info("Rule rolled back successfully: ruleId={}, newVersion={}, rolledBackToVersion={}",
-                       ruleId, savedRule.getLatestVersion(), targetRuleVersion.getVersion());
+                    ruleId, savedRule.getLatestVersion(), targetRuleVersion.getVersion());
 
             return RuleVersionResult.success(savedRule.getId(), savedRule.getLatestVersion(),
-                "Rolled back to version " + targetRuleVersion.getVersion());
+                    "Rolled back to version " + targetRuleVersion.getVersion());
 
         } catch (Exception e) {
             logger.error("Failed to rollback rule: tenantId={}, ruleId={}, targetVersion={}",
-                        tenantId, ruleId, targetVersion, e);
+                    tenantId, ruleId, targetVersion, e);
             return RuleVersionResult.failed(ruleId, targetVersion,
-                "Rollback failed: " + e.getMessage());
+                    "Rollback failed: " + e.getMessage());
         }
     }
 
@@ -118,12 +118,12 @@ public class RuleVersioningService {
 
         try {
             // Get all versions for this rule from version repository
-            List<RuleVersion> versions = ruleVersionRepository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+            List<RuleVersion> versions = ruleVersionPersistencePort.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
 
             return versions.stream()
-                .map(this::convertToVersionInfo)
-                .sorted((v1, v2) -> Integer.compare(v2.getVersion(), v1.getVersion())) // Descending order
-                .toList();
+                    .map(this::convertToVersionInfo)
+                    .sorted((v1, v2) -> Integer.compare(v2.getVersion(), v1.getVersion())) // Descending order
+                    .toList();
 
         } catch (Exception e) {
             logger.error("Failed to get version history: tenantId={}, ruleId={}", tenantId, ruleId, e);
@@ -135,12 +135,12 @@ public class RuleVersioningService {
         logger.debug("Getting specific version: tenantId={}, ruleId={}, version={}", tenantId, ruleId, version);
 
         try {
-            return ruleVersionRepository.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
-                .map(this::convertToVersionInfo);
+            return ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
+                    .map(this::convertToVersionInfo);
 
         } catch (Exception e) {
             logger.error("Failed to get specific version: tenantId={}, ruleId={}, version={}",
-                        tenantId, ruleId, version, e);
+                    tenantId, ruleId, version, e);
             return Optional.empty();
         }
     }
@@ -149,9 +149,9 @@ public class RuleVersioningService {
         logger.info("Deleting rule version: tenantId={}, ruleId={}, version={}", tenantId, ruleId, version);
 
         try {
-            RuleVersion ruleVersion = ruleVersionRepository.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
-                .orElseThrow(() -> new IllegalArgumentException(
-                    "Version not found: " + ruleId + " v" + version));
+            RuleVersion ruleVersion = ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Version not found: " + ruleId + " v" + version));
 
             // Prevent deletion of active rule
             if (ruleVersion.getPublishedAt() != null) {
@@ -159,12 +159,12 @@ public class RuleVersioningService {
             }
 
             // Check if it's the only version
-            List<RuleVersion> allVersions = ruleVersionRepository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+            List<RuleVersion> allVersions = ruleVersionPersistencePort.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
             if (allVersions.size() <= 1) {
                 throw new IllegalStateException("Cannot delete the only version of a rule");
             }
 
-            ruleVersionRepository.delete(ruleVersion);
+            ruleVersionPersistencePort.delete(ruleVersion);
 
             logger.info("Rule version deleted: ruleId={}, version={}", ruleId, version);
 
@@ -172,7 +172,7 @@ public class RuleVersioningService {
 
         } catch (Exception e) {
             logger.error("Failed to delete version: tenantId={}, ruleId={}, version={}",
-                        tenantId, ruleId, version, e);
+                    tenantId, ruleId, version, e);
             return RuleVersionResult.failed(ruleId, version, "Deletion failed: " + e.getMessage());
         }
     }
@@ -204,14 +204,14 @@ public class RuleVersioningService {
     }
 
     private Integer getNextVersion(String tenantId, String ruleId) {
-        List<RuleVersion> versions = ruleVersionRepository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        List<RuleVersion> versions = ruleVersionPersistencePort.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
 
         // Also check current rule version
-        Optional<Rule> currentRule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId);
+        Optional<Rule> currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId);
         int maxVersion = versions.stream()
-            .mapToInt(ruleVersion -> ruleVersion.getVersion() != null ? ruleVersion.getVersion() : 0)
-            .max()
-            .orElse(0);
+                .mapToInt(ruleVersion -> ruleVersion.getVersion() != null ? ruleVersion.getVersion() : 0)
+                .max()
+                .orElse(0);
 
         if (currentRule.isPresent() && currentRule.get().getLatestVersion() != null) {
             maxVersion = Math.max(maxVersion, currentRule.get().getLatestVersion());
@@ -226,22 +226,22 @@ public class RuleVersioningService {
         }
 
         if (!currentRule.getTenantId().equals(targetRuleVersion.getTenantId()) ||
-            !currentRule.getCode().equals(targetRuleVersion.getCode())) {
+                !currentRule.getCode().equals(targetRuleVersion.getCode())) {
             throw new IllegalArgumentException("Rules do not match for rollback");
         }
     }
 
     private RuleVersionInfo convertToVersionInfo(RuleVersion ruleVersion) {
         return new RuleVersionInfo(
-            ruleVersion.getRuleId(),
-            ruleVersion.getVersion(),
-            ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT,
-            ruleVersion.getCode(), // Using code as name
-            null, // description not available in RuleVersion
-            ruleVersion.getCompile() != null ? ruleVersion.getCompile().getBundleHash() : null,
-            null, // createdAt not available in RuleVersion
-            ruleVersion.getPublishedAt(),
-            ruleVersion.getDsl()
+                ruleVersion.getRuleId(),
+                ruleVersion.getVersion(),
+                ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT,
+                ruleVersion.getCode(), // Using code as name
+                null, // description not available in RuleVersion
+                ruleVersion.getCompile() != null ? ruleVersion.getCompile().getBundleHash() : null,
+                null, // createdAt not available in RuleVersion
+                ruleVersion.getPublishedAt(),
+                ruleVersion.getDsl()
         );
     }
 
@@ -268,10 +268,21 @@ public class RuleVersioningService {
         }
 
         // Getters
-        public String getRuleId() { return ruleId; }
-        public Integer getVersion() { return version; }
-        public boolean isSuccess() { return success; }
-        public String getMessage() { return message; }
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public Integer getVersion() {
+            return version;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
     }
 
     public static class RuleVersionInfo {
@@ -286,8 +297,8 @@ public class RuleVersioningService {
         private final java.util.Map<String, Object> metadata;
 
         public RuleVersionInfo(String ruleId, Integer version, Rule.RuleState status, String name,
-                              String description, String bundleHash, Instant createdAt,
-                              Instant publishedAt, java.util.Map<String, Object> metadata) {
+                               String description, String bundleHash, Instant createdAt,
+                               Instant publishedAt, java.util.Map<String, Object> metadata) {
             this.ruleId = ruleId;
             this.version = version;
             this.status = status;
@@ -300,14 +311,40 @@ public class RuleVersioningService {
         }
 
         // Getters
-        public String getRuleId() { return ruleId; }
-        public Integer getVersion() { return version; }
-        public Rule.RuleState getStatus() { return status; }
-        public String getName() { return name; }
-        public String getDescription() { return description; }
-        public String getBundleHash() { return bundleHash; }
-        public Instant getCreatedAt() { return createdAt; }
-        public Instant getPublishedAt() { return publishedAt; }
-        public java.util.Map<String, Object> getMetadata() { return metadata; }
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public Integer getVersion() {
+            return version;
+        }
+
+        public Rule.RuleState getStatus() {
+            return status;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public String getBundleHash() {
+            return bundleHash;
+        }
+
+        public Instant getCreatedAt() {
+            return createdAt;
+        }
+
+        public Instant getPublishedAt() {
+            return publishedAt;
+        }
+
+        public java.util.Map<String, Object> getMetadata() {
+            return metadata;
+        }
     }
 }

@@ -30,16 +30,16 @@ public class ValidationEngineOperatorClientFallback implements ValidationEngineO
     @Override
     public ValidateEngineOperatorsResponse validateOperators(ValidateEngineOperatorsRequest request) {
         logger.error("Fallback: Failed to validate {} operators with validation engine",
-                    request.getOperators().size());
+                request.getOperators().size());
 
         // Convert OperatorValidationItem to UnsupportedOperator
         List<ValidateEngineOperatorsResponse.UnsupportedOperator> unsupportedOperators =
-            request.getOperators().stream()
-                .map(item -> new ValidateEngineOperatorsResponse.UnsupportedOperator(
-                    item.getOperatorName(),
-                    item.getVersion(),
-                    "Validation engine service is unavailable"))
-                .toList();
+                request.getOperators().stream()
+                        .map(item -> new ValidateEngineOperatorsResponse.UnsupportedOperator(
+                                item.getOperatorName(),
+                                item.getVersion(),
+                                "Validation engine service is unavailable"))
+                        .toList();
 
         ValidateEngineOperatorsResponse fallbackResponse = new ValidateEngineOperatorsResponse();
         fallbackResponse.setValid(false);
@@ -52,7 +52,7 @@ public class ValidationEngineOperatorClientFallback implements ValidationEngineO
     @Override
     public Boolean isOperatorSupported(String operatorName, Integer version) {
         logger.error("Fallback: Failed to check if operator {} version {} is supported",
-                    operatorName, version);
+                operatorName, version);
         return false;
     }
 }

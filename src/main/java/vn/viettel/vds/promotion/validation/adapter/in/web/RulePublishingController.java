@@ -36,12 +36,12 @@ public class RulePublishingController {
     }
 
     @Operation(summary = "Publish a rule",
-               description = "Compile and deploy a rule to the validation engine")
+            description = "Compile and deploy a rule to the validation engine")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule published successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid request or rule validation failed"),
-        @ApiResponse(responseCode = "404", description = "Rule not found"),
-        @ApiResponse(responseCode = "500", description = "Publishing failed")
+            @ApiResponse(responseCode = "200", description = "Rule published successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request or rule validation failed"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "500", description = "Publishing failed")
     })
     @PostMapping("/rules/{ruleId}")
     public RulePublishResponse publishRule(
@@ -79,11 +79,11 @@ public class RulePublishingController {
     }
 
     @Operation(summary = "Publish multiple rules",
-               description = "Batch publish multiple rules to the validation engine")
+            description = "Batch publish multiple rules to the validation engine")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Batch publishing completed"),
-        @ApiResponse(responseCode = "400", description = "Invalid request"),
-        @ApiResponse(responseCode = "500", description = "Batch publishing failed")
+            @ApiResponse(responseCode = "200", description = "Batch publishing completed"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "500", description = "Batch publishing failed")
     })
     @PostMapping("/batch")
     public List<RulePublishResponse> publishRuleBatch(
@@ -94,23 +94,23 @@ public class RulePublishingController {
 
         try {
             List<RulePublishingService.RulePublishResult> results =
-                rulePublishingService.publishRuleBatch(tenantId, request.getRuleIds());
+                    rulePublishingService.publishRuleBatch(tenantId, request.getRuleIds());
 
             List<RulePublishResponse> responses = results.stream()
-                .map(result -> {
-                    RulePublishResponse response = new RulePublishResponse();
-                    response.setRuleId(result.getRuleId());
-                    response.setSuccess(result.isSuccess());
-                    response.setBundleHash(result.getBundleHash());
-                    response.setArtifactSize(result.getArtifactSize());
-                    response.setErrorMessage(result.getErrorMessage());
-                    return response;
-                })
-                .collect(Collectors.toList());
+                    .map(result -> {
+                        RulePublishResponse response = new RulePublishResponse();
+                        response.setRuleId(result.getRuleId());
+                        response.setSuccess(result.isSuccess());
+                        response.setBundleHash(result.getBundleHash());
+                        response.setArtifactSize(result.getArtifactSize());
+                        response.setErrorMessage(result.getErrorMessage());
+                        return response;
+                    })
+                    .collect(Collectors.toList());
 
             long successCount = responses.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum();
             logger.info("Batch publishing completed: total={}, successful={}, failed={}",
-                       responses.size(), successCount, responses.size() - successCount);
+                    responses.size(), successCount, responses.size() - successCount);
 
             return responses;
 
@@ -121,12 +121,12 @@ public class RulePublishingController {
     }
 
     @Operation(summary = "Unpublish a rule",
-               description = "Remove a rule from the validation engine")
+            description = "Remove a rule from the validation engine")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule unpublished successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid request"),
-        @ApiResponse(responseCode = "404", description = "Rule not found"),
-        @ApiResponse(responseCode = "500", description = "Unpublishing failed")
+            @ApiResponse(responseCode = "200", description = "Rule unpublished successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "500", description = "Unpublishing failed")
     })
     @DeleteMapping("/rules/{ruleId}")
     public RulePublishResponse unpublishRule(
@@ -161,11 +161,11 @@ public class RulePublishingController {
     }
 
     @Operation(summary = "Get rule deployment status",
-               description = "Get the current deployment status of a rule")
+            description = "Get the current deployment status of a rule")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Deployment status retrieved successfully"),
-        @ApiResponse(responseCode = "404", description = "Rule not found"),
-        @ApiResponse(responseCode = "500", description = "Status check failed")
+            @ApiResponse(responseCode = "200", description = "Deployment status retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "500", description = "Status check failed")
     })
     @GetMapping("/rules/{ruleId}/status")
     public RuleDeploymentStatusResponse getDeploymentStatus(
@@ -176,7 +176,7 @@ public class RulePublishingController {
 
         try {
             RulePublishingService.RuleDeploymentStatus status =
-                rulePublishingService.getDeploymentStatus(tenantId, ruleId);
+                    rulePublishingService.getDeploymentStatus(tenantId, ruleId);
 
             RuleDeploymentStatusResponse response = new RuleDeploymentStatusResponse();
             response.setRuleId(status.getRuleId());
@@ -196,11 +196,11 @@ public class RulePublishingController {
     }
 
     @Operation(summary = "Validate rule for publishing",
-               description = "Validate that a rule is ready for publishing without actually publishing it")
+            description = "Validate that a rule is ready for publishing without actually publishing it")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule is valid for publishing"),
-        @ApiResponse(responseCode = "400", description = "Rule validation failed"),
-        @ApiResponse(responseCode = "404", description = "Rule not found")
+            @ApiResponse(responseCode = "200", description = "Rule is valid for publishing"),
+            @ApiResponse(responseCode = "400", description = "Rule validation failed"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @PostMapping("/rules/{ruleId}/validate")
     public Map<String, Object> validateRuleForPublishing(

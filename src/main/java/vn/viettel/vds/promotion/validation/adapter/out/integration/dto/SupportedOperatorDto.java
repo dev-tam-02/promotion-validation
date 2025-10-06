@@ -23,7 +23,7 @@ public class SupportedOperatorDto {
     }
 
     public SupportedOperatorDto(String operatorName, Integer version, String description,
-                               String context, String translatorClass) {
+                                String context, String translatorClass) {
         this.operatorName = operatorName;
         this.version = version;
         this.description = description;

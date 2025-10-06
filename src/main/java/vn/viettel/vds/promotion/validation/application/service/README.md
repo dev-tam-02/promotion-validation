@@ -1,13 +1,19 @@
 # Application Usecase Package
 
 ## Description
-The application.usecase package contains implementations of the application's use cases. These classes orchestrate the flow of data to and from the domain entities and implement the business rules specific to the application.
+
+The application.usecase package contains implementations of the application's use cases. These classes orchestrate the
+flow of data to and from the domain entities and implement the business rules specific to the application.
 
 ## Purpose
-The purpose of this package is to encapsulate the application's business logic and coordinate the interactions between the domain entities and the outside world through the port interfaces.
+
+The purpose of this package is to encapsulate the application's business logic and coordinate the interactions between
+the domain entities and the outside world through the port interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - Use case implementations that implement the interfaces defined in the application.port.in package
 - Service classes that orchestrate domain entities to fulfill business requirements
 - Command handlers and query handlers if following the CQRS pattern
@@ -16,6 +22,7 @@ This package typically contains:
 ## Examples
 
 ### Command Use Case Implementation Example
+
 ```java
 // CreateCampaignService.java
 @Service
@@ -64,6 +71,7 @@ public class CreateCampaignService implements CreateCampaignUseCase {
 ```
 
 ### Query Use Case Implementation Example
+
 ```java
 // GetCampaignService.java
 @Service
@@ -137,6 +145,7 @@ public class GetCampaignService implements GetCampaignQuery {
 ```
 
 ### Complex Use Case with Domain Service Example
+
 ```java
 // ApplyCampaignDiscountService.java
 @Service
@@ -227,6 +236,7 @@ public class ApplyCampaignDiscountService implements ApplyCampaignDiscountUseCas
 ```
 
 ## Rules
+
 1. Use case implementations should implement the interfaces defined in the application.port.in package
 2. Use cases should depend on domain entities and output port interfaces, not on their implementations
 3. Business logic that spans multiple domain entities should be implemented here

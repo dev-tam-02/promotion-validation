@@ -17,11 +17,21 @@ public class LintResponse {
     private List<LintIssue> issues;
 
     // Getters and setters
-    public boolean isOk() { return ok; }
-    public void setOk(boolean ok) { this.ok = ok; }
+    public boolean isOk() {
+        return ok;
+    }
 
-    public List<LintIssue> getIssues() { return issues; }
-    public void setIssues(List<LintIssue> issues) { this.issues = issues; }
+    public void setOk(boolean ok) {
+        this.ok = ok;
+    }
+
+    public List<LintIssue> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(List<LintIssue> issues) {
+        this.issues = issues;
+    }
 
     @Schema(description = "Validation issue")
     public static class LintIssue {
@@ -38,7 +48,8 @@ public class LintResponse {
         @JsonProperty("operator")
         private String operator;
 
-        public LintIssue() {}
+        public LintIssue() {
+        }
 
         public LintIssue(String path, String message, String operator) {
             this.path = path;
@@ -47,13 +58,28 @@ public class LintResponse {
         }
 
         // Getters and setters
-        public String getPath() { return path; }
-        public void setPath(String path) { this.path = path; }
+        public String getPath() {
+            return path;
+        }
 
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public void setPath(String path) {
+            this.path = path;
+        }
 
-        public String getOperator() { return operator; }
-        public void setOperator(String operator) { this.operator = operator; }
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public String getOperator() {
+            return operator;
+        }
+
+        public void setOperator(String operator) {
+            this.operator = operator;
+        }
     }
 }

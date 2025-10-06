@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleVersionRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
 
 import java.util.List;
@@ -19,10 +19,10 @@ public class RuleVersionService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleVersionService.class);
 
-    private final RuleVersionRepository ruleVersionRepository;
+    private final RuleVersionPersistencePort ruleVersionPersistencePort;
 
-    public RuleVersionService(RuleVersionRepository ruleVersionRepository) {
-        this.ruleVersionRepository = ruleVersionRepository;
+    public RuleVersionService(RuleVersionPersistencePort ruleVersionPersistencePort) {
+        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
     }
 
     /**
@@ -32,8 +32,8 @@ public class RuleVersionService {
         // Extract tenant ID from rule ID (assuming format: rul_tenant_code)
         String tenantId = extractTenantIdFromRuleId(ruleId);
 
-        return ruleVersionRepository.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -41,7 +41,7 @@ public class RuleVersionService {
      */
     public Optional<RuleVersion> getLatestRuleVersion(String ruleId) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionRepository.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        return ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
     }
 
     /**
@@ -49,7 +49,7 @@ public class RuleVersionService {
      */
     public List<RuleVersion> getAllRuleVersions(String ruleId) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionRepository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        return ruleVersionPersistencePort.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
     }
 
     /**
@@ -57,21 +57,21 @@ public class RuleVersionService {
      */
     public Page<RuleVersion> getRuleVersions(String ruleId, Pageable pageable) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionRepository.findByTenantIdAndRuleId(tenantId, ruleId, pageable);
+        return ruleVersionPersistencePort.findByTenantIdAndRuleId(tenantId, ruleId, pageable);
     }
 
     /**
      * Get rule version by bundle hash
      */
     public Optional<RuleVersion> getRuleVersionByBundleHash(String tenantId, String bundleHash) {
-        return ruleVersionRepository.findByTenantIdAndBundleHash(tenantId, bundleHash);
+        return ruleVersionPersistencePort.findByTenantIdAndBundleHash(tenantId, bundleHash);
     }
 
     /**
      * Get rule versions by code and tenant
      */
     public List<RuleVersion> getRuleVersionsByCode(String tenantId, String code) {
-        return ruleVersionRepository.findByTenantIdAndCodeOrderByVersionDesc(tenantId, code);
+        return ruleVersionPersistencePort.findByTenantIdAndCodeOrderByVersionDesc(tenantId, code);
     }
 
     /**
@@ -79,7 +79,7 @@ public class RuleVersionService {
      */
     public Integer getNextVersionNumber(String ruleId) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        Optional<RuleVersion> latest = ruleVersionRepository.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        Optional<RuleVersion> latest = ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
         return latest.map(rv -> rv.getVersion() + 1).orElse(1);
     }
 
@@ -88,7 +88,7 @@ public class RuleVersionService {
      */
     public boolean versionExists(String ruleId, Integer version) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionRepository.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version).isPresent();
+        return ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version).isPresent();
     }
 
     /**
@@ -96,14 +96,14 @@ public class RuleVersionService {
      */
     public long countVersions(String ruleId) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionRepository.countByTenantIdAndRuleId(tenantId, ruleId);
+        return ruleVersionPersistencePort.countByTenantIdAndRuleId(tenantId, ruleId);
     }
 
     /**
      * Find rule versions with specific operators fingerprint
      */
     public List<RuleVersion> findVersionsWithOperatorsFingerprint(String tenantId, String operatorsFingerprint) {
-        return ruleVersionRepository.findByTenantIdAndOperatorsFingerprint(tenantId, operatorsFingerprint);
+        return ruleVersionPersistencePort.findByTenantIdAndOperatorsFingerprint(tenantId, operatorsFingerprint);
     }
 
     /**
@@ -138,7 +138,7 @@ public class RuleVersionService {
         private final List<String> changes;
 
         private VersionDiff(boolean nodesDifferent, boolean limitsDifferent,
-                           boolean timeLinksDifferent, boolean logicDifferent, List<String> changes) {
+                            boolean timeLinksDifferent, boolean logicDifferent, List<String> changes) {
             this.nodesDifferent = nodesDifferent;
             this.limitsDifferent = limitsDifferent;
             this.timeLinksDifferent = timeLinksDifferent;
@@ -173,11 +173,25 @@ public class RuleVersionService {
         }
 
         // Getters
-        public boolean isNodesDifferent() { return nodesDifferent; }
-        public boolean isLimitsDifferent() { return limitsDifferent; }
-        public boolean isTimeLinksDifferent() { return timeLinksDifferent; }
-        public boolean isLogicDifferent() { return logicDifferent; }
-        public List<String> getChanges() { return changes; }
+        public boolean isNodesDifferent() {
+            return nodesDifferent;
+        }
+
+        public boolean isLimitsDifferent() {
+            return limitsDifferent;
+        }
+
+        public boolean isTimeLinksDifferent() {
+            return timeLinksDifferent;
+        }
+
+        public boolean isLogicDifferent() {
+            return logicDifferent;
+        }
+
+        public List<String> getChanges() {
+            return changes;
+        }
 
         public boolean hasDifferences() {
             return nodesDifferent || limitsDifferent || timeLinksDifferent || logicDifferent;

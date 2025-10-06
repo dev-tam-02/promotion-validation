@@ -35,6 +35,64 @@ public class ExecuteResponse {
     @JsonProperty("metadata")
     private Map<String, Object> metadata;
 
+    // Constructors
+    public ExecuteResponse() {
+    }
+
+    public ExecuteResponse(boolean ok, String decision) {
+        this.ok = ok;
+        this.decision = decision;
+    }
+
+    // Getters and setters
+    public boolean isOk() {
+        return ok;
+    }
+
+    public void setOk(boolean ok) {
+        this.ok = ok;
+    }
+
+    public String getDecision() {
+        return decision;
+    }
+
+    public void setDecision(String decision) {
+        this.decision = decision;
+    }
+
+    public List<String> getReasonCodes() {
+        return reasonCodes;
+    }
+
+    public void setReasonCodes(List<String> reasonCodes) {
+        this.reasonCodes = reasonCodes;
+    }
+
+    public List<String> getExplain() {
+        return explain;
+    }
+
+    public void setExplain(List<String> explain) {
+        this.explain = explain;
+    }
+
+    public Engine getEngine() {
+        return engine;
+    }
+
+    public void setEngine(Engine engine) {
+        this.engine = engine;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
     public static class Engine {
 
         @Schema(description = "Engine version", example = "drools-10.1.0")
@@ -50,43 +108,32 @@ public class ExecuteResponse {
         private Boolean cacheHit;
 
         // Constructors
-        public Engine() {}
+        public Engine() {
+        }
 
         // Getters and setters
-        public String getVersion() { return version; }
-        public void setVersion(String version) { this.version = version; }
+        public String getVersion() {
+            return version;
+        }
 
-        public Long getLatencyMs() { return latencyMs; }
-        public void setLatencyMs(Long latencyMs) { this.latencyMs = latencyMs; }
+        public void setVersion(String version) {
+            this.version = version;
+        }
 
-        public Boolean getCacheHit() { return cacheHit; }
-        public void setCacheHit(Boolean cacheHit) { this.cacheHit = cacheHit; }
+        public Long getLatencyMs() {
+            return latencyMs;
+        }
+
+        public void setLatencyMs(Long latencyMs) {
+            this.latencyMs = latencyMs;
+        }
+
+        public Boolean getCacheHit() {
+            return cacheHit;
+        }
+
+        public void setCacheHit(Boolean cacheHit) {
+            this.cacheHit = cacheHit;
+        }
     }
-
-    // Constructors
-    public ExecuteResponse() {}
-
-    public ExecuteResponse(boolean ok, String decision) {
-        this.ok = ok;
-        this.decision = decision;
-    }
-
-    // Getters and setters
-    public boolean isOk() { return ok; }
-    public void setOk(boolean ok) { this.ok = ok; }
-
-    public String getDecision() { return decision; }
-    public void setDecision(String decision) { this.decision = decision; }
-
-    public List<String> getReasonCodes() { return reasonCodes; }
-    public void setReasonCodes(List<String> reasonCodes) { this.reasonCodes = reasonCodes; }
-
-    public List<String> getExplain() { return explain; }
-    public void setExplain(List<String> explain) { this.explain = explain; }
-
-    public Engine getEngine() { return engine; }
-    public void setEngine(Engine engine) { this.engine = engine; }
-
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
 }

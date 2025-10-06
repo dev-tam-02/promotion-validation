@@ -17,10 +17,10 @@ public class MetadataFactMapper {
         }
 
         return MetadataFact.builder()
-            .requestId(UUID.randomUUID().toString())
-            .timezone(request.timezone())
-            .requestTime(Instant.now())
-            .context(request.context())
-            .build();
+                .requestId(UUID.randomUUID().toString())
+                .timezone(request.timezone())
+                .requestTime(Instant.now())
+                .context(request.context())
+                .build();
     }
 }

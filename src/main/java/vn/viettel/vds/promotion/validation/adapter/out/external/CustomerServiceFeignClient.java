@@ -12,9 +12,9 @@ import java.util.concurrent.CompletableFuture;
  * Feign client for customer service
  */
 @FeignClient(
-    name = "customer-service",
-    url = "${external.customer-service.url:http://customer-service}",
-    configuration = ExternalServiceFeignConfig.class
+        name = "customer-service",
+        url = "${external.customer-service.url:http://customer-service}",
+        configuration = ExternalServiceFeignConfig.class
 )
 public interface CustomerServiceFeignClient {
 
@@ -22,13 +22,13 @@ public interface CustomerServiceFeignClient {
      * Get customer by ID
      */
     @GetMapping(value = "/api/v1/customers/{customerId}",
-                produces = MediaType.APPLICATION_JSON_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     CompletableFuture<Map<String, Object>> getCustomerById(@PathVariable("customerId") String customerId);
 
     /**
      * Get customer segments
      */
     @GetMapping(value = "/api/v1/customers/{customerId}/segments",
-                produces = MediaType.APPLICATION_JSON_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     CompletableFuture<Map<String, Object>> getCustomerSegments(@PathVariable("customerId") String customerId);
 }

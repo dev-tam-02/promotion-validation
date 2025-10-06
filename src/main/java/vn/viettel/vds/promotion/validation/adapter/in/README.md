@@ -1,13 +1,19 @@
 # Adapter In Package
 
 ## Description
-The adapter.in package contains inbound adapters that handle incoming requests to the application. These adapters convert external requests into calls to the application's use cases.
+
+The adapter.in package contains inbound adapters that handle incoming requests to the application. These adapters
+convert external requests into calls to the application's use cases.
 
 ## Purpose
-The purpose of this package is to provide entry points to the application from the outside world, such as REST APIs, message consumers, or UI controllers, while keeping the application core independent of these external interfaces.
+
+The purpose of this package is to provide entry points to the application from the outside world, such as REST APIs,
+message consumers, or UI controllers, while keeping the application core independent of these external interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - REST controllers
 - GraphQL resolvers
 - Message consumers (Kafka, RabbitMQ, etc.)
@@ -20,6 +26,7 @@ Each adapter implements one or more input port interfaces defined in the applica
 ## Examples
 
 ### REST Controller Example
+
 ```java
 // CampaignController.java in adapter.in.web package
 @RestController
@@ -230,6 +237,7 @@ public class CampaignController {
 ```
 
 ### Kafka Consumer Example
+
 ```java
 // CampaignEventConsumer.java in adapter.in.messaging package
 @Service
@@ -271,6 +279,7 @@ public class CampaignEventConsumer {
 ```
 
 ### Scheduled Job Example
+
 ```java
 // CampaignScheduler.java in adapter.in.scheduler package
 @Component
@@ -305,6 +314,7 @@ public class CampaignScheduler {
 ```
 
 ## Rules
+
 1. Inbound adapters should implement the interfaces defined in the application.port.in package
 2. Adapters should handle the conversion between the external request format and the application's input model
 3. Input validation should be performed here before calling the application use cases

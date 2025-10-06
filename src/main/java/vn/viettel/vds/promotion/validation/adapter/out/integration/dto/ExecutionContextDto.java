@@ -36,7 +36,8 @@ public class ExecutionContextDto {
     private Map<String, Object> variables;
 
     // Constructors
-    public ExecutionContextDto() {}
+    public ExecutionContextDto() {
+    }
 
     public ExecutionContextDto(Instant now, String timezone) {
         this.now = now;
@@ -44,18 +45,43 @@ public class ExecutionContextDto {
     }
 
     // Getters and setters
-    public Instant getNow() { return now; }
-    public void setNow(Instant now) { this.now = now; }
+    public Instant getNow() {
+        return now;
+    }
 
-    public String getTimezone() { return timezone; }
-    public void setTimezone(String timezone) { this.timezone = timezone; }
+    public void setNow(Instant now) {
+        this.now = now;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getTimezone() {
+        return timezone;
+    }
 
-    public String getSessionId() { return sessionId; }
-    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
 
-    public Map<String, Object> getVariables() { return variables; }
-    public void setVariables(Map<String, Object> variables) { this.variables = variables; }
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(Map<String, Object> variables) {
+        this.variables = variables;
+    }
 }

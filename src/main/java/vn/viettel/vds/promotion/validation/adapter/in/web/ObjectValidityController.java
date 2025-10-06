@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import vn.viettel.vds.promotion.validation.application.service.ObjectValiditySer
 @RequestMapping("/api/v1/objects")
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnPromixMongo
 public class ObjectValidityController {
 
     private final ObjectValidityService objectValidityService;
@@ -51,8 +53,8 @@ public class ObjectValidityController {
                     request.objectId(), e);
 
             return ValidationResult.failure(
-                "OBJECT_VALIDITY_ERROR",
-                "Object validity validation failed: " + e.getMessage()
+                    "OBJECT_VALIDITY_ERROR",
+                    "Object validity validation failed: " + e.getMessage()
             );
         }
     }

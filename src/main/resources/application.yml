@@ -1,24 +1,68 @@
-# validation Service Configuration - Simplified
+# Validation Service Configuration - Dual Database Strategy
 
 spring:
   application:
     name: validation
 
-  # MariaDB Configuration (Required)
+  # MongoDB Primary Database (for validation documents)
+  data:
+    mongodb:
+      uri: mongodb://root:123123a%40@mongodb:27017/validation?authSource=admin&retryWrites=false
+
+      # Connection pool settings
+      options:
+        min-connections-per-host: 2
+        max-connections-per-host: 10
+        threads-allowed-to-block-for-connection-multiplier: 5
+        max-wait-time: 120000
+        max-connection-idle-time: 600000
+        max-connection-life-time: 1800000
+        connect-timeout: 10000
+        socket-timeout: 0
+
+      # SSL/TLS Configuration
+      ssl:
+        enabled: false
+        invalid-host-name-allowed: false
+
+      # Write Concern Configuration
+      write-concern:
+        w: 1
+        w-timeout: 10000
+        j: true
+
+      # Read Preference Configuration
+      read-preference: primary
+
+  # MariaDB Secondary Database (for validation rules/metadata)
   datasource:
-    url: jdbc:mariadb://promotion-mariadb:3306/validation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+    url: ${DB_URL:jdbc:mariadb://promixhub.com:3306/validation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
     username: root
     password: ${DB_PASSWORD:123123a@}
     driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     database-platform: org.hibernate.dialect.MariaDBDialect
     hibernate:
       ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+        jdbc:
+          batch_size: 500
+        order_inserts: true
+        order_updates: true
 
 # Server Configuration
 server:
-  port: 6014
+  port: 16014
 
 # Eureka Configuration
 eureka:
@@ -26,18 +70,112 @@ eureka:
     service-url:
       defaultZone: http://service-registry:8761/eureka
 
-# Promix Platform Configuration - Only essential overrides
+# Promix Platform Configuration - Dual Database Toggle
 promix:
+  # MongoDB Configuration - Toggle ON/OFF
+  # Set to false to disable MongoDB completely
+  mongo:
+    enabled: false  # Disabled - using JPA as primary
+    outbox:
+      enabled: false
+      publisher: "kafka"
+
+  # JPA/MariaDB Configuration - Toggle ON/OFF
+  # Set to false to disable JPA/MariaDB completely
+  jpa:
+    enabled: true  # Primary database for validation documents and metadata
+
+  # Outbox Pattern Configuration
+  outbox:
+    enabled: false                         # Disable MongoDB outbox (from promix-outbox-autoconfigure)
+    jpa:
+      enabled: true                        # Enable JPA outbox implementation
+    batch:
+      enabled: true                        # Enable batch processing
+      chunk-size: 100                      # Events per processing batch
+      page-size: 1000                      # Events per database read
+      interval: 1m                         # Processing interval
+    cleanup:
+      enabled: true                        # Enable automatic cleanup
+      retention-period: 7d                 # Keep processed events for 7 days
+      interval: 6h                         # Cleanup interval
+    retry:
+      max-attempts: 3                      # Maximum retry attempts
+      initial-delay: 1m                    # Initial retry delay
+      max-delay: 1h                        # Maximum retry delay
+      multiplier: 2.0                      # Delay multiplier for exponential backoff
+
   # Kafka Configuration
   messaging:
+    enabled: true
+    avro:
+      enabled: true  # Enable Avro support in promix-messaging
+      producer:
+        enabled: true  # Enable Avro producer factory
+      consumer:
+        enabled: true  # Enable Avro consumer factory
+      schema-registry:
+        url: embedded
     kafka:
       bootstrap-servers:
         - kafka-1:9092
         - kafka-2:9093
         - kafka-3:9094
       client-id: validation
+      enable-avro: true
+
+      # Producer Configuration
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroSerializer
+        acks: all
+        retries: 5
+        batch-size: 16384
+        linger: 10
+        buffer-memory: 33554432
+        enable-idempotence: true
+        max-in-flight: 5
+        request-timeout: 30000
+        delivery-timeout: 120000
+        retry-backoff: 100
+        use-avro: true
+
+      # Consumer Configuration
       consumer:
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroDeserializer
         group-id: validation-group
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+        max-poll: 500
+        max-poll-interval: 300000
+        fetch-min-bytes: 1
+        fetch-max-bytes: 52428800
+        fetch-max-wait: 500
+        isolation-level: read_committed
+        concurrency: 3
+        batch-listener: true
+        ack-mode: MANUAL_IMMEDIATE
+        session-timeout: 30000
+        heartbeat-interval: 10000
+        use-avro: true
+        specific-avro-reader: true
+
+        # Retry Configuration
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 1.5
+          max-interval: 5000
+
+        # Error Handling
+        error-handling:
+          enable-dlq: true
+          dlq-topic-suffix: _dlq
+          dlq-partitioning-enabled: false
+          max-failures: 3
+          include-headers: true
 
   # Cache Configuration
   cache:
@@ -45,13 +183,41 @@ promix:
       enabled: true
       prefix: "validation-cache:"
       default-ttl: 30m
+      cluster:
+        nodes:
+          - node1:6379
+          - node2:6380
+          - node3:6381
 
+# Mongock Configuration (DISABLED - using Liquibase from promix-data-jpa)
+mongock:
+  migration-scan-package:
+    - vn.viettel.vds.promotion.validation.infrastructure.migration
+  throw-exception-if-cannot-obtain-lock: true
+  track-ignored: false
+  enabled: false  # Disabled - using Liquibase from promix-data-jpa-starter
+  transaction-enabled: false  # Disable transaction for standalone MongoDB
 
+# Kafka Topics Configuration
+kafka:
+  topics:
+    # Standardized Topic Naming Convention
+    # All commands (create, update, delete, rollback) go to single command topic
+    # All results/events go to single events topic
 
-# Logging Configuration
-logging:
-  level:
-    root: INFO
-    vn.viettel.vds.promotion.validation: INFO
-  pattern:
-    console: "%d{HH:mm:ss.SSS} %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    # Inbound Topics (Commands to consume)
+    validation-command: promotion_validation_command
+
+    # Outbound Topics (Events to publish)
+    validation-events: promotion_validation_events
+
+    # Dead Letter Queue Topics
+    validation-command-dlq: promotion_validation_command_dlq
+    validation-events-dlq: promotion_validation_events_dlq
+
+  consumer:
+    group-id: validation-group
+
+  producer:
+    client-id: validation-producer
+

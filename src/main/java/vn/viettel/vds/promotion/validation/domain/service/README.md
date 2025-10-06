@@ -1,13 +1,20 @@
 # Domain Service Package
 
 ## Description
-The domain.service package contains domain services that implement complex business logic that doesn't naturally fit within a single entity or value object. These services operate on multiple domain objects and encapsulate business rules that span across them.
+
+The domain.service package contains domain services that implement complex business logic that doesn't naturally fit
+within a single entity or value object. These services operate on multiple domain objects and encapsulate business rules
+that span across them.
 
 ## Purpose
-The purpose of this package is to provide a home for business logic that doesn't belong to any specific entity or value object, while keeping this logic within the domain layer and separate from application concerns.
+
+The purpose of this package is to provide a home for business logic that doesn't belong to any specific entity or value
+object, while keeping this logic within the domain layer and separate from application concerns.
 
 ## Usage
+
 This package typically contains:
+
 - Domain services that operate on multiple entities or aggregates
 - Complex calculation services (e.g., discount calculators, eligibility evaluators)
 - Policy services that implement business policies
@@ -17,6 +24,7 @@ This package typically contains:
 ## Examples
 
 ### Discount Calculation Service Example
+
 ```java
 // DiscountCalculationService.java
 public class DiscountCalculationService {
@@ -77,6 +85,7 @@ public class DiscountCalculationService {
 ```
 
 ### Eligibility Service Example
+
 ```java
 // CampaignEligibilityService.java
 public class CampaignEligibilityService {
@@ -129,6 +138,7 @@ public class CampaignEligibilityService {
 ```
 
 ### Validation Service Example
+
 ```java
 // PromotionValidationService.java
 public class PromotionValidationService {
@@ -179,6 +189,7 @@ public class PromotionValidationService {
 ```
 
 ## Rules
+
 1. Domain services should operate on domain entities and value objects
 2. Domain services should be stateless
 3. Domain services should implement business logic that doesn't naturally fit within a single entity

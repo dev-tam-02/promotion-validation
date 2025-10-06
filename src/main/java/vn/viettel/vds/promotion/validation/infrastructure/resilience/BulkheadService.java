@@ -26,9 +26,9 @@ public class BulkheadService {
 
     private BulkheadRegistry createBulkheadRegistry() {
         BulkheadConfig defaultConfig = BulkheadConfig.custom()
-            .maxConcurrentCalls(config.getBulkhead().getMaxConcurrentCalls())
-            .maxWaitDuration(Duration.ofMillis(config.getBulkhead().getMaxWaitDuration()))
-            .build();
+                .maxConcurrentCalls(config.getBulkhead().getMaxConcurrentCalls())
+                .maxWaitDuration(Duration.ofMillis(config.getBulkhead().getMaxWaitDuration()))
+                .build();
 
         BulkheadRegistry registry = BulkheadRegistry.of(defaultConfig);
 
@@ -82,10 +82,10 @@ public class BulkheadService {
         Bulkhead bulkhead = bulkheadRegistry.bulkhead(name);
 
         return new BulkheadStatus(
-            name,
-            bulkhead.getMetrics().getAvailableConcurrentCalls(),
-            bulkhead.getMetrics().getMaxAllowedConcurrentCalls(),
-            bulkhead.getBulkheadConfig().getMaxWaitDuration()
+                name,
+                bulkhead.getMetrics().getAvailableConcurrentCalls(),
+                bulkhead.getMetrics().getMaxAllowedConcurrentCalls(),
+                bulkhead.getBulkheadConfig().getMaxWaitDuration()
         );
     }
 
@@ -117,7 +117,7 @@ public class BulkheadService {
         private final Duration maxWaitDuration;
 
         public BulkheadStatus(String name, int availableConcurrentCalls,
-                            int maxAllowedConcurrentCalls, Duration maxWaitDuration) {
+                              int maxAllowedConcurrentCalls, Duration maxWaitDuration) {
             this.name = name;
             this.availableConcurrentCalls = availableConcurrentCalls;
             this.maxAllowedConcurrentCalls = maxAllowedConcurrentCalls;
@@ -125,17 +125,31 @@ public class BulkheadService {
         }
 
         // Getters
-        public String getName() { return name; }
-        public int getAvailableConcurrentCalls() { return availableConcurrentCalls; }
-        public int getMaxAllowedConcurrentCalls() { return maxAllowedConcurrentCalls; }
-        public Duration getMaxWaitDuration() { return maxWaitDuration; }
+        public String getName() {
+            return name;
+        }
+
+        public int getAvailableConcurrentCalls() {
+            return availableConcurrentCalls;
+        }
+
+        public int getMaxAllowedConcurrentCalls() {
+            return maxAllowedConcurrentCalls;
+        }
+
+        public Duration getMaxWaitDuration() {
+            return maxWaitDuration;
+        }
+
         public int getCurrentConcurrentCalls() {
             return maxAllowedConcurrentCalls - availableConcurrentCalls;
         }
+
         public double getUtilizationRate() {
             return maxAllowedConcurrentCalls > 0 ?
-                (double) getCurrentConcurrentCalls() / maxAllowedConcurrentCalls * 100 : 0.0;
+                    (double) getCurrentConcurrentCalls() / maxAllowedConcurrentCalls * 100 : 0.0;
         }
+
         public boolean isAtCapacity() {
             return availableConcurrentCalls == 0;
         }

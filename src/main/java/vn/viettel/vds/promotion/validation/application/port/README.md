@@ -1,19 +1,26 @@
 # Application Port Package
 
 ## Description
-The application.port package contains interfaces that define the boundaries of the application. These interfaces act as contracts between the application core and the outside world.
+
+The application.port package contains interfaces that define the boundaries of the application. These interfaces act as
+contracts between the application core and the outside world.
 
 ## Purpose
-The purpose of this package is to define clear boundaries for the application core, allowing it to remain isolated from external concerns while still being able to communicate with the outside world.
+
+The purpose of this package is to define clear boundaries for the application core, allowing it to remain isolated from
+external concerns while still being able to communicate with the outside world.
 
 ## Usage
+
 This package is organized into two main subpackages:
+
 - `in`: Contains input port interfaces that define the operations that can be performed on the application
 - `out`: Contains output port interfaces that define the operations that the application needs from the outside world
 
 ## Examples
 
 ### Input Port Example
+
 ```java
 // ManageCampaignUseCase.java in application.port.in package
 public interface ManageCampaignUseCase {
@@ -65,6 +72,7 @@ public interface ManageCampaignUseCase {
 ```
 
 ### Output Port Example
+
 ```java
 // CampaignRepository.java in application.port.out package
 public interface CampaignRepository {
@@ -102,6 +110,7 @@ public interface CampaignRepository {
 ```
 
 ### Port Usage Example
+
 ```java
 // CreateCampaignService.java in application.usecase package
 @Service
@@ -158,11 +167,14 @@ public class CreateCampaignService implements ManageCampaignUseCase {
 ```
 
 ## Rules
-1. Port interfaces should be defined in terms of the application's domain model, not in terms of external representations
+
+1. Port interfaces should be defined in terms of the application's domain model, not in terms of external
+   representations
 2. Input ports should define methods that represent use cases or user actions
 3. Output ports should define methods that the application needs to interact with external systems
 4. Port interfaces should be stable and change only when the application's requirements change
 5. Port interfaces should be designed with testability in mind
 6. Input ports should accept and return DTOs (Data Transfer Objects) that are specific to the use case
 7. Output ports should be designed to be easily mockable for testing
-8. Port interfaces should follow the Interface Segregation Principle (ISP) - clients should not be forced to depend on methods they do not use
+8. Port interfaces should follow the Interface Segregation Principle (ISP) - clients should not be forced to depend on
+   methods they do not use

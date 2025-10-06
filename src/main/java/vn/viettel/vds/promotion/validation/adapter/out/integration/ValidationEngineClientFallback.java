@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class ValidationEngineClientFallback implements ValidationEngineClient {
@@ -13,9 +14,9 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     private static final Logger logger = LoggerFactory.getLogger(ValidationEngineClientFallback.class);
 
     @Override
-    public CompileResponse compileRule(CompileRequest request) {
+    public CompileResponse compile(CompileRequest request) {
         logger.error("Fallback: Rule compilation failed for tenantId={}, ruleId={}, version={}",
-                   request.getTenantId(), request.getRuleId(), request.getVersion());
+                request.getTenantId(), request.getRuleId(), request.getVersion());
 
         CompileResponse fallbackResponse = new CompileResponse();
         fallbackResponse.setOk(false);
@@ -24,9 +25,9 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     }
 
     @Override
-    public ExecuteResponse executeRule(ExecuteRequest request) {
+    public ExecuteResponse execute(ExecuteRequest request) {
         logger.error("Fallback: Rule execution failed for bundleHash={}, customerId={}",
-                    request.getBundleHash(), request.getCustomer().getId());
+                request.getBundleHash(), request.getCustomer().getId());
 
         ExecuteResponse fallbackResponse = new ExecuteResponse();
         fallbackResponse.setOk(false);
@@ -41,22 +42,24 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         logger.error("Fallback: Batch execution failed for {} requests", requests.size());
 
         return requests.stream()
-            .map(request -> {
-                ExecuteResponse fallbackResponse = new ExecuteResponse();
-                fallbackResponse.setOk(false);
-                fallbackResponse.setDecision("DENY");
-                fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
-                fallbackResponse.setExplain(List.of("Validation engine service is unavailable"));
-                return fallbackResponse;
-            })
-            .toList();
+                .map(request -> {
+                    ExecuteResponse fallbackResponse = new ExecuteResponse();
+                    fallbackResponse.setOk(false);
+                    fallbackResponse.setDecision("DENY");
+                    fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
+                    fallbackResponse.setExplain(List.of("Validation engine service is unavailable"));
+                    return fallbackResponse;
+                })
+                .toList();
     }
 
     @Override
-    public void warmupBundle(WarmupRequest request) {
+    public WarmupResponse warmup(WarmupRequest request) {
         logger.error("Fallback: Bundle warmup failed for bundleHash={}", request.getBundleHash());
-        throw new ValidationEngineException("Bundle warmup failed: Service unavailable", "warmup",
-                                          new RuntimeException("Fallback activated"));
+        WarmupResponse fallbackResponse = new WarmupResponse();
+        fallbackResponse.setOk(false);
+        fallbackResponse.setErrors(List.of("Validation engine service is unavailable"));
+        return fallbackResponse;
     }
 
     @Override
@@ -69,6 +72,21 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         fallbackResponse.setHealth("UNKNOWN");
         fallbackResponse.setInfo("Validation engine service is unavailable");
         return fallbackResponse;
+    }
+
+    @Override
+    public DeployResponse deployRuleSet(String ruleSetId, Map<String, Object> compiledRules) {
+        logger.error("Fallback: Rule deployment failed for ruleSetId={}", ruleSetId);
+        DeployResponse fallbackResponse = new DeployResponse();
+        fallbackResponse.setDeployed(false);
+        fallbackResponse.setMessage("Validation engine service is unavailable");
+        return fallbackResponse;
+    }
+
+    @Override
+    public List<String> getSupportedOperators() {
+        logger.error("Fallback: Get supported operators failed");
+        return List.of();
     }
 
     @Override

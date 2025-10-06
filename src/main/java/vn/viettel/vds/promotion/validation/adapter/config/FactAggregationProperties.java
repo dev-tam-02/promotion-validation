@@ -126,7 +126,8 @@ public class FactAggregationProperties {
         private boolean enabled = true;
         private int priority = 100;
 
-        public ServiceConfig() {}
+        public ServiceConfig() {
+        }
 
         public ServiceConfig(String baseUrl) {
             this.baseUrl = baseUrl;

@@ -25,7 +25,8 @@ public class BundleStatusResponse {
     private String info;
 
     // Constructors
-    public BundleStatusResponse() {}
+    public BundleStatusResponse() {
+    }
 
     public BundleStatusResponse(String bundleHash, boolean loaded) {
         this.bundleHash = bundleHash;
@@ -33,15 +34,35 @@ public class BundleStatusResponse {
     }
 
     // Getters and setters
-    public String getBundleHash() { return bundleHash; }
-    public void setBundleHash(String bundleHash) { this.bundleHash = bundleHash; }
+    public String getBundleHash() {
+        return bundleHash;
+    }
 
-    public boolean isLoaded() { return loaded; }
-    public void setLoaded(boolean loaded) { this.loaded = loaded; }
+    public void setBundleHash(String bundleHash) {
+        this.bundleHash = bundleHash;
+    }
 
-    public String getHealth() { return health; }
-    public void setHealth(String health) { this.health = health; }
+    public boolean isLoaded() {
+        return loaded;
+    }
 
-    public String getInfo() { return info; }
-    public void setInfo(String info) { this.info = info; }
+    public void setLoaded(boolean loaded) {
+        this.loaded = loaded;
+    }
+
+    public String getHealth() {
+        return health;
+    }
+
+    public void setHealth(String health) {
+        this.health = health;
+    }
+
+    public String getInfo() {
+        return info;
+    }
+
+    public void setInfo(String info) {
+        this.info = info;
+    }
 }

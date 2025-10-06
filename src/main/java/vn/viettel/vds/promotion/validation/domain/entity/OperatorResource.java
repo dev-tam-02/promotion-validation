@@ -25,18 +25,43 @@ public class OperatorResource {
     private String resourceId;
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getOperatorName() { return operatorName; }
-    public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public Integer getOperatorVersion() { return operatorVersion; }
-    public void setOperatorVersion(Integer operatorVersion) { this.operatorVersion = operatorVersion; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getResourceId() { return resourceId; }
-    public void setResourceId(String resourceId) { this.resourceId = resourceId; }
+    public String getOperatorName() {
+        return operatorName;
+    }
+
+    public void setOperatorName(String operatorName) {
+        this.operatorName = operatorName;
+    }
+
+    public Integer getOperatorVersion() {
+        return operatorVersion;
+    }
+
+    public void setOperatorVersion(Integer operatorVersion) {
+        this.operatorVersion = operatorVersion;
+    }
+
+    public String getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(String resourceId) {
+        this.resourceId = resourceId;
+    }
 }

@@ -12,12 +12,12 @@ import java.util.Map;
 
 /**
  * Test controller to manually test validation-engine integration
- *
+ * <p>
  * Usage:
  * 1. Start validation-engine on port 8082
  * 2. Start validation service
  * 3. Call these endpoints to test integration
- *
+ * <p>
  * Available endpoints:
  * - POST /api/test/compile - Test rule compilation
  * - POST /api/test/execute - Test rule execution
@@ -37,7 +37,7 @@ public class ValidationEngineTestController {
     @PostMapping("/compile")
     public CompileResponse testCompile() {
         CompileRequest request = createSampleCompileRequest();
-        return validationEngineClient.compileRule(request);
+        return validationEngineClient.compile(request);
     }
 
     @PostMapping("/execute")
@@ -45,7 +45,7 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compileRule(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
             bundleHash = compileResponse.getBundleHash();
         }
 
@@ -53,21 +53,21 @@ public class ValidationEngineTestController {
         ExecuteRequest allowRequest = createAllowExecuteRequest(bundleHash);
         ExecuteRequest denyRequest = createDenyExecuteRequest(bundleHash);
 
-        ExecuteResponse allowResponse = validationEngineClient.executeRule(allowRequest);
-        ExecuteResponse denyResponse = validationEngineClient.executeRule(denyRequest);
+        ExecuteResponse allowResponse = validationEngineClient.execute(allowRequest);
+        ExecuteResponse denyResponse = validationEngineClient.execute(denyRequest);
 
         return Map.of(
-            "bundleHash", bundleHash,
-            "vipCustomer", Map.of(
-                "decision", allowResponse.getDecision(),
-                "reasonCodes", allowResponse.getReasonCodes(),
-                "executionTimeMs", allowResponse.getEngine() != null ? allowResponse.getEngine().getLatencyMs() : null
-            ),
-            "standardCustomer", Map.of(
-                "decision", denyResponse.getDecision(),
-                "reasonCodes", denyResponse.getReasonCodes(),
-                "executionTimeMs", denyResponse.getEngine() != null ? denyResponse.getEngine().getLatencyMs() : null
-            )
+                "bundleHash", bundleHash,
+                "vipCustomer", Map.of(
+                        "decision", allowResponse.getDecision(),
+                        "reasonCodes", allowResponse.getReasonCodes(),
+                        "executionTimeMs", allowResponse.getEngine() != null ? allowResponse.getEngine().getLatencyMs() : null
+                ),
+                "standardCustomer", Map.of(
+                        "decision", denyResponse.getDecision(),
+                        "reasonCodes", denyResponse.getReasonCodes(),
+                        "executionTimeMs", denyResponse.getEngine() != null ? denyResponse.getEngine().getLatencyMs() : null
+                )
         );
     }
 
@@ -81,13 +81,13 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compileRule(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
             bundleHash = compileResponse.getBundleHash();
         }
 
         List<ExecuteRequest> requests = List.of(
-            createAllowExecuteRequest(bundleHash),
-            createDenyExecuteRequest(bundleHash)
+                createAllowExecuteRequest(bundleHash),
+                createDenyExecuteRequest(bundleHash)
         );
 
         return validationEngineClient.executeBatch(requests);
@@ -98,19 +98,19 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compileRule(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
             bundleHash = compileResponse.getBundleHash();
         }
 
         WarmupRequest request = new WarmupRequest();
         request.setBundleHash(bundleHash);
 
-        validationEngineClient.warmupBundle(request);
+        validationEngineClient.warmup(request);
 
         return Map.of(
-            "status", "success",
-            "bundleHash", bundleHash,
-            "message", "Bundle warmed up successfully"
+                "status", "success",
+                "bundleHash", bundleHash,
+                "message", "Bundle warmed up successfully"
         );
     }
 
@@ -119,21 +119,21 @@ public class ValidationEngineTestController {
         try {
             // Try a simple compile to test connectivity
             CompileRequest request = createSampleCompileRequest();
-            CompileResponse response = validationEngineClient.compileRule(request);
+            CompileResponse response = validationEngineClient.compile(request);
 
             return Map.of(
-                "status", "healthy",
-                "validationEngine", "connected",
-                "drools", "working",
-                "lastTest", Instant.now(),
-                "bundleHash", response.getBundleHash()
+                    "status", "healthy",
+                    "validationEngine", "connected",
+                    "drools", "working",
+                    "lastTest", Instant.now(),
+                    "bundleHash", response.getBundleHash()
             );
         } catch (Exception e) {
             return Map.of(
-                "status", "unhealthy",
-                "validationEngine", "disconnected",
-                "error", e.getMessage(),
-                "lastTest", Instant.now()
+                    "status", "unhealthy",
+                    "validationEngine", "disconnected",
+                    "error", e.getMessage(),
+                    "lastTest", Instant.now()
             );
         }
     }

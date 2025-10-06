@@ -22,6 +22,23 @@ public class BatchSimulateRequest {
     @JsonProperty("cases")
     private List<TestCase> cases;
 
+    // Getters and setters
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public List<TestCase> getCases() {
+        return cases;
+    }
+
+    public void setCases(List<TestCase> cases) {
+        this.cases = cases;
+    }
+
     @Schema(description = "Test case definition")
     public static class TestCase {
 
@@ -40,14 +57,29 @@ public class BatchSimulateRequest {
         private ExpectedResult expect;
 
         // Getters and setters
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+        public String getName() {
+            return name;
+        }
 
-        public Map<String, Object> getContext() { return context; }
-        public void setContext(Map<String, Object> context) { this.context = context; }
+        public void setName(String name) {
+            this.name = name;
+        }
 
-        public ExpectedResult getExpect() { return expect; }
-        public void setExpect(ExpectedResult expect) { this.expect = expect; }
+        public Map<String, Object> getContext() {
+            return context;
+        }
+
+        public void setContext(Map<String, Object> context) {
+            this.context = context;
+        }
+
+        public ExpectedResult getExpect() {
+            return expect;
+        }
+
+        public void setExpect(ExpectedResult expect) {
+            this.expect = expect;
+        }
     }
 
     @Schema(description = "Expected simulation result")
@@ -62,17 +94,20 @@ public class BatchSimulateRequest {
         private List<String> reasonCodes;
 
         // Getters and setters
-        public String getDecision() { return decision; }
-        public void setDecision(String decision) { this.decision = decision; }
+        public String getDecision() {
+            return decision;
+        }
 
-        public List<String> getReasonCodes() { return reasonCodes; }
-        public void setReasonCodes(List<String> reasonCodes) { this.reasonCodes = reasonCodes; }
+        public void setDecision(String decision) {
+            this.decision = decision;
+        }
+
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
+
+        public void setReasonCodes(List<String> reasonCodes) {
+            this.reasonCodes = reasonCodes;
+        }
     }
-
-    // Getters and setters
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
-
-    public List<TestCase> getCases() { return cases; }
-    public void setCases(List<TestCase> cases) { this.cases = cases; }
 }

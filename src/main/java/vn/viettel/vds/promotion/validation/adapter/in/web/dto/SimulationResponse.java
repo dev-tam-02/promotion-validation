@@ -21,12 +21,27 @@ public class SimulationResponse {
     private List<String> explain;
 
     // Getters and setters
-    public String getDecision() { return decision; }
-    public void setDecision(String decision) { this.decision = decision; }
+    public String getDecision() {
+        return decision;
+    }
 
-    public List<String> getReasonCodes() { return reasonCodes; }
-    public void setReasonCodes(List<String> reasonCodes) { this.reasonCodes = reasonCodes; }
+    public void setDecision(String decision) {
+        this.decision = decision;
+    }
 
-    public List<String> getExplain() { return explain; }
-    public void setExplain(List<String> explain) { this.explain = explain; }
+    public List<String> getReasonCodes() {
+        return reasonCodes;
+    }
+
+    public void setReasonCodes(List<String> reasonCodes) {
+        this.reasonCodes = reasonCodes;
+    }
+
+    public List<String> getExplain() {
+        return explain;
+    }
+
+    public void setExplain(List<String> explain) {
+        this.explain = explain;
+    }
 }

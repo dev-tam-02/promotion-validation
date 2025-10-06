@@ -41,27 +41,27 @@ public abstract class AbstractFactResolver<T> implements FactResolver<T> {
             case HYBRID -> {
                 if (supportsEmbeddedPayload() && request.embeddedPayload() != null) {
                     yield resolveFromEmbeddedPayloadWithResilience(request, request.embeddedPayload())
-                        .handle((result, throwable) -> {
-                            if (throwable != null) {
-                                log.warn("Embedded payload resolution failed for {}, falling back to IDs: {}",
-                                    getContextName(), throwable.getMessage());
-                                return resolveFromIdsWithResilience(request).join();
-                            }
-                            return result;
-                        });
+                            .handle((result, throwable) -> {
+                                if (throwable != null) {
+                                    log.warn("Embedded payload resolution failed for {}, falling back to IDs: {}",
+                                            getContextName(), throwable.getMessage());
+                                    return resolveFromIdsWithResilience(request).join();
+                                }
+                                return result;
+                            });
                 } else {
                     yield resolveFromIdsWithResilience(request);
                 }
             }
             case PARTIAL -> resolveFromIdsWithResilience(request)
-                .handle((result, throwable) -> {
-                    if (throwable != null) {
-                        log.warn("Full resolution failed for {}, returning partial result: {}",
-                            getContextName(), throwable.getMessage());
-                        return getPartialResult(request);
-                    }
-                    return result;
-                });
+                    .handle((result, throwable) -> {
+                        if (throwable != null) {
+                            log.warn("Full resolution failed for {}, returning partial result: {}",
+                                    getContextName(), throwable.getMessage());
+                            return getPartialResult(request);
+                        }
+                        return result;
+                    });
         };
     }
 

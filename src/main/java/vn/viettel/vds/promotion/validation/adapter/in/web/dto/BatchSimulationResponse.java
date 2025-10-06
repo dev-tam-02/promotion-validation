@@ -16,6 +16,23 @@ public class BatchSimulationResponse {
     @JsonProperty("results")
     private List<CaseResult> results;
 
+    // Getters and setters
+    public Stats getStats() {
+        return stats;
+    }
+
+    public void setStats(Stats stats) {
+        this.stats = stats;
+    }
+
+    public List<CaseResult> getResults() {
+        return results;
+    }
+
+    public void setResults(List<CaseResult> results) {
+        this.results = results;
+    }
+
     @Schema(description = "Batch simulation statistics")
     public static class Stats {
 
@@ -27,7 +44,8 @@ public class BatchSimulationResponse {
         @JsonProperty("fail")
         private int fail;
 
-        public Stats() {}
+        public Stats() {
+        }
 
         public Stats(int pass, int fail) {
             this.pass = pass;
@@ -35,11 +53,21 @@ public class BatchSimulationResponse {
         }
 
         // Getters and setters
-        public int getPass() { return pass; }
-        public void setPass(int pass) { this.pass = pass; }
+        public int getPass() {
+            return pass;
+        }
 
-        public int getFail() { return fail; }
-        public void setFail(int fail) { this.fail = fail; }
+        public void setPass(int pass) {
+            this.pass = pass;
+        }
+
+        public int getFail() {
+            return fail;
+        }
+
+        public void setFail(int fail) {
+            this.fail = fail;
+        }
     }
 
     @Schema(description = "Individual test case result")
@@ -66,26 +94,44 @@ public class BatchSimulationResponse {
         private List<String> explain;
 
         // Getters and setters
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+        public String getName() {
+            return name;
+        }
 
-        public String getDecision() { return decision; }
-        public void setDecision(String decision) { this.decision = decision; }
+        public void setName(String name) {
+            this.name = name;
+        }
 
-        public List<String> getReasonCodes() { return reasonCodes; }
-        public void setReasonCodes(List<String> reasonCodes) { this.reasonCodes = reasonCodes; }
+        public String getDecision() {
+            return decision;
+        }
 
-        public boolean isOk() { return ok; }
-        public void setOk(boolean ok) { this.ok = ok; }
+        public void setDecision(String decision) {
+            this.decision = decision;
+        }
 
-        public List<String> getExplain() { return explain; }
-        public void setExplain(List<String> explain) { this.explain = explain; }
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
+
+        public void setReasonCodes(List<String> reasonCodes) {
+            this.reasonCodes = reasonCodes;
+        }
+
+        public boolean isOk() {
+            return ok;
+        }
+
+        public void setOk(boolean ok) {
+            this.ok = ok;
+        }
+
+        public List<String> getExplain() {
+            return explain;
+        }
+
+        public void setExplain(List<String> explain) {
+            this.explain = explain;
+        }
     }
-
-    // Getters and setters
-    public Stats getStats() { return stats; }
-    public void setStats(Stats stats) { this.stats = stats; }
-
-    public List<CaseResult> getResults() { return results; }
-    public void setResults(List<CaseResult> results) { this.results = results; }
 }

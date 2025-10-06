@@ -35,8 +35,8 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema1 = new HashMap<>();
         jsonSchema1.put("type", "object");
         jsonSchema1.put("properties", Map.of(
-            "amount", Map.of("type", "number", "minimum", 0),
-            "currency", Map.of("type", "string", "enum", List.of("VND", "USD"))
+                "amount", Map.of("type", "number", "minimum", 0),
+                "currency", Map.of("type", "string", "enum", List.of("VND", "USD"))
         ));
         jsonSchema1.put("required", List.of("amount"));
         orderAmountGte.put("jsonSchema", jsonSchema1);
@@ -57,7 +57,7 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema2 = new HashMap<>();
         jsonSchema2.put("type", "object");
         jsonSchema2.put("properties", Map.of(
-            "segments", Map.of("type", "array", "items", Map.of("type", "string"))
+                "segments", Map.of("type", "array", "items", Map.of("type", "string"))
         ));
         jsonSchema2.put("required", List.of("segments"));
         customerSegment.put("jsonSchema", jsonSchema2);
@@ -78,8 +78,8 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema3 = new HashMap<>();
         jsonSchema3.put("type", "object");
         jsonSchema3.put("properties", Map.of(
-            "policyId", Map.of("type", "string"),
-            "tz", Map.of("type", "string")
+                "policyId", Map.of("type", "string"),
+                "tz", Map.of("type", "string")
         ));
         jsonSchema3.put("required", List.of("policyId"));
         timeWindow.put("jsonSchema", jsonSchema3);
@@ -100,7 +100,7 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema4 = new HashMap<>();
         jsonSchema4.put("type", "object");
         jsonSchema4.put("properties", Map.of(
-            "count", Map.of("type", "integer", "minimum", 1)
+                "count", Map.of("type", "integer", "minimum", 1)
         ));
         jsonSchema4.put("required", List.of("count"));
         itemCount.put("jsonSchema", jsonSchema4);
@@ -121,7 +121,7 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema5 = new HashMap<>();
         jsonSchema5.put("type", "object");
         jsonSchema5.put("properties", Map.of(
-            "points", Map.of("type", "integer", "minimum", 0)
+                "points", Map.of("type", "integer", "minimum", 0)
         ));
         jsonSchema5.put("required", List.of("points"));
         loyaltyPoints.put("jsonSchema", jsonSchema5);
@@ -142,7 +142,7 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema6 = new HashMap<>();
         jsonSchema6.put("type", "object");
         jsonSchema6.put("properties", Map.of(
-            "channels", Map.of("type", "array", "items", Map.of("type", "string"))
+                "channels", Map.of("type", "array", "items", Map.of("type", "string"))
         ));
         jsonSchema6.put("required", List.of("channels"));
         channelIn.put("jsonSchema", jsonSchema6);
@@ -163,8 +163,8 @@ public class ChangeLogs001Operators {
         Map<String, Object> jsonSchema7 = new HashMap<>();
         jsonSchema7.put("type", "object");
         jsonSchema7.put("properties", Map.of(
-            "maxUsage", Map.of("type", "integer", "minimum", 1),
-            "voucherCode", Map.of("type", "string")
+                "maxUsage", Map.of("type", "integer", "minimum", 1),
+                "voucherCode", Map.of("type", "string")
         ));
         jsonSchema7.put("required", List.of("maxUsage", "voucherCode"));
         usageLimit.put("jsonSchema", jsonSchema7);
@@ -181,8 +181,8 @@ public class ChangeLogs001Operators {
     public void rollback(MongoTemplate mongoTemplate) {
         mongoTemplate.remove(Query.query(Criteria.where("tenantId").is("DEFAULT")), "operators");
         mongoTemplate.remove(Query.query(Criteria.where("name").in(
-            "order.items.count.gte", "customer.loyalty.points.gte",
-            "order.channel.in", "customer.usage.count.lt"
+                "order.items.count.gte", "customer.loyalty.points.gte",
+                "order.channel.in", "customer.usage.count.lt"
         )), "operators");
     }
 }

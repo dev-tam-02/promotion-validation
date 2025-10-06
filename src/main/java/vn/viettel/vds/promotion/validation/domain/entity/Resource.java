@@ -37,30 +37,75 @@ public class Resource {
     private Instant createdAt;
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getLabel() { return label; }
-    public void setLabel(String label) { this.label = label; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getEndpoint() { return endpoint; }
-    public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getAuthMethod() { return authMethod; }
-    public void setAuthMethod(String authMethod) { this.authMethod = authMethod; }
+    public String getLabel() {
+        return label;
+    }
 
-    public String getFieldKey() { return fieldKey; }
-    public void setFieldKey(String fieldKey) { this.fieldKey = fieldKey; }
+    public void setLabel(String label) {
+        this.label = label;
+    }
 
-    public String getFieldValue() { return fieldValue; }
-    public void setFieldValue(String fieldValue) { this.fieldValue = fieldValue; }
+    public String getEndpoint() {
+        return endpoint;
+    }
 
-    public Integer getTimeoutSeconds() { return timeoutSeconds; }
-    public void setTimeoutSeconds(Integer timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public String getAuthMethod() {
+        return authMethod;
+    }
+
+    public void setAuthMethod(String authMethod) {
+        this.authMethod = authMethod;
+    }
+
+    public String getFieldKey() {
+        return fieldKey;
+    }
+
+    public void setFieldKey(String fieldKey) {
+        this.fieldKey = fieldKey;
+    }
+
+    public String getFieldValue() {
+        return fieldValue;
+    }
+
+    public void setFieldValue(String fieldValue) {
+        this.fieldValue = fieldValue;
+    }
+
+    public Integer getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
+
+    public void setTimeoutSeconds(Integer timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
 }

@@ -34,25 +34,51 @@ public class CustomerDto {
     private Map<String, Object> metadata;
 
     // Constructors
-    public CustomerDto() {}
+    public CustomerDto() {
+    }
 
     public CustomerDto(String id) {
         this.id = id;
     }
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public List<String> getSegments() { return segments; }
-    public void setSegments(List<String> segments) { this.segments = segments; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getRegion() { return region; }
-    public void setRegion(String region) { this.region = region; }
+    public List<String> getSegments() {
+        return segments;
+    }
 
-    public Integer getTier() { return tier; }
-    public void setTier(Integer tier) { this.tier = tier; }
+    public void setSegments(List<String> segments) {
+        this.segments = segments;
+    }
 
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public Integer getTier() {
+        return tier;
+    }
+
+    public void setTier(Integer tier) {
+        this.tier = tier;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 }

@@ -24,17 +24,17 @@ public class HybridFactCacheService implements FactCacheService {
     private final ObjectMapper objectMapper;
 
     public HybridFactCacheService(
-        RedisTemplate<String, String> redisTemplate,
-        ObjectMapper objectMapper
+            RedisTemplate<String, String> redisTemplate,
+            ObjectMapper objectMapper
     ) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
 
         // Configure L1 Cache (Caffeine)
         this.l1Cache = Caffeine.newBuilder()
-            .maximumSize(1000) // Max 1000 entries in memory
-            .expireAfterWrite(Duration.ofMinutes(2)) // 2 minutes expiry
-            .buildAsync();
+                .maximumSize(1000) // Max 1000 entries in memory
+                .expireAfterWrite(Duration.ofMinutes(2)) // 2 minutes expiry
+                .buildAsync();
 
         log.info("Initialized HybridFactCacheService with L1 (Caffeine) + L2 (Redis) caching");
     }
@@ -45,34 +45,34 @@ public class HybridFactCacheService implements FactCacheService {
 
         // Try L1 cache first
         return l1Cache.getIfPresent(versionedKey)
-            .thenCompose(cachedValue -> {
-                if (cachedValue != null) {
-                    log.debug("L1 cache hit for key: {}", versionedKey);
-                    return CompletableFuture.completedFuture(cachedValue);
-                } else {
-                    // L1 miss, try L2 (Redis) using virtual threads
-                    return CompletableFuture.supplyAsync(() -> {
-                        try {
-                            String redisValue = redisTemplate.opsForValue().get(versionedKey);
-                            if (redisValue != null) {
-                                Object deserializedValue = deserializeValue(redisValue);
-                                log.debug("L2 cache hit for key: {}, promoting to L1", versionedKey);
+                .thenCompose(cachedValue -> {
+                    if (cachedValue != null) {
+                        log.debug("L1 cache hit for key: {}", versionedKey);
+                        return CompletableFuture.completedFuture(cachedValue);
+                    } else {
+                        // L1 miss, try L2 (Redis) using virtual threads
+                        return CompletableFuture.supplyAsync(() -> {
+                            try {
+                                String redisValue = redisTemplate.opsForValue().get(versionedKey);
+                                if (redisValue != null) {
+                                    Object deserializedValue = deserializeValue(redisValue);
+                                    log.debug("L2 cache hit for key: {}, promoting to L1", versionedKey);
 
-                                // Promote to L1 cache asynchronously
-                                l1Cache.put(versionedKey, CompletableFuture.completedFuture(deserializedValue));
+                                    // Promote to L1 cache asynchronously
+                                    l1Cache.put(versionedKey, CompletableFuture.completedFuture(deserializedValue));
 
-                                return deserializedValue;
-                            } else {
-                                log.debug("Cache miss for key: {}", versionedKey);
+                                    return deserializedValue;
+                                } else {
+                                    log.debug("Cache miss for key: {}", versionedKey);
+                                    return null;
+                                }
+                            } catch (Exception e) {
+                                log.warn("Error reading from Redis cache for key {}: {}", versionedKey, e.getMessage());
                                 return null;
                             }
-                        } catch (Exception e) {
-                            log.warn("Error reading from Redis cache for key {}: {}", versionedKey, e.getMessage());
-                            return null;
-                        }
-                    }, Executors.newVirtualThreadPerTaskExecutor());
-                }
-            });
+                        }, Executors.newVirtualThreadPerTaskExecutor());
+                    }
+                });
     }
 
     @Override
@@ -137,21 +137,21 @@ public class HybridFactCacheService implements FactCacheService {
 
         // Check L1 first
         return l1Cache.getIfPresent(versionedKey)
-            .thenCompose(cachedValue -> {
-                if (cachedValue != null) {
-                    return CompletableFuture.completedFuture(true);
-                } else {
-                    // Check L2 (Redis) using virtual threads
-                    return CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return redisTemplate.hasKey(versionedKey);
-                        } catch (Exception e) {
-                            log.warn("Failed to check existence in Redis for key {}: {}", versionedKey, e.getMessage());
-                            return false;
-                        }
-                    }, Executors.newVirtualThreadPerTaskExecutor());
-                }
-            });
+                .thenCompose(cachedValue -> {
+                    if (cachedValue != null) {
+                        return CompletableFuture.completedFuture(true);
+                    } else {
+                        // Check L2 (Redis) using virtual threads
+                        return CompletableFuture.supplyAsync(() -> {
+                            try {
+                                return redisTemplate.hasKey(versionedKey);
+                            } catch (Exception e) {
+                                log.warn("Failed to check existence in Redis for key {}: {}", versionedKey, e.getMessage());
+                                return false;
+                            }
+                        }, Executors.newVirtualThreadPerTaskExecutor());
+                    }
+                });
     }
 
     @Override

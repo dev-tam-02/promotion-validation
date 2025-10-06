@@ -7,17 +7,17 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record FactPack(
-    String factPackVersion,
-    Instant timestamp,
-    CustomerFact customer,
-    OrderFact order,
-    CandidateFact candidate,
-    SegmentsFact segments,
-    LimitsFact limits,
-    MetadataFact metadata,
-    GeoFact geo,
-    Map<String, Object> derived,
-    ProvenanceInfo provenance
+        String factPackVersion,
+        Instant timestamp,
+        CustomerFact customer,
+        OrderFact order,
+        CandidateFact candidate,
+        SegmentsFact segments,
+        LimitsFact limits,
+        MetadataFact metadata,
+        GeoFact geo,
+        Map<String, Object> derived,
+        ProvenanceInfo provenance
 ) {
     public static Builder builder() {
         return new Builder();
@@ -93,8 +93,8 @@ public record FactPack(
 
         public FactPack build() {
             return new FactPack(
-                factPackVersion, timestamp, customer, order, candidate,
-                segments, limits, metadata, geo, derived, provenance
+                    factPackVersion, timestamp, customer, order, candidate,
+                    segments, limits, metadata, geo, derived, provenance
             );
         }
     }

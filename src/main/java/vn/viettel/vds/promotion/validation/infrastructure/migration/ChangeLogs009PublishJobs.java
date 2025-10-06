@@ -32,14 +32,14 @@ public class ChangeLogs009PublishJobs {
         job1.put("startedAt", LocalDateTime.now().minusDays(7).toInstant(ZoneOffset.UTC));
         job1.put("completedAt", LocalDateTime.now().minusDays(7).plusMinutes(2).toInstant(ZoneOffset.UTC));
         job1.put("logs", List.of(
-            "[INFO] Starting publish for rule: vip_weekend_rule",
-            "[INFO] Freezing rule at version 1",
-            "[INFO] Resolving time policy links: weekend_policy",
-            "[INFO] Computing operators fingerprint: sha256:abc123def456",
-            "[INFO] Calling Artifact Service for compilation",
-            "[INFO] Bundle compilation successful: sha256:bundle_vip_weekend_v1_xyz",
-            "[INFO] Publishing outbox event: RulePublished",
-            "[SUCCESS] Rule published successfully"
+                "[INFO] Starting publish for rule: vip_weekend_rule",
+                "[INFO] Freezing rule at version 1",
+                "[INFO] Resolving time policy links: weekend_policy",
+                "[INFO] Computing operators fingerprint: sha256:abc123def456",
+                "[INFO] Calling Artifact Service for compilation",
+                "[INFO] Bundle compilation successful: sha256:bundle_vip_weekend_v1_xyz",
+                "[INFO] Publishing outbox event: RulePublished",
+                "[SUCCESS] Rule published successfully"
         ));
         job1.put("bundleHash", "sha256:bundle_vip_weekend_v1_xyz");
         job1.put("publishedBy", "admin");
@@ -55,14 +55,14 @@ public class ChangeLogs009PublishJobs {
         job2.put("startedAt", LocalDateTime.now().minusDays(30).toInstant(ZoneOffset.UTC));
         job2.put("completedAt", LocalDateTime.now().minusDays(30).plusMinutes(1).toInstant(ZoneOffset.UTC));
         job2.put("logs", List.of(
-            "[INFO] Starting publish for rule: welcome_new_customer_rule",
-            "[INFO] Freezing rule at version 1",
-            "[INFO] No time policy links to resolve",
-            "[INFO] Computing operators fingerprint: sha256:abc123def456",
-            "[INFO] Calling Artifact Service for compilation",
-            "[INFO] Bundle compilation successful: sha256:bundle_welcome_v1_abc",
-            "[INFO] Publishing outbox event: RulePublished",
-            "[SUCCESS] Rule published successfully"
+                "[INFO] Starting publish for rule: welcome_new_customer_rule",
+                "[INFO] Freezing rule at version 1",
+                "[INFO] No time policy links to resolve",
+                "[INFO] Computing operators fingerprint: sha256:abc123def456",
+                "[INFO] Calling Artifact Service for compilation",
+                "[INFO] Bundle compilation successful: sha256:bundle_welcome_v1_abc",
+                "[INFO] Publishing outbox event: RulePublished",
+                "[SUCCESS] Rule published successfully"
         ));
         job2.put("bundleHash", "sha256:bundle_welcome_v1_abc");
         job2.put("publishedBy", "admin");
@@ -78,12 +78,12 @@ public class ChangeLogs009PublishJobs {
         job3.put("startedAt", LocalDateTime.now().minusHours(2).toInstant(ZoneOffset.UTC));
         job3.put("completedAt", LocalDateTime.now().minusHours(2).plusMinutes(1).toInstant(ZoneOffset.UTC));
         job3.put("logs", List.of(
-            "[INFO] Starting publish for rule: flash_sale_business_hours_rule",
-            "[INFO] Freezing rule at version 1",
-            "[INFO] Resolving time policy links: business_hours_policy",
-            "[ERROR] Time policy 'business_hours_policy' validation failed",
-            "[ERROR] RRULE validation error: invalid BYDAY value",
-            "[FAILED] Publish failed due to time policy validation errors"
+                "[INFO] Starting publish for rule: flash_sale_business_hours_rule",
+                "[INFO] Freezing rule at version 1",
+                "[INFO] Resolving time policy links: business_hours_policy",
+                "[ERROR] Time policy 'business_hours_policy' validation failed",
+                "[ERROR] RRULE validation error: invalid BYDAY value",
+                "[FAILED] Publish failed due to time policy validation errors"
         ));
         job3.put("bundleHash", null);
         job3.put("publishedBy", "editor");

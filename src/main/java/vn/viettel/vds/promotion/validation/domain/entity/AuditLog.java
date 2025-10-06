@@ -33,6 +33,63 @@ public class AuditLog {
     @Field("at")
     private Instant at;
 
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public String getActor() {
+        return actor;
+    }
+
+    public void setActor(String actor) {
+        this.actor = actor;
+    }
+
+    public AuditAction getAction() {
+        return action;
+    }
+
+    public void setAction(AuditAction action) {
+        this.action = action;
+    }
+
+    public AuditTarget getTarget() {
+        return target;
+    }
+
+    public void setTarget(AuditTarget target) {
+        this.target = target;
+    }
+
+    public Map<String, Object> getDiff() {
+        return diff;
+    }
+
+    public void setDiff(Map<String, Object> diff) {
+        this.diff = diff;
+    }
+
+    public Instant getAt() {
+        return at;
+    }
+
+    public void setAt(Instant at) {
+        this.at = at;
+    }
+
     public enum AuditAction {
         RULE_CREATE, RULE_EDIT, RULE_PUBLISH, OP_CREATE, ASSIGN_UPDATE
     }
@@ -45,32 +102,20 @@ public class AuditLog {
         private String id;
 
         // Getters and setters
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        public String getType() {
+            return type;
+        }
 
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
     }
-
-    // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
-
-    public String getActor() { return actor; }
-    public void setActor(String actor) { this.actor = actor; }
-
-    public AuditAction getAction() { return action; }
-    public void setAction(AuditAction action) { this.action = action; }
-
-    public AuditTarget getTarget() { return target; }
-    public void setTarget(AuditTarget target) { this.target = target; }
-
-    public Map<String, Object> getDiff() { return diff; }
-    public void setDiff(Map<String, Object> diff) { this.diff = diff; }
-
-    public Instant getAt() { return at; }
-    public void setAt(Instant at) { this.at = at; }
 }

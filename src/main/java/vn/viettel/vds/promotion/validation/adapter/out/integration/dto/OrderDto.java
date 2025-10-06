@@ -40,7 +40,8 @@ public class OrderDto {
     private Map<String, Object> metadata;
 
     // Constructors
-    public OrderDto() {}
+    public OrderDto() {
+    }
 
     public OrderDto(String id, BigDecimal total, String currency) {
         this.id = id;
@@ -49,18 +50,43 @@ public class OrderDto {
     }
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public BigDecimal getTotal() { return total; }
-    public void setTotal(BigDecimal total) { this.total = total; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
+    public BigDecimal getTotal() {
+        return total;
+    }
 
-    public List<OrderItemDto> getItems() { return items; }
-    public void setItems(List<OrderItemDto> items) { this.items = items; }
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
 
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public List<OrderItemDto> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OrderItemDto> items) {
+        this.items = items;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 }

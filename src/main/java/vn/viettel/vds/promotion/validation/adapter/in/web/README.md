@@ -1,13 +1,21 @@
 # Adapter In Web Package
 
 ## Description
-The adapter.in.web package contains inbound adapters that handle incoming HTTP requests to the application. These adapters convert external HTTP requests into calls to the application's use cases and transform the results back into HTTP responses.
+
+The adapter.in.web package contains inbound adapters that handle incoming HTTP requests to the application. These
+adapters convert external HTTP requests into calls to the application's use cases and transform the results back into
+HTTP responses.
 
 ## Purpose
-The purpose of this package is to provide RESTful API endpoints and other web interfaces to the application, allowing external clients to interact with the application while keeping the application core independent of these external interfaces.
+
+The purpose of this package is to provide RESTful API endpoints and other web interfaces to the application, allowing
+external clients to interact with the application while keeping the application core independent of these external
+interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - REST controllers
 - GraphQL resolvers
 - Request/response mappers
@@ -20,6 +28,7 @@ Each adapter implements one or more input port interfaces defined in the applica
 ## Examples
 
 ### REST Controller Example
+
 ```java
 // CampaignController.java
 @RestController
@@ -144,6 +153,7 @@ public class CampaignController {
 ```
 
 ### GraphQL Resolver Example
+
 ```java
 // CampaignQueryResolver.java
 @Component
@@ -187,8 +197,10 @@ public class CampaignQueryResolver implements GraphQLQueryResolver {
 ```
 
 ## Rules
+
 1. Web adapters should implement the interfaces defined in the application.port.in package
-2. Adapters should handle the conversion between the HTTP request/response format and the application's input/output model
+2. Adapters should handle the conversion between the HTTP request/response format and the application's input/output
+   model
 3. Input validation should be performed before calling the application use cases
 4. Error handling should be consistent across all controllers
 5. Authentication and authorization checks should be performed here

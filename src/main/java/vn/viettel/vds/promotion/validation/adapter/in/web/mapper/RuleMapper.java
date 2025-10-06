@@ -37,15 +37,15 @@ public class RuleMapper {
         if (ruleNode == null) return null;
 
         return new RuleNodeDto(
-            ruleNode.getId(),
-            nodeTypeToString(ruleNode.getType()),
-            logicTypeToString(ruleNode.getGroupLogic()),
-            ruleNode.getOperatorName(),
-            null, // operatorVersion - not available in RuleNode
-            ruleNode.getParams(),
-            ruleNode.getReasonCode(),
-            ruleNodesToIds(ruleNode.getChildren()),
-            null  // order - not available in RuleNode
+                ruleNode.getId(),
+                nodeTypeToString(ruleNode.getType()),
+                logicTypeToString(ruleNode.getGroupLogic()),
+                ruleNode.getOperatorName(),
+                null, // operatorVersion - not available in RuleNode
+                ruleNode.getParams(),
+                ruleNode.getReasonCode(),
+                ruleNodesToIds(ruleNode.getChildren()),
+                null  // order - not available in RuleNode
         );
     }
 

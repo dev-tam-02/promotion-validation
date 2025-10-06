@@ -22,7 +22,7 @@ public class ValidateEngineOperatorsResponse {
     }
 
     public ValidateEngineOperatorsResponse(boolean valid, List<String> supportedOperators,
-                                         List<UnsupportedOperator> unsupportedOperators, String message) {
+                                           List<UnsupportedOperator> unsupportedOperators, String message) {
         this.valid = valid;
         this.supportedOperators = supportedOperators;
         this.unsupportedOperators = unsupportedOperators;

@@ -6,12 +6,7 @@ spring:
   # MongoDB Configuration
   data:
     mongodb:
-      database: validation
-      host: mongodb
-      port: 27017
-      username: root
-      password: 123123a@
-      authentication-database: admin
+      uri: mongodb://root:123123a%40@mongodb:27017/validation?authSource=admin&retryWrites=false
 
 # Mongock Configuration
 mongock:
@@ -20,6 +15,7 @@ mongock:
   throw-exception-if-cannot-obtain-lock: false
   track-ignored: false
   enabled: true
+  transaction-enabled: false  # Disable transaction for standalone MongoDB
 
   # Messages Configuration for Error Message Fallbacks
   messages:
@@ -329,15 +325,6 @@ management:
       prometheus:
         enabled: true
 
-# Logging Configuration
-logging:
-  level:
-    root: INFO
-    vn.viettel.vds.promotion.validation: DEBUG
-    org.springframework.security: INFO
-    org.springframework.data.mongodb: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
   file:
     name: logs/validation-service.log

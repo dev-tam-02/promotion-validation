@@ -1,19 +1,29 @@
 # Domain Package
 
 ## Description
-The domain package contains the core business entities, value objects, and domain services that represent the business concepts and rules of the campaign module. This is the heart of the application where the business logic resides.
+
+The domain package contains the core business entities, value objects, and domain services that represent the business
+concepts and rules of the campaign module. This is the heart of the application where the business logic resides.
 
 ## Purpose
-The purpose of this package is to encapsulate the core business logic and rules, independent of any application or infrastructure concerns. It represents the most stable part of the system that changes only when the business rules change.
+
+The purpose of this package is to encapsulate the core business logic and rules, independent of any application or
+infrastructure concerns. It represents the most stable part of the system that changes only when the business rules
+change.
 
 ## Usage
+
 This package is organized into three main subpackages:
+
 - `enums`: Contains enumeration classes that represent fixed sets of business values
 - `model`: Contains domain entities and value objects that represent the core business concepts
-- `service`: Contains domain services that implement complex business logic that doesn't naturally fit within a single entity
+- `service`: Contains domain services that implement complex business logic that doesn't naturally fit within a single
+  entity
 
 ## Examples
+
 ### Domain Entity Example
+
 ```java
 // Campaign.java in domain.model package
 public class Campaign {
@@ -54,6 +64,7 @@ public class Campaign {
 ```
 
 ### Value Object Example
+
 ```java
 // DateRange.java in domain.model package
 public class DateRange {
@@ -87,6 +98,7 @@ public class DateRange {
 ```
 
 ### Domain Service Example
+
 ```java
 // CampaignEligibilityService.java in domain.service package
 public class CampaignEligibilityService {
@@ -120,6 +132,7 @@ public class CampaignEligibilityService {
 ```
 
 ## Rules
+
 1. Domain classes should be independent of any infrastructure or application concerns
 2. Domain entities should encapsulate both data and behavior related to the business concept they represent
 3. Domain services should implement business logic that spans multiple entities

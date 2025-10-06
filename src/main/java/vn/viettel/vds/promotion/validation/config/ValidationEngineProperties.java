@@ -23,6 +23,39 @@ public class ValidationEngineProperties {
 
     private CircuitBreakerConfig circuitBreaker = new CircuitBreakerConfig();
 
+    // Getters and setters
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public Duration getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Duration timeout) {
+        this.timeout = timeout;
+    }
+
+    public int getRetryAttempts() {
+        return retryAttempts;
+    }
+
+    public void setRetryAttempts(int retryAttempts) {
+        this.retryAttempts = retryAttempts;
+    }
+
+    public CircuitBreakerConfig getCircuitBreaker() {
+        return circuitBreaker;
+    }
+
+    public void setCircuitBreaker(CircuitBreakerConfig circuitBreaker) {
+        this.circuitBreaker = circuitBreaker;
+    }
+
     public static class CircuitBreakerConfig {
         private int failureRateThreshold = 50;
         private Duration waitDurationInOpenState = Duration.ofSeconds(60);
@@ -30,29 +63,36 @@ public class ValidationEngineProperties {
         private int minimumNumberOfCalls = 10;
 
         // Getters and setters
-        public int getFailureRateThreshold() { return failureRateThreshold; }
-        public void setFailureRateThreshold(int failureRateThreshold) { this.failureRateThreshold = failureRateThreshold; }
+        public int getFailureRateThreshold() {
+            return failureRateThreshold;
+        }
 
-        public Duration getWaitDurationInOpenState() { return waitDurationInOpenState; }
-        public void setWaitDurationInOpenState(Duration waitDurationInOpenState) { this.waitDurationInOpenState = waitDurationInOpenState; }
+        public void setFailureRateThreshold(int failureRateThreshold) {
+            this.failureRateThreshold = failureRateThreshold;
+        }
 
-        public int getSlidingWindowSize() { return slidingWindowSize; }
-        public void setSlidingWindowSize(int slidingWindowSize) { this.slidingWindowSize = slidingWindowSize; }
+        public Duration getWaitDurationInOpenState() {
+            return waitDurationInOpenState;
+        }
 
-        public int getMinimumNumberOfCalls() { return minimumNumberOfCalls; }
-        public void setMinimumNumberOfCalls(int minimumNumberOfCalls) { this.minimumNumberOfCalls = minimumNumberOfCalls; }
+        public void setWaitDurationInOpenState(Duration waitDurationInOpenState) {
+            this.waitDurationInOpenState = waitDurationInOpenState;
+        }
+
+        public int getSlidingWindowSize() {
+            return slidingWindowSize;
+        }
+
+        public void setSlidingWindowSize(int slidingWindowSize) {
+            this.slidingWindowSize = slidingWindowSize;
+        }
+
+        public int getMinimumNumberOfCalls() {
+            return minimumNumberOfCalls;
+        }
+
+        public void setMinimumNumberOfCalls(int minimumNumberOfCalls) {
+            this.minimumNumberOfCalls = minimumNumberOfCalls;
+        }
     }
-
-    // Getters and setters
-    public String getUrl() { return url; }
-    public void setUrl(String url) { this.url = url; }
-
-    public Duration getTimeout() { return timeout; }
-    public void setTimeout(Duration timeout) { this.timeout = timeout; }
-
-    public int getRetryAttempts() { return retryAttempts; }
-    public void setRetryAttempts(int retryAttempts) { this.retryAttempts = retryAttempts; }
-
-    public CircuitBreakerConfig getCircuitBreaker() { return circuitBreaker; }
-    public void setCircuitBreaker(CircuitBreakerConfig circuitBreaker) { this.circuitBreaker = circuitBreaker; }
 }

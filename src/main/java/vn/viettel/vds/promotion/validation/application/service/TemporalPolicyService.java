@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.TemporalPolicyRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.TemporalPolicyPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.TemporalPolicy;
 
 import java.time.Instant;
@@ -26,28 +26,28 @@ public class TemporalPolicyService {
 
     // Basic RRULE validation pattern
     private static final Pattern RRULE_PATTERN = Pattern.compile(
-        "^FREQ=(YEARLY|MONTHLY|WEEKLY|DAILY|HOURLY|MINUTELY|SECONDLY)" +
-        "(;[A-Z]+=[^;]+)*$"
+            "^FREQ=(YEARLY|MONTHLY|WEEKLY|DAILY|HOURLY|MINUTELY|SECONDLY)" +
+                    "(;[A-Z]+=[^;]+)*$"
     );
 
-    private final TemporalPolicyRepository temporalPolicyRepository;
+    private final TemporalPolicyPersistencePort temporalPolicyPersistencePort;
 
-    public TemporalPolicyService(TemporalPolicyRepository temporalPolicyRepository) {
-        this.temporalPolicyRepository = temporalPolicyRepository;
+    public TemporalPolicyService(TemporalPolicyPersistencePort temporalPolicyPersistencePort) {
+        this.temporalPolicyPersistencePort = temporalPolicyPersistencePort;
     }
 
     /**
      * Create a new temporal policy
      */
     public TemporalPolicy createTemporalPolicy(String tenantId, String name, String timezone,
-                                              String rrule, List<String> rdate, String exrule,
-                                              List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
+                                               String rrule, List<String> rdate, String exrule,
+                                               List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
         logger.info("Creating temporal policy: tenant={}, name={}", tenantId, name);
 
         // Check if policy with same name already exists
-        if (temporalPolicyRepository.existsByTenantIdAndName(tenantId, name)) {
+        if (temporalPolicyPersistencePort.existsByTenantIdAndName(tenantId, name)) {
             throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
-                "Temporal policy with name '" + name + "' already exists for tenant " + tenantId, 400));
+                    "Temporal policy with name '" + name + "' already exists for tenant " + tenantId, 400));
         }
 
         // Validate timezone
@@ -71,7 +71,7 @@ public class TemporalPolicyService {
         policy.setCreatedAt(Instant.now());
         policy.setUpdatedAt(Instant.now());
 
-        TemporalPolicy saved = temporalPolicyRepository.save(policy);
+        TemporalPolicy saved = temporalPolicyPersistencePort.save(policy);
 
         logger.info("Temporal policy created successfully: id={}", saved.getId());
         return saved;
@@ -81,8 +81,8 @@ public class TemporalPolicyService {
      * Update an existing temporal policy
      */
     public TemporalPolicy updateTemporalPolicy(String policyId, String name, String timezone,
-                                              String rrule, List<String> rdate, String exrule,
-                                              List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
+                                               String rrule, List<String> rdate, String exrule,
+                                               List<String> exdate, List<TemporalPolicy.TimeOfDayWindow> timeWindows) {
         logger.info("Updating temporal policy: id={}", policyId);
 
         TemporalPolicy policy = getTemporalPolicyById(policyId);
@@ -90,9 +90,9 @@ public class TemporalPolicyService {
         if (name != null) {
             // Check if new name conflicts with existing policy
             if (!policy.getName().equals(name) &&
-                temporalPolicyRepository.existsByTenantIdAndName(policy.getTenantId(), name)) {
+                    temporalPolicyPersistencePort.existsByTenantIdAndName(policy.getTenantId(), name)) {
                 throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
-                    "Temporal policy with name '" + name + "' already exists", 400));
+                        "Temporal policy with name '" + name + "' already exists", 400));
             }
             policy.setName(name);
         }
@@ -125,7 +125,7 @@ public class TemporalPolicyService {
 
         policy.setUpdatedAt(Instant.now());
 
-        TemporalPolicy saved = temporalPolicyRepository.save(policy);
+        TemporalPolicy saved = temporalPolicyPersistencePort.save(policy);
 
         logger.info("Temporal policy updated successfully: id={}", saved.getId());
         return saved;
@@ -136,8 +136,8 @@ public class TemporalPolicyService {
      */
     @Transactional(readOnly = true)
     public TemporalPolicy getTemporalPolicyById(String policyId) {
-        return temporalPolicyRepository.findById(policyId)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return temporalPolicyPersistencePort.findById(policyId)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -145,8 +145,8 @@ public class TemporalPolicyService {
      */
     @Transactional(readOnly = true)
     public TemporalPolicy getTemporalPolicyByName(String tenantId, String name) {
-        return temporalPolicyRepository.findByTenantIdAndName(tenantId, name)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return temporalPolicyPersistencePort.findByTenantIdAndName(tenantId, name)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -154,8 +154,8 @@ public class TemporalPolicyService {
      */
     @Transactional(readOnly = true)
     public Page<TemporalPolicy> findTemporalPolicies(String tenantId, String timezone,
-                                                    String namePattern, Pageable pageable) {
-        return temporalPolicyRepository.findWithFilters(tenantId, timezone, namePattern, pageable);
+                                                     String namePattern, Pageable pageable) {
+        return temporalPolicyPersistencePort.findWithFilters(tenantId, timezone, namePattern, pageable);
     }
 
     /**
@@ -163,7 +163,7 @@ public class TemporalPolicyService {
      */
     @Transactional(readOnly = true)
     public List<TemporalPolicy> getAllTemporalPolicies(String tenantId) {
-        return temporalPolicyRepository.findByTenantIdOrderByNameAsc(tenantId);
+        return temporalPolicyPersistencePort.findByTenantIdOrderByNameAsc(tenantId);
     }
 
     /**
@@ -171,7 +171,7 @@ public class TemporalPolicyService {
      */
     @Transactional(readOnly = true)
     public List<TemporalPolicy> getTemporalPoliciesByTimezone(String tenantId, String timezone) {
-        return temporalPolicyRepository.findByTenantIdAndTz(tenantId, timezone);
+        return temporalPolicyPersistencePort.findByTenantIdAndTz(tenantId, timezone);
     }
 
     /**
@@ -240,14 +240,14 @@ public class TemporalPolicyService {
                     String[] endParts = window.getEnd().split(":");
 
                     ZonedDateTime windowStart = current
-                        .withHour(Integer.parseInt(startParts[0]))
-                        .withMinute(Integer.parseInt(startParts[1]))
-                        .withSecond(0);
+                            .withHour(Integer.parseInt(startParts[0]))
+                            .withMinute(Integer.parseInt(startParts[1]))
+                            .withSecond(0);
 
                     ZonedDateTime windowEnd = current
-                        .withHour(Integer.parseInt(endParts[0]))
-                        .withMinute(Integer.parseInt(endParts[1]))
-                        .withSecond(0);
+                            .withHour(Integer.parseInt(endParts[0]))
+                            .withMinute(Integer.parseInt(endParts[1]))
+                            .withSecond(0);
 
                     if (windowStart.isBefore(end) && windowEnd.isAfter(start)) {
                         windows.add(new TimeWindow(windowStart.toInstant(), windowEnd.toInstant()));
@@ -303,7 +303,12 @@ public class TemporalPolicyService {
             this.end = end;
         }
 
-        public Instant getStart() { return start; }
-        public Instant getEnd() { return end; }
+        public Instant getStart() {
+            return start;
+        }
+
+        public Instant getEnd() {
+            return end;
+        }
     }
 }

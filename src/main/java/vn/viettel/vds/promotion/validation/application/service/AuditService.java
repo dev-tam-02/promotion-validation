@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.AuditLogRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AuditLogPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.AuditLog;
 
 import java.time.Instant;
@@ -19,10 +19,37 @@ public class AuditService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditService.class);
 
-    private final AuditLogRepository auditLogRepository;
+    private final AuditLogPersistencePort auditLogPersistencePort;
 
-    public AuditService(AuditLogRepository auditLogRepository) {
-        this.auditLogRepository = auditLogRepository;
+    public AuditService(AuditLogPersistencePort auditLogPersistencePort) {
+        this.auditLogPersistencePort = auditLogPersistencePort;
+    }
+
+    /**
+     * Audit stackable discount validation.
+     */
+    public void auditValidation(
+            vn.viettel.vds.promotion.validation.application.port.in.command.ValidateStackableDiscountCommand command,
+            vn.viettel.vds.promotion.validation.application.port.in.dto.ValidateStackableDiscountResult result
+    ) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("idempotencyKey", command.idempotencyKey());
+        details.put("customerId", command.customerInfo().customerId());
+        details.put("orderId", command.orderInfo().orderId());
+        details.put("discountCount", command.getDiscountCount());
+        details.put("decision", result.decision().name());
+        details.put("validatedCount", result.getValidatedCount());
+        details.put("rejectedCount", result.getRejectedCount());
+        details.put("processingTimeMs", result.processingTimeMs());
+
+        logAuditEvent(
+                "system", // tenantId
+                "validation-service", // actor
+                AuditLog.AuditAction.RULE_EDIT, // Using existing action enum
+                "stackable-discount", // targetType
+                command.idempotencyKey(), // targetId
+                details
+        );
     }
 
     /**
@@ -51,7 +78,7 @@ public class AuditService {
      */
     public void logRuleArchived(String tenantId, String ruleId, String actor) {
         logAuditEvent(tenantId, actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId,
-            Map.of("action", "archive"));
+                Map.of("action", "archive"));
     }
 
     /**
@@ -72,7 +99,7 @@ public class AuditService {
      * Log generic audit event
      */
     public void logAuditEvent(String tenantId, String actor, AuditLog.AuditAction action,
-                             String targetType, String targetId, Map<String, Object> diff) {
+                              String targetType, String targetId, Map<String, Object> diff) {
         try {
             AuditLog auditLog = new AuditLog();
             auditLog.setTenantId(tenantId);
@@ -87,14 +114,14 @@ public class AuditService {
             auditLog.setDiff(diff != null ? diff : new HashMap<>());
             auditLog.setAt(Instant.now());
 
-            auditLogRepository.save(auditLog);
+            auditLogPersistencePort.save(auditLog);
 
             logger.debug("Audit event logged: tenant={}, action={}, target={}/{}",
-                tenantId, action, targetType, targetId);
+                    tenantId, action, targetType, targetId);
         } catch (Exception e) {
             // Don't fail the main operation if audit logging fails
             logger.error("Failed to log audit event: tenant={}, action={}, target={}/{}",
-                tenantId, action, targetType, targetId, e);
+                    tenantId, action, targetType, targetId, e);
         }
     }
 
@@ -103,11 +130,11 @@ public class AuditService {
      */
     @Transactional(readOnly = true)
     public Page<AuditLog> getAuditLogs(String tenantId, AuditLog.AuditAction action, String actorPattern,
-                                      Instant from, Instant to, Pageable pageable) {
+                                       Instant from, Instant to, Pageable pageable) {
         if (action != null || actorPattern != null || from != null || to != null) {
-            return auditLogRepository.findWithFilters(tenantId, action, actorPattern, from, to, pageable);
+            return auditLogPersistencePort.findWithFilters(tenantId, action, actorPattern, from, to, pageable);
         } else {
-            return auditLogRepository.findByTenantIdOrderByAtDesc(tenantId, pageable);
+            return auditLogPersistencePort.findByTenantId(tenantId, pageable);
         }
     }
 
@@ -116,19 +143,19 @@ public class AuditService {
      */
     @Transactional(readOnly = true)
     public Page<AuditLog> getAuditLogsForTarget(String tenantId, String targetType, String targetId, Pageable pageable) {
-        return auditLogRepository.findByTenantIdAndTargetTypeAndTargetIdOrderByAtDesc(tenantId, targetType, targetId)
-            .stream()
-            .collect(java.util.stream.Collectors.collectingAndThen(
-                java.util.stream.Collectors.toList(),
-                list -> new org.springframework.data.domain.PageImpl<>(
-                    list.subList(
-                        (int) pageable.getOffset(),
-                        Math.min((int) (pageable.getOffset() + pageable.getPageSize()), list.size())
-                    ),
-                    pageable,
-                    list.size()
-                )
-            ));
+        return auditLogPersistencePort.findByTenantIdAndTarget(tenantId, targetType, targetId)
+                .stream()
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toList(),
+                        list -> new org.springframework.data.domain.PageImpl<>(
+                                list.subList(
+                                        (int) pageable.getOffset(),
+                                        Math.min((int) (pageable.getOffset() + pageable.getPageSize()), list.size())
+                                ),
+                                pageable,
+                                list.size()
+                        )
+                ));
     }
 
     /**
@@ -136,7 +163,7 @@ public class AuditService {
      */
     public void cleanupOldAuditLogs(Instant cutoffTime) {
         try {
-            auditLogRepository.deleteLogsOlderThan(cutoffTime);
+            auditLogPersistencePort.deleteLogsOlderThan(cutoffTime);
             logger.info("Cleaned up audit logs older than {}", cutoffTime);
         } catch (Exception e) {
             logger.error("Failed to cleanup old audit logs", e);

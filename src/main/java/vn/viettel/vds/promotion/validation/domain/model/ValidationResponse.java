@@ -18,8 +18,8 @@ public class ValidationResponse {
     }
 
     public ValidationResponse(String transactionId, boolean valid, String message, String errorCode,
-                            Instant timestamp, Long executionTimeMs, List<String> rulesFired,
-                            Map<String, Object> metadata) {
+                              Instant timestamp, Long executionTimeMs, List<String> rulesFired,
+                              Map<String, Object> metadata) {
         this.transactionId = transactionId;
         this.valid = valid;
         this.message = message;
@@ -150,7 +150,7 @@ public class ValidationResponse {
 
         public ValidationResponse build() {
             return new ValidationResponse(transactionId, valid, message, errorCode, timestamp,
-                                        executionTimeMs, rulesFired, metadata);
+                    executionTimeMs, rulesFired, metadata);
         }
     }
 }

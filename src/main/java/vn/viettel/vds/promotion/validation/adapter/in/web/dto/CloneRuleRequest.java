@@ -21,9 +21,19 @@ public class CloneRuleRequest {
     private String newName;
 
     // Getters and setters
-    public String getNewCode() { return newCode; }
-    public void setNewCode(String newCode) { this.newCode = newCode; }
+    public String getNewCode() {
+        return newCode;
+    }
 
-    public String getNewName() { return newName; }
-    public void setNewName(String newName) { this.newName = newName; }
+    public void setNewCode(String newCode) {
+        this.newCode = newCode;
+    }
+
+    public String getNewName() {
+        return newName;
+    }
+
+    public void setNewName(String newName) {
+        this.newName = newName;
+    }
 }

@@ -24,8 +24,8 @@ public class RuleSimulationService {
     private final ReasonCodeService reasonCodeService;
 
     public RuleSimulationService(RuleService ruleService, RuleVersionService ruleVersionService,
-                               OperatorService operatorService, TemporalPolicyService temporalPolicyService,
-                               ReasonCodeService reasonCodeService) {
+                                 OperatorService operatorService, TemporalPolicyService temporalPolicyService,
+                                 ReasonCodeService reasonCodeService) {
         this.ruleService = ruleService;
         this.ruleVersionService = ruleVersionService;
         this.operatorService = operatorService;
@@ -58,7 +58,7 @@ public class RuleSimulationService {
             SimulationResult result = executeSimulation(nodes, rootLogic, context, explainLevel);
 
             logger.info("Rule simulation completed: id={}, decision={}, reasonCount={}",
-                ruleId, result.getDecision(), result.getReasonCodes().size());
+                    ruleId, result.getDecision(), result.getReasonCodes().size());
 
             return result;
 
@@ -84,11 +84,11 @@ public class RuleSimulationService {
                 SimulationResult result = simulateRule(ruleId, version, testCase.getContext(), ExplainLevel.FAIL_ONLY);
 
                 boolean passed = testCase.getExpected() == null ||
-                    (testCase.getExpected().getDecision().equals(result.getDecision()) &&
-                     reasonCodesMatch(testCase.getExpected().getReasonCodes(), result.getReasonCodes()));
+                        (testCase.getExpected().getDecision().equals(result.getDecision()) &&
+                                reasonCodesMatch(testCase.getExpected().getReasonCodes(), result.getReasonCodes()));
 
                 results.add(new CaseResult(testCase.getName(), result.getDecision(),
-                    result.getReasonCodes(), passed, result.getExplain()));
+                        result.getReasonCodes(), passed, result.getExplain()));
 
                 if (passed) {
                     passCount++;
@@ -99,7 +99,7 @@ public class RuleSimulationService {
             } catch (Exception e) {
                 logger.error("Error in test case: {}", testCase.getName(), e);
                 results.add(new CaseResult(testCase.getName(), Decision.ERROR,
-                    List.of("SIMULATION_ERROR"), false, List.of("Error: " + e.getMessage())));
+                        List.of("SIMULATION_ERROR"), false, List.of("Error: " + e.getMessage())));
                 failCount++;
             }
         }
@@ -111,37 +111,37 @@ public class RuleSimulationService {
     }
 
     private SimulationResult executeSimulation(List<Rule.RuleNode> nodes, Rule.LogicType rootLogic,
-                                             SimulationContext context, ExplainLevel explainLevel) {
+                                               SimulationContext context, ExplainLevel explainLevel) {
         // Build node map for easy lookup
         Map<String, Rule.RuleNode> nodeMap = nodes.stream()
-            .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
 
         // Find root nodes (not referenced by any parent)
         Set<String> referencedNodes = nodes.stream()
-            .filter(node -> node.getChildren() != null)
-            .flatMap(node -> node.getChildren().stream()
-                .map(Rule.RuleNode::getId)
-                .filter(id -> id != null))
-            .collect(Collectors.toSet());
+                .filter(node -> node.getChildren() != null)
+                .flatMap(node -> node.getChildren().stream()
+                        .map(Rule.RuleNode::getId)
+                        .filter(id -> id != null))
+                .collect(Collectors.toSet());
 
         List<String> rootNodeIds = nodes.stream()
-            .map(Rule.RuleNode::getId)
-            .filter(id -> !referencedNodes.contains(id))
-            .collect(Collectors.toList());
+                .map(Rule.RuleNode::getId)
+                .filter(id -> !referencedNodes.contains(id))
+                .collect(Collectors.toList());
 
         // Execute root logic
         EvaluationContext evalContext = new EvaluationContext(context, explainLevel);
 
         List<NodeResult> rootResults = rootNodeIds.stream()
-            .map(id -> evaluateNode(id, nodeMap, evalContext))
-            .collect(Collectors.toList());
+                .map(id -> evaluateNode(id, nodeMap, evalContext))
+                .collect(Collectors.toList());
 
         // Apply root logic
         Decision finalDecision = applyLogic(rootLogic, rootResults);
         List<String> reasonCodes = rootResults.stream()
-            .flatMap(result -> result.getReasonCodes().stream())
-            .distinct()
-            .collect(Collectors.toList());
+                .flatMap(result -> result.getReasonCodes().stream())
+                .distinct()
+                .collect(Collectors.toList());
 
         List<String> explain = explainLevel != ExplainLevel.NONE ? evalContext.getExplanations() : List.of();
 
@@ -175,14 +175,14 @@ public class RuleSimulationService {
         }
 
         List<NodeResult> childResults = node.getChildren().stream()
-            .map(child -> evaluateNode(child.getId(), nodeMap, context))
-            .collect(Collectors.toList());
+                .map(child -> evaluateNode(child.getId(), nodeMap, context))
+                .collect(Collectors.toList());
 
         Decision groupDecision = applyLogic(node.getGroupLogic(), childResults);
         List<String> reasonCodes = childResults.stream()
-            .flatMap(result -> result.getReasonCodes().stream())
-            .distinct()
-            .collect(Collectors.toList());
+                .flatMap(result -> result.getReasonCodes().stream())
+                .distinct()
+                .collect(Collectors.toList());
 
         context.addExplanation("Group " + node.getId() + " (" + node.getGroupLogic() + ") result: " + groupDecision);
 
@@ -198,7 +198,7 @@ public class RuleSimulationService {
             List<String> reasonCodes = decision == Decision.DENY ? List.of(node.getReasonCode()) : List.of();
 
             String explanation = String.format("Condition %s (%s) result: %s",
-                node.getId(), node.getOperatorName(), decision);
+                    node.getId(), node.getOperatorName(), decision);
 
             if (decision == Decision.DENY) {
                 explanation += " - Reason: " + node.getReasonCode();
@@ -310,13 +310,13 @@ public class RuleSimulationService {
         switch (logic) {
             case ALL:
                 return results.stream().allMatch(result -> result.getDecision() == Decision.ALLOW)
-                    ? Decision.ALLOW : Decision.DENY;
+                        ? Decision.ALLOW : Decision.DENY;
             case ANY:
                 return results.stream().anyMatch(result -> result.getDecision() == Decision.ALLOW)
-                    ? Decision.ALLOW : Decision.DENY;
+                        ? Decision.ALLOW : Decision.DENY;
             case NONE:
                 return results.stream().noneMatch(result -> result.getDecision() == Decision.ALLOW)
-                    ? Decision.ALLOW : Decision.DENY;
+                        ? Decision.ALLOW : Decision.DENY;
             default:
                 return Decision.ERROR;
         }
@@ -348,29 +348,69 @@ public class RuleSimulationService {
         private Map<String, Object> metadata;
 
         // Getters and setters
-        public Instant getNow() { return now; }
-        public void setNow(Instant now) { this.now = now; }
+        public Instant getNow() {
+            return now;
+        }
 
-        public String getTimezone() { return timezone; }
-        public void setTimezone(String timezone) { this.timezone = timezone; }
+        public void setNow(Instant now) {
+            this.now = now;
+        }
 
-        public Number getOrderTotal() { return orderTotal; }
-        public void setOrderTotal(Number orderTotal) { this.orderTotal = orderTotal; }
+        public String getTimezone() {
+            return timezone;
+        }
 
-        public String getOrderCurrency() { return orderCurrency; }
-        public void setOrderCurrency(String orderCurrency) { this.orderCurrency = orderCurrency; }
+        public void setTimezone(String timezone) {
+            this.timezone = timezone;
+        }
 
-        public String getCustomerId() { return customerId; }
-        public void setCustomerId(String customerId) { this.customerId = customerId; }
+        public Number getOrderTotal() {
+            return orderTotal;
+        }
 
-        public List<String> getCustomerSegments() { return customerSegments; }
-        public void setCustomerSegments(List<String> customerSegments) { this.customerSegments = customerSegments; }
+        public void setOrderTotal(Number orderTotal) {
+            this.orderTotal = orderTotal;
+        }
 
-        public String getCustomerRegion() { return customerRegion; }
-        public void setCustomerRegion(String customerRegion) { this.customerRegion = customerRegion; }
+        public String getOrderCurrency() {
+            return orderCurrency;
+        }
 
-        public Map<String, Object> getMetadata() { return metadata; }
-        public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+        public void setOrderCurrency(String orderCurrency) {
+            this.orderCurrency = orderCurrency;
+        }
+
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public void setCustomerId(String customerId) {
+            this.customerId = customerId;
+        }
+
+        public List<String> getCustomerSegments() {
+            return customerSegments;
+        }
+
+        public void setCustomerSegments(List<String> customerSegments) {
+            this.customerSegments = customerSegments;
+        }
+
+        public String getCustomerRegion() {
+            return customerRegion;
+        }
+
+        public void setCustomerRegion(String customerRegion) {
+            this.customerRegion = customerRegion;
+        }
+
+        public Map<String, Object> getMetadata() {
+            return metadata;
+        }
+
+        public void setMetadata(Map<String, Object> metadata) {
+            this.metadata = metadata;
+        }
     }
 
     public static class SimulationResult {
@@ -388,9 +428,17 @@ public class RuleSimulationService {
             return new SimulationResult(Decision.ERROR, List.of("SIMULATION_ERROR"), List.of(message));
         }
 
-        public Decision getDecision() { return decision; }
-        public List<String> getReasonCodes() { return reasonCodes; }
-        public List<String> getExplain() { return explain; }
+        public Decision getDecision() {
+            return decision;
+        }
+
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
+
+        public List<String> getExplain() {
+            return explain;
+        }
     }
 
     public static class SimulationCase {
@@ -399,14 +447,29 @@ public class RuleSimulationService {
         private ExpectedResult expected;
 
         // Getters and setters
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+        public String getName() {
+            return name;
+        }
 
-        public SimulationContext getContext() { return context; }
-        public void setContext(SimulationContext context) { this.context = context; }
+        public void setName(String name) {
+            this.name = name;
+        }
 
-        public ExpectedResult getExpected() { return expected; }
-        public void setExpected(ExpectedResult expected) { this.expected = expected; }
+        public SimulationContext getContext() {
+            return context;
+        }
+
+        public void setContext(SimulationContext context) {
+            this.context = context;
+        }
+
+        public ExpectedResult getExpected() {
+            return expected;
+        }
+
+        public void setExpected(ExpectedResult expected) {
+            this.expected = expected;
+        }
     }
 
     public static class ExpectedResult {
@@ -414,11 +477,21 @@ public class RuleSimulationService {
         private List<String> reasonCodes;
 
         // Getters and setters
-        public Decision getDecision() { return decision; }
-        public void setDecision(Decision decision) { this.decision = decision; }
+        public Decision getDecision() {
+            return decision;
+        }
 
-        public List<String> getReasonCodes() { return reasonCodes; }
-        public void setReasonCodes(List<String> reasonCodes) { this.reasonCodes = reasonCodes; }
+        public void setDecision(Decision decision) {
+            this.decision = decision;
+        }
+
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
+
+        public void setReasonCodes(List<String> reasonCodes) {
+            this.reasonCodes = reasonCodes;
+        }
     }
 
     public static class BatchSimulationResult {
@@ -430,8 +503,13 @@ public class RuleSimulationService {
             this.results = results;
         }
 
-        public BatchSimulationStats getStats() { return stats; }
-        public List<CaseResult> getResults() { return results; }
+        public BatchSimulationStats getStats() {
+            return stats;
+        }
+
+        public List<CaseResult> getResults() {
+            return results;
+        }
     }
 
     public static class BatchSimulationStats {
@@ -443,8 +521,13 @@ public class RuleSimulationService {
             this.fail = fail;
         }
 
-        public int getPass() { return pass; }
-        public int getFail() { return fail; }
+        public int getPass() {
+            return pass;
+        }
+
+        public int getFail() {
+            return fail;
+        }
     }
 
     public static class CaseResult {
@@ -462,11 +545,25 @@ public class RuleSimulationService {
             this.explain = explain;
         }
 
-        public String getName() { return name; }
-        public Decision getDecision() { return decision; }
-        public List<String> getReasonCodes() { return reasonCodes; }
-        public boolean isOk() { return ok; }
-        public List<String> getExplain() { return explain; }
+        public String getName() {
+            return name;
+        }
+
+        public Decision getDecision() {
+            return decision;
+        }
+
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
+
+        public boolean isOk() {
+            return ok;
+        }
+
+        public List<String> getExplain() {
+            return explain;
+        }
     }
 
     private static class NodeResult {
@@ -478,8 +575,13 @@ public class RuleSimulationService {
             this.reasonCodes = reasonCodes;
         }
 
-        public Decision getDecision() { return decision; }
-        public List<String> getReasonCodes() { return reasonCodes; }
+        public Decision getDecision() {
+            return decision;
+        }
+
+        public List<String> getReasonCodes() {
+            return reasonCodes;
+        }
     }
 
     private static class EvaluationContext {
@@ -498,7 +600,12 @@ public class RuleSimulationService {
             }
         }
 
-        public SimulationContext getSimulationContext() { return simulationContext; }
-        public List<String> getExplanations() { return explanations; }
+        public SimulationContext getSimulationContext() {
+            return simulationContext;
+        }
+
+        public List<String> getExplanations() {
+            return explanations;
+        }
     }
 }

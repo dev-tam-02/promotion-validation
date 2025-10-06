@@ -13,9 +13,9 @@ import java.util.concurrent.CompletableFuture;
  * Feign client for order service
  */
 @FeignClient(
-    name = "order-service",
-    url = "${external.order-service.url:http://order-service}",
-    configuration = ExternalServiceFeignConfig.class
+        name = "order-service",
+        url = "${external.order-service.url:http://order-service}",
+        configuration = ExternalServiceFeignConfig.class
 )
 public interface OrderServiceFeignClient {
 
@@ -23,16 +23,16 @@ public interface OrderServiceFeignClient {
      * Get order by ID
      */
     @GetMapping(value = "/api/v1/orders/{orderId}",
-                produces = MediaType.APPLICATION_JSON_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     CompletableFuture<Map<String, Object>> getOrderById(@PathVariable("orderId") String orderId);
 
     /**
      * Get order history for customer
      */
     @GetMapping(value = "/api/v1/customers/{customerId}/orders",
-                produces = MediaType.APPLICATION_JSON_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     CompletableFuture<Map<String, Object>> getOrderHistory(
-        @PathVariable("customerId") String customerId,
-        @RequestParam("limit") int limit
+            @PathVariable("customerId") String customerId,
+            @RequestParam("limit") int limit
     );
 }

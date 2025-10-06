@@ -33,11 +33,11 @@ public class FactOrchestratorService implements FactOrchestrator {
     private final ObjectMapper objectMapper;
 
     public FactOrchestratorService(
-        FactResolverOrchestrator resolverOrchestrator,
-        FactMapper factMapper,
-        FactCacheService cacheService,
-        PolicyEngine policyEngine,
-        ObjectMapper objectMapper
+            FactResolverOrchestrator resolverOrchestrator,
+            FactMapper factMapper,
+            FactCacheService cacheService,
+            PolicyEngine policyEngine,
+            ObjectMapper objectMapper
     ) {
         this.resolverOrchestrator = resolverOrchestrator;
         this.factMapper = factMapper;
@@ -56,29 +56,29 @@ public class FactOrchestratorService implements FactOrchestrator {
         String cacheKey = generateCacheKey(request);
 
         return cacheService.get(cacheKey)
-            .thenCompose(cachedResult -> {
-                if (cachedResult != null) {
-                    log.debug("Cache hit for key: {}", cacheKey);
-                    return CompletableFuture.completedFuture((FactPack) cachedResult);
-                } else {
-                    log.debug("Cache miss for key: {}, resolving...", cacheKey);
-                    return doResolve(request)
-                        .thenCompose(factPack ->
-                            cacheService.put(cacheKey, factPack, getCacheTtlSeconds())
-                                .thenApply(ignored -> factPack)
-                        );
-                }
-            });
+                .thenCompose(cachedResult -> {
+                    if (cachedResult != null) {
+                        log.debug("Cache hit for key: {}", cacheKey);
+                        return CompletableFuture.completedFuture((FactPack) cachedResult);
+                    } else {
+                        log.debug("Cache miss for key: {}, resolving...", cacheKey);
+                        return doResolve(request)
+                                .thenCompose(factPack ->
+                                        cacheService.put(cacheKey, factPack, getCacheTtlSeconds())
+                                                .thenApply(ignored -> factPack)
+                                );
+                    }
+                });
     }
 
     @Override
     public void evictCache(String cacheKey) {
         cacheService.evict(cacheKey)
-            .thenRun(() -> log.debug("Evicted cache key: {}", cacheKey))
-            .exceptionally(throwable -> {
-                log.warn("Failed to evict cache key {}: {}", cacheKey, throwable.getMessage());
-                return null;
-            });
+                .thenRun(() -> log.debug("Evicted cache key: {}", cacheKey))
+                .exceptionally(throwable -> {
+                    log.warn("Failed to evict cache key {}: {}", cacheKey, throwable.getMessage());
+                    return null;
+                });
     }
 
     @Override
@@ -97,51 +97,51 @@ public class FactOrchestratorService implements FactOrchestrator {
         String aggregationId = UUID.randomUUID().toString();
 
         log.info("Starting fact aggregation for request: customerId={}, orderId={}, aggregationId={}",
-            request.customerId(), request.orderId(), aggregationId);
+                request.customerId(), request.orderId(), aggregationId);
 
         return policyEngine.determineFetchPolicy(request)
-            .thenCompose(policy -> resolverOrchestrator.resolveAll(request, policy))
-            .thenApply(rawFacts -> {
-                FactPack factPack = factMapper.mapToFactPack(rawFacts, request);
-                return enrichWithProvenance(factPack, startTime, aggregationId);
-            })
-            .whenComplete((result, throwable) -> {
-                long processingTime = System.currentTimeMillis() - startTime;
-                if (throwable == null) {
-                    log.info("Fact aggregation completed: aggregationId={}, processingTime={}ms",
-                        aggregationId, processingTime);
-                } else {
-                    log.error("Fact aggregation failed: aggregationId={}, processingTime={}ms, error={}",
-                        aggregationId, processingTime, throwable.getMessage(), throwable);
-                }
-            });
+                .thenCompose(policy -> resolverOrchestrator.resolveAll(request, policy))
+                .thenApply(rawFacts -> {
+                    FactPack factPack = factMapper.mapToFactPack(rawFacts, request);
+                    return enrichWithProvenance(factPack, startTime, aggregationId);
+                })
+                .whenComplete((result, throwable) -> {
+                    long processingTime = System.currentTimeMillis() - startTime;
+                    if (throwable == null) {
+                        log.info("Fact aggregation completed: aggregationId={}, processingTime={}ms",
+                                aggregationId, processingTime);
+                    } else {
+                        log.error("Fact aggregation failed: aggregationId={}, processingTime={}ms, error={}",
+                                aggregationId, processingTime, throwable.getMessage(), throwable);
+                    }
+                });
     }
 
     private FactPack enrichWithProvenance(FactPack factPack, long startTime, String aggregationId) {
         long processingTime = System.currentTimeMillis() - startTime;
 
         ProvenanceInfo provenance = ProvenanceInfo.builder()
-            .aggregatedAt(Instant.now())
-            .aggregationId(aggregationId)
-            .processingTimeMs(processingTime)
-            .fetchPolicy(factPack.provenance() != null ? factPack.provenance().fetchPolicy() : null)
-            .sources(factPack.provenance() != null ? factPack.provenance().sources() : null)
-            .versions(Map.of("factPack", "1.0", "service", "1.0.0"))
-            .build();
+                .aggregatedAt(Instant.now())
+                .aggregationId(aggregationId)
+                .processingTimeMs(processingTime)
+                .fetchPolicy(factPack.provenance() != null ? factPack.provenance().fetchPolicy() : null)
+                .sources(factPack.provenance() != null ? factPack.provenance().sources() : null)
+                .versions(Map.of("factPack", "1.0", "service", "1.0.0"))
+                .build();
 
         return FactPack.builder()
-            .factPackVersion(factPack.factPackVersion())
-            .timestamp(factPack.timestamp())
-            .customer(factPack.customer())
-            .order(factPack.order())
-            .candidate(factPack.candidate())
-            .segments(factPack.segments())
-            .limits(factPack.limits())
-            .metadata(factPack.metadata())
-            .geo(factPack.geo())
-            .derived(factPack.derived())
-            .provenance(provenance)
-            .build();
+                .factPackVersion(factPack.factPackVersion())
+                .timestamp(factPack.timestamp())
+                .customer(factPack.customer())
+                .order(factPack.order())
+                .candidate(factPack.candidate())
+                .segments(factPack.segments())
+                .limits(factPack.limits())
+                .metadata(factPack.metadata())
+                .geo(factPack.geo())
+                .derived(factPack.derived())
+                .provenance(provenance)
+                .build();
     }
 
     private int getCacheTtlSeconds() {

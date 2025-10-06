@@ -8,10 +8,10 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record SegmentsFact(
-    List<String> segmentIds,
-    List<SegmentInfo> segments,
-    Instant evaluatedAt,
-    String evaluationContext
+        List<String> segmentIds,
+        List<SegmentInfo> segments,
+        Instant evaluatedAt,
+        String evaluationContext
 ) {
     public static Builder builder() {
         return new Builder();
@@ -50,10 +50,11 @@ public record SegmentsFact(
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record SegmentInfo(
-        String id,
-        String name,
-        String type,
-        Double score,
-        Map<String, Object> properties
-    ) {}
+            String id,
+            String name,
+            String type,
+            Double score,
+            Map<String, Object> properties
+    ) {
+    }
 }

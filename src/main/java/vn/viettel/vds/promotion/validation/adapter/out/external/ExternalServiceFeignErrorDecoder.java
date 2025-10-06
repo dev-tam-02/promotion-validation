@@ -16,7 +16,7 @@ public class ExternalServiceFeignErrorDecoder implements ErrorDecoder {
     @Override
     public Exception decode(String methodKey, Response response) {
         log.warn("External service call failed: method={}, status={}, reason={}",
-            methodKey, response.status(), response.reason());
+                methodKey, response.status(), response.reason());
 
         switch (response.status()) {
             case 400:

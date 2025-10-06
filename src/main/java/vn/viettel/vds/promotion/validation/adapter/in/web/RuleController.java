@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +32,7 @@ import java.util.Optional;
 @ResponseWrapper
 @RequestMapping("/v1/rules")
 @Tag(name = "Rules", description = "Rule management API")
+@ConditionalOnPromixMongo
 public class RuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleController.class);
@@ -42,9 +44,9 @@ public class RuleController {
     private final AssignmentService assignmentService;
 
     public RuleController(RuleService ruleService, RuleMapper ruleMapper,
-                         RuleValidationService ruleValidationService,
-                         RuleSimulationService ruleSimulationService,
-                         AssignmentService assignmentService) {
+                          RuleValidationService ruleValidationService,
+                          RuleSimulationService ruleSimulationService,
+                          AssignmentService assignmentService) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
@@ -54,9 +56,9 @@ public class RuleController {
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Rule created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid request"),
-        @ApiResponse(responseCode = "409", description = "Rule code already exists")
+            @ApiResponse(responseCode = "201", description = "Rule created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "409", description = "Rule code already exists")
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -67,12 +69,12 @@ public class RuleController {
         logger.info("Creating rule: tenant={}, code={}", request.getTenantId(), request.getCode());
 
         Rule rule = ruleService.createRule(
-            request.getTenantId(),
-            request.getCode(),
-            request.getName(),
-            Rule.LogicType.valueOf(request.getLogic()),
-            ruleMapper.toRuleNodes(request.getNodes()),
-            userId
+                request.getTenantId(),
+                request.getCode(),
+                request.getName(),
+                Rule.LogicType.valueOf(request.getLogic()),
+                ruleMapper.toRuleNodes(request.getNodes()),
+                userId
         );
 
         return ruleMapper.toRuleResponse(rule);
@@ -80,8 +82,8 @@ public class RuleController {
 
     @Operation(summary = "Get rule by ID", description = "Retrieve a specific rule by its ID")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule found"),
-        @ApiResponse(responseCode = "404", description = "Rule not found")
+            @ApiResponse(responseCode = "200", description = "Rule found"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @GetMapping("/{ruleId}")
     public RuleResponse getRuleById(
@@ -95,7 +97,7 @@ public class RuleController {
 
     @Operation(summary = "List rules", description = "List rules with optional filtering and pagination")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rules retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "Rules retrieved successfully")
     })
     @GetMapping
     public PageResponse<RuleResponse> listRules(
@@ -124,9 +126,9 @@ public class RuleController {
 
     @Operation(summary = "Update rule", description = "Update an existing rule (only draft rules can be updated)")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule updated successfully"),
-        @ApiResponse(responseCode = "404", description = "Rule not found"),
-        @ApiResponse(responseCode = "409", description = "Rule is not in draft state")
+            @ApiResponse(responseCode = "200", description = "Rule updated successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "409", description = "Rule is not in draft state")
     })
     @PatchMapping("/{ruleId}")
     public RuleResponse updateRule(
@@ -139,11 +141,11 @@ public class RuleController {
         Rule.LogicType logic = request.getLogic() != null ? Rule.LogicType.valueOf(request.getLogic()) : null;
 
         Rule rule = ruleService.updateRule(
-            ruleId,
-            request.getName(),
-            logic,
-            request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null,
-            userId
+                ruleId,
+                request.getName(),
+                logic,
+                request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null,
+                userId
         );
 
         return ruleMapper.toRuleResponse(rule);
@@ -151,9 +153,9 @@ public class RuleController {
 
     @Operation(summary = "Clone rule", description = "Clone an existing rule with new code and name")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Rule cloned successfully"),
-        @ApiResponse(responseCode = "404", description = "Source rule not found"),
-        @ApiResponse(responseCode = "409", description = "New rule code already exists")
+            @ApiResponse(responseCode = "201", description = "Rule cloned successfully"),
+            @ApiResponse(responseCode = "404", description = "Source rule not found"),
+            @ApiResponse(responseCode = "409", description = "New rule code already exists")
     })
     @PostMapping("/{ruleId}:clone")
     @ResponseStatus(HttpStatus.CREATED)
@@ -170,8 +172,8 @@ public class RuleController {
 
     @Operation(summary = "Archive rule", description = "Archive a rule (mark as inactive)")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule archived successfully"),
-        @ApiResponse(responseCode = "404", description = "Rule not found")
+            @ApiResponse(responseCode = "200", description = "Rule archived successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @PostMapping("/{ruleId}:archive")
     public RuleResponse archiveRule(
@@ -186,34 +188,34 @@ public class RuleController {
 
     @Operation(summary = "Lint rules", description = "Validate rule structure and parameters")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Validation completed"),
-        @ApiResponse(responseCode = "400", description = "Invalid request")
+            @ApiResponse(responseCode = "200", description = "Validation completed"),
+            @ApiResponse(responseCode = "400", description = "Invalid request")
     })
     @PostMapping(":lint")
     public LintResponse lintRules(
             @Valid @RequestBody LintRulesRequest request) {
 
         logger.info("Linting rules: tenant={}, nodeCount={}",
-            request.getTenantId(), request.getNodes().size());
+                request.getTenantId(), request.getNodes().size());
 
         RuleValidationService.LintResult result = ruleValidationService.lintRule(
-            request.getTenantId(),
-            ruleMapper.toRuleNodes(request.getNodes())
+                request.getTenantId(),
+                ruleMapper.toRuleNodes(request.getNodes())
         );
 
         LintResponse response = new LintResponse();
         response.setOk(result.isValid());
         response.setIssues(result.getIssues().stream()
-            .map(issue -> new LintResponse.LintIssue(issue.getPath(), issue.getMessage(), issue.getOperator()))
-            .toList());
+                .map(issue -> new LintResponse.LintIssue(issue.getPath(), issue.getMessage(), issue.getOperator()))
+                .toList());
 
         return response;
     }
 
     @Operation(summary = "Simulate rule execution", description = "Test rule against provided context without publishing")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Simulation completed"),
-        @ApiResponse(responseCode = "404", description = "Rule not found")
+            @ApiResponse(responseCode = "200", description = "Simulation completed"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @PostMapping("/{ruleId}/simulate")
     public SimulationResponse simulateRule(
@@ -223,10 +225,10 @@ public class RuleController {
         logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion());
 
         RuleSimulationService.SimulationResult result = ruleSimulationService.simulateRule(
-            ruleId,
-            request.getVersion(),
-            mapToSimulationContext(request.getContext()),
-            mapToExplainLevel(request.getExplain())
+                ruleId,
+                request.getVersion(),
+                mapToSimulationContext(request.getContext()),
+                mapToExplainLevel(request.getExplain())
         );
 
         SimulationResponse response = new SimulationResponse();
@@ -239,8 +241,8 @@ public class RuleController {
 
     @Operation(summary = "Batch simulate rule", description = "Run multiple test cases against a rule")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Batch simulation completed"),
-        @ApiResponse(responseCode = "404", description = "Rule not found")
+            @ApiResponse(responseCode = "200", description = "Batch simulation completed"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @PostMapping("/{ruleId}/simulate:batch")
     public BatchSimulationResponse batchSimulateRule(
@@ -248,21 +250,21 @@ public class RuleController {
             @Valid @RequestBody BatchSimulateRequest request) {
 
         logger.info("Batch simulating rule: id={}, version={}, caseCount={}",
-            ruleId, request.getVersion(), request.getCases().size());
+                ruleId, request.getVersion(), request.getCases().size());
 
         List<RuleSimulationService.SimulationCase> cases = request.getCases().stream()
-            .map(this::mapToSimulationCase)
-            .toList();
+                .map(this::mapToSimulationCase)
+                .toList();
 
         RuleSimulationService.BatchSimulationResult result = ruleSimulationService.simulateBatch(
-            ruleId, request.getVersion(), cases);
+                ruleId, request.getVersion(), cases);
 
         BatchSimulationResponse response = new BatchSimulationResponse();
         response.setStats(new BatchSimulationResponse.Stats(
-            result.getStats().getPass(), result.getStats().getFail()));
+                result.getStats().getPass(), result.getStats().getFail()));
         response.setResults(result.getResults().stream()
-            .map(this::mapToCaseResult)
-            .toList());
+                .map(this::mapToCaseResult)
+                .toList());
 
         return response;
     }
@@ -352,8 +354,8 @@ public class RuleController {
 
     @Operation(summary = "Get rule by object", description = "Retrieve validation rule with assignment details for a specific object")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rule found"),
-        @ApiResponse(responseCode = "404", description = "No rule assigned to this object")
+            @ApiResponse(responseCode = "200", description = "Rule found"),
+            @ApiResponse(responseCode = "404", description = "No rule assigned to this object")
     })
     @GetMapping("/by-object")
     public RuleWithAssignmentResponse getRuleByObject(
@@ -364,7 +366,7 @@ public class RuleController {
 
         // Get assignment details
         Optional<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignment =
-            assignmentService.findBySubjectTypeAndKey(objectType, objectId);
+                assignmentService.findBySubjectTypeAndKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
             throw new com.promix.platform.core.exception.ResourceNotFoundException();
@@ -386,7 +388,7 @@ public class RuleController {
         assignmentDetails.setValidTo(assignment.get().getValidTo());
         assignmentDetails.setTrafficPercent(assignment.get().getTrafficPercent());
         assignmentDetails.setStickyKeyStrategy(assignment.get().getStickyKeyStrategy() != null ?
-            assignment.get().getStickyKeyStrategy().name() : null);
+                assignment.get().getStickyKeyStrategy().name() : null);
         assignmentDetails.setRuleVersionPinned(assignment.get().getRuleVersionPinned());
         assignmentDetails.setAssignmentVersion(assignment.get().getAssignmentVersion());
         assignmentDetails.setCreatedAt(assignment.get().getCreatedAt());
@@ -399,8 +401,8 @@ public class RuleController {
 
     @Operation(summary = "Get all rules by object", description = "Retrieve all validation rules (active and inactive) assigned to a specific object")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Rules found"),
-        @ApiResponse(responseCode = "404", description = "No rules assigned to this object")
+            @ApiResponse(responseCode = "200", description = "Rules found"),
+            @ApiResponse(responseCode = "404", description = "No rules assigned to this object")
     })
     @GetMapping("/by-object/all")
     public List<RuleWithAssignmentResponse> getAllRulesByObject(
@@ -411,7 +413,7 @@ public class RuleController {
 
         // Get all assignments for this object
         List<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignments =
-            assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
+                assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
 
         if (assignments.isEmpty()) {
             throw new com.promix.platform.core.exception.ResourceNotFoundException();
@@ -419,37 +421,37 @@ public class RuleController {
 
         // Build response list with rule and assignment details
         return assignments.stream()
-            .map(assignment -> {
-                try {
-                    Rule rule = ruleService.getRuleById(assignment.getRuleId());
+                .map(assignment -> {
+                    try {
+                        Rule rule = ruleService.getRuleById(assignment.getRuleId());
 
-                    RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
-                    response.setRule(ruleMapper.toRuleResponse(rule));
+                        RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
+                        response.setRule(ruleMapper.toRuleResponse(rule));
 
-                    RuleWithAssignmentResponse.AssignmentDetails assignmentDetails = new RuleWithAssignmentResponse.AssignmentDetails();
-                    assignmentDetails.setAssignmentId(assignment.getId());
-                    assignmentDetails.setObjectType(assignment.getSubject().getType());
-                    assignmentDetails.setObjectId(assignment.getSubject().getKey());
-                    assignmentDetails.setActive(assignment.getActive());
-                    assignmentDetails.setValidFrom(assignment.getValidFrom());
-                    assignmentDetails.setValidTo(assignment.getValidTo());
-                    assignmentDetails.setTrafficPercent(assignment.getTrafficPercent());
-                    assignmentDetails.setStickyKeyStrategy(assignment.getStickyKeyStrategy() != null ?
-                        assignment.getStickyKeyStrategy().name() : null);
-                    assignmentDetails.setRuleVersionPinned(assignment.getRuleVersionPinned());
-                    assignmentDetails.setAssignmentVersion(assignment.getAssignmentVersion());
-                    assignmentDetails.setCreatedAt(assignment.getCreatedAt());
-                    assignmentDetails.setUpdatedAt(assignment.getUpdatedAt());
+                        RuleWithAssignmentResponse.AssignmentDetails assignmentDetails = new RuleWithAssignmentResponse.AssignmentDetails();
+                        assignmentDetails.setAssignmentId(assignment.getId());
+                        assignmentDetails.setObjectType(assignment.getSubject().getType());
+                        assignmentDetails.setObjectId(assignment.getSubject().getKey());
+                        assignmentDetails.setActive(assignment.getActive());
+                        assignmentDetails.setValidFrom(assignment.getValidFrom());
+                        assignmentDetails.setValidTo(assignment.getValidTo());
+                        assignmentDetails.setTrafficPercent(assignment.getTrafficPercent());
+                        assignmentDetails.setStickyKeyStrategy(assignment.getStickyKeyStrategy() != null ?
+                                assignment.getStickyKeyStrategy().name() : null);
+                        assignmentDetails.setRuleVersionPinned(assignment.getRuleVersionPinned());
+                        assignmentDetails.setAssignmentVersion(assignment.getAssignmentVersion());
+                        assignmentDetails.setCreatedAt(assignment.getCreatedAt());
+                        assignmentDetails.setUpdatedAt(assignment.getUpdatedAt());
 
-                    response.setAssignment(assignmentDetails);
+                        response.setAssignment(assignmentDetails);
 
-                    return response;
-                } catch (Exception e) {
-                    logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
-                    return null;
-                }
-            })
-            .filter(response -> response != null)
-            .toList();
+                        return response;
+                    } catch (Exception e) {
+                        logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(response -> response != null)
+                .toList();
     }
 }

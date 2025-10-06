@@ -32,15 +32,35 @@ public class LintOperatorParamsRequest {
     private Map<String, Object> params;
 
     // Getters and setters
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
+    public String getName() {
+        return name;
+    }
 
-    public Map<String, Object> getParams() { return params; }
-    public void setParams(Map<String, Object> params) { this.params = params; }
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public Map<String, Object> getParams() {
+        return params;
+    }
+
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
+    }
 }

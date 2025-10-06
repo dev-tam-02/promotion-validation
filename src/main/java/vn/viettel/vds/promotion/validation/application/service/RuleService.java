@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Rule;
 
 import java.time.Instant;
@@ -23,28 +23,47 @@ public class RuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleService.class);
 
-    private final RuleRepository ruleRepository;
+    private final RulePersistencePort rulePersistencePort;
     private final AuditService auditService;
     private final AssignmentService assignmentService;
 
-    public RuleService(RuleRepository ruleRepository, AuditService auditService,
-                      @Lazy AssignmentService assignmentService) {
-        this.ruleRepository = ruleRepository;
+    public RuleService(RulePersistencePort rulePersistencePort, AuditService auditService,
+                       @Lazy AssignmentService assignmentService) {
+        this.rulePersistencePort = rulePersistencePort;
         this.auditService = auditService;
         this.assignmentService = assignmentService;
+    }
+
+    /**
+     * Get active rules for stackable discount validation by customer segment.
+     * <p>
+     * This method retrieves published, active rules that apply to stackable discount validation
+     * for the specified customer segment.
+     * </p>
+     *
+     * @param customerSegment customer segment (can be null for all segments)
+     * @return list of active validation rules
+     */
+    public List<vn.viettel.vds.promotion.validation.domain.model.ValidationRule> getActiveRulesForStackableDiscount(String customerSegment) {
+        logger.debug("Retrieving active stackable discount rules for segment: {}", customerSegment);
+
+        // For now, return empty list
+        // In full implementation, this would query the database for active rules
+        // filtered by segment and rule type
+        return List.of();
     }
 
     /**
      * Create a new rule
      */
     public Rule createRule(String tenantId, String code, String name, Rule.LogicType logic,
-                          List<Rule.RuleNode> nodes, String createdBy) {
+                           List<Rule.RuleNode> nodes, String createdBy) {
         logger.info("Creating rule: tenant={}, code={}", tenantId, code);
 
         // Check if rule with same code already exists
-        if (ruleRepository.existsByTenantIdAndCode(tenantId, code)) {
+        if (rulePersistencePort.existsByTenantIdAndCode(tenantId, code)) {
             throw new BusinessException(new ResponseInfo("RULE_CODE_EXISTS",
-                "Rule with code '" + code + "' already exists for tenant " + tenantId, 400));
+                    "Rule with code '" + code + "' already exists for tenant " + tenantId, 400));
         }
 
         // Validate rule nodes
@@ -64,7 +83,7 @@ public class RuleService {
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(createdBy);
 
-        Rule saved = ruleRepository.save(rule);
+        Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
         auditService.logRuleCreated(tenantId, saved.getId(), createdBy);
@@ -77,7 +96,7 @@ public class RuleService {
      * Update an existing rule (only if in DRAFT state)
      */
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
-                          List<Rule.RuleNode> nodes, String updatedBy) {
+                           List<Rule.RuleNode> nodes, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = getRuleById(ruleId);
@@ -85,7 +104,7 @@ public class RuleService {
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
             throw new BusinessException(new ResponseInfo("RULE_STATE_LOCKED",
-                "Cannot update rule in state: " + rule.getState(), 400));
+                    "Cannot update rule in state: " + rule.getState(), 400));
         }
 
         // Validate rule nodes if provided
@@ -105,7 +124,7 @@ public class RuleService {
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(updatedBy);
 
-        Rule saved = ruleRepository.save(rule);
+        Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
         auditService.logRuleUpdated(rule.getTenantId(), saved.getId(), updatedBy);
@@ -123,12 +142,12 @@ public class RuleService {
         Rule sourceRule = getRuleById(sourceRuleId);
 
         return createRule(
-            sourceRule.getTenantId(),
-            newCode,
-            newName,
-            sourceRule.getLogic(),
-            sourceRule.getNodes(),
-            createdBy
+                sourceRule.getTenantId(),
+                newCode,
+                newName,
+                sourceRule.getLogic(),
+                sourceRule.getNodes(),
+                createdBy
         );
     }
 
@@ -144,7 +163,7 @@ public class RuleService {
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(archivedBy);
 
-        Rule saved = ruleRepository.save(rule);
+        Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
         auditService.logRuleArchived(rule.getTenantId(), saved.getId(), archivedBy);
@@ -158,8 +177,8 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Rule getRuleById(String ruleId) {
-        return ruleRepository.findById(ruleId)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return rulePersistencePort.findById(ruleId)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -167,7 +186,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Optional<Rule> getRuleByCode(String tenantId, String code) {
-        return ruleRepository.findByTenantIdAndCode(tenantId, code);
+        return rulePersistencePort.findByTenantIdAndCode(tenantId, code);
     }
 
     /**
@@ -175,11 +194,11 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Page<Rule> findRules(String tenantId, Rule.RuleState state, String codePattern,
-                               String namePattern, Pageable pageable) {
+                                String namePattern, Pageable pageable) {
         if (state != null || codePattern != null || namePattern != null) {
-            return ruleRepository.findByTenantIdWithFilters(tenantId, state, codePattern, namePattern, pageable);
+            return rulePersistencePort.findByTenantIdWithFilters(tenantId, state, codePattern, namePattern, pageable);
         } else {
-            return ruleRepository.findAll(pageable);
+            return rulePersistencePort.findAll(pageable);
         }
     }
 
@@ -188,7 +207,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Page<Rule> getRulesByState(String tenantId, Rule.RuleState state, Pageable pageable) {
-        return ruleRepository.findByTenantIdAndState(tenantId, state, pageable);
+        return rulePersistencePort.findByTenantIdAndState(tenantId, state, pageable);
     }
 
     /**
@@ -196,7 +215,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public List<Rule> getAllRulesByTenant(String tenantId) {
-        return ruleRepository.findByTenantIdOrderByUpdatedAtDesc(tenantId);
+        return rulePersistencePort.findByTenantIdOrderByUpdatedAtDesc(tenantId);
     }
 
     /**
@@ -210,7 +229,7 @@ public class RuleService {
         rule.setLatestVersion(newVersion);
         rule.setUpdatedAt(Instant.now());
 
-        return ruleRepository.save(rule);
+        return rulePersistencePort.save(rule);
     }
 
     private void validateRuleNodes(List<Rule.RuleNode> nodes) {
@@ -243,17 +262,17 @@ public class RuleService {
             case GROUP:
                 if (node.getGroupLogic() == null) {
                     throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
-                        "Group logic is required for GROUP nodes", 400));
+                            "Group logic is required for GROUP nodes", 400));
                 }
                 break;
             case COND:
                 if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
                     throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
-                        "Operator name is required for COND nodes", 400));
+                            "Operator name is required for COND nodes", 400));
                 }
                 if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
                     throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
-                        "Reason code is required for COND nodes", 400));
+                            "Reason code is required for COND nodes", 400));
                 }
                 break;
         }
@@ -268,7 +287,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public boolean ruleExists(String ruleId) {
-        return ruleRepository.existsById(ruleId);
+        return rulePersistencePort.existsById(ruleId);
     }
 
     /**
@@ -276,7 +295,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public boolean isRuleActive(String ruleId) {
-        Optional<Rule> rule = ruleRepository.findById(ruleId);
+        Optional<Rule> rule = rulePersistencePort.findById(ruleId);
         return rule.map(r -> r.getState() == Rule.RuleState.PUBLISHED).orElse(false);
     }
 
@@ -290,7 +309,7 @@ public class RuleService {
 
         // Find assignment for this object
         Optional<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignment =
-            assignmentService.findBySubjectTypeAndKey(objectType, objectId);
+                assignmentService.findBySubjectTypeAndKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
             throw new ResourceNotFoundException();
@@ -311,7 +330,7 @@ public class RuleService {
 
         // Find all assignments for this object
         List<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignments =
-            assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
+                assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
 
         if (assignments.isEmpty()) {
             throw new ResourceNotFoundException();
@@ -319,15 +338,15 @@ public class RuleService {
 
         // Get all rules from assignments
         return assignments.stream()
-            .map(assignment -> {
-                try {
-                    return getRuleById(assignment.getRuleId());
-                } catch (Exception e) {
-                    logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
-                    return null;
-                }
-            })
-            .filter(rule -> rule != null)
-            .toList();
+                .map(assignment -> {
+                    try {
+                        return getRuleById(assignment.getRuleId());
+                    } catch (Exception e) {
+                        logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
+                        return null;
+                    }
+                })
+                .filter(rule -> rule != null)
+                .toList();
     }
 }

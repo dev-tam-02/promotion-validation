@@ -4,10 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CompileRequest;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CompileResponse;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.WarmupRequest;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.entity.ValidationRule;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 
 /**
  * Service for deploying validation rules to the validation engine
@@ -28,7 +25,7 @@ public class ValidationEngineDeploymentService {
      * This method is deprecated - use RulePublishingService instead for rule compilation
      */
     @Deprecated
-    public boolean deployRule(ValidationRule rule) {
+    public boolean deployRule(ValidationRuleEntity rule) {
         logger.warn("deployRule is deprecated - use RulePublishingService.publishRule instead");
         return true;
     }
@@ -65,38 +62,38 @@ public class ValidationEngineDeploymentService {
     }
 
     /**
-     * Generate DRL (Drools Rule Language) content from ValidationRule
+     * Generate DRL (Drools Rule Language) content from ValidationRuleEntity
      * This is a simplified version - in production you'd want more sophisticated mapping
      */
-    private String generateDrlFromRule(ValidationRule rule) {
+    private String generateDrlFromRule(ValidationRuleEntity rule) {
         // TODO: Implement proper DRL generation based on rule structure
         // For now, return a basic template
 
         return String.format("""
-            package vn.viettel.vds.promotion.validation.rules;
+                        package vn.viettel.vds.promotion.validation.rules;
 
-            import vn.viettel.vds.promotion.validation.engine.domain.model.Customer;
-            import vn.viettel.vds.promotion.validation.engine.domain.model.Order;
-            import vn.viettel.vds.promotion.validation.engine.domain.model.ValidationResult;
+                        import vn.viettel.vds.promotion.validation.engine.domain.model.Customer;
+                        import vn.viettel.vds.promotion.validation.engine.domain.model.Order;
+                        import vn.viettel.vds.promotion.validation.engine.domain.model.ValidationResult;
 
-            rule "%s_v%s"
-                when
-                    $customer : Customer()
-                    $order : Order()
-                then
-                    // TODO: Implement rule logic based on %s
-                    ValidationResult result = new ValidationResult();
-                    result.setRuleId("%s");
-                    result.setValid(true);
-                    result.setMessage("Rule %s executed successfully");
-                    insert(result);
-            end
-            """,
-            rule.getName().replaceAll("\\s+", "_"),
-            rule.getVersion(),
-            "validation logic",
-            rule.getId(),
-            rule.getName()
+                        rule "%s_v%s"
+                            when
+                                $customer : Customer()
+                                $order : Order()
+                            then
+                                // TODO: Implement rule logic based on %s
+                                ValidationResult result = new ValidationResult();
+                                result.setRuleId("%s");
+                                result.setValid(true);
+                                result.setMessage("Rule %s executed successfully");
+                                insert(result);
+                        end
+                        """,
+                rule.getName().replaceAll("\\s+", "_"),
+                rule.getRuleVersion(),
+                "validation logic",
+                rule.getId(),
+                rule.getName()
         );
     }
 }

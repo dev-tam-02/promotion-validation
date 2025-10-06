@@ -61,26 +61,63 @@ public class RulePublishResponse {
     }
 
     // Getters and setters
-    public String getRuleId() { return ruleId; }
-    public void setRuleId(String ruleId) { this.ruleId = ruleId; }
+    public String getRuleId() {
+        return ruleId;
+    }
 
-    public Boolean getSuccess() { return success; }
-    public void setSuccess(Boolean success) { this.success = success; }
+    public void setRuleId(String ruleId) {
+        this.ruleId = ruleId;
+    }
 
-    public Boolean isSuccess() { return success != null && success; }
+    public Boolean getSuccess() {
+        return success;
+    }
 
-    public String getBundleHash() { return bundleHash; }
-    public void setBundleHash(String bundleHash) { this.bundleHash = bundleHash; }
+    public void setSuccess(Boolean success) {
+        this.success = success;
+    }
 
-    public Long getArtifactSize() { return artifactSize; }
-    public void setArtifactSize(Long artifactSize) { this.artifactSize = artifactSize; }
+    public Boolean isSuccess() {
+        return success != null && success;
+    }
 
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public String getBundleHash() {
+        return bundleHash;
+    }
 
-    public Long getTimestamp() { return timestamp; }
-    public void setTimestamp(Long timestamp) { this.timestamp = timestamp; }
+    public void setBundleHash(String bundleHash) {
+        this.bundleHash = bundleHash;
+    }
 
-    public java.util.List<String> getCompilationLogs() { return compilationLogs; }
-    public void setCompilationLogs(java.util.List<String> compilationLogs) { this.compilationLogs = compilationLogs; }
+    public Long getArtifactSize() {
+        return artifactSize;
+    }
+
+    public void setArtifactSize(Long artifactSize) {
+        this.artifactSize = artifactSize;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public java.util.List<String> getCompilationLogs() {
+        return compilationLogs;
+    }
+
+    public void setCompilationLogs(java.util.List<String> compilationLogs) {
+        this.compilationLogs = compilationLogs;
+    }
 }

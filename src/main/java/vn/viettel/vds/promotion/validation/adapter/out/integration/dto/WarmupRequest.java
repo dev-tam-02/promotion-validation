@@ -19,7 +19,8 @@ public class WarmupRequest {
     private byte[] artifactBytes;
 
     // Constructors
-    public WarmupRequest() {}
+    public WarmupRequest() {
+    }
 
     public WarmupRequest(String bundleHash) {
         this.bundleHash = bundleHash;
@@ -31,9 +32,19 @@ public class WarmupRequest {
     }
 
     // Getters and setters
-    public String getBundleHash() { return bundleHash; }
-    public void setBundleHash(String bundleHash) { this.bundleHash = bundleHash; }
+    public String getBundleHash() {
+        return bundleHash;
+    }
 
-    public byte[] getArtifactBytes() { return artifactBytes; }
-    public void setArtifactBytes(byte[] artifactBytes) { this.artifactBytes = artifactBytes; }
+    public void setBundleHash(String bundleHash) {
+        this.bundleHash = bundleHash;
+    }
+
+    public byte[] getArtifactBytes() {
+        return artifactBytes;
+    }
+
+    public void setArtifactBytes(byte[] artifactBytes) {
+        this.artifactBytes = artifactBytes;
+    }
 }

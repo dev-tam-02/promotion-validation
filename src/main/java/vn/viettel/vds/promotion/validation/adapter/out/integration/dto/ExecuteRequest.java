@@ -41,10 +41,11 @@ public class ExecuteRequest {
     private ExecutionContextDto executionContext;
 
     // Constructors
-    public ExecuteRequest() {}
+    public ExecuteRequest() {
+    }
 
     public ExecuteRequest(String bundleHash, CustomerDto customer, OrderDto order,
-                         CandidateDto candidate, ExecutionContextDto executionContext) {
+                          CandidateDto candidate, ExecutionContextDto executionContext) {
         this.bundleHash = bundleHash;
         this.customer = customer;
         this.order = order;
@@ -53,18 +54,43 @@ public class ExecuteRequest {
     }
 
     // Getters and setters
-    public String getBundleHash() { return bundleHash; }
-    public void setBundleHash(String bundleHash) { this.bundleHash = bundleHash; }
+    public String getBundleHash() {
+        return bundleHash;
+    }
 
-    public CustomerDto getCustomer() { return customer; }
-    public void setCustomer(CustomerDto customer) { this.customer = customer; }
+    public void setBundleHash(String bundleHash) {
+        this.bundleHash = bundleHash;
+    }
 
-    public OrderDto getOrder() { return order; }
-    public void setOrder(OrderDto order) { this.order = order; }
+    public CustomerDto getCustomer() {
+        return customer;
+    }
 
-    public CandidateDto getCandidate() { return candidate; }
-    public void setCandidate(CandidateDto candidate) { this.candidate = candidate; }
+    public void setCustomer(CustomerDto customer) {
+        this.customer = customer;
+    }
 
-    public ExecutionContextDto getExecutionContext() { return executionContext; }
-    public void setExecutionContext(ExecutionContextDto executionContext) { this.executionContext = executionContext; }
+    public OrderDto getOrder() {
+        return order;
+    }
+
+    public void setOrder(OrderDto order) {
+        this.order = order;
+    }
+
+    public CandidateDto getCandidate() {
+        return candidate;
+    }
+
+    public void setCandidate(CandidateDto candidate) {
+        this.candidate = candidate;
+    }
+
+    public ExecutionContextDto getExecutionContext() {
+        return executionContext;
+    }
+
+    public void setExecutionContext(ExecutionContextDto executionContext) {
+        this.executionContext = executionContext;
+    }
 }

@@ -1,13 +1,19 @@
 # Domain Enums Package
 
 ## Description
-The domain.enums package contains enumeration classes that represent fixed sets of values with business meaning in the domain. These enums encapsulate business concepts that have a limited set of possible values.
+
+The domain.enums package contains enumeration classes that represent fixed sets of values with business meaning in the
+domain. These enums encapsulate business concepts that have a limited set of possible values.
 
 ## Purpose
-The purpose of this package is to provide type-safe representations of business concepts that have a fixed set of possible values, making the code more readable, maintainable, and less prone to errors.
+
+The purpose of this package is to provide type-safe representations of business concepts that have a fixed set of
+possible values, making the code more readable, maintainable, and less prone to errors.
 
 ## Usage
+
 This package typically contains:
+
 - Enumerations representing status values (e.g., CampaignStatus, ApprovalStatus)
 - Enumerations representing types or categories (e.g., CampaignType, PromotionType)
 - Enumerations representing business rules or constraints (e.g., DiscountMethod, TargetAudience)
@@ -16,6 +22,7 @@ This package typically contains:
 ## Examples
 
 ### Simple Enum Example
+
 ```java
 // CampaignStatus.java
 public enum CampaignStatus {
@@ -37,6 +44,7 @@ if (campaign.getStatus() == CampaignStatus.APPROVED) {
 ```
 
 ### Enum with Properties and Methods
+
 ```java
 // DiscountMethod.java
 public enum DiscountMethod {
@@ -74,6 +82,7 @@ if (promotion.getDiscountMethod().requiresDiscountValue()) {
 ```
 
 ### Enum with Behavior
+
 ```java
 // TargetAudience.java
 public enum TargetAudience {
@@ -124,6 +133,7 @@ if (campaign.getTargetAudience().isEligible(customer)) {
 ```
 
 ## Rules
+
 1. Enum names should be singular and represent the concept they encapsulate
 2. Enum values should be in uppercase with underscores separating words (e.g., ACTIVE, IN_PROGRESS)
 3. Enums should include documentation explaining the business meaning of each value

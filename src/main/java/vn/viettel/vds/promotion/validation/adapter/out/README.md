@@ -1,13 +1,19 @@
 # Adapter Out Package
 
 ## Description
-The adapter.out package contains outbound adapters that implement the interfaces defined in the application.port.out package. These adapters handle the interaction between the application and external systems or services.
+
+The adapter.out package contains outbound adapters that implement the interfaces defined in the application.port.out
+package. These adapters handle the interaction between the application and external systems or services.
 
 ## Purpose
-The purpose of this package is to isolate the application core from the details of external systems, such as databases, message brokers, or third-party services, allowing the application to remain focused on business logic.
+
+The purpose of this package is to isolate the application core from the details of external systems, such as databases,
+message brokers, or third-party services, allowing the application to remain focused on business logic.
 
 ## Usage
+
 This package typically contains:
+
 - Database repositories
 - HTTP clients for external APIs
 - Message producers (Kafka, RabbitMQ, etc.)
@@ -20,6 +26,7 @@ Each adapter implements one or more output port interfaces defined in the applic
 ## Examples
 
 ### JPA Repository Adapter Example
+
 ```java
 // JpaCampaignRepository.java in adapter.out.persistence package
 @Repository
@@ -188,6 +195,7 @@ public class CampaignMapper {
 ```
 
 ### REST API Client Example
+
 ```java
 // ProductCatalogRestClient.java in adapter.out.api package
 @Service
@@ -323,6 +331,7 @@ public class ProductCatalogRestClient implements ProductCatalogClient {
 ```
 
 ### Kafka Event Publisher Example
+
 ```java
 // KafkaCampaignEventPublisher.java in adapter.out.messaging package
 @Service
@@ -402,6 +411,7 @@ public class KafkaCampaignEventPublisher implements CampaignEventPublisher {
 ```
 
 ### Redis Cache Adapter Example
+
 ```java
 // RedisCampaignCache.java in adapter.out.cache package
 @Service
@@ -471,6 +481,7 @@ public class RedisCampaignCache implements CampaignCache {
 ```
 
 ## Rules
+
 1. Outbound adapters should implement the interfaces defined in the application.port.out package
 2. Adapters should handle the conversion between the application's output model and the external system's format
 3. Technical details of the external system should be encapsulated within the adapter

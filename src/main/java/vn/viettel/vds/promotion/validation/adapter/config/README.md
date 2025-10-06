@@ -1,13 +1,19 @@
 # Adapter Config Package
 
 ## Description
-The adapter.config package contains configuration classes that set up the application's infrastructure, such as database connections, security settings, and other external dependencies.
+
+The adapter.config package contains configuration classes that set up the application's infrastructure, such as database
+connections, security settings, and other external dependencies.
 
 ## Purpose
-The purpose of this package is to centralize configuration code and separate it from the actual adapter implementations, making the system more maintainable and easier to configure.
+
+The purpose of this package is to centralize configuration code and separate it from the actual adapter implementations,
+making the system more maintainable and easier to configure.
 
 ## Usage
+
 This package typically contains:
+
 - Spring configuration classes (annotated with @Configuration)
 - Bean definitions for external dependencies
 - Security configuration
@@ -18,6 +24,7 @@ This package typically contains:
 ## Examples
 
 ### Database Configuration Example
+
 ```java
 // PersistenceConfig.java
 @Configuration
@@ -68,6 +75,7 @@ public class PersistenceConfig {
 ```
 
 ### Web Configuration Example
+
 ```java
 // WebConfig.java
 @Configuration
@@ -108,6 +116,7 @@ public class WebConfig implements WebMvcConfigurer {
 ```
 
 ### Security Configuration Example
+
 ```java
 // SecurityConfig.java
 @Configuration
@@ -146,6 +155,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 ```
 
 ### Messaging Configuration Example
+
 ```java
 // MessagingConfig.java
 @Configuration
@@ -197,6 +207,7 @@ public class MessagingConfig {
 ```
 
 ## Rules
+
 1. Configuration classes should be placed in this package, not scattered throughout the codebase
 2. Configuration should be externalized as much as possible (using properties files, environment variables, etc.)
 3. Configuration classes should focus on wiring dependencies, not implementing business logic

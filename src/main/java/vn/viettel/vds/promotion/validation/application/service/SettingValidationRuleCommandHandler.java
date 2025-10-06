@@ -9,13 +9,17 @@ import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.entity.RuleTimeFrame;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.AssignmentRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleTimeFrameRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.ValidationRuleRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTimeFrameEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Service to handle SettingValidationRuleCommand processing
@@ -26,25 +30,22 @@ public class SettingValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
-    private final AssignmentRepository assignmentRepository;
-    private final RuleTimeFrameRepository ruleTimeFrameRepository;
-    private final ValidationRuleRepository validationRuleRepository;
+    private final AssignmentJpaRepository assignmentRepository;
+    private final RuleTimeFrameJpaRepository ruleTimeFrameRepository;
+    private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
-    private final CommandMappingService mappingService;
     private final ValidationEngineDeploymentService validationEngineClient;
 
     public SettingValidationRuleCommandHandler(
-            AssignmentRepository assignmentRepository,
-            RuleTimeFrameRepository ruleTimeFrameRepository,
-            ValidationRuleRepository validationRuleRepository,
+            AssignmentJpaRepository assignmentRepository,
+            RuleTimeFrameJpaRepository ruleTimeFrameRepository,
+            ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
-            CommandMappingService mappingService,
             ValidationEngineDeploymentService validationEngineClient) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;
-        this.mappingService = mappingService;
         this.validationEngineClient = validationEngineClient;
     }
 
@@ -66,7 +67,7 @@ public class SettingValidationRuleCommandHandler {
             }
 
             // Process the command
-            CommandProcessingResult result = processCommand(commandId, payload);
+            CommandProcessingResult result = processCommand(commandId, command, payload);
 
             // Publish success/failure event
             if (result.isSuccess()) {
@@ -90,7 +91,10 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Process the command and create/update assignments
      */
-    private CommandProcessingResult processCommand(String commandId, SettingValidationRuleCommandPayload payload) {
+    private CommandProcessingResult processCommand(
+            String commandId,
+            SettingValidationRuleCommand command,
+            SettingValidationRuleCommandPayload payload) {
         try {
             // Extract command components
             vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData = payload.getAssignRule();
@@ -103,20 +107,45 @@ public class SettingValidationRuleCommandHandler {
                 return CommandProcessingResult.failure("MISSING_ASSIGN_RULE", "assignRule is required");
             }
 
+            // ✅ FIX: Get campaign ID from command.subject
+            String campaignId = getCampaignIdFromCommand(command);
+            if (campaignId == null || campaignId.isEmpty()) {
+                return CommandProcessingResult.failure("MISSING_CAMPAIGN_ID",
+                        "Campaign ID is required in command.subject");
+            }
+
             // Validate rule exists
             String ruleId = assignRuleData.getRuleId().toString();
             if (ruleId == null || !validationRuleRepository.existsById(ruleId)) {
-                return CommandProcessingResult.failure("RULE_NOT_FOUND", "Validation rule not found: " + ruleId);
+                return CommandProcessingResult.failure("RULE_NOT_FOUND",
+                        "Validation rule not found: " + ruleId);
             }
 
-            // Create rule assignment
-            vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment = createRuleAssignment(assignRuleData, applicableToData, priority, notes);
-            assignment = assignmentRepository.save(assignment);
+            // ✅ NEW: Validate rule has product.applicability.in node if applicableTo provided
+            if (applicableToData != null) {
+                boolean isValid = validateRuleHasProductApplicabilityNode(ruleId, applicableToData);
+                if (!isValid) {
+                    return CommandProcessingResult.failure("RULE_MISSING_APPLICABILITY_NODE",
+                            "Rule must contain product.applicability.in condition node when applicableTo is provided");
+                }
+            }
+
+            // ✅ FIXED: Create rule assignment with campaign ID
+            vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment =
+                    createRuleAssignment(assignRuleData, campaignId, priority, notes);
+
+            // Convert to JPA entity and save
+            AssignmentEntity assignmentEntity = toAssignmentEntity(assignment);
+            assignmentEntity = assignmentRepository.save(assignmentEntity);
+            assignment.setId(assignmentEntity.getId());
+
+            logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}",
+                    campaignId, ruleId, assignment.getId());
 
             // Process timeframe if provided
             String timeFrameId = null;
             if (timeframeData != null) {
-                timeFrameId = processTimeframe(assignment.getId(), timeframeData);
+                timeFrameId = processTimeframe(ruleId, timeframeData);
             }
 
             // Deploy rule to validation-engine
@@ -137,11 +166,93 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * Create RuleAssignment entity from command data
+     * ✅ NEW: Extract campaign ID from command.subject
+     */
+    private String getCampaignIdFromCommand(SettingValidationRuleCommand command) {
+        if (command == null || command.getSubject() == null) {
+            logger.error("Command or command.subject is null");
+            return null;
+        }
+
+        String subject = command.getSubject().toString();
+
+        if (subject == null || subject.trim().isEmpty()) {
+            logger.error("Campaign ID (command.subject) is null or empty");
+            return null;
+        }
+
+        logger.debug("Extracted campaign ID from command.subject: {}", subject);
+        return subject.trim();
+    }
+
+    /**
+     * ✅ NEW: Validate that rule contains product.applicability.in node
+     * This ensures consistency between rule definition and applicableTo data
+     */
+    private boolean validateRuleHasProductApplicabilityNode(
+            String ruleId,
+            ApplicabilityScope applicableToData) {
+
+        try {
+            var ruleOpt = validationRuleRepository.findById(ruleId);
+            if (ruleOpt.isEmpty()) {
+                logger.error("Rule not found during validation: ruleId={}", ruleId);
+                return false;
+            }
+
+            var rule = ruleOpt.get();
+
+            // Check if rule has nodes
+            if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
+                logger.warn("Rule has no nodes: ruleId={}", ruleId);
+                return false;
+            }
+
+            // Search for product.applicability.in operator in rule tree
+            boolean hasApplicabilityNode = findProductApplicabilityNode(rule.getNodes());
+
+            if (!hasApplicabilityNode) {
+                logger.error("Rule does not contain product.applicability.in node: ruleId={}", ruleId);
+                return false;
+            }
+
+            logger.info("Validated rule contains product.applicability.in node: ruleId={}", ruleId);
+            return true;
+
+        } catch (Exception e) {
+            logger.error("Error validating rule applicability node: ruleId={}", ruleId, e);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ NEW: Recursively search for product.applicability.in node in rule tree
+     * Works with ValidationRuleEntity JPA entity nodes
+     */
+    private boolean findProductApplicabilityNode(List<RuleNodeEntity> nodes) {
+
+        if (nodes == null || nodes.isEmpty()) {
+            return false;
+        }
+
+        // Search through all nodes for product.applicability.in operator
+        for (RuleNodeEntity node : nodes) {
+            // Check if this is a COND node with product.applicability.in operator
+            if ("COND".equals(node.getType()) &&
+                    "product.applicability.in".equals(node.getOperatorName())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * ✅ FIXED: Create RuleAssignment entity with campaign ID
      */
     private vn.viettel.vds.promotion.validation.domain.entity.Assignment createRuleAssignment(
             vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
-            ApplicabilityScope applicableToData,
+            String campaignId,  // ✅ Changed from ApplicabilityScope to campaignId
             Integer priority,
             String notes) {
 
@@ -156,11 +267,15 @@ public class SettingValidationRuleCommandHandler {
             assignmentId = IdGenerator.generateId();
         }
 
-        // Create Subject from applicableTo
-        vn.viettel.vds.promotion.validation.domain.entity.Assignment.Subject subject = mappingService.createSubjectFromApplicableTo(applicableToData);
+        // ✅ FIXED: Create Subject with campaign ID
+        vn.viettel.vds.promotion.validation.domain.entity.Assignment.Subject subject =
+                new vn.viettel.vds.promotion.validation.domain.entity.Assignment.Subject();
+        subject.setType("campaign");      // ✅ Always "campaign"
+        subject.setKey(campaignId);       // ✅ Campaign ID from command.subject
 
         // Create and configure assignment
-        vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment = new vn.viettel.vds.promotion.validation.domain.entity.Assignment();
+        vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment =
+                new vn.viettel.vds.promotion.validation.domain.entity.Assignment();
         assignment.setId(assignmentId);
         assignment.setRuleId(ruleId);
         assignment.setSubject(subject);
@@ -170,13 +285,16 @@ public class SettingValidationRuleCommandHandler {
         assignment.setCreatedAt(Instant.now());
         assignment.setUpdatedAt(Instant.now());
 
+        logger.debug("Created assignment entity: assignmentId={}, campaignId={}, ruleId={}",
+                assignmentId, campaignId, ruleId);
+
         return assignment;
     }
 
     /**
      * Process timeframe configuration
      */
-    private String processTimeframe(String assignmentId, TimeFrame timeframeData) {
+    private String processTimeframe(String ruleId, TimeFrame timeframeData) {
         try {
             // Extract timeframe components
             String timeFrameId = timeframeData.getTimeFrameId() != null ?
@@ -188,10 +306,14 @@ public class SettingValidationRuleCommandHandler {
                 timeFrameId = IdGenerator.generateId();
             }
 
+            // Get validation rule entity
+            ValidationRuleEntity validationRule = validationRuleRepository.findById(ruleId)
+                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + ruleId));
+
             // Create RuleTimeFrame entity
-            RuleTimeFrame ruleTimeFrame = new RuleTimeFrame();
+            RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
             ruleTimeFrame.setId(IdGenerator.generateId());
-            ruleTimeFrame.setRuleId(assignmentId); // Link to assignment
+            ruleTimeFrame.setValidationRule(validationRule); // Link to validation rule
             ruleTimeFrame.setTimeFrameId(timeFrameId);
             ruleTimeFrame.setMode(mode);
 
@@ -200,11 +322,11 @@ public class SettingValidationRuleCommandHandler {
             // TODO: Process complex timeframe logic (validity hours, days of week, etc.)
             // This would require additional entities or JSON storage in RuleTimeFrame
 
-            logger.debug("Created timeframe: assignmentId={}, timeFrameId={}", assignmentId, timeFrameId);
+            logger.debug("Created timeframe: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
             return timeFrameId;
 
         } catch (Exception e) {
-            logger.error("Error processing timeframe: assignmentId={}", assignmentId, e);
+            logger.error("Error processing timeframe: ruleId={}", ruleId, e);
             throw new RuntimeException("Failed to process timeframe", e);
         }
     }
@@ -248,24 +370,24 @@ public class SettingValidationRuleCommandHandler {
             // Only deploy if assignment is active
             if (assignment.getActive() != null && assignment.getActive()) {
                 logger.info("Deploying rule to validation-engine: ruleId={}, assignmentId={}",
-                          ruleId, assignment.getId());
+                        ruleId, assignment.getId());
 
                 boolean deployed = validationEngineClient.deployRule(rule);
                 if (deployed) {
                     logger.info("Successfully deployed rule to validation-engine: ruleId={}, assignmentId={}",
-                              ruleId, assignment.getId());
+                            ruleId, assignment.getId());
                 } else {
                     logger.error("Failed to deploy rule to validation-engine: ruleId={}, assignmentId={}",
-                               ruleId, assignment.getId());
+                            ruleId, assignment.getId());
                 }
             } else {
                 logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
-                          ruleId, assignment.getId());
+                        ruleId, assignment.getId());
             }
 
         } catch (Exception e) {
             logger.error("Error deploying rule to validation-engine: ruleId={}, assignmentId={}",
-                       ruleId, assignment.getId(), e);
+                    ruleId, assignment.getId(), e);
             // Don't fail the entire command processing for deployment issues
         }
     }
@@ -291,6 +413,43 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
+     * Convert domain Assignment to JPA AssignmentEntity
+     */
+    private AssignmentEntity toAssignmentEntity(vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment) {
+        AssignmentEntity entity = new AssignmentEntity();
+        entity.setId(assignment.getId());
+        entity.setTenantId(assignment.getTenantId());
+        entity.setRuleId(assignment.getRuleId());
+        entity.setRuleVersionPinned(assignment.getRuleVersionPinned());
+
+        // Convert Subject
+        if (assignment.getSubject() != null) {
+            AssignmentEntity.SubjectEmbeddable subject = new AssignmentEntity.SubjectEmbeddable();
+            subject.setType(assignment.getSubject().getType());
+            subject.setKey(assignment.getSubject().getKey());
+            entity.setSubject(subject);
+        }
+
+        entity.setAssignmentVersion(assignment.getAssignmentVersion());
+        entity.setActive(assignment.getActive());
+        entity.setValidFrom(assignment.getValidFrom());
+        entity.setValidTo(assignment.getValidTo());
+        entity.setTrafficPercent(assignment.getTrafficPercent());
+
+        // Convert StickyKeyStrategy enum
+        if (assignment.getStickyKeyStrategy() != null) {
+            entity.setStickyKeyStrategy(
+                AssignmentEntity.StickyKeyStrategy.valueOf(assignment.getStickyKeyStrategy().name())
+            );
+        }
+
+        entity.setCreatedAt(assignment.getCreatedAt());
+        entity.setUpdatedAt(assignment.getUpdatedAt());
+
+        return entity;
+    }
+
+    /**
      * Result wrapper for command processing
      */
     public static class CommandProcessingResult {
@@ -303,8 +462,8 @@ public class SettingValidationRuleCommandHandler {
         private final TimeFrame timeframeData;
 
         private CommandProcessingResult(boolean success, String errorCode, String errorMessage,
-                                      vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment, ApplicabilityScope applicabilityData,
-                                      String timeFrameId, TimeFrame timeframeData) {
+                                        vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment, ApplicabilityScope applicabilityData,
+                                        String timeFrameId, TimeFrame timeframeData) {
             this.success = success;
             this.errorCode = errorCode;
             this.errorMessage = errorMessage;
@@ -315,9 +474,9 @@ public class SettingValidationRuleCommandHandler {
         }
 
         public static CommandProcessingResult success(vn.viettel.vds.promotion.validation.domain.entity.Assignment assignment,
-                                                    ApplicabilityScope applicabilityData,
-                                                    String timeFrameId,
-                                                    TimeFrame timeframeData) {
+                                                      ApplicabilityScope applicabilityData,
+                                                      String timeFrameId,
+                                                      TimeFrame timeframeData) {
             return new CommandProcessingResult(true, null, null, assignment, applicabilityData, timeFrameId, timeframeData);
         }
 
@@ -326,12 +485,32 @@ public class SettingValidationRuleCommandHandler {
         }
 
         // Getters
-        public boolean isSuccess() { return success; }
-        public String getErrorCode() { return errorCode; }
-        public String getErrorMessage() { return errorMessage; }
-        public vn.viettel.vds.promotion.validation.domain.entity.Assignment getAssignment() { return assignment; }
-        public ApplicabilityScope getApplicabilityData() { return applicabilityData; }
-        public String getTimeFrameId() { return timeFrameId; }
-        public TimeFrame getTimeframeData() { return timeframeData; }
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getErrorCode() {
+            return errorCode;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public vn.viettel.vds.promotion.validation.domain.entity.Assignment getAssignment() {
+            return assignment;
+        }
+
+        public ApplicabilityScope getApplicabilityData() {
+            return applicabilityData;
+        }
+
+        public String getTimeFrameId() {
+            return timeFrameId;
+        }
+
+        public TimeFrame getTimeframeData() {
+            return timeframeData;
+        }
     }
 }

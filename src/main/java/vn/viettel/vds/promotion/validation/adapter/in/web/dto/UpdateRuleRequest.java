@@ -35,18 +35,43 @@ public class UpdateRuleRequest {
     private String notes;
 
     // Getters and setters
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getName() {
+        return name;
+    }
 
-    public String getLogic() { return logic; }
-    public void setLogic(String logic) { this.logic = logic; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public Map<String, Object> getLimits() { return limits; }
-    public void setLimits(Map<String, Object> limits) { this.limits = limits; }
+    public String getLogic() {
+        return logic;
+    }
 
-    public List<RuleNodeDto> getNodes() { return nodes; }
-    public void setNodes(List<RuleNodeDto> nodes) { this.nodes = nodes; }
+    public void setLogic(String logic) {
+        this.logic = logic;
+    }
 
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
+    public Map<String, Object> getLimits() {
+        return limits;
+    }
+
+    public void setLimits(Map<String, Object> limits) {
+        this.limits = limits;
+    }
+
+    public List<RuleNodeDto> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(List<RuleNodeDto> nodes) {
+        this.nodes = nodes;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
 }

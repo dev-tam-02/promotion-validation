@@ -46,24 +46,59 @@ public class CreateOperatorRequest {
     private String status = "active";
 
     // Getters and setters
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
+    public String getName() {
+        return name;
+    }
 
-    public String getContext() { return context; }
-    public void setContext(String context) { this.context = context; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public Map<String, Object> getJsonSchema() { return jsonSchema; }
-    public void setJsonSchema(Map<String, Object> jsonSchema) { this.jsonSchema = jsonSchema; }
+    public Integer getVersion() {
+        return version;
+    }
 
-    public String getCompilerId() { return compilerId; }
-    public void setCompilerId(String compilerId) { this.compilerId = compilerId; }
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public Map<String, Object> getJsonSchema() {
+        return jsonSchema;
+    }
+
+    public void setJsonSchema(Map<String, Object> jsonSchema) {
+        this.jsonSchema = jsonSchema;
+    }
+
+    public String getCompilerId() {
+        return compilerId;
+    }
+
+    public void setCompilerId(String compilerId) {
+        this.compilerId = compilerId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

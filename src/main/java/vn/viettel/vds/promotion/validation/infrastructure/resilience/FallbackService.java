@@ -45,7 +45,7 @@ public class FallbackService {
         strategyUsageCount.computeIfAbsent(strategyName, k -> new AtomicLong(0)).incrementAndGet();
 
         logger.warn("Executing fallback validation strategy '{}' for request: {}, original error: {}",
-                   strategyName, request.getTransactionId(), originalException.getMessage());
+                strategyName, request.getTransactionId(), originalException.getMessage());
 
         FallbackStrategy strategy = fallbackStrategies.getOrDefault(strategyName, fallbackStrategies.get("default"));
 
@@ -65,17 +65,17 @@ public class FallbackService {
         strategyUsageCount.computeIfAbsent(strategyName, k -> new AtomicLong(0)).incrementAndGet();
 
         logger.warn("Executing compilation fallback for rule: {}, original error: {}",
-                   rule.getRuleId(), originalException.getMessage());
+                rule.getRuleId(), originalException.getMessage());
 
         return ValidationResponse.builder()
-            .transactionId("compilation-fallback-" + System.currentTimeMillis())
-            .valid(false)
-            .message("Rule compilation failed - using fallback validation")
-            .errorCode("COMPILATION_FALLBACK")
-            .timestamp(Instant.now())
-            .executionTimeMs(0L)
-            .rulesFired(List.of())
-            .build();
+                .transactionId("compilation-fallback-" + System.currentTimeMillis())
+                .valid(false)
+                .message("Rule compilation failed - using fallback validation")
+                .errorCode("COMPILATION_FALLBACK")
+                .timestamp(Instant.now())
+                .executionTimeMs(0L)
+                .rulesFired(List.of())
+                .build();
     }
 
     public FallbackStats getFallbackStats() {
@@ -83,9 +83,9 @@ public class FallbackService {
         strategyUsageCount.forEach((strategy, count) -> strategyStats.put(strategy, count.get()));
 
         return new FallbackStats(
-            fallbackExecutions.get(),
-            strategyStats,
-            Instant.now()
+                fallbackExecutions.get(),
+                strategyStats,
+                Instant.now()
         );
     }
 
@@ -105,14 +105,14 @@ public class FallbackService {
         @Override
         public ValidationResponse execute(ValidationRequest request, Exception originalException) {
             return ValidationResponse.builder()
-                .transactionId(request.getTransactionId())
-                .valid(true)
-                .message("Validation completed using fallback strategy - validation engine unavailable")
-                .errorCode("FALLBACK_VALIDATION")
-                .timestamp(Instant.now())
-                .executionTimeMs(0L)
-                .rulesFired(List.of("fallback-rule"))
-                .build();
+                    .transactionId(request.getTransactionId())
+                    .valid(true)
+                    .message("Validation completed using fallback strategy - validation engine unavailable")
+                    .errorCode("FALLBACK_VALIDATION")
+                    .timestamp(Instant.now())
+                    .executionTimeMs(0L)
+                    .rulesFired(List.of("fallback-rule"))
+                    .build();
         }
     }
 
@@ -121,14 +121,14 @@ public class FallbackService {
         @Override
         public ValidationResponse execute(ValidationRequest request, Exception originalException) {
             return ValidationResponse.builder()
-                .transactionId(request.getTransactionId())
-                .valid(false)
-                .message("Validation failed - validation engine unavailable, using conservative approach")
-                .errorCode("CONSERVATIVE_FALLBACK")
-                .timestamp(Instant.now())
-                .executionTimeMs(0L)
-                .rulesFired(List.of())
-                .build();
+                    .transactionId(request.getTransactionId())
+                    .valid(false)
+                    .message("Validation failed - validation engine unavailable, using conservative approach")
+                    .errorCode("CONSERVATIVE_FALLBACK")
+                    .timestamp(Instant.now())
+                    .executionTimeMs(0L)
+                    .rulesFired(List.of())
+                    .build();
         }
     }
 
@@ -140,14 +140,14 @@ public class FallbackService {
             boolean isValid = performBasicValidation(request);
 
             return ValidationResponse.builder()
-                .transactionId(request.getTransactionId())
-                .valid(isValid)
-                .message(isValid ? "Basic validation passed" : "Basic validation failed")
-                .errorCode(isValid ? "BASIC_VALIDATION_SUCCESS" : "BASIC_VALIDATION_FAILED")
-                .timestamp(Instant.now())
-                .executionTimeMs(5L) // Simulate basic processing time
-                .rulesFired(List.of("basic-validation-rule"))
-                .build();
+                    .transactionId(request.getTransactionId())
+                    .valid(isValid)
+                    .message(isValid ? "Basic validation passed" : "Basic validation failed")
+                    .errorCode(isValid ? "BASIC_VALIDATION_SUCCESS" : "BASIC_VALIDATION_FAILED")
+                    .timestamp(Instant.now())
+                    .executionTimeMs(5L) // Simulate basic processing time
+                    .rulesFired(List.of("basic-validation-rule"))
+                    .build();
         }
 
         private boolean performBasicValidation(ValidationRequest request) {
@@ -177,14 +177,14 @@ public class FallbackService {
             if (cachedResponse != null) {
                 // Return cached response with updated timestamp
                 return ValidationResponse.builder()
-                    .transactionId(request.getTransactionId())
-                    .valid(cachedResponse.isValid())
-                    .message("Validation result from cache - " + cachedResponse.getMessage())
-                    .errorCode("CACHED_FALLBACK")
-                    .timestamp(Instant.now())
-                    .executionTimeMs(1L)
-                    .rulesFired(cachedResponse.getRulesFired())
-                    .build();
+                        .transactionId(request.getTransactionId())
+                        .valid(cachedResponse.isValid())
+                        .message("Validation result from cache - " + cachedResponse.getMessage())
+                        .errorCode("CACHED_FALLBACK")
+                        .timestamp(Instant.now())
+                        .executionTimeMs(1L)
+                        .rulesFired(cachedResponse.getRulesFired())
+                        .build();
             }
 
             // No cached result available, use conservative approach
@@ -193,9 +193,9 @@ public class FallbackService {
 
         private String generateCacheKey(ValidationRequest request) {
             return String.format("%s:%s:%s",
-                request.getCustomerId(),
-                request.getPromotionId(),
-                request.getOrderValue() != null ? request.getOrderValue().toString() : "0");
+                    request.getCustomerId(),
+                    request.getPromotionId(),
+                    request.getOrderValue() != null ? request.getOrderValue().toString() : "0");
         }
     }
 
@@ -212,15 +212,23 @@ public class FallbackService {
         }
 
         // Getters
-        public long getTotalFallbackExecutions() { return totalFallbackExecutions; }
-        public Map<String, Long> getStrategyUsage() { return strategyUsage; }
-        public Instant getTimestamp() { return timestamp; }
+        public long getTotalFallbackExecutions() {
+            return totalFallbackExecutions;
+        }
+
+        public Map<String, Long> getStrategyUsage() {
+            return strategyUsage;
+        }
+
+        public Instant getTimestamp() {
+            return timestamp;
+        }
 
         public String getMostUsedStrategy() {
             return strategyUsage.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("none");
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse("none");
         }
 
         public double getFallbackRate() {

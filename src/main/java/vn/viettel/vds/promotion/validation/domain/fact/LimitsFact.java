@@ -9,11 +9,11 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record LimitsFact(
-    List<LimitInfo> globalLimits,
-    List<LimitInfo> customerLimits,
-    List<LimitInfo> campaignLimits,
-    Map<String, UsageCounter> counters,
-    Instant snapshotAt
+        List<LimitInfo> globalLimits,
+        List<LimitInfo> customerLimits,
+        List<LimitInfo> campaignLimits,
+        Map<String, UsageCounter> counters,
+        Instant snapshotAt
 ) {
     public static Builder builder() {
         return new Builder();
@@ -58,20 +58,22 @@ public record LimitsFact(
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record LimitInfo(
-        String type,
-        String scope,
-        String period,
-        BigDecimal limit,
-        BigDecimal used,
-        BigDecimal remaining
-    ) {}
+            String type,
+            String scope,
+            String period,
+            BigDecimal limit,
+            BigDecimal used,
+            BigDecimal remaining
+    ) {
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record UsageCounter(
-        String key,
-        BigDecimal count,
-        String period,
-        Instant lastUpdated,
-        Instant resetAt
-    ) {}
+            String key,
+            BigDecimal count,
+            String period,
+            Instant lastUpdated,
+            Instant resetAt
+    ) {
+    }
 }

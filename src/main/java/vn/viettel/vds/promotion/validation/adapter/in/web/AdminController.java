@@ -1,12 +1,13 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
 import com.promix.platform.web.annotation.ResponseWrapper;
+import com.promix.platform.outbox.service.OutboxService;
+import com.promix.platform.outbox.service.OutboxStatistics;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import vn.viettel.vds.promotion.validation.application.service.EventPublisherService;
-import vn.viettel.vds.promotion.validation.application.service.OutboxEventService;
+import vn.viettel.vds.promotion.validation.application.service.ConnectivityService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -17,13 +18,13 @@ import java.util.Map;
 @RequestMapping("/v1/admin")
 public class AdminController {
 
-    private final OutboxEventService outboxEventService;
-    private final EventPublisherService eventPublisherService;
+    private final OutboxService outboxService;
+    private final ConnectivityService connectivityService;
 
-    public AdminController(OutboxEventService outboxEventService,
-                          EventPublisherService eventPublisherService) {
-        this.outboxEventService = outboxEventService;
-        this.eventPublisherService = eventPublisherService;
+    public AdminController(OutboxService outboxService,
+                           ConnectivityService connectivityService) {
+        this.outboxService = outboxService;
+        this.connectivityService = connectivityService;
     }
 
     /**
@@ -40,26 +41,34 @@ public class AdminController {
         long usedMemory = totalMemory - freeMemory;
 
         Map<String, Object> jvmMetrics = Map.of(
-            "totalMemoryMB", totalMemory / (1024 * 1024),
-            "usedMemoryMB", usedMemory / (1024 * 1024),
-            "freeMemoryMB", freeMemory / (1024 * 1024),
-            "memoryUsagePercent", (double) usedMemory / totalMemory * 100,
-            "processors", runtime.availableProcessors()
+                "totalMemoryMB", totalMemory / (1024 * 1024),
+                "usedMemoryMB", usedMemory / (1024 * 1024),
+                "freeMemoryMB", freeMemory / (1024 * 1024),
+                "memoryUsagePercent", (double) usedMemory / totalMemory * 100,
+                "processors", runtime.availableProcessors()
         );
 
         // Outbox metrics
-        Map<String, Object> outboxMetrics = outboxEventService.getOutboxMetrics();
+        OutboxStatistics stats = outboxService.getStatistics();
+        Map<String, Object> outboxMetrics = Map.of(
+                "pendingEvents", stats.getPendingCount(),
+                "processingEvents", stats.getProcessingCount(),
+                "publishedEvents", stats.getPublishedCount(),
+                "failedEvents", stats.getFailedCount(),
+                "deadLetterEvents", stats.getDeadLetterCount(),
+                "totalEvents", stats.getTotalCount()
+        );
 
         // External services status
-        EventPublisherService.ServiceConnectivityStatus serviceStatus =
-            eventPublisherService.testConnectivity();
+        ConnectivityService.ServiceConnectivityStatus serviceStatus =
+                connectivityService.testConnectivity();
 
         Map<String, Object> externalServices = Map.of(
-            "artifactService", serviceStatus.isArtifactServiceReachable(),
-            "redemptionService", serviceStatus.isRedemptionServiceReachable(),
-            "eventBus", serviceStatus.isEventBusReachable(),
-            "reachableCount", serviceStatus.getReachableCount(),
-            "totalCount", 3
+                "artifactService", serviceStatus.isArtifactServiceReachable(),
+                "redemptionService", serviceStatus.isRedemptionServiceReachable(),
+                "eventBus", serviceStatus.isEventBusReachable(),
+                "reachableCount", serviceStatus.getReachableCount(),
+                "totalCount", 3
         );
 
         metrics.put("timestamp", Instant.now());
@@ -77,30 +86,29 @@ public class AdminController {
      */
     @GetMapping("/outbox/stats")
     public Map<String, Object> getOutboxStats() {
-        return outboxEventService.getOutboxMetrics();
+        OutboxStatistics stats = outboxService.getStatistics();
+        return Map.of(
+                "pendingEvents", stats.getPendingCount(),
+                "processingEvents", stats.getProcessingCount(),
+                "publishedEvents", stats.getPublishedCount(),
+                "failedEvents", stats.getFailedCount(),
+                "deadLetterEvents", stats.getDeadLetterCount(),
+                "totalEvents", stats.getTotalCount(),
+                "timestamp", Instant.now()
+        );
     }
 
     /**
      * Manually trigger outbox event processing
+     * Note: With promix-outbox-jpa, batch processing is automatic via Spring Batch
      */
     @PostMapping("/outbox/process")
     public Map<String, Object> triggerOutboxProcessing() {
-        try {
-            int processedCount = outboxEventService.processOutboxEvents();
-
-            return Map.of(
-                "message", "Outbox processing triggered",
-                "processedEvents", processedCount,
+        return Map.of(
+                "message", "Outbox processing is handled automatically by Spring Batch",
+                "note", "Events are processed in batches based on configuration",
                 "timestamp", Instant.now()
-            );
-
-        } catch (Exception e) {
-            return Map.of(
-                "error", "OUTBOX_PROCESSING_FAILED",
-                "message", e.getMessage(),
-                "timestamp", Instant.now()
-            );
-        }
+        );
     }
 
     /**
@@ -108,30 +116,30 @@ public class AdminController {
      */
     @GetMapping("/connectivity/test")
     public Map<String, Object> testConnectivity() {
-        EventPublisherService.ServiceConnectivityStatus status =
-            eventPublisherService.testConnectivity();
+        ConnectivityService.ServiceConnectivityStatus status =
+                connectivityService.testConnectivity();
 
         return Map.of(
-            "timestamp", Instant.now(),
-            "services", Map.of(
-                "artifactService", Map.of(
-                    "reachable", status.isArtifactServiceReachable(),
-                    "status", status.isArtifactServiceReachable() ? "UP" : "DOWN"
+                "timestamp", Instant.now(),
+                "services", Map.of(
+                        "artifactService", Map.of(
+                                "reachable", status.isArtifactServiceReachable(),
+                                "status", status.isArtifactServiceReachable() ? "UP" : "DOWN"
+                        ),
+                        "redemptionService", Map.of(
+                                "reachable", status.isRedemptionServiceReachable(),
+                                "status", status.isRedemptionServiceReachable() ? "UP" : "DOWN"
+                        ),
+                        "eventBus", Map.of(
+                                "reachable", status.isEventBusReachable(),
+                                "status", status.isEventBusReachable() ? "UP" : "DOWN"
+                        )
                 ),
-                "redemptionService", Map.of(
-                    "reachable", status.isRedemptionServiceReachable(),
-                    "status", status.isRedemptionServiceReachable() ? "UP" : "DOWN"
-                ),
-                "eventBus", Map.of(
-                    "reachable", status.isEventBusReachable(),
-                    "status", status.isEventBusReachable() ? "UP" : "DOWN"
+                "summary", Map.of(
+                        "reachableCount", status.getReachableCount(),
+                        "totalCount", 3,
+                        "allReachable", status.isAllServicesReachable()
                 )
-            ),
-            "summary", Map.of(
-                "reachableCount", status.getReachableCount(),
-                "totalCount", 3,
-                "allReachable", status.isAllServicesReachable()
-            )
         );
     }
 
@@ -141,27 +149,27 @@ public class AdminController {
     @GetMapping("/info")
     public Map<String, Object> getServiceInfo() {
         return Map.of(
-            "service", Map.of(
-                "name", "validation-service",
-                "version", "1.0.0",
-                "description", "Validation service for promotion rules",
-                "buildTime", "2024-01-15T10:30:00Z" // This would come from build info
-            ),
-            "features", Map.of(
-                "ruleValidation", true,
-                "ruleSimulation", true,
-                "operatorRegistry", true,
-                "temporalPolicies", true,
-                "outboxEvents", true,
-                "multiTenant", true
-            ),
-            "dependencies", Map.of(
-                "mongodb", "Required for data persistence",
-                "artifactService", "Optional for rule compilation",
-                "redemptionService", "Optional for event publishing",
-                "eventBus", "Optional for event streaming"
-            ),
-            "timestamp", Instant.now()
+                "service", Map.of(
+                        "name", "validation-service",
+                        "version", "1.0.0",
+                        "description", "Validation service for promotion rules",
+                        "buildTime", "2024-01-15T10:30:00Z" // This would come from build info
+                ),
+                "features", Map.of(
+                        "ruleValidation", true,
+                        "ruleSimulation", true,
+                        "operatorRegistry", true,
+                        "temporalPolicies", true,
+                        "outboxEvents", true,
+                        "multiTenant", true
+                ),
+                "dependencies", Map.of(
+                        "mongodb", "Required for data persistence",
+                        "artifactService", "Optional for rule compilation",
+                        "redemptionService", "Optional for event publishing",
+                        "eventBus", "Optional for event streaming"
+                ),
+                "timestamp", Instant.now()
         );
     }
 
@@ -179,12 +187,12 @@ public class AdminController {
         long freedMemory = beforeGC - afterGC;
 
         return Map.of(
-            "message", "Garbage collection suggested",
-            "memoryBeforeGC_MB", beforeGC / (1024 * 1024),
-            "memoryAfterGC_MB", afterGC / (1024 * 1024),
-            "freedMemory_MB", freedMemory / (1024 * 1024),
-            "timestamp", Instant.now(),
-            "note", "GC is only suggested, actual collection is JVM-dependent"
+                "message", "Garbage collection suggested",
+                "memoryBeforeGC_MB", beforeGC / (1024 * 1024),
+                "memoryAfterGC_MB", afterGC / (1024 * 1024),
+                "freedMemory_MB", freedMemory / (1024 * 1024),
+                "timestamp", Instant.now(),
+                "note", "GC is only suggested, actual collection is JVM-dependent"
         );
     }
 
@@ -211,9 +219,9 @@ public class AdminController {
         }
 
         return Map.of(
-            "totalThreads", actualCount,
-            "threadStates", threadStates,
-            "timestamp", Instant.now()
+                "totalThreads", actualCount,
+                "threadStates", threadStates,
+                "timestamp", Instant.now()
         );
     }
 }

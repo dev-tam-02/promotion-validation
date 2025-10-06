@@ -50,33 +50,83 @@ public class OperatorResponse {
     private Instant updatedAt;
 
     // Getters and setters
-    public String getOperatorId() { return operatorId; }
-    public void setOperatorId(String operatorId) { this.operatorId = operatorId; }
+    public String getOperatorId() {
+        return operatorId;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public void setOperatorId(String operatorId) {
+        this.operatorId = operatorId;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getContext() { return context; }
-    public void setContext(String context) { this.context = context; }
+    public String getName() {
+        return name;
+    }
 
-    public Map<String, Object> getJsonSchema() { return jsonSchema; }
-    public void setJsonSchema(Map<String, Object> jsonSchema) { this.jsonSchema = jsonSchema; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getCompilerId() { return compilerId; }
-    public void setCompilerId(String compilerId) { this.compilerId = compilerId; }
+    public Integer getVersion() {
+        return version;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public String getContext() {
+        return context;
+    }
 
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public Map<String, Object> getJsonSchema() {
+        return jsonSchema;
+    }
+
+    public void setJsonSchema(Map<String, Object> jsonSchema) {
+        this.jsonSchema = jsonSchema;
+    }
+
+    public String getCompilerId() {
+        return compilerId;
+    }
+
+    public void setCompilerId(String compilerId) {
+        this.compilerId = compilerId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

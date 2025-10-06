@@ -8,15 +8,22 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProvenanceInfo(
-    List<SourceInfo> sources,
-    Instant aggregatedAt,
-    String aggregationId,
-    Long processingTimeMs,
-    FetchPolicy fetchPolicy,
-    Map<String, String> versions
+        List<SourceInfo> sources,
+        Instant aggregatedAt,
+        String aggregationId,
+        Long processingTimeMs,
+        FetchPolicy fetchPolicy,
+        Map<String, String> versions
 ) {
     public static Builder builder() {
         return new Builder();
+    }
+
+    public enum FetchPolicy {
+        FROM_IDS,
+        EMBEDDED_PAYLOAD,
+        HYBRID,
+        PARTIAL
     }
 
     public static class Builder {
@@ -64,20 +71,14 @@ public record ProvenanceInfo(
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record SourceInfo(
-        String name,
-        String type,
-        Instant fetchedAt,
-        Long responseTimeMs,
-        String status,
-        String version,
-        Boolean cached,
-        String cacheKey
-    ) {}
-
-    public enum FetchPolicy {
-        FROM_IDS,
-        EMBEDDED_PAYLOAD,
-        HYBRID,
-        PARTIAL
+            String name,
+            String type,
+            Instant fetchedAt,
+            Long responseTimeMs,
+            String status,
+            String version,
+            Boolean cached,
+            String cacheKey
+    ) {
     }
 }

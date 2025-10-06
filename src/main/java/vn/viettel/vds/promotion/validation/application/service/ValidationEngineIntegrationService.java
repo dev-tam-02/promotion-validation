@@ -4,11 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.entity.ValidationRule;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.AssignmentRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.ValidationRuleRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
-import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,13 +22,13 @@ public class ValidationEngineIntegrationService {
     private static final Logger logger = LoggerFactory.getLogger(ValidationEngineIntegrationService.class);
 
     private final ValidationEngineDeploymentService validationEngineClient;
-    private final ValidationRuleRepository validationRuleRepository;
-    private final AssignmentRepository assignmentRepository;
+    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final AssignmentJpaRepository assignmentRepository;
 
     public ValidationEngineIntegrationService(
             ValidationEngineDeploymentService validationEngineClient,
-            ValidationRuleRepository validationRuleRepository,
-            AssignmentRepository assignmentRepository) {
+            ValidationRuleJpaRepository validationRuleRepository,
+            AssignmentJpaRepository assignmentRepository) {
         this.validationEngineClient = validationEngineClient;
         this.validationRuleRepository = validationRuleRepository;
         this.assignmentRepository = assignmentRepository;
@@ -43,45 +43,46 @@ public class ValidationEngineIntegrationService {
 
         try {
             // Get all active assignments (using a generic tenant for now)
-            List<Assignment> activeAssignments = assignmentRepository.findActiveByTenantIdAndSubject("default", null, null);
+            java.time.Instant now = java.time.Instant.now();
+            List<AssignmentEntity> activeAssignments = assignmentRepository.findCurrentActiveAssignments("default", now);
 
             int successCount = 0;
             int failureCount = 0;
 
-            for (Assignment assignment : activeAssignments) {
+            for (AssignmentEntity assignment : activeAssignments) {
                 try {
                     // Get the validation rule
                     var validationRuleOpt = validationRuleRepository.findById(assignment.getRuleId());
                     if (validationRuleOpt.isEmpty()) {
                         logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
-                                  assignment.getRuleId(), assignment.getId());
+                                assignment.getRuleId(), assignment.getId());
                         failureCount++;
                         continue;
                     }
 
-                    ValidationRule rule = validationRuleOpt.get();
+                    ValidationRuleEntity rule = validationRuleOpt.get();
 
                     // Deploy to validation-engine
                     boolean deployed = validationEngineClient.deployRule(rule);
                     if (deployed) {
                         successCount++;
                         logger.debug("Successfully synchronized rule: ruleId={}, assignmentId={}",
-                                   rule.getId(), assignment.getId());
+                                rule.getId(), assignment.getId());
                     } else {
                         failureCount++;
                         logger.error("Failed to synchronize rule: ruleId={}, assignmentId={}",
-                                   rule.getId(), assignment.getId());
+                                rule.getId(), assignment.getId());
                     }
 
                 } catch (Exception e) {
                     failureCount++;
                     logger.error("Error synchronizing rule for assignment: assignmentId={}",
-                               assignment.getId(), e);
+                            assignment.getId(), e);
                 }
             }
 
             logger.info("Rule synchronization completed: success={}, failures={}, total={}",
-                      successCount, failureCount, activeAssignments.size());
+                    successCount, failureCount, activeAssignments.size());
 
             // Trigger rules reload in validation-engine
             try {
@@ -113,7 +114,7 @@ public class ValidationEngineIntegrationService {
                 return CompletableFuture.completedFuture(false);
             }
 
-            Assignment assignment = assignmentOpt.get();
+            AssignmentEntity assignment = assignmentOpt.get();
 
             // Only deploy if active
             if (assignment.getActive() == null || !assignment.getActive()) {
@@ -125,20 +126,20 @@ public class ValidationEngineIntegrationService {
             var validationRuleOpt = validationRuleRepository.findById(assignment.getRuleId());
             if (validationRuleOpt.isEmpty()) {
                 logger.warn("Validation rule not found for assignment: ruleId={}, assignmentId={}",
-                          assignment.getRuleId(), assignmentId);
+                        assignment.getRuleId(), assignmentId);
                 return CompletableFuture.completedFuture(false);
             }
 
-            ValidationRule rule = validationRuleOpt.get();
+            ValidationRuleEntity rule = validationRuleOpt.get();
 
             // Deploy to validation-engine
             boolean deployed = validationEngineClient.deployRule(rule);
             if (deployed) {
                 logger.info("Successfully deployed rule assignment: ruleId={}, assignmentId={}",
-                          rule.getId(), assignmentId);
+                        rule.getId(), assignmentId);
             } else {
                 logger.error("Failed to deploy rule assignment: ruleId={}, assignmentId={}",
-                           rule.getId(), assignmentId);
+                        rule.getId(), assignmentId);
             }
 
             return CompletableFuture.completedFuture(deployed);
@@ -221,8 +222,16 @@ public class ValidationEngineIntegrationService {
             this.status = status;
         }
 
-        public long getActiveRuleAssignments() { return activeRuleAssignments; }
-        public boolean isValidationEngineHealthy() { return validationEngineHealthy; }
-        public String getStatus() { return status; }
+        public long getActiveRuleAssignments() {
+            return activeRuleAssignments;
+        }
+
+        public boolean isValidationEngineHealthy() {
+            return validationEngineHealthy;
+        }
+
+        public String getStatus() {
+            return status;
+        }
     }
 }

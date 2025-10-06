@@ -7,17 +7,17 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CandidateFact(
-    String type,
-    String key,
-    String campaignId,
-    String promotionId,
-    String name,
-    String description,
-    String status,
-    Instant startDate,
-    Instant endDate,
-    Map<String, Object> configuration,
-    Map<String, Object> constraints
+        String type,
+        String key,
+        String campaignId,
+        String promotionId,
+        String name,
+        String description,
+        String status,
+        Instant startDate,
+        Instant endDate,
+        Map<String, Object> configuration,
+        Map<String, Object> constraints
 ) {
     public static Builder builder() {
         return new Builder();
@@ -93,8 +93,8 @@ public record CandidateFact(
 
         public CandidateFact build() {
             return new CandidateFact(
-                type, key, campaignId, promotionId, name, description,
-                status, startDate, endDate, configuration, constraints
+                    type, key, campaignId, promotionId, name, description,
+                    status, startDate, endDate, configuration, constraints
             );
         }
     }

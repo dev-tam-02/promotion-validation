@@ -6,15 +6,15 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record GeoFact(
-    String country,
-    String region,
-    String city,
-    String postalCode,
-    Double latitude,
-    Double longitude,
-    String timezone,
-    String isp,
-    Map<String, Object> geoData
+        String country,
+        String region,
+        String city,
+        String postalCode,
+        Double latitude,
+        Double longitude,
+        String timezone,
+        String isp,
+        Map<String, Object> geoData
 ) {
     public static Builder builder() {
         return new Builder();

@@ -1,13 +1,20 @@
 # Domain Model Package
 
 ## Description
-The domain.model package contains the core business entities, value objects, and aggregates that represent the fundamental business concepts of the campaign module. These classes encapsulate both data and behavior related to the business domain.
+
+The domain.model package contains the core business entities, value objects, and aggregates that represent the
+fundamental business concepts of the campaign module. These classes encapsulate both data and behavior related to the
+business domain.
 
 ## Purpose
-The purpose of this package is to model the business domain in a way that captures its essential concepts, relationships, and rules, providing a rich, object-oriented representation of the business reality.
+
+The purpose of this package is to model the business domain in a way that captures its essential concepts,
+relationships, and rules, providing a rich, object-oriented representation of the business reality.
 
 ## Usage
+
 This package typically contains:
+
 - Entity classes that represent business objects with identity (e.g., Campaign, Promotion)
 - Value objects that represent immutable concepts defined by their attributes (e.g., Money, DateRange)
 - Aggregates that group related entities and value objects into a cohesive unit
@@ -17,6 +24,7 @@ This package typically contains:
 ## Examples
 
 ### Entity Example
+
 ```java
 // Campaign.java
 public class Campaign {
@@ -87,6 +95,7 @@ public class Campaign {
 ```
 
 ### Value Object Example
+
 ```java
 // Money.java
 public final class Money {
@@ -157,6 +166,7 @@ public final class Money {
 ```
 
 ### Aggregate Example
+
 ```java
 // Order.java (Aggregate Root)
 public class Order {
@@ -229,6 +239,7 @@ public class Order {
 ```
 
 ## Rules
+
 1. Domain models should encapsulate both data and behavior
 2. Entities should have a clear identity concept and equality based on identity
 3. Value objects should be immutable and equality should be based on all attributes

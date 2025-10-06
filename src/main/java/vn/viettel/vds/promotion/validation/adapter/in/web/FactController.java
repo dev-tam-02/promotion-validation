@@ -31,12 +31,12 @@ public class FactController {
 
     @DeleteMapping("/cache")
     public void evictCache(
-        @RequestParam String customerId,
-        @RequestParam(required = false) String orderId,
-        @RequestParam(required = false) String candidateKey
+            @RequestParam String customerId,
+            @RequestParam(required = false) String orderId,
+            @RequestParam(required = false) String candidateKey
     ) {
         FactRequest.Builder requestBuilder = FactRequest.builder()
-            .customerId(customerId);
+                .customerId(customerId);
 
         if (orderId != null) {
             requestBuilder.orderId(orderId);

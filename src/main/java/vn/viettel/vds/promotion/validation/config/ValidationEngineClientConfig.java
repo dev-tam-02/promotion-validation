@@ -16,7 +16,7 @@ public class ValidationEngineClientConfig {
 
     @Bean
     public CircuitBreaker validationEngineCircuitBreaker(ValidationEngineProperties properties,
-                                                        CircuitBreakerRegistry registry) {
+                                                         CircuitBreakerRegistry registry) {
         ValidationEngineProperties.CircuitBreakerConfig cbConfig = properties.getCircuitBreaker();
 
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
@@ -31,14 +31,14 @@ public class ValidationEngineClientConfig {
 
     @Bean
     public Retry validationEngineRetry(ValidationEngineProperties properties,
-                                      RetryRegistry registry) {
+                                       RetryRegistry registry) {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(properties.getRetryAttempts())
                 .waitDuration(java.time.Duration.ofMillis(1000))
                 .retryExceptions(
-                    feign.FeignException.class,
-                    java.net.ConnectException.class,
-                    java.net.SocketTimeoutException.class
+                        feign.FeignException.class,
+                        java.net.ConnectException.class,
+                        java.net.SocketTimeoutException.class
                 )
                 .build();
 

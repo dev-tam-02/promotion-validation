@@ -7,20 +7,20 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record MetadataFact(
-    String requestId,
-    String sessionId,
-    String userAgent,
-    String ipAddress,
-    String deviceId,
-    String platform,
-    String version,
-    String channel,
-    String referrer,
-    String timezone,
-    Instant requestTime,
-    Map<String, Object> headers,
-    Map<String, Object> context,
-    Map<String, Object> experiments
+        String requestId,
+        String sessionId,
+        String userAgent,
+        String ipAddress,
+        String deviceId,
+        String platform,
+        String version,
+        String channel,
+        String referrer,
+        String timezone,
+        Instant requestTime,
+        Map<String, Object> headers,
+        Map<String, Object> context,
+        Map<String, Object> experiments
 ) {
     public static Builder builder() {
         return new Builder();
@@ -114,8 +114,8 @@ public record MetadataFact(
 
         public MetadataFact build() {
             return new MetadataFact(
-                requestId, sessionId, userAgent, ipAddress, deviceId, platform,
-                version, channel, referrer, timezone, requestTime, headers, context, experiments
+                    requestId, sessionId, userAgent, ipAddress, deviceId, platform,
+                    version, channel, referrer, timezone, requestTime, headers, context, experiments
             );
         }
     }

@@ -7,14 +7,14 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DiscountFact(
-    String discountId,
-    String type,
-    String code,
-    BigDecimal amount,
-    BigDecimal percentage,
-    String scope,
-    String status,
-    Map<String, Object> metadata
+        String discountId,
+        String type,
+        String code,
+        BigDecimal amount,
+        BigDecimal percentage,
+        String scope,
+        String status,
+        Map<String, Object> metadata
 ) {
     public static Builder builder() {
         return new Builder();

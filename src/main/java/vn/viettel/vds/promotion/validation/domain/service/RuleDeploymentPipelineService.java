@@ -6,7 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Rule;
 
 import java.util.ArrayList;
@@ -26,17 +26,17 @@ public class RuleDeploymentPipelineService {
     private final RulePublishingService rulePublishingService;
     private final RuleVersioningService ruleVersioningService;
     private final ValidationEngineClient validationEngineClient;
-    private final RuleRepository ruleRepository;
+    private final RulePersistencePort rulePersistencePort;
     private final Executor deploymentExecutor;
 
     public RuleDeploymentPipelineService(RulePublishingService rulePublishingService,
-                                       RuleVersioningService ruleVersioningService,
-                                       ValidationEngineClient validationEngineClient,
-                                       RuleRepository ruleRepository) {
+                                         RuleVersioningService ruleVersioningService,
+                                         ValidationEngineClient validationEngineClient,
+                                         RulePersistencePort rulePersistencePort) {
         this.rulePublishingService = rulePublishingService;
         this.ruleVersioningService = ruleVersioningService;
         this.validationEngineClient = validationEngineClient;
-        this.ruleRepository = ruleRepository;
+        this.rulePersistencePort = rulePersistencePort;
         this.deploymentExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
@@ -98,28 +98,28 @@ public class RuleDeploymentPipelineService {
     }
 
     public CompletableFuture<DeploymentPipelineResult> deployRulePipelineAsync(String tenantId, String ruleId,
-                                                                             DeploymentConfig config) {
+                                                                               DeploymentConfig config) {
         return CompletableFuture.supplyAsync(() -> deployRulePipeline(tenantId, ruleId, config), deploymentExecutor);
     }
 
     public List<DeploymentPipelineResult> deployMultipleRules(String tenantId, List<String> ruleIds,
-                                                             DeploymentConfig config) {
+                                                              DeploymentConfig config) {
         logger.info("Starting multi-rule deployment: tenantId={}, count={}", tenantId, ruleIds.size());
 
         List<CompletableFuture<DeploymentPipelineResult>> futures = ruleIds.stream()
-            .map(ruleId -> deployRulePipelineAsync(tenantId, ruleId, config))
-            .toList();
+                .map(ruleId -> deployRulePipelineAsync(tenantId, ruleId, config))
+                .toList();
 
         return futures.stream()
-            .map(CompletableFuture::join)
-            .toList();
+                .map(CompletableFuture::join)
+                .toList();
     }
 
     public EnvironmentHealthStatus getEnvironmentHealth(String tenantId) {
         logger.debug("Checking environment health: tenantId={}", tenantId);
 
         try {
-            List<Rule> activeRules = ruleRepository.findByTenantIdAndState(tenantId, Rule.RuleState.PUBLISHED, Pageable.unpaged()).getContent();
+            List<Rule> activeRules = rulePersistencePort.findByTenantIdAndState(tenantId, Rule.RuleState.PUBLISHED, Pageable.unpaged()).getContent();
 
             int totalRules = activeRules.size();
             int deployedRules = 0;
@@ -145,13 +145,13 @@ public class RuleDeploymentPipelineService {
             String overallHealth = determineOverallHealth(totalRules, healthyRules);
 
             return new EnvironmentHealthStatus(
-                tenantId,
-                overallHealth,
-                totalRules,
-                deployedRules,
-                healthyRules,
-                unhealthyRules,
-                System.currentTimeMillis()
+                    tenantId,
+                    overallHealth,
+                    totalRules,
+                    deployedRules,
+                    healthyRules,
+                    unhealthyRules,
+                    System.currentTimeMillis()
             );
 
         } catch (Exception e) {
@@ -164,8 +164,8 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing validation stage: ruleId={}", ruleId);
 
         try {
-            Rule rule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Validate rule structure
             if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
@@ -193,7 +193,7 @@ public class RuleDeploymentPipelineService {
 
             if (result.isSuccess()) {
                 return DeploymentStage.success("COMPILATION",
-                    "Rule compiled successfully: " + result.getBundleHash());
+                        "Rule compiled successfully: " + result.getBundleHash());
             } else {
                 return DeploymentStage.failed("COMPILATION", result.getErrorMessage());
             }
@@ -245,7 +245,7 @@ public class RuleDeploymentPipelineService {
             // Direct deployment is already handled by publishing
             // Just verify the deployment
             RulePublishingService.RuleDeploymentStatus status =
-                rulePublishingService.getDeploymentStatus(tenantId, ruleId);
+                    rulePublishingService.getDeploymentStatus(tenantId, ruleId);
 
             if (status.isDeployed()) {
                 return DeploymentStage.success("DIRECT_DEPLOYMENT", "Rule deployed successfully");
@@ -262,8 +262,8 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing health check stage: ruleId={}", ruleId);
 
         try {
-            Rule rule = ruleRepository.findByTenantIdAndCode(tenantId, ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Note: Health check would require bundleHash field in Rule entity
             if (rule.getState() == Rule.RuleState.PUBLISHED) {
@@ -320,20 +320,45 @@ public class RuleDeploymentPipelineService {
         private List<TestScenario> testScenarios = new ArrayList<>();
 
         // Getters and setters
-        public boolean isRunTests() { return runTests; }
-        public void setRunTests(boolean runTests) { this.runTests = runTests; }
+        public boolean isRunTests() {
+            return runTests;
+        }
 
-        public boolean isStrictValidation() { return strictValidation; }
-        public void setStrictValidation(boolean strictValidation) { this.strictValidation = strictValidation; }
+        public void setRunTests(boolean runTests) {
+            this.runTests = runTests;
+        }
 
-        public boolean isBlueGreenDeployment() { return blueGreenDeployment; }
-        public void setBlueGreenDeployment(boolean blueGreenDeployment) { this.blueGreenDeployment = blueGreenDeployment; }
+        public boolean isStrictValidation() {
+            return strictValidation;
+        }
 
-        public int getTimeoutMinutes() { return timeoutMinutes; }
-        public void setTimeoutMinutes(int timeoutMinutes) { this.timeoutMinutes = timeoutMinutes; }
+        public void setStrictValidation(boolean strictValidation) {
+            this.strictValidation = strictValidation;
+        }
 
-        public List<TestScenario> getTestScenarios() { return testScenarios; }
-        public void setTestScenarios(List<TestScenario> testScenarios) { this.testScenarios = testScenarios; }
+        public boolean isBlueGreenDeployment() {
+            return blueGreenDeployment;
+        }
+
+        public void setBlueGreenDeployment(boolean blueGreenDeployment) {
+            this.blueGreenDeployment = blueGreenDeployment;
+        }
+
+        public int getTimeoutMinutes() {
+            return timeoutMinutes;
+        }
+
+        public void setTimeoutMinutes(int timeoutMinutes) {
+            this.timeoutMinutes = timeoutMinutes;
+        }
+
+        public List<TestScenario> getTestScenarios() {
+            return testScenarios;
+        }
+
+        public void setTestScenarios(List<TestScenario> testScenarios) {
+            this.testScenarios = testScenarios;
+        }
     }
 
     public static class TestScenario {
@@ -343,19 +368,40 @@ public class RuleDeploymentPipelineService {
         private Map<String, Object> expectedOutput;
 
         // Constructors and getters/setters
-        public TestScenario() {}
+        public TestScenario() {
+        }
 
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+        public String getName() {
+            return name;
+        }
 
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        public void setName(String name) {
+            this.name = name;
+        }
 
-        public Map<String, Object> getInputData() { return inputData; }
-        public void setInputData(Map<String, Object> inputData) { this.inputData = inputData; }
+        public String getDescription() {
+            return description;
+        }
 
-        public Map<String, Object> getExpectedOutput() { return expectedOutput; }
-        public void setExpectedOutput(Map<String, Object> expectedOutput) { this.expectedOutput = expectedOutput; }
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public Map<String, Object> getInputData() {
+            return inputData;
+        }
+
+        public void setInputData(Map<String, Object> inputData) {
+            this.inputData = inputData;
+        }
+
+        public Map<String, Object> getExpectedOutput() {
+            return expectedOutput;
+        }
+
+        public void setExpectedOutput(Map<String, Object> expectedOutput) {
+            this.expectedOutput = expectedOutput;
+        }
     }
 
     public static class DeploymentStage {
@@ -380,10 +426,21 @@ public class RuleDeploymentPipelineService {
         }
 
         // Getters
-        public String getStageName() { return stageName; }
-        public boolean isSuccess() { return success; }
-        public String getMessage() { return message; }
-        public long getTimestamp() { return timestamp; }
+        public String getStageName() {
+            return stageName;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
     }
 
     public static class DeploymentPipelineResult {
@@ -425,14 +482,37 @@ public class RuleDeploymentPipelineService {
         }
 
         // Getters
-        public String getPipelineId() { return pipelineId; }
-        public String getRuleId() { return ruleId; }
-        public long getStartTime() { return startTime; }
-        public List<DeploymentStage> getStages() { return stages; }
-        public boolean isSuccess() { return success; }
-        public String getFinalMessage() { return finalMessage; }
-        public Long getEndTime() { return endTime; }
-        public Long getDuration() { return endTime != null ? endTime - startTime : null; }
+        public String getPipelineId() {
+            return pipelineId;
+        }
+
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public long getStartTime() {
+            return startTime;
+        }
+
+        public List<DeploymentStage> getStages() {
+            return stages;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getFinalMessage() {
+            return finalMessage;
+        }
+
+        public Long getEndTime() {
+            return endTime;
+        }
+
+        public Long getDuration() {
+            return endTime != null ? endTime - startTime : null;
+        }
     }
 
     public static class EnvironmentHealthStatus {
@@ -445,8 +525,8 @@ public class RuleDeploymentPipelineService {
         private final long timestamp;
 
         public EnvironmentHealthStatus(String tenantId, String overallHealth, int totalRules,
-                                     int deployedRules, int healthyRules, List<String> unhealthyRules,
-                                     long timestamp) {
+                                       int deployedRules, int healthyRules, List<String> unhealthyRules,
+                                       long timestamp) {
             this.tenantId = tenantId;
             this.overallHealth = overallHealth;
             this.totalRules = totalRules;
@@ -457,12 +537,32 @@ public class RuleDeploymentPipelineService {
         }
 
         // Getters
-        public String getTenantId() { return tenantId; }
-        public String getOverallHealth() { return overallHealth; }
-        public int getTotalRules() { return totalRules; }
-        public int getDeployedRules() { return deployedRules; }
-        public int getHealthyRules() { return healthyRules; }
-        public List<String> getUnhealthyRules() { return unhealthyRules; }
-        public long getTimestamp() { return timestamp; }
+        public String getTenantId() {
+            return tenantId;
+        }
+
+        public String getOverallHealth() {
+            return overallHealth;
+        }
+
+        public int getTotalRules() {
+            return totalRules;
+        }
+
+        public int getDeployedRules() {
+            return deployedRules;
+        }
+
+        public int getHealthyRules() {
+            return healthyRules;
+        }
+
+        public List<String> getUnhealthyRules() {
+            return unhealthyRules;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
     }
 }

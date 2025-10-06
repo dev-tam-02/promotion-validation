@@ -24,14 +24,29 @@ public class RuleSimulationRequest {
     private Map<String, Object> additionalFacts;
 
     // Getters and setters
-    public CustomerContext getCustomerContext() { return customerContext; }
-    public void setCustomerContext(CustomerContext customerContext) { this.customerContext = customerContext; }
+    public CustomerContext getCustomerContext() {
+        return customerContext;
+    }
 
-    public OrderContext getOrderContext() { return orderContext; }
-    public void setOrderContext(OrderContext orderContext) { this.orderContext = orderContext; }
+    public void setCustomerContext(CustomerContext customerContext) {
+        this.customerContext = customerContext;
+    }
 
-    public Map<String, Object> getAdditionalFacts() { return additionalFacts; }
-    public void setAdditionalFacts(Map<String, Object> additionalFacts) { this.additionalFacts = additionalFacts; }
+    public OrderContext getOrderContext() {
+        return orderContext;
+    }
+
+    public void setOrderContext(OrderContext orderContext) {
+        this.orderContext = orderContext;
+    }
+
+    public Map<String, Object> getAdditionalFacts() {
+        return additionalFacts;
+    }
+
+    public void setAdditionalFacts(Map<String, Object> additionalFacts) {
+        this.additionalFacts = additionalFacts;
+    }
 
     @Schema(description = "Customer context for rule simulation")
     public static class CustomerContext {
@@ -51,20 +66,45 @@ public class RuleSimulationRequest {
         private Map<String, Object> attributes;
 
         // Getters and setters
-        public String getCustomerId() { return customerId; }
-        public void setCustomerId(String customerId) { this.customerId = customerId; }
+        public String getCustomerId() {
+            return customerId;
+        }
 
-        public String getSegment() { return segment; }
-        public void setSegment(String segment) { this.segment = segment; }
+        public void setCustomerId(String customerId) {
+            this.customerId = customerId;
+        }
 
-        public Integer getLoyaltyPoints() { return loyaltyPoints; }
-        public void setLoyaltyPoints(Integer loyaltyPoints) { this.loyaltyPoints = loyaltyPoints; }
+        public String getSegment() {
+            return segment;
+        }
 
-        public String getRegistrationDate() { return registrationDate; }
-        public void setRegistrationDate(String registrationDate) { this.registrationDate = registrationDate; }
+        public void setSegment(String segment) {
+            this.segment = segment;
+        }
 
-        public Map<String, Object> getAttributes() { return attributes; }
-        public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }
+        public Integer getLoyaltyPoints() {
+            return loyaltyPoints;
+        }
+
+        public void setLoyaltyPoints(Integer loyaltyPoints) {
+            this.loyaltyPoints = loyaltyPoints;
+        }
+
+        public String getRegistrationDate() {
+            return registrationDate;
+        }
+
+        public void setRegistrationDate(String registrationDate) {
+            this.registrationDate = registrationDate;
+        }
+
+        public Map<String, Object> getAttributes() {
+            return attributes;
+        }
+
+        public void setAttributes(Map<String, Object> attributes) {
+            this.attributes = attributes;
+        }
     }
 
     @Schema(description = "Order context for rule simulation")
@@ -88,22 +128,52 @@ public class RuleSimulationRequest {
         private Map<String, Object> attributes;
 
         // Getters and setters
-        public String getOrderId() { return orderId; }
-        public void setOrderId(String orderId) { this.orderId = orderId; }
+        public String getOrderId() {
+            return orderId;
+        }
 
-        public Double getTotalAmount() { return totalAmount; }
-        public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+        public void setOrderId(String orderId) {
+            this.orderId = orderId;
+        }
 
-        public Integer getItemCount() { return itemCount; }
-        public void setItemCount(Integer itemCount) { this.itemCount = itemCount; }
+        public Double getTotalAmount() {
+            return totalAmount;
+        }
 
-        public String getCurrency() { return currency; }
-        public void setCurrency(String currency) { this.currency = currency; }
+        public void setTotalAmount(Double totalAmount) {
+            this.totalAmount = totalAmount;
+        }
 
-        public String getChannel() { return channel; }
-        public void setChannel(String channel) { this.channel = channel; }
+        public Integer getItemCount() {
+            return itemCount;
+        }
 
-        public Map<String, Object> getAttributes() { return attributes; }
-        public void setAttributes(Map<String, Object> attributes) { this.attributes = attributes; }
+        public void setItemCount(Integer itemCount) {
+            this.itemCount = itemCount;
+        }
+
+        public String getCurrency() {
+            return currency;
+        }
+
+        public void setCurrency(String currency) {
+            this.currency = currency;
+        }
+
+        public String getChannel() {
+            return channel;
+        }
+
+        public void setChannel(String channel) {
+            this.channel = channel;
+        }
+
+        public Map<String, Object> getAttributes() {
+            return attributes;
+        }
+
+        public void setAttributes(Map<String, Object> attributes) {
+            this.attributes = attributes;
+        }
     }
 }

@@ -19,8 +19,17 @@ public class CommandMappingService {
 
     /**
      * Create Assignment.Subject from applicableTo command data
+     *
+     * @deprecated This method is incorrect. Assignment.subject should store campaign ID,
+     * not product applicability information. Product applicability should be
+     * stored in the rule tree using the product.applicability.in operator.
+     * Use SettingValidationRuleCommandHandler.getCampaignIdFromCommand() instead.
      */
+    @Deprecated(since = "1.0.0", forRemoval = true)
     public Assignment.Subject createSubjectFromApplicableTo(ApplicabilityScope applicableToData) {
+        logger.warn("DEPRECATED: createSubjectFromApplicableTo() should not be used. " +
+                "Assignment.subject must contain campaign ID from command.subject, not product information.");
+
         if (applicableToData == null) {
             logger.warn("ApplicableTo data is null, creating default subject");
             Assignment.Subject subject = new Assignment.Subject();
@@ -52,7 +61,11 @@ public class CommandMappingService {
 
     /**
      * Determine subject type from applicableTo data
+     *
+     * @deprecated Part of deprecated createSubjectFromApplicableTo() flow.
+     * Should not be used in new code.
      */
+    @Deprecated(since = "1.0.0", forRemoval = true)
     private String determineSubjectType(ApplicabilityScope applicableToData) {
         // Check if includedAll is true - applies to everything
         Boolean includedAll = applicableToData.getIncludedAll();
@@ -75,7 +88,11 @@ public class CommandMappingService {
 
     /**
      * Determine subject key from applicableTo data
+     *
+     * @deprecated Part of deprecated createSubjectFromApplicableTo() flow.
+     * Should not be used in new code.
      */
+    @Deprecated(since = "1.0.0", forRemoval = true)
     private String determineSubjectKey(ApplicabilityScope applicableToData) {
         // Check if includedAll is true
         Boolean includedAll = applicableToData.getIncludedAll();
@@ -135,7 +152,7 @@ public class CommandMappingService {
         private final String subjectKey;
 
         public ApplicabilityStats(int includedItemsCount, int excludedItemsCount, boolean includedAll,
-                                String subjectType, String subjectKey) {
+                                  String subjectType, String subjectKey) {
             this.includedItemsCount = includedItemsCount;
             this.excludedItemsCount = excludedItemsCount;
             this.includedAll = includedAll;
@@ -143,10 +160,24 @@ public class CommandMappingService {
             this.subjectKey = subjectKey;
         }
 
-        public int getIncludedItemsCount() { return includedItemsCount; }
-        public int getExcludedItemsCount() { return excludedItemsCount; }
-        public boolean isIncludedAll() { return includedAll; }
-        public String getSubjectType() { return subjectType; }
-        public String getSubjectKey() { return subjectKey; }
+        public int getIncludedItemsCount() {
+            return includedItemsCount;
+        }
+
+        public int getExcludedItemsCount() {
+            return excludedItemsCount;
+        }
+
+        public boolean isIncludedAll() {
+            return includedAll;
+        }
+
+        public String getSubjectType() {
+            return subjectType;
+        }
+
+        public String getSubjectKey() {
+            return subjectKey;
+        }
     }
 }

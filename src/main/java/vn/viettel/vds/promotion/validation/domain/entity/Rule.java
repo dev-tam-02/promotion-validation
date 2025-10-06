@@ -13,8 +13,8 @@ import java.util.Map;
 
 @Document(collection = "rules")
 @CompoundIndexes({
-    @CompoundIndex(name = "uniq_tenant_code", def = "{'tenantId': 1, 'code': 1}", unique = true),
-    @CompoundIndex(name = "list_state_time", def = "{'tenantId': 1, 'state': 1, 'updatedAt': -1}")
+        @CompoundIndex(name = "uniq_tenant_code", def = "{'tenantId': 1, 'code': 1}", unique = true),
+        @CompoundIndex(name = "list_state_time", def = "{'tenantId': 1, 'state': 1, 'updatedAt': -1}")
 })
 public class Rule {
 
@@ -49,6 +49,21 @@ public class Rule {
     @Field("notes")
     private String notes;
 
+    @Field("type")
+    private String type;
+
+    @Field("priority")
+    private Integer priority;
+
+    @Field("ruleSetId")
+    private String ruleSetId;
+
+    @Field("campaignId")
+    private String campaignId;
+
+    @Field("targetSegments")
+    private List<String> targetSegments;
+
     @Field("createdAt")
     private Instant createdAt;
 
@@ -60,6 +75,159 @@ public class Rule {
 
     @Field("updatedBy")
     private String updatedBy;
+
+    // Getters and setters
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public RuleState getState() {
+        return state;
+    }
+
+    public void setState(RuleState state) {
+        this.state = state;
+    }
+
+    public Integer getLatestVersion() {
+        return latestVersion;
+    }
+
+    public void setLatestVersion(Integer latestVersion) {
+        this.latestVersion = latestVersion;
+    }
+
+    public LogicType getLogic() {
+        return logic;
+    }
+
+    public void setLogic(LogicType logic) {
+        this.logic = logic;
+    }
+
+    public Map<String, Object> getLimits() {
+        return limits;
+    }
+
+    public void setLimits(Map<String, Object> limits) {
+        this.limits = limits;
+    }
+
+    public List<RuleNode> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(List<RuleNode> nodes) {
+        this.nodes = nodes;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Integer getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Integer priority) {
+        this.priority = priority;
+    }
+
+    public String getRuleSetId() {
+        return ruleSetId;
+    }
+
+    public void setRuleSetId(String ruleSetId) {
+        this.ruleSetId = ruleSetId;
+    }
+
+    public String getCampaignId() {
+        return campaignId;
+    }
+
+    public void setCampaignId(String campaignId) {
+        this.campaignId = campaignId;
+    }
+
+    public List<String> getTargetSegments() {
+        return targetSegments;
+    }
+
+    public void setTargetSegments(List<String> targetSegments) {
+        this.targetSegments = targetSegments;
+    }
 
     public enum RuleState {
         DRAFT, PUBLISHED, ARCHIVED
@@ -91,73 +259,65 @@ public class Rule {
         @Field("children")
         private List<RuleNode> children;
 
+        // Getters and setters
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public NodeType getType() {
+            return type;
+        }
+
+        public void setType(NodeType type) {
+            this.type = type;
+        }
+
+        public LogicType getGroupLogic() {
+            return groupLogic;
+        }
+
+        public void setGroupLogic(LogicType groupLogic) {
+            this.groupLogic = groupLogic;
+        }
+
+        public String getOperatorName() {
+            return operatorName;
+        }
+
+        public void setOperatorName(String operatorName) {
+            this.operatorName = operatorName;
+        }
+
+        public Map<String, Object> getParams() {
+            return params;
+        }
+
+        public void setParams(Map<String, Object> params) {
+            this.params = params;
+        }
+
+        public String getReasonCode() {
+            return reasonCode;
+        }
+
+        public void setReasonCode(String reasonCode) {
+            this.reasonCode = reasonCode;
+        }
+
+        public List<RuleNode> getChildren() {
+            return children;
+        }
+
+        public void setChildren(List<RuleNode> children) {
+            this.children = children;
+        }
+
         public enum NodeType {
             GROUP, COND
         }
-
-        // Getters and setters
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
-
-        public NodeType getType() { return type; }
-        public void setType(NodeType type) { this.type = type; }
-
-        public LogicType getGroupLogic() { return groupLogic; }
-        public void setGroupLogic(LogicType groupLogic) { this.groupLogic = groupLogic; }
-
-        public String getOperatorName() { return operatorName; }
-        public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
-
-        public Map<String, Object> getParams() { return params; }
-        public void setParams(Map<String, Object> params) { this.params = params; }
-
-        public String getReasonCode() { return reasonCode; }
-        public void setReasonCode(String reasonCode) { this.reasonCode = reasonCode; }
-
-        public List<RuleNode> getChildren() { return children; }
-        public void setChildren(List<RuleNode> children) { this.children = children; }
     }
-
-    // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
-
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public RuleState getState() { return state; }
-    public void setState(RuleState state) { this.state = state; }
-
-    public Integer getLatestVersion() { return latestVersion; }
-    public void setLatestVersion(Integer latestVersion) { this.latestVersion = latestVersion; }
-
-    public LogicType getLogic() { return logic; }
-    public void setLogic(LogicType logic) { this.logic = logic; }
-
-    public Map<String, Object> getLimits() { return limits; }
-    public void setLimits(Map<String, Object> limits) { this.limits = limits; }
-
-    public List<RuleNode> getNodes() { return nodes; }
-    public void setNodes(List<RuleNode> nodes) { this.nodes = nodes; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public String getCreatedBy() { return createdBy; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public String getUpdatedBy() { return updatedBy; }
-    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
 }

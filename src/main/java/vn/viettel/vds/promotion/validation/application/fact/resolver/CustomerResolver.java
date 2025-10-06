@@ -26,9 +26,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
     private final String baseUrl;
 
     public CustomerResolver(
-        @Qualifier("customerServiceCircuitBreaker") CircuitBreaker circuitBreaker,
-        @Qualifier("customerServiceRetry") Retry retry,
-        ObjectMapper objectMapper
+            @Qualifier("customerServiceCircuitBreaker") CircuitBreaker circuitBreaker,
+            @Qualifier("customerServiceRetry") Retry retry,
+            ObjectMapper objectMapper
     ) {
         super(circuitBreaker, retry);
         this.objectMapper = objectMapper;
@@ -36,9 +36,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
 
         // Use Java 21 HTTP Client with virtual threads
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
-            .build();
+                .connectTimeout(Duration.ofSeconds(5))
+                .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+                .build();
     }
 
     @Override
@@ -56,15 +56,16 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/customers/" + request.customerId() + "/profile"))
-                .timeout(Duration.ofMillis(getTimeoutMs()))
-                .GET()
-                .build();
+                    .uri(URI.create(baseUrl + "/api/customers/" + request.customerId() + "/profile"))
+                    .timeout(Duration.ofMillis(getTimeoutMs()))
+                    .GET()
+                    .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                Map<String, Object> customerData = objectMapper.readValue(response.body(), new TypeReference<>() {});
+                Map<String, Object> customerData = objectMapper.readValue(response.body(), new TypeReference<>() {
+                });
                 CustomerFact result = mapToCustomerFact(customerData);
                 log.debug("Successfully resolved customer facts for: {}", request.customerId());
                 return result;
@@ -107,9 +108,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
     @Override
     protected CustomerFact getPartialResult(FactRequest request) {
         return CustomerFact.builder()
-            .customerId(request.customerId())
-            .isActive(true) // Default assumption
-            .build();
+                .customerId(request.customerId())
+                .isActive(true) // Default assumption
+                .build();
     }
 
     private CustomerFact mapToCustomerFact(Map<String, Object> data) {

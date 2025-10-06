@@ -28,19 +28,19 @@ public class TimeoutService {
 
     private TimeLimiterRegistry createTimeLimiterRegistry() {
         TimeLimiterConfig defaultConfig = TimeLimiterConfig.custom()
-            .timeoutDuration(Duration.ofMillis(config.getTimeout().getDefaultTimeoutDuration()))
-            .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
-            .build();
+                .timeoutDuration(Duration.ofMillis(config.getTimeout().getDefaultTimeoutDuration()))
+                .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
+                .build();
 
         TimeLimiterConfig compilationConfig = TimeLimiterConfig.custom()
-            .timeoutDuration(Duration.ofMillis(config.getTimeout().getCompilationTimeoutDuration()))
-            .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
-            .build();
+                .timeoutDuration(Duration.ofMillis(config.getTimeout().getCompilationTimeoutDuration()))
+                .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
+                .build();
 
         TimeLimiterConfig executionConfig = TimeLimiterConfig.custom()
-            .timeoutDuration(Duration.ofMillis(config.getTimeout().getExecutionTimeoutDuration()))
-            .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
-            .build();
+                .timeoutDuration(Duration.ofMillis(config.getTimeout().getExecutionTimeoutDuration()))
+                .cancelRunningFuture(config.getTimeout().isCancelRunningFuture())
+                .build();
 
         TimeLimiterRegistry registry = TimeLimiterRegistry.of(defaultConfig);
         registry.timeLimiter("compilation", compilationConfig);
@@ -104,12 +104,12 @@ public class TimeoutService {
         TimeLimiterConfig config = timeLimiter.getTimeLimiterConfig();
 
         return new TimeoutStatus(
-            name,
-            config.getTimeoutDuration(),
-            config.shouldCancelRunningFuture(),
-            0L, // metrics not available in this version
-            0L, // metrics not available in this version
-            0L  // metrics not available in this version
+                name,
+                config.getTimeoutDuration(),
+                config.shouldCancelRunningFuture(),
+                0L, // metrics not available in this version
+                0L, // metrics not available in this version
+                0L  // metrics not available in this version
         );
     }
 
@@ -150,7 +150,7 @@ public class TimeoutService {
         private final long numberOfTimeouts;
 
         public TimeoutStatus(String name, Duration timeoutDuration, boolean cancelRunningFuture,
-                           long numberOfSuccessfulCalls, long numberOfFailedCalls, long numberOfTimeouts) {
+                             long numberOfSuccessfulCalls, long numberOfFailedCalls, long numberOfTimeouts) {
             this.name = name;
             this.timeoutDuration = timeoutDuration;
             this.cancelRunningFuture = cancelRunningFuture;
@@ -160,17 +160,39 @@ public class TimeoutService {
         }
 
         // Getters
-        public String getName() { return name; }
-        public Duration getTimeoutDuration() { return timeoutDuration; }
-        public boolean isCancelRunningFuture() { return cancelRunningFuture; }
-        public long getNumberOfSuccessfulCalls() { return numberOfSuccessfulCalls; }
-        public long getNumberOfFailedCalls() { return numberOfFailedCalls; }
-        public long getNumberOfTimeouts() { return numberOfTimeouts; }
-        public long getTotalCalls() { return numberOfSuccessfulCalls + numberOfFailedCalls; }
+        public String getName() {
+            return name;
+        }
+
+        public Duration getTimeoutDuration() {
+            return timeoutDuration;
+        }
+
+        public boolean isCancelRunningFuture() {
+            return cancelRunningFuture;
+        }
+
+        public long getNumberOfSuccessfulCalls() {
+            return numberOfSuccessfulCalls;
+        }
+
+        public long getNumberOfFailedCalls() {
+            return numberOfFailedCalls;
+        }
+
+        public long getNumberOfTimeouts() {
+            return numberOfTimeouts;
+        }
+
+        public long getTotalCalls() {
+            return numberOfSuccessfulCalls + numberOfFailedCalls;
+        }
+
         public double getTimeoutRate() {
             long total = getTotalCalls();
             return total > 0 ? (double) numberOfTimeouts / total * 100 : 0.0;
         }
+
         public double getSuccessRate() {
             long total = getTotalCalls();
             return total > 0 ? (double) numberOfSuccessfulCalls / total * 100 : 0.0;

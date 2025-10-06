@@ -3,9 +3,7 @@ spring:
     name: validation-test
   data:
     mongodb:
-      database: validation-test
-      host: localhost
-      port: 27017
+      uri: mongodb://localhost:27017/validation-test?retryWrites=false
 
 validation:
   engine:

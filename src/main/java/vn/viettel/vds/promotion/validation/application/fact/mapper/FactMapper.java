@@ -20,14 +20,14 @@ public class FactMapper {
     private final DerivedFieldsCalculator derivedCalculator;
 
     public FactMapper(
-        CustomerFactMapper customerMapper,
-        OrderFactMapper orderMapper,
-        CandidateFactMapper candidateMapper,
-        SegmentsFactMapper segmentsMapper,
-        LimitsFactMapper limitsMapper,
-        MetadataFactMapper metadataMapper,
-        GeoFactMapper geoMapper,
-        DerivedFieldsCalculator derivedCalculator
+            CustomerFactMapper customerMapper,
+            OrderFactMapper orderMapper,
+            CandidateFactMapper candidateMapper,
+            SegmentsFactMapper segmentsMapper,
+            LimitsFactMapper limitsMapper,
+            MetadataFactMapper metadataMapper,
+            GeoFactMapper geoMapper,
+            DerivedFieldsCalculator derivedCalculator
     ) {
         this.customerMapper = customerMapper;
         this.orderMapper = orderMapper;
@@ -52,22 +52,22 @@ public class FactMapper {
 
         List<ProvenanceInfo.SourceInfo> sources = (List<ProvenanceInfo.SourceInfo>) rawFacts.get("_sources");
         ProvenanceInfo provenance = ProvenanceInfo.builder()
-            .sources(sources)
-            .aggregatedAt(Instant.now())
-            .build();
+                .sources(sources)
+                .aggregatedAt(Instant.now())
+                .build();
 
         return FactPack.builder()
-            .factPackVersion("1.0")
-            .timestamp(Instant.now())
-            .customer(customer)
-            .order(order)
-            .candidate(candidate)
-            .segments(segments)
-            .limits(limits)
-            .metadata(metadata)
-            .geo(geo)
-            .derived(derived)
-            .provenance(provenance)
-            .build();
+                .factPackVersion("1.0")
+                .timestamp(Instant.now())
+                .customer(customer)
+                .order(order)
+                .candidate(candidate)
+                .segments(segments)
+                .limits(limits)
+                .metadata(metadata)
+                .geo(geo)
+                .derived(derived)
+                .provenance(provenance)
+                .build();
     }
 }

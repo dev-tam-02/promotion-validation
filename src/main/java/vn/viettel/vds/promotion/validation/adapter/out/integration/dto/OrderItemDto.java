@@ -43,7 +43,8 @@ public class OrderItemDto {
     private Map<String, Object> metadata;
 
     // Constructors
-    public OrderItemDto() {}
+    public OrderItemDto() {
+    }
 
     public OrderItemDto(String productId, Integer quantity, BigDecimal price) {
         this.productId = productId;
@@ -52,21 +53,51 @@ public class OrderItemDto {
     }
 
     // Getters and setters
-    public String getProductId() { return productId; }
-    public void setProductId(String productId) { this.productId = productId; }
+    public String getProductId() {
+        return productId;
+    }
 
-    public Integer getQuantity() { return quantity; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public void setProductId(String productId) {
+        this.productId = productId;
+    }
 
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
+    public Integer getQuantity() {
+        return quantity;
+    }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
 
-    public String getBrand() { return brand; }
-    public void setBrand(String brand) { this.brand = brand; }
+    public BigDecimal getPrice() {
+        return price;
+    }
 
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 }

@@ -26,26 +26,26 @@ public class CircuitBreakerService {
 
     private CircuitBreakerRegistry createCircuitBreakerRegistry() {
         CircuitBreakerConfig defaultConfig = CircuitBreakerConfig.custom()
-            .failureRateThreshold(config.getCircuitBreaker().getFailureRateThreshold())
-            .slowCallRateThreshold(config.getCircuitBreaker().getSlowCallRateThreshold())
-            .slowCallDurationThreshold(Duration.ofMillis(config.getCircuitBreaker().getSlowCallDurationThreshold()))
-            .permittedNumberOfCallsInHalfOpenState(config.getCircuitBreaker().getPermittedNumberOfCallsInHalfOpenState())
-            .minimumNumberOfCalls(config.getCircuitBreaker().getMinimumNumberOfCalls())
-            .slidingWindowSize(config.getCircuitBreaker().getSlidingWindowSize())
-            .waitDurationInOpenState(Duration.ofMillis(config.getCircuitBreaker().getWaitDurationInOpenState()))
-            .automaticTransitionFromOpenToHalfOpenEnabled(config.getCircuitBreaker().isAutomaticTransitionFromOpenToHalfOpenEnabled())
-            .recordExceptions(
-                java.io.IOException.class,
-                java.net.SocketTimeoutException.class,
-                java.util.concurrent.TimeoutException.class,
-                org.springframework.web.client.ResourceAccessException.class,
-                org.springframework.web.client.RestClientException.class
-            )
-            .ignoreExceptions(
-                IllegalArgumentException.class,
-                IllegalStateException.class
-            )
-            .build();
+                .failureRateThreshold(config.getCircuitBreaker().getFailureRateThreshold())
+                .slowCallRateThreshold(config.getCircuitBreaker().getSlowCallRateThreshold())
+                .slowCallDurationThreshold(Duration.ofMillis(config.getCircuitBreaker().getSlowCallDurationThreshold()))
+                .permittedNumberOfCallsInHalfOpenState(config.getCircuitBreaker().getPermittedNumberOfCallsInHalfOpenState())
+                .minimumNumberOfCalls(config.getCircuitBreaker().getMinimumNumberOfCalls())
+                .slidingWindowSize(config.getCircuitBreaker().getSlidingWindowSize())
+                .waitDurationInOpenState(Duration.ofMillis(config.getCircuitBreaker().getWaitDurationInOpenState()))
+                .automaticTransitionFromOpenToHalfOpenEnabled(config.getCircuitBreaker().isAutomaticTransitionFromOpenToHalfOpenEnabled())
+                .recordExceptions(
+                        java.io.IOException.class,
+                        java.net.SocketTimeoutException.class,
+                        java.util.concurrent.TimeoutException.class,
+                        org.springframework.web.client.ResourceAccessException.class,
+                        org.springframework.web.client.RestClientException.class
+                )
+                .ignoreExceptions(
+                        IllegalArgumentException.class,
+                        IllegalStateException.class
+                )
+                .build();
 
         CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(defaultConfig);
 
@@ -99,14 +99,14 @@ public class CircuitBreakerService {
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(name);
 
         return new CircuitBreakerStatus(
-            name,
-            circuitBreaker.getState(),
-            circuitBreaker.getMetrics().getFailureRate(),
-            circuitBreaker.getMetrics().getSlowCallRate(),
-            circuitBreaker.getMetrics().getNumberOfFailedCalls(),
-            circuitBreaker.getMetrics().getNumberOfSuccessfulCalls(),
-            circuitBreaker.getMetrics().getNumberOfSlowCalls(),
-            circuitBreaker.getMetrics().getNumberOfNotPermittedCalls()
+                name,
+                circuitBreaker.getState(),
+                circuitBreaker.getMetrics().getFailureRate(),
+                circuitBreaker.getMetrics().getSlowCallRate(),
+                circuitBreaker.getMetrics().getNumberOfFailedCalls(),
+                circuitBreaker.getMetrics().getNumberOfSuccessfulCalls(),
+                circuitBreaker.getMetrics().getNumberOfSlowCalls(),
+                circuitBreaker.getMetrics().getNumberOfNotPermittedCalls()
         );
     }
 
@@ -154,8 +154,8 @@ public class CircuitBreakerService {
         private final long numberOfNotPermittedCalls;
 
         public CircuitBreakerStatus(String name, CircuitBreaker.State state, float failureRate,
-                                   float slowCallRate, long numberOfFailedCalls, long numberOfSuccessfulCalls,
-                                   long numberOfSlowCalls, long numberOfNotPermittedCalls) {
+                                    float slowCallRate, long numberOfFailedCalls, long numberOfSuccessfulCalls,
+                                    long numberOfSlowCalls, long numberOfNotPermittedCalls) {
             this.name = name;
             this.state = state;
             this.failureRate = failureRate;
@@ -167,15 +167,44 @@ public class CircuitBreakerService {
         }
 
         // Getters
-        public String getName() { return name; }
-        public CircuitBreaker.State getState() { return state; }
-        public float getFailureRate() { return failureRate; }
-        public float getSlowCallRate() { return slowCallRate; }
-        public long getNumberOfFailedCalls() { return numberOfFailedCalls; }
-        public long getNumberOfSuccessfulCalls() { return numberOfSuccessfulCalls; }
-        public long getNumberOfSlowCalls() { return numberOfSlowCalls; }
-        public long getNumberOfNotPermittedCalls() { return numberOfNotPermittedCalls; }
-        public long getTotalCalls() { return numberOfFailedCalls + numberOfSuccessfulCalls; }
-        public boolean isHealthy() { return state == CircuitBreaker.State.CLOSED; }
+        public String getName() {
+            return name;
+        }
+
+        public CircuitBreaker.State getState() {
+            return state;
+        }
+
+        public float getFailureRate() {
+            return failureRate;
+        }
+
+        public float getSlowCallRate() {
+            return slowCallRate;
+        }
+
+        public long getNumberOfFailedCalls() {
+            return numberOfFailedCalls;
+        }
+
+        public long getNumberOfSuccessfulCalls() {
+            return numberOfSuccessfulCalls;
+        }
+
+        public long getNumberOfSlowCalls() {
+            return numberOfSlowCalls;
+        }
+
+        public long getNumberOfNotPermittedCalls() {
+            return numberOfNotPermittedCalls;
+        }
+
+        public long getTotalCalls() {
+            return numberOfFailedCalls + numberOfSuccessfulCalls;
+        }
+
+        public boolean isHealthy() {
+            return state == CircuitBreaker.State.CLOSED;
+        }
     }
 }

@@ -27,29 +27,29 @@ public class RetryService {
 
     private RetryRegistry createRetryRegistry() {
         RetryConfig defaultConfig = RetryConfig.custom()
-            .maxAttempts(config.getRetry().getMaxAttempts())
-            .waitDuration(Duration.ofMillis(config.getRetry().getWaitDuration()))
-            .intervalFunction(config.getRetry().isEnableRandomJitter()
-                ? IntervalFunction.ofExponentialRandomBackoff(
-                    config.getRetry().getWaitDuration(), // long value in milliseconds
-                    config.getRetry().getExponentialBackoffMultiplier(),
-                    0.1,
-                    config.getRetry().getMaxWaitDuration()) // long value in milliseconds
-                : IntervalFunction.ofExponentialBackoff(
-                    Duration.ofMillis(config.getRetry().getWaitDuration()),
-                    config.getRetry().getExponentialBackoffMultiplier()))
-            .retryOnException(throwable ->
-                throwable instanceof java.io.IOException ||
-                throwable instanceof java.net.SocketTimeoutException ||
-                throwable instanceof java.util.concurrent.TimeoutException ||
-                throwable instanceof org.springframework.web.client.ResourceAccessException ||
-                throwable instanceof org.springframework.web.client.HttpServerErrorException ||
-                throwable instanceof CircuitBreakerService.CircuitBreakerExecutionException)
-            .ignoreExceptions(
-                IllegalArgumentException.class,
-                IllegalStateException.class,
-                org.springframework.web.client.HttpClientErrorException.class)
-            .build();
+                .maxAttempts(config.getRetry().getMaxAttempts())
+                .waitDuration(Duration.ofMillis(config.getRetry().getWaitDuration()))
+                .intervalFunction(config.getRetry().isEnableRandomJitter()
+                        ? IntervalFunction.ofExponentialRandomBackoff(
+                        config.getRetry().getWaitDuration(), // long value in milliseconds
+                        config.getRetry().getExponentialBackoffMultiplier(),
+                        0.1,
+                        config.getRetry().getMaxWaitDuration()) // long value in milliseconds
+                        : IntervalFunction.ofExponentialBackoff(
+                        Duration.ofMillis(config.getRetry().getWaitDuration()),
+                        config.getRetry().getExponentialBackoffMultiplier()))
+                .retryOnException(throwable ->
+                        throwable instanceof java.io.IOException ||
+                                throwable instanceof java.net.SocketTimeoutException ||
+                                throwable instanceof java.util.concurrent.TimeoutException ||
+                                throwable instanceof org.springframework.web.client.ResourceAccessException ||
+                                throwable instanceof org.springframework.web.client.HttpServerErrorException ||
+                                throwable instanceof CircuitBreakerService.CircuitBreakerExecutionException)
+                .ignoreExceptions(
+                        IllegalArgumentException.class,
+                        IllegalStateException.class,
+                        org.springframework.web.client.HttpClientErrorException.class)
+                .build();
 
         RetryRegistry registry = RetryRegistry.of(defaultConfig);
 
@@ -103,11 +103,11 @@ public class RetryService {
         Retry retry = retryRegistry.retry(name);
 
         return new RetryStatus(
-            name,
-            retry.getMetrics().getNumberOfSuccessfulCallsWithoutRetryAttempt(),
-            retry.getMetrics().getNumberOfSuccessfulCallsWithRetryAttempt(),
-            retry.getMetrics().getNumberOfFailedCallsWithoutRetryAttempt(),
-            retry.getMetrics().getNumberOfFailedCallsWithRetryAttempt()
+                name,
+                retry.getMetrics().getNumberOfSuccessfulCallsWithoutRetryAttempt(),
+                retry.getMetrics().getNumberOfSuccessfulCallsWithRetryAttempt(),
+                retry.getMetrics().getNumberOfFailedCallsWithoutRetryAttempt(),
+                retry.getMetrics().getNumberOfFailedCallsWithRetryAttempt()
         );
     }
 
@@ -140,8 +140,8 @@ public class RetryService {
         private final long numberOfFailedCallsWithRetry;
 
         public RetryStatus(String name, long numberOfSuccessfulCallsWithoutRetry,
-                          long numberOfSuccessfulCallsWithRetry, long numberOfFailedCallsWithoutRetry,
-                          long numberOfFailedCallsWithRetry) {
+                           long numberOfSuccessfulCallsWithRetry, long numberOfFailedCallsWithoutRetry,
+                           long numberOfFailedCallsWithRetry) {
             this.name = name;
             this.numberOfSuccessfulCallsWithoutRetry = numberOfSuccessfulCallsWithoutRetry;
             this.numberOfSuccessfulCallsWithRetry = numberOfSuccessfulCallsWithRetry;
@@ -150,21 +150,39 @@ public class RetryService {
         }
 
         // Getters
-        public String getName() { return name; }
-        public long getNumberOfSuccessfulCallsWithoutRetry() { return numberOfSuccessfulCallsWithoutRetry; }
-        public long getNumberOfSuccessfulCallsWithRetry() { return numberOfSuccessfulCallsWithRetry; }
-        public long getNumberOfFailedCallsWithoutRetry() { return numberOfFailedCallsWithoutRetry; }
-        public long getNumberOfFailedCallsWithRetry() { return numberOfFailedCallsWithRetry; }
+        public String getName() {
+            return name;
+        }
+
+        public long getNumberOfSuccessfulCallsWithoutRetry() {
+            return numberOfSuccessfulCallsWithoutRetry;
+        }
+
+        public long getNumberOfSuccessfulCallsWithRetry() {
+            return numberOfSuccessfulCallsWithRetry;
+        }
+
+        public long getNumberOfFailedCallsWithoutRetry() {
+            return numberOfFailedCallsWithoutRetry;
+        }
+
+        public long getNumberOfFailedCallsWithRetry() {
+            return numberOfFailedCallsWithRetry;
+        }
+
         public long getTotalCalls() {
             return numberOfSuccessfulCallsWithoutRetry + numberOfSuccessfulCallsWithRetry +
-                   numberOfFailedCallsWithoutRetry + numberOfFailedCallsWithRetry;
+                    numberOfFailedCallsWithoutRetry + numberOfFailedCallsWithRetry;
         }
+
         public long getTotalSuccessfulCalls() {
             return numberOfSuccessfulCallsWithoutRetry + numberOfSuccessfulCallsWithRetry;
         }
+
         public long getTotalFailedCalls() {
             return numberOfFailedCallsWithoutRetry + numberOfFailedCallsWithRetry;
         }
+
         public double getSuccessRate() {
             long total = getTotalCalls();
             return total > 0 ? (double) getTotalSuccessfulCalls() / total * 100 : 0.0;

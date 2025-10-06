@@ -39,7 +39,8 @@ public class RuleDeploymentStatusResponse {
     private String statusInfo;
 
     // Constructors
-    public RuleDeploymentStatusResponse() {}
+    public RuleDeploymentStatusResponse() {
+    }
 
     public RuleDeploymentStatusResponse(String ruleId, String status, Boolean deployed, String bundleHash) {
         this.ruleId = ruleId;
@@ -49,26 +50,63 @@ public class RuleDeploymentStatusResponse {
     }
 
     // Getters and setters
-    public String getRuleId() { return ruleId; }
-    public void setRuleId(String ruleId) { this.ruleId = ruleId; }
+    public String getRuleId() {
+        return ruleId;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setRuleId(String ruleId) {
+        this.ruleId = ruleId;
+    }
 
-    public Boolean getDeployed() { return deployed; }
-    public void setDeployed(Boolean deployed) { this.deployed = deployed; }
+    public String getStatus() {
+        return status;
+    }
 
-    public Boolean isDeployed() { return deployed != null && deployed; }
+    public void setStatus(String status) {
+        this.status = status;
+    }
 
-    public String getBundleHash() { return bundleHash; }
-    public void setBundleHash(String bundleHash) { this.bundleHash = bundleHash; }
+    public Boolean getDeployed() {
+        return deployed;
+    }
 
-    public Long getLastDeployedAt() { return lastDeployedAt; }
-    public void setLastDeployedAt(Long lastDeployedAt) { this.lastDeployedAt = lastDeployedAt; }
+    public void setDeployed(Boolean deployed) {
+        this.deployed = deployed;
+    }
 
-    public String getEngineHealth() { return engineHealth; }
-    public void setEngineHealth(String engineHealth) { this.engineHealth = engineHealth; }
+    public Boolean isDeployed() {
+        return deployed != null && deployed;
+    }
 
-    public String getStatusInfo() { return statusInfo; }
-    public void setStatusInfo(String statusInfo) { this.statusInfo = statusInfo; }
+    public String getBundleHash() {
+        return bundleHash;
+    }
+
+    public void setBundleHash(String bundleHash) {
+        this.bundleHash = bundleHash;
+    }
+
+    public Long getLastDeployedAt() {
+        return lastDeployedAt;
+    }
+
+    public void setLastDeployedAt(Long lastDeployedAt) {
+        this.lastDeployedAt = lastDeployedAt;
+    }
+
+    public String getEngineHealth() {
+        return engineHealth;
+    }
+
+    public void setEngineHealth(String engineHealth) {
+        this.engineHealth = engineHealth;
+    }
+
+    public String getStatusInfo() {
+        return statusInfo;
+    }
+
+    public void setStatusInfo(String statusInfo) {
+        this.statusInfo = statusInfo;
+    }
 }

@@ -1,20 +1,28 @@
 # Adapter Package
 
 ## Description
-The adapter package contains all the components that connect the application to the outside world. It implements the interfaces defined in the application's port package and adapts external technologies to the application's needs.
+
+The adapter package contains all the components that connect the application to the outside world. It implements the
+interfaces defined in the application's port package and adapts external technologies to the application's needs.
 
 ## Purpose
-The purpose of this package is to isolate the application core from external dependencies and technologies, making the system more maintainable and testable.
+
+The purpose of this package is to isolate the application core from external dependencies and technologies, making the
+system more maintainable and testable.
 
 ## Usage
+
 This package is organized into three main subpackages:
+
 - `config`: Contains configuration classes for the application
 - `in`: Contains inbound adapters that handle incoming requests (e.g., REST controllers, message consumers)
-- `out`: Contains outbound adapters that interact with external systems (e.g., database repositories, external API clients)
+- `out`: Contains outbound adapters that interact with external systems (e.g., database repositories, external API
+  clients)
 
 ## Examples
 
 ### Inbound Adapter Example (REST Controller)
+
 ```java
 // CampaignController.java in adapter.in.web package
 @RestController
@@ -107,6 +115,7 @@ public class CampaignController {
 ```
 
 ### Outbound Adapter Example (JPA Repository)
+
 ```java
 // JpaCampaignRepository.java in adapter.out.persistence package
 @Repository
@@ -198,6 +207,7 @@ public class CampaignMapper {
 ```
 
 ### Configuration Example
+
 ```java
 // PersistenceConfig.java in adapter.config package
 @Configuration
@@ -240,6 +250,7 @@ public class WebConfig implements WebMvcConfigurer {
 ```
 
 ## Rules
+
 1. Adapters should only depend on the application's port interfaces, not on domain or application implementation details
 2. Inbound adapters should implement the interfaces defined in the application.port.in package
 3. Outbound adapters should implement the interfaces defined in the application.port.out package

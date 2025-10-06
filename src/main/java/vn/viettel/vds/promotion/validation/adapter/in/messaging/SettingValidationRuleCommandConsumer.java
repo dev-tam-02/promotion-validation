@@ -30,9 +30,9 @@ public class SettingValidationRuleCommandConsumer {
      * Consume SettingValidationRuleCommand from Kafka topic
      */
     @KafkaListener(
-        topics = "setting-validation-rule-commands",
-        groupId = "validation-group",
-        containerFactory = "kafkaListenerContainerFactory"
+            topics = "${kafka.topics.validation-command}",
+            groupId = "${kafka.consumer.group-id}",
+            containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleSettingValidationRuleCommand(
             @Payload SettingValidationRuleCommand command,
@@ -76,9 +76,9 @@ public class SettingValidationRuleCommandConsumer {
      * Consumer for dead letter topic (optional)
      */
     @KafkaListener(
-        topics = "setting-validation-rule-commands-dlq",
-        groupId = "validation-group-dlq",
-        containerFactory = "kafkaListenerContainerFactory"
+            topics = "${kafka.topics.validation-command-dlq}",
+            groupId = "${kafka.consumer.group-id}-dlq",
+            containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleDeadLetterMessage(
             @Payload SettingValidationRuleCommand command,

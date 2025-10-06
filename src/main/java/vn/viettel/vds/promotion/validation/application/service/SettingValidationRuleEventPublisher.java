@@ -2,10 +2,10 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promix.platform.core.util.IdGenerator;
+import com.promix.platform.messaging.autoconfigure.utils.KafkaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
@@ -23,19 +23,19 @@ public class SettingValidationRuleEventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleEventPublisher.class);
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaUtils kafkaUtils;
     private final ObjectMapper objectMapper;
     private final CommandMappingService mappingService;
     private final String eventTopic;
     private final String serviceName;
 
     public SettingValidationRuleEventPublisher(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaUtils kafkaUtils,
             ObjectMapper objectMapper,
             CommandMappingService mappingService,
             @Value("${promix.messaging.topics.setting-validation-rule-events:setting-validation-rule-events}") String eventTopic,
             @Value("${spring.application.name:validation}") String serviceName) {
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaUtils = kafkaUtils;
         this.objectMapper = objectMapper;
         this.mappingService = mappingService;
         this.eventTopic = eventTopic;
@@ -236,14 +236,23 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish event to Kafka
+     * Publish event to Kafka using KafkaUtils
      */
     private void publishEvent(Map<String, Object> event, String key) {
         try {
-            String eventJson = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send(eventTopic, key, eventJson);
-
-            logger.debug("Published event to topic {}: key={}", eventTopic, key);
+            // KafkaUtils will automatically add traceId and message metadata
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.debug("Published event to topic {}: key={}, partition={}, offset={}",
+                                    eventTopic, key,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish event to Kafka: topic={}, key={}", eventTopic, key, ex);
+                            throw new RuntimeException("Failed to publish event to Kafka", ex);
+                        }
+                    });
 
         } catch (Exception e) {
             logger.error("Failed to publish event to Kafka: topic={}, key={}", eventTopic, key, e);

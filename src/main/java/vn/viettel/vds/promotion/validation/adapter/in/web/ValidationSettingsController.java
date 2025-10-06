@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.autoconfigure.mongo.condition.ConditionalOnPromixMongo;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import vn.viettel.vds.promotion.validation.application.service.ValidationSetting
 @ResponseWrapper
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnPromixMongo
 public class ValidationSettingsController {
 
     private final ValidationSettingsService validationSettingsService;
@@ -49,8 +51,8 @@ public class ValidationSettingsController {
                     request.validationRuleId(), e);
 
             ValidationResult errorResult = ValidationResult.failure(
-                "VALIDATION_SETTING_ERROR",
-                "Validation setting validation failed: " + e.getMessage()
+                    "VALIDATION_SETTING_ERROR",
+                    "Validation setting validation failed: " + e.getMessage()
             );
             return errorResult;
         }

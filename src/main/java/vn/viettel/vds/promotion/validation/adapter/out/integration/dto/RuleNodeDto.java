@@ -52,33 +52,79 @@ public class RuleNodeDto {
     private Integer order;
 
     // Constructors
-    public RuleNodeDto() {}
+    public RuleNodeDto() {
+    }
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getGroupLogic() { return groupLogic; }
-    public void setGroupLogic(String groupLogic) { this.groupLogic = groupLogic; }
+    public String getType() {
+        return type;
+    }
 
-    public String getOperatorName() { return operatorName; }
-    public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
-    public Integer getOperatorVersion() { return operatorVersion; }
-    public void setOperatorVersion(Integer operatorVersion) { this.operatorVersion = operatorVersion; }
+    public String getGroupLogic() {
+        return groupLogic;
+    }
 
-    public Map<String, Object> getParams() { return params; }
-    public void setParams(Map<String, Object> params) { this.params = params; }
+    public void setGroupLogic(String groupLogic) {
+        this.groupLogic = groupLogic;
+    }
 
-    public String getReasonCode() { return reasonCode; }
-    public void setReasonCode(String reasonCode) { this.reasonCode = reasonCode; }
+    public String getOperatorName() {
+        return operatorName;
+    }
 
-    public List<String> getChildren() { return children; }
-    public void setChildren(List<String> children) { this.children = children; }
+    public void setOperatorName(String operatorName) {
+        this.operatorName = operatorName;
+    }
 
-    public Integer getOrder() { return order; }
-    public void setOrder(Integer order) { this.order = order; }
+    public Integer getOperatorVersion() {
+        return operatorVersion;
+    }
+
+    public void setOperatorVersion(Integer operatorVersion) {
+        this.operatorVersion = operatorVersion;
+    }
+
+    public Map<String, Object> getParams() {
+        return params;
+    }
+
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
+    }
+
+    public String getReasonCode() {
+        return reasonCode;
+    }
+
+    public void setReasonCode(String reasonCode) {
+        this.reasonCode = reasonCode;
+    }
+
+    public List<String> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<String> children) {
+        this.children = children;
+    }
+
+    public Integer getOrder() {
+        return order;
+    }
+
+    public void setOrder(Integer order) {
+        this.order = order;
+    }
 }

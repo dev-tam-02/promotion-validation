@@ -35,25 +35,51 @@ public class PublishRuleBatchRequest {
     private Integer maxParallel = 5;
 
     // Constructors
-    public PublishRuleBatchRequest() {}
+    public PublishRuleBatchRequest() {
+    }
 
     public PublishRuleBatchRequest(List<String> ruleIds) {
         this.ruleIds = ruleIds;
     }
 
     // Getters and setters
-    public List<String> getRuleIds() { return ruleIds; }
-    public void setRuleIds(List<String> ruleIds) { this.ruleIds = ruleIds; }
+    public List<String> getRuleIds() {
+        return ruleIds;
+    }
 
-    public Boolean getForce() { return force; }
-    public void setForce(Boolean force) { this.force = force; }
+    public void setRuleIds(List<String> ruleIds) {
+        this.ruleIds = ruleIds;
+    }
 
-    public Boolean getSkipVerification() { return skipVerification; }
-    public void setSkipVerification(Boolean skipVerification) { this.skipVerification = skipVerification; }
+    public Boolean getForce() {
+        return force;
+    }
 
-    public Boolean getStopOnFailure() { return stopOnFailure; }
-    public void setStopOnFailure(Boolean stopOnFailure) { this.stopOnFailure = stopOnFailure; }
+    public void setForce(Boolean force) {
+        this.force = force;
+    }
 
-    public Integer getMaxParallel() { return maxParallel; }
-    public void setMaxParallel(Integer maxParallel) { this.maxParallel = maxParallel; }
+    public Boolean getSkipVerification() {
+        return skipVerification;
+    }
+
+    public void setSkipVerification(Boolean skipVerification) {
+        this.skipVerification = skipVerification;
+    }
+
+    public Boolean getStopOnFailure() {
+        return stopOnFailure;
+    }
+
+    public void setStopOnFailure(Boolean stopOnFailure) {
+        this.stopOnFailure = stopOnFailure;
+    }
+
+    public Integer getMaxParallel() {
+        return maxParallel;
+    }
+
+    public void setMaxParallel(Integer maxParallel) {
+        this.maxParallel = maxParallel;
+    }
 }

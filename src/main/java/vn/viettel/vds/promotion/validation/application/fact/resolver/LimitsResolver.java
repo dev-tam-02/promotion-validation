@@ -28,9 +28,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
     private final String baseUrl;
 
     public LimitsResolver(
-        @Qualifier("redemptionServiceCircuitBreaker") CircuitBreaker circuitBreaker,
-        @Qualifier("redemptionServiceRetry") Retry retry,
-        ObjectMapper objectMapper
+            @Qualifier("redemptionServiceCircuitBreaker") CircuitBreaker circuitBreaker,
+            @Qualifier("redemptionServiceRetry") Retry retry,
+            ObjectMapper objectMapper
     ) {
         super(circuitBreaker, retry);
         this.objectMapper = objectMapper;
@@ -38,9 +38,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
 
         // Use Java 21 HTTP Client with virtual threads
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
-            .build();
+                .connectTimeout(Duration.ofSeconds(5))
+                .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+                .build();
     }
 
     @Override
@@ -61,15 +61,16 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             String url = baseUrl + "/api/limits/snapshot?customerId=" + request.customerId() + "&campaignId=" + campaignId;
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofMillis(getTimeoutMs()))
-                .GET()
-                .build();
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofMillis(getTimeoutMs()))
+                    .GET()
+                    .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                Map<String, Object> limitsData = objectMapper.readValue(response.body(), new TypeReference<>() {});
+                Map<String, Object> limitsData = objectMapper.readValue(response.body(), new TypeReference<>() {
+                });
                 LimitsFact result = mapToLimitsFact(limitsData);
                 log.debug("Successfully resolved limits facts for: {}", request.customerId());
                 return result;
@@ -101,8 +102,8 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
     @Override
     protected LimitsFact getPartialResult(FactRequest request) {
         return LimitsFact.builder()
-            .snapshotAt(Instant.now())
-            .build();
+                .snapshotAt(Instant.now())
+                .build();
     }
 
     private LimitsFact mapToLimitsFact(Map<String, Object> data) {
@@ -111,34 +112,34 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
         if (data.get("globalLimits") != null) {
             List<Map<String, Object>> globalLimitsData = (List<Map<String, Object>>) data.get("globalLimits");
             List<LimitsFact.LimitInfo> globalLimits = globalLimitsData.stream()
-                .map(this::mapToLimitInfo)
-                .collect(Collectors.toList());
+                    .map(this::mapToLimitInfo)
+                    .collect(Collectors.toList());
             builder.globalLimits(globalLimits);
         }
 
         if (data.get("customerLimits") != null) {
             List<Map<String, Object>> customerLimitsData = (List<Map<String, Object>>) data.get("customerLimits");
             List<LimitsFact.LimitInfo> customerLimits = customerLimitsData.stream()
-                .map(this::mapToLimitInfo)
-                .collect(Collectors.toList());
+                    .map(this::mapToLimitInfo)
+                    .collect(Collectors.toList());
             builder.customerLimits(customerLimits);
         }
 
         if (data.get("campaignLimits") != null) {
             List<Map<String, Object>> campaignLimitsData = (List<Map<String, Object>>) data.get("campaignLimits");
             List<LimitsFact.LimitInfo> campaignLimits = campaignLimitsData.stream()
-                .map(this::mapToLimitInfo)
-                .collect(Collectors.toList());
+                    .map(this::mapToLimitInfo)
+                    .collect(Collectors.toList());
             builder.campaignLimits(campaignLimits);
         }
 
         if (data.get("counters") != null) {
             Map<String, Map<String, Object>> countersData = (Map<String, Map<String, Object>>) data.get("counters");
             Map<String, LimitsFact.UsageCounter> counters = countersData.entrySet().stream()
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    entry -> mapToUsageCounter(entry.getValue())
-                ));
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            entry -> mapToUsageCounter(entry.getValue())
+                    ));
             builder.counters(counters);
         }
 
@@ -151,22 +152,22 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
 
     private LimitsFact.LimitInfo mapToLimitInfo(Map<String, Object> data) {
         return new LimitsFact.LimitInfo(
-            (String) data.get("type"),
-            (String) data.get("scope"),
-            (String) data.get("period"),
-            data.get("limit") != null ? new BigDecimal(data.get("limit").toString()) : null,
-            data.get("used") != null ? new BigDecimal(data.get("used").toString()) : null,
-            data.get("remaining") != null ? new BigDecimal(data.get("remaining").toString()) : null
+                (String) data.get("type"),
+                (String) data.get("scope"),
+                (String) data.get("period"),
+                data.get("limit") != null ? new BigDecimal(data.get("limit").toString()) : null,
+                data.get("used") != null ? new BigDecimal(data.get("used").toString()) : null,
+                data.get("remaining") != null ? new BigDecimal(data.get("remaining").toString()) : null
         );
     }
 
     private LimitsFact.UsageCounter mapToUsageCounter(Map<String, Object> data) {
         return new LimitsFact.UsageCounter(
-            (String) data.get("key"),
-            data.get("count") != null ? new BigDecimal(data.get("count").toString()) : null,
-            (String) data.get("period"),
-            data.get("lastUpdated") != null ? Instant.parse((String) data.get("lastUpdated")) : null,
-            data.get("resetAt") != null ? Instant.parse((String) data.get("resetAt")) : null
+                (String) data.get("key"),
+                data.get("count") != null ? new BigDecimal(data.get("count").toString()) : null,
+                (String) data.get("period"),
+                data.get("lastUpdated") != null ? Instant.parse((String) data.get("lastUpdated")) : null,
+                data.get("resetAt") != null ? Instant.parse((String) data.get("resetAt")) : null
         );
     }
 }

@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.Map;
 
 @FeignClient(
-    name = "validation-proxy",
-    url = "${validation.engine.base-url:http://localhost:8094}",
-    fallback = ValidationProxyFeignClientFallback.class
+        name = "validation-proxy",
+        url = "${validation.engine.base-url:http://localhost:8094}",
+        fallback = ValidationProxyFeignClientFallback.class
 )
 public interface ValidationProxyFeignClient {
 

@@ -23,9 +23,19 @@ public class LintRulesRequest {
     private List<RuleNodeDto> nodes;
 
     // Getters and setters
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public List<RuleNodeDto> getNodes() { return nodes; }
-    public void setNodes(List<RuleNodeDto> nodes) { this.nodes = nodes; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
+    public List<RuleNodeDto> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(List<RuleNodeDto> nodes) {
+        this.nodes = nodes;
+    }
 }

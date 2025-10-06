@@ -1,0 +1,223 @@
+package vn.viettel.vds.promotion.validation.adapter.out.health.impl;
+
+import org.springframework.boot.actuator.health.Health;
+import org.springframework.boot.actuator.health.HealthIndicator;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.valueobject.TenantId;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Health indicator for validation service dependencies
+ */
+@Component
+public class ValidationHealthIndicator implements HealthIndicator {
+
+    private final MongoTemplate mongoTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final RulePersistencePort rulePersistencePort;
+    private final RestTemplate restTemplate;
+
+    public ValidationHealthIndicator(
+        MongoTemplate mongoTemplate,
+        KafkaTemplate<String, String> kafkaTemplate,
+        RulePersistencePort rulePersistencePort,
+        RestTemplate restTemplate
+    ) {
+        this.mongoTemplate = mongoTemplate;
+        this.kafkaTemplate = kafkaTemplate;
+        this.rulePersistencePort = rulePersistencePort;
+        this.restTemplate = restTemplate;
+    }
+
+    @Override
+    public Health health() {
+        Map<String, Object> details = new HashMap<>();
+        boolean overallHealthy = true;
+
+        // Check MongoDB health
+        HealthStatus mongoHealth = checkMongoHealth();
+        details.put("mongodb", mongoHealth.getDetails());
+        if (!mongoHealth.isHealthy()) {
+            overallHealthy = false;
+        }
+
+        // Check Kafka health
+        HealthStatus kafkaHealth = checkKafkaHealth();
+        details.put("kafka", kafkaHealth.getDetails());
+        if (!kafkaHealth.isHealthy()) {
+            overallHealthy = false;
+        }
+
+        // Check rule persistence
+        HealthStatus persistenceHealth = checkPersistenceHealth();
+        details.put("persistence", persistenceHealth.getDetails());
+        if (!persistenceHealth.isHealthy()) {
+            overallHealthy = false;
+        }
+
+        // Check external services (non-critical)
+        HealthStatus externalHealth = checkExternalServicesHealth();
+        details.put("external_services", externalHealth.getDetails());
+        // External services are non-critical, don't affect overall health
+
+        // Overall status
+        details.put("timestamp", Instant.now());
+
+        return overallHealthy ?
+            Health.up().withDetails(details).build() :
+            Health.down().withDetails(details).build();
+    }
+
+    private HealthStatus checkMongoHealth() {
+        try {
+            Instant start = Instant.now();
+
+            // Simple ping to MongoDB
+            mongoTemplate.getCollection("rules").estimatedDocumentCount();
+
+            Duration responseTime = Duration.between(start, Instant.now());
+
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "UP");
+            details.put("responseTime", responseTime.toMillis() + "ms");
+            details.put("database", mongoTemplate.getDb().getName());
+
+            return new HealthStatus(true, details);
+
+        } catch (Exception e) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "DOWN");
+            details.put("error", e.getMessage());
+            details.put("exception", e.getClass().getSimpleName());
+
+            return new HealthStatus(false, details);
+        }
+    }
+
+    private HealthStatus checkKafkaHealth() {
+        try {
+            Instant start = Instant.now();
+
+            // Check Kafka by getting metadata (non-blocking)
+            kafkaTemplate.getProducerFactory()
+                .createProducer()
+                .partitionsFor("validation.health.check");
+
+            Duration responseTime = Duration.between(start, Instant.now());
+
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "UP");
+            details.put("responseTime", responseTime.toMillis() + "ms");
+
+            return new HealthStatus(true, details);
+
+        } catch (Exception e) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "DOWN");
+            details.put("error", e.getMessage());
+            details.put("exception", e.getClass().getSimpleName());
+
+            return new HealthStatus(false, details);
+        }
+    }
+
+    private HealthStatus checkPersistenceHealth() {
+        try {
+            Instant start = Instant.now();
+
+            // Test persistence layer with a simple query
+            TenantId testTenant = TenantId.of("health-check");
+            rulePersistencePort.countByTenantIdAndStatus(testTenant,
+                vn.viettel.vds.promotion.validation.domain.model.RuleStatus.PUBLISHED);
+
+            Duration responseTime = Duration.between(start, Instant.now());
+
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "UP");
+            details.put("responseTime", responseTime.toMillis() + "ms");
+
+            return new HealthStatus(true, details);
+
+        } catch (Exception e) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("status", "DOWN");
+            details.put("error", e.getMessage());
+            details.put("exception", e.getClass().getSimpleName());
+
+            return new HealthStatus(false, details);
+        }
+    }
+
+    private HealthStatus checkExternalServicesHealth() {
+        Map<String, Object> details = new HashMap<>();
+
+        // Check customer service (optional)
+        try {
+            Instant start = Instant.now();
+            restTemplate.getForObject("http://customer:8080/actuator/health", Map.class);
+            Duration responseTime = Duration.between(start, Instant.now());
+
+            Map<String, Object> customerDetails = new HashMap<>();
+            customerDetails.put("status", "UP");
+            customerDetails.put("responseTime", responseTime.toMillis() + "ms");
+            details.put("customer-service", customerDetails);
+
+        } catch (Exception e) {
+            Map<String, Object> customerDetails = new HashMap<>();
+            customerDetails.put("status", "DOWN");
+            customerDetails.put("error", e.getMessage());
+            details.put("customer-service", customerDetails);
+        }
+
+        // Check order service (optional)
+        try {
+            Instant start = Instant.now();
+            restTemplate.getForObject("http://order:8080/actuator/health", Map.class);
+            Duration responseTime = Duration.between(start, Instant.now());
+
+            Map<String, Object> orderDetails = new HashMap<>();
+            orderDetails.put("status", "UP");
+            orderDetails.put("responseTime", responseTime.toMillis() + "ms");
+            details.put("order-service", orderDetails);
+
+        } catch (Exception e) {
+            Map<String, Object> orderDetails = new HashMap<>();
+            orderDetails.put("status", "DOWN");
+            orderDetails.put("error", e.getMessage());
+            details.put("order-service", orderDetails);
+        }
+
+        // External services are optional - always return healthy
+        return new HealthStatus(true, details);
+    }
+
+    /**
+     * Health status container
+     */
+    private static class HealthStatus {
+        private final boolean healthy;
+        private final Map<String, Object> details;
+
+        public HealthStatus(boolean healthy, Map<String, Object> details) {
+            this.healthy = healthy;
+            this.details = details;
+        }
+
+        public boolean isHealthy() {
+            return healthy;
+        }
+
+        public Map<String, Object> getDetails() {
+            return details;
+        }
+    }
+}

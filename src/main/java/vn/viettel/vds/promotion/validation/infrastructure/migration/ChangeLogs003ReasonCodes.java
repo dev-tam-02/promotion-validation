@@ -85,8 +85,8 @@ public class ChangeLogs003ReasonCodes {
     @RollbackExecution
     public void rollback(MongoTemplate mongoTemplate) {
         mongoTemplate.remove(Query.query(Criteria.where("code").in(
-            "CUSTOMER_SEGMENT_VIP", "CUSTOMER_SEGMENT_NEW", "CUSTOMER_SEGMENT_ELIGIBLE",
-            "ORDER_AMOUNT_MIN", "TIME_WINDOW_WEEKEND", "TIME_WINDOW_BUSINESS"
+                "CUSTOMER_SEGMENT_VIP", "CUSTOMER_SEGMENT_NEW", "CUSTOMER_SEGMENT_ELIGIBLE",
+                "ORDER_AMOUNT_MIN", "TIME_WINDOW_WEEKEND", "TIME_WINDOW_BUSINESS"
         )), "reason_codes");
     }
 }

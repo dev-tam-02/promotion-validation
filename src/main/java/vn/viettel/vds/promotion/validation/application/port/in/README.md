@@ -1,12 +1,19 @@
 # Application Port In Package
 
 ## Description
-The application.port.in package contains input port interfaces that define the operations that can be performed on the application. These interfaces represent the entry points to the application's use cases, following the Hexagonal Architecture (also known as Ports and Adapters) pattern.
+
+The application.port.in package contains input port interfaces that define the operations that can be performed on the
+application. These interfaces represent the entry points to the application's use cases, following the Hexagonal
+Architecture (also known as Ports and Adapters) pattern.
 
 ## Purpose
-The purpose of this package is to define a clear API for the application's use cases, allowing external components to interact with the application without knowing the implementation details. This separation enables better testability, maintainability, and flexibility in changing implementations.
+
+The purpose of this package is to define a clear API for the application's use cases, allowing external components to
+interact with the application without knowing the implementation details. This separation enables better testability,
+maintainability, and flexibility in changing implementations.
 
 ## Package Structure
+
 This package is organized into the following structure:
 
 ```
@@ -20,7 +27,9 @@ application.port.in/
 ```
 
 ## Usage
+
 This package typically contains:
+
 - Use case interfaces that define methods representing user actions or system events
 - Command and query interfaces following the Command Query Responsibility Segregation (CQRS) pattern
 - DTOs (Data Transfer Objects) that represent the input and output parameters for use cases
@@ -29,6 +38,7 @@ This package typically contains:
 ## Examples
 
 ### Command Use Case Example
+
 ```java
 // CreatePromotionUseCase.java
 public interface CreatePromotionUseCase {
@@ -89,6 +99,7 @@ public interface CreatePromotionUseCase {
 ```
 
 ### Query Use Case Example
+
 ```java
 // GetCampaignQuery.java
 public interface GetCampaignQuery {
@@ -157,6 +168,7 @@ public interface GetCampaignQuery {
 ```
 
 ### CQRS Pattern Example
+
 ```java
 // Command interface
 public interface ActivateCampaignUseCase {
@@ -210,6 +222,7 @@ public class CampaignController {
 ```
 
 ## Rules
+
 1. Input port interfaces should be defined in terms of the application's domain model
 2. Each interface should represent a single use case or a closely related group of use cases
 3. Method names should clearly describe the action being performed
@@ -223,18 +236,21 @@ public class CampaignController {
 ## Naming Conventions
 
 ### Use Case Interfaces
+
 - Name: `[Action][Entity]UseCase`
 - Examples: `CreateCampaignUseCase`, `UpdateCampaignUseCase`, `DeleteCampaignUseCase`
 - Method name: `[action][Entity]` (camelCase)
 - Examples: `createCampaign`, `updateCampaign`, `deleteCampaign`
 
 ### DTOs
+
 - Command objects: `[Action][Entity]Command`
 - Result objects: `[Action][Entity]Result`
 - Examples: `CreateCampaignCommand`, `UpdateCampaignResult`
 - Use Java records for immutability and conciseness
 
 ### Mappers
+
 - Name: `[Entity]DtoMapper`
 - Examples: `CampaignDtoMapper`
 - Methods: `to[Target]` (camelCase)
@@ -242,7 +258,8 @@ public class CampaignController {
 
 ## Java Records for DTOs
 
-This project uses Java records for DTOs, which were introduced in Java 14. Records provide a concise way to create immutable data classes:
+This project uses Java records for DTOs, which were introduced in Java 14. Records provide a concise way to create
+immutable data classes:
 
 ```java
 /**
@@ -275,6 +292,7 @@ public record CreateCampaignCommand(
 ```
 
 Benefits of using records:
+
 - Automatic generation of constructors, getters, equals, hashCode, and toString
 - Immutability by default
 - Concise syntax
@@ -297,6 +315,7 @@ public interface CampaignDtoMapper {
 ```
 
 Benefits of using MapStruct:
+
 - Automatic generation of mapping code
 - Type-safe mapping
 - Integration with Spring
@@ -308,27 +327,27 @@ Benefits of using MapStruct:
 When creating new classes in this package, follow these guidelines:
 
 1. **Use Case Interfaces**:
-   - Create a new interface for each distinct use case
-   - Follow the naming convention `[Action][Entity]UseCase`
-   - Define a single method that takes a command and returns a result
-   - Document the method with JavaDoc, including parameters, return values, and exceptions
+    - Create a new interface for each distinct use case
+    - Follow the naming convention `[Action][Entity]UseCase`
+    - Define a single method that takes a command and returns a result
+    - Document the method with JavaDoc, including parameters, return values, and exceptions
 
 2. **Command Objects**:
-   - Create a new record for each command
-   - Follow the naming convention `[Action][Entity]Command`
-   - Include all necessary fields for the use case
-   - Use nested records for complex structures
-   - Add validation logic if needed
+    - Create a new record for each command
+    - Follow the naming convention `[Action][Entity]Command`
+    - Include all necessary fields for the use case
+    - Use nested records for complex structures
+    - Add validation logic if needed
 
 3. **Result Objects**:
-   - Create a new record for each result
-   - Follow the naming convention `[Action][Entity]Result`
-   - Include only the fields needed by the caller
-   - Use nested records for complex structures
+    - Create a new record for each result
+    - Follow the naming convention `[Action][Entity]Result`
+    - Include only the fields needed by the caller
+    - Use nested records for complex structures
 
 4. **Mappers**:
-   - Create or update a mapper interface for each entity
-   - Follow the naming convention `[Entity]DtoMapper`
-   - Use MapStruct annotations for mapping
-   - Include mappings in both directions (command/request, result/response)
-   - Add helper methods for collections and pagination if needed
+    - Create or update a mapper interface for each entity
+    - Follow the naming convention `[Entity]DtoMapper`
+    - Use MapStruct annotations for mapping
+    - Include mappings in both directions (command/request, result/response)
+    - Add helper methods for collections and pagination if needed

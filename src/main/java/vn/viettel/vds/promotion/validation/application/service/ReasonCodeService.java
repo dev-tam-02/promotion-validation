@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.ReasonCodeRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.ReasonCodePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.ReasonCode;
 
 import java.time.Instant;
@@ -22,23 +22,23 @@ public class ReasonCodeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ReasonCodeService.class);
 
-    private final ReasonCodeRepository reasonCodeRepository;
+    private final ReasonCodePersistencePort reasonCodePersistencePort;
 
-    public ReasonCodeService(ReasonCodeRepository reasonCodeRepository) {
-        this.reasonCodeRepository = reasonCodeRepository;
+    public ReasonCodeService(ReasonCodePersistencePort reasonCodePersistencePort) {
+        this.reasonCodePersistencePort = reasonCodePersistencePort;
     }
 
     /**
      * Create a new reason code
      */
     public ReasonCode createReasonCode(String tenantId, String id, String category,
-                                     ReasonCode.Severity severity, Map<String, String> labels) {
+                                       ReasonCode.Severity severity, Map<String, String> labels) {
         logger.info("Creating reason code: tenant={}, id={}", tenantId, id);
 
         // Check if reason code already exists
-        if (reasonCodeRepository.existsByIdAndTenant(tenantId, id)) {
+        if (reasonCodePersistencePort.existsByIdAndTenant(tenantId, id)) {
             throw new BusinessException(new ResponseInfo("REASON_CODE_EXISTS",
-                "Reason code '" + id + "' already exists for tenant " + tenantId, 400));
+                    "Reason code '" + id + "' already exists for tenant " + tenantId, 400));
         }
 
         ReasonCode reasonCode = new ReasonCode();
@@ -49,7 +49,7 @@ public class ReasonCodeService {
         reasonCode.setLabels(labels);
         reasonCode.setCreatedAt(Instant.now());
 
-        ReasonCode saved = reasonCodeRepository.save(reasonCode);
+        ReasonCode saved = reasonCodePersistencePort.save(reasonCode);
 
         logger.info("Reason code created successfully: id={}", saved.getId());
         return saved;
@@ -60,8 +60,8 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public ReasonCode getReasonCode(String tenantId, String id) {
-        return reasonCodeRepository.findByIdAndTenant(tenantId, id)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return reasonCodePersistencePort.findByIdAndTenant(tenantId, id)
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**
@@ -69,7 +69,7 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public boolean existsReasonCode(String tenantId, String id) {
-        return reasonCodeRepository.existsByIdAndTenant(tenantId, id);
+        return reasonCodePersistencePort.existsByIdAndTenant(tenantId, id);
     }
 
     /**
@@ -77,7 +77,7 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public List<ReasonCode> getReasonCodesByCategory(String tenantId, String category) {
-        return reasonCodeRepository.findByTenantAndCategory(tenantId, category);
+        return reasonCodePersistencePort.findByTenantAndCategory(tenantId, category);
     }
 
     /**
@@ -85,8 +85,8 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public Page<ReasonCode> findReasonCodes(String tenantId, String categoryPattern,
-                                          ReasonCode.Severity severity, Pageable pageable) {
-        return reasonCodeRepository.findWithFilters(tenantId, categoryPattern, severity, pageable);
+                                            ReasonCode.Severity severity, Pageable pageable) {
+        return reasonCodePersistencePort.findWithFilters(tenantId, categoryPattern, severity, pageable);
     }
 
     /**
@@ -94,7 +94,7 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public Page<ReasonCode> getAllReasonCodes(String tenantId, Pageable pageable) {
-        return reasonCodeRepository.findByTenant(tenantId, pageable);
+        return reasonCodePersistencePort.findByTenant(tenantId, pageable);
     }
 
     /**
@@ -102,7 +102,7 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public List<ReasonCode> getGlobalReasonCodes() {
-        return reasonCodeRepository.findByTenantIdIsNull();
+        return reasonCodePersistencePort.findByTenantIdIsNull();
     }
 
     /**
@@ -110,7 +110,7 @@ public class ReasonCodeService {
      */
     @Transactional(readOnly = true)
     public List<ReasonCode> getReasonCodesBySeverity(String tenantId, ReasonCode.Severity severity) {
-        return reasonCodeRepository.findByTenantAndSeverity(tenantId, severity);
+        return reasonCodePersistencePort.findByTenantAndSeverity(tenantId, severity);
     }
 
     /**
@@ -122,7 +122,7 @@ public class ReasonCodeService {
         ReasonCode reasonCode = getReasonCode(tenantId, id);
         reasonCode.setLabels(labels);
 
-        ReasonCode saved = reasonCodeRepository.save(reasonCode);
+        ReasonCode saved = reasonCodePersistencePort.save(reasonCode);
 
         logger.info("Reason code labels updated successfully: id={}", saved.getId());
         return saved;
@@ -139,10 +139,10 @@ public class ReasonCodeService {
         // Only allow deletion of tenant-specific codes
         if (reasonCode.getTenantId() == null) {
             throw new BusinessException(new ResponseInfo("CANNOT_DELETE_GLOBAL",
-                "Cannot delete global reason code: " + id, 400));
+                    "Cannot delete global reason code: " + id, 400));
         }
 
-        reasonCodeRepository.delete(reasonCode);
+        reasonCodePersistencePort.delete(reasonCode);
 
         logger.info("Reason code deleted successfully: id={}", id);
     }
@@ -172,8 +172,8 @@ public class ReasonCodeService {
 
             // Return first available message
             return reasonCode.getLabels().values().stream()
-                .findFirst()
-                .orElse(reasonCodeId);
+                    .findFirst()
+                    .orElse(reasonCodeId);
 
         } catch (Exception e) {
             logger.warn("Error getting localized message for reason code: {}", reasonCodeId, e);
@@ -193,11 +193,11 @@ public class ReasonCodeService {
             if (!existsReasonCode(tenantId, defaultCode.getId())) {
                 try {
                     createReasonCode(
-                        tenantId,
-                        defaultCode.getId(),
-                        defaultCode.getCategory(),
-                        defaultCode.getSeverity(),
-                        defaultCode.getLabels()
+                            tenantId,
+                            defaultCode.getId(),
+                            defaultCode.getCategory(),
+                            defaultCode.getSeverity(),
+                            defaultCode.getLabels()
                     );
                 } catch (Exception e) {
                     logger.warn("Failed to create default reason code: {}", defaultCode.getId(), e);
@@ -210,23 +210,23 @@ public class ReasonCodeService {
 
     private List<DefaultReasonCode> getDefaultReasonCodes() {
         return List.of(
-            new DefaultReasonCode("ORDER_TOTAL_MIN", "ORDER", ReasonCode.Severity.WARN,
-                Map.of("en", "Order total below minimum", "vi", "Tổng đơn hàng chưa đạt tối thiểu")),
+                new DefaultReasonCode("ORDER_TOTAL_MIN", "ORDER", ReasonCode.Severity.WARN,
+                        Map.of("en", "Order total below minimum", "vi", "Tổng đơn hàng chưa đạt tối thiểu")),
 
-            new DefaultReasonCode("CUSTOMER_SEGMENT_MISMATCH", "CUSTOMER", ReasonCode.Severity.WARN,
-                Map.of("en", "Customer not in required segment", "vi", "Khách hàng không thuộc phân khúc yêu cầu")),
+                new DefaultReasonCode("CUSTOMER_SEGMENT_MISMATCH", "CUSTOMER", ReasonCode.Severity.WARN,
+                        Map.of("en", "Customer not in required segment", "vi", "Khách hàng không thuộc phân khúc yêu cầu")),
 
-            new DefaultReasonCode("TIME_WINDOW_INVALID", "TIME", ReasonCode.Severity.INFO,
-                Map.of("en", "Outside valid time window", "vi", "Ngoài khung thời gian có hiệu lực")),
+                new DefaultReasonCode("TIME_WINDOW_INVALID", "TIME", ReasonCode.Severity.INFO,
+                        Map.of("en", "Outside valid time window", "vi", "Ngoài khung thời gian có hiệu lực")),
 
-            new DefaultReasonCode("LOCATION_RESTRICTED", "GEO", ReasonCode.Severity.WARN,
-                Map.of("en", "Location not eligible", "vi", "Khu vực không đủ điều kiện")),
+                new DefaultReasonCode("LOCATION_RESTRICTED", "GEO", ReasonCode.Severity.WARN,
+                        Map.of("en", "Location not eligible", "vi", "Khu vực không đủ điều kiện")),
 
-            new DefaultReasonCode("USAGE_LIMIT_EXCEEDED", "LIMIT", ReasonCode.Severity.ERROR,
-                Map.of("en", "Usage limit exceeded", "vi", "Đã vượt quá giới hạn sử dụng")),
+                new DefaultReasonCode("USAGE_LIMIT_EXCEEDED", "LIMIT", ReasonCode.Severity.ERROR,
+                        Map.of("en", "Usage limit exceeded", "vi", "Đã vượt quá giới hạn sử dụng")),
 
-            new DefaultReasonCode("PRODUCT_CATEGORY_MISMATCH", "PRODUCT", ReasonCode.Severity.WARN,
-                Map.of("en", "Product category not eligible", "vi", "Danh mục sản phẩm không đủ điều kiện"))
+                new DefaultReasonCode("PRODUCT_CATEGORY_MISMATCH", "PRODUCT", ReasonCode.Severity.WARN,
+                        Map.of("en", "Product category not eligible", "vi", "Danh mục sản phẩm không đủ điều kiện"))
         );
     }
 
@@ -243,9 +243,20 @@ public class ReasonCodeService {
             this.labels = labels;
         }
 
-        public String getId() { return id; }
-        public String getCategory() { return category; }
-        public ReasonCode.Severity getSeverity() { return severity; }
-        public Map<String, String> getLabels() { return labels; }
+        public String getId() {
+            return id;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public ReasonCode.Severity getSeverity() {
+            return severity;
+        }
+
+        public Map<String, String> getLabels() {
+            return labels;
+        }
     }
 }

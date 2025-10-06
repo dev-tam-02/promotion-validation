@@ -1,13 +1,20 @@
 # Adapter In Messaging Package
 
 ## Description
-The adapter.in.messaging package contains inbound adapters that handle incoming messages from message brokers such as Kafka, RabbitMQ, or JMS. These adapters convert external messages into calls to the application's use cases.
+
+The adapter.in.messaging package contains inbound adapters that handle incoming messages from message brokers such as
+Kafka, RabbitMQ, or JMS. These adapters convert external messages into calls to the application's use cases.
 
 ## Purpose
-The purpose of this package is to provide entry points to the application from messaging systems, allowing the application to react to events and commands received through message queues while keeping the application core independent of these external interfaces.
+
+The purpose of this package is to provide entry points to the application from messaging systems, allowing the
+application to react to events and commands received through message queues while keeping the application core
+independent of these external interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - Message consumers (Kafka, RabbitMQ, JMS, etc.)
 - Message handlers that process incoming messages
 - Message deserializers that convert message payloads to domain objects
@@ -18,6 +25,7 @@ Each adapter implements one or more input port interfaces defined in the applica
 ## Examples
 
 ### Kafka Consumer Example
+
 ```java
 // CampaignEventConsumer.java
 @Service
@@ -59,6 +67,7 @@ public class CampaignEventConsumer {
 ```
 
 ### RabbitMQ Consumer Example
+
 ```java
 // PromotionEventConsumer.java
 @Service
@@ -110,6 +119,7 @@ public class PromotionEventConsumer {
 ```
 
 ## Rules
+
 1. Messaging adapters should implement the interfaces defined in the application.port.in package
 2. Adapters should handle the conversion between the external message format and the application's input model
 3. Input validation should be performed before calling the application use cases

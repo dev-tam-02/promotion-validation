@@ -1,13 +1,19 @@
 # Application Port Out Package
 
 ## Description
-The application.port.out package contains output port interfaces that define the operations that the application needs from the outside world. These interfaces represent the dependencies of the application on external systems.
+
+The application.port.out package contains output port interfaces that define the operations that the application needs
+from the outside world. These interfaces represent the dependencies of the application on external systems.
 
 ## Purpose
-The purpose of this package is to define clear contracts for what the application needs from external systems, allowing the application core to remain isolated from the implementation details of these systems.
+
+The purpose of this package is to define clear contracts for what the application needs from external systems, allowing
+the application core to remain isolated from the implementation details of these systems.
 
 ## Usage
+
 This package typically contains:
+
 - Repository interfaces for data persistence
 - Client interfaces for external services
 - Messaging interfaces for sending messages to external systems
@@ -18,6 +24,7 @@ This package typically contains:
 ## Examples
 
 ### Repository Interface Example
+
 ```java
 // CampaignRepository.java
 public interface CampaignRepository {
@@ -64,6 +71,7 @@ public interface CampaignRepository {
 ```
 
 ### External Service Client Example
+
 ```java
 // ProductCatalogClient.java
 public interface ProductCatalogClient {
@@ -103,6 +111,7 @@ public interface ProductCatalogClient {
 ```
 
 ### Messaging Interface Example
+
 ```java
 // CampaignEventPublisher.java
 public interface CampaignEventPublisher {
@@ -139,6 +148,7 @@ public interface CampaignEventPublisher {
 ```
 
 ### Cache Interface Example
+
 ```java
 // CampaignCache.java
 public interface CampaignCache {
@@ -174,6 +184,7 @@ public interface CampaignCache {
 ```
 
 ### Usage in Application Service
+
 ```java
 // ActivateCampaignService.java
 @Service
@@ -208,6 +219,7 @@ public class ActivateCampaignService implements ActivateCampaignUseCase {
 ```
 
 ## Rules
+
 1. Output port interfaces should be defined in terms of the application's domain model
 2. Each interface should represent a single responsibility or a closely related group of responsibilities
 3. Method names should clearly describe the operation being performed

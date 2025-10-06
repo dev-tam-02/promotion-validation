@@ -8,20 +8,20 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderItemFact(
-    String itemId,
-    String sku,
-    String canonicalSku,
-    String productId,
-    String name,
-    String category,
-    String brand,
-    List<String> tags,
-    BigDecimal unitPrice,
-    Integer quantity,
-    BigDecimal totalPrice,
-    BigDecimal discountAmount,
-    String unit,
-    Map<String, Object> attributes
+        String itemId,
+        String sku,
+        String canonicalSku,
+        String productId,
+        String name,
+        String category,
+        String brand,
+        List<String> tags,
+        BigDecimal unitPrice,
+        Integer quantity,
+        BigDecimal totalPrice,
+        BigDecimal discountAmount,
+        String unit,
+        Map<String, Object> attributes
 ) {
     public static Builder builder() {
         return new Builder();
@@ -115,8 +115,8 @@ public record OrderItemFact(
 
         public OrderItemFact build() {
             return new OrderItemFact(
-                itemId, sku, canonicalSku, productId, name, category, brand,
-                tags, unitPrice, quantity, totalPrice, discountAmount, unit, attributes
+                    itemId, sku, canonicalSku, productId, name, category, brand,
+                    tags, unitPrice, quantity, totalPrice, discountAmount, unit, attributes
             );
         }
     }

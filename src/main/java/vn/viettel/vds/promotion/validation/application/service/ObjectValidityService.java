@@ -35,15 +35,15 @@ public class ObjectValidityService {
             // 1. Check if object exists in our validation system
             if (!objectExists(request.objectType(), request.objectId())) {
                 return ValidationResult.failure(
-                    "OBJECT_NOT_FOUND",
-                    String.format("Object not found: %s with ID %s", request.objectType(), request.objectId())
+                        "OBJECT_NOT_FOUND",
+                        String.format("Object not found: %s with ID %s", request.objectType(), request.objectId())
                 );
             }
 
             // 2. Get validation settings for the object
             Map<String, Object> validationSettings = getObjectValidationSettings(
-                request.objectType(),
-                request.objectId()
+                    request.objectType(),
+                    request.objectId()
             );
 
             if (validationSettings == null || validationSettings.isEmpty()) {
@@ -55,8 +55,8 @@ public class ObjectValidityService {
 
             // 3. Check if object is currently within its validity timeframe
             ValidationResult timeframeResult = validateTimeframeValidity(
-                validationSettings,
-                request.currentDateTime()
+                    validationSettings,
+                    request.currentDateTime()
             );
             if (!timeframeResult.isValid()) {
                 return timeframeResult;
@@ -64,8 +64,8 @@ public class ObjectValidityService {
 
             // 4. Check if object is active/enabled
             ValidationResult statusResult = validateObjectStatus(
-                request.objectType(),
-                request.objectId()
+                    request.objectType(),
+                    request.objectId()
             );
             if (!statusResult.isValid()) {
                 return statusResult;
@@ -77,8 +77,8 @@ public class ObjectValidityService {
         } catch (Exception e) {
             log.error("Object validity validation failed for objectId: {}", request.objectId(), e);
             return ValidationResult.failure(
-                "OBJECT_VALIDITY_PROCESSING_ERROR",
-                "Failed to process object validity check: " + e.getMessage()
+                    "OBJECT_VALIDITY_PROCESSING_ERROR",
+                    "Failed to process object validity check: " + e.getMessage()
             );
         }
     }
@@ -133,15 +133,15 @@ public class ObjectValidityService {
 
                     if (currentDateTime.isBefore(startDate)) {
                         return ValidationResult.failure(
-                            "OBJECT_NOT_STARTED",
-                            "Object is not yet active. Start date: " + startDateStr
+                                "OBJECT_NOT_STARTED",
+                                "Object is not yet active. Start date: " + startDateStr
                         );
                     }
 
                     if (currentDateTime.isAfter(endDate)) {
                         return ValidationResult.failure(
-                            "OBJECT_EXPIRED",
-                            "Object has expired. End date: " + endDateStr
+                                "OBJECT_EXPIRED",
+                                "Object has expired. End date: " + endDateStr
                         );
                     }
                 }
@@ -150,15 +150,15 @@ public class ObjectValidityService {
             // Check validity days of week
             @SuppressWarnings("unchecked")
             java.util.List<Integer> validityDaysOfWeek =
-                (java.util.List<Integer>) validationSettings.get("validityDaysOfWeek");
+                    (java.util.List<Integer>) validationSettings.get("validityDaysOfWeek");
 
             if (validityDaysOfWeek != null && !validityDaysOfWeek.isEmpty()) {
                 int currentDayOfWeek = currentDateTime.getDayOfWeek().getValue(); // 1-7 (Monday-Sunday)
                 if (!validityDaysOfWeek.contains(currentDayOfWeek)) {
                     return ValidationResult.failure(
-                        "OBJECT_INVALID_DAY",
-                        String.format("Object is not valid on day %d. Valid days: %s",
-                                currentDayOfWeek, validityDaysOfWeek)
+                            "OBJECT_INVALID_DAY",
+                            String.format("Object is not valid on day %d. Valid days: %s",
+                                    currentDayOfWeek, validityDaysOfWeek)
                     );
                 }
             }
@@ -166,15 +166,15 @@ public class ObjectValidityService {
             // Check validity hours per day
             @SuppressWarnings("unchecked")
             java.util.List<Map<String, Object>> validityHoursPerDay =
-                (java.util.List<Map<String, Object>>) validationSettings.get("validityHoursPerDay");
+                    (java.util.List<Map<String, Object>>) validationSettings.get("validityHoursPerDay");
 
             if (validityHoursPerDay != null && !validityHoursPerDay.isEmpty()) {
                 String currentDayName = currentDateTime.getDayOfWeek().name();
 
                 ValidationResult hoursResult = validateCurrentTimeInValidHours(
-                    validityHoursPerDay,
-                    currentDayName,
-                    currentDateTime
+                        validityHoursPerDay,
+                        currentDayName,
+                        currentDateTime
                 );
                 if (!hoursResult.isValid()) {
                     return hoursResult;
@@ -186,8 +186,8 @@ public class ObjectValidityService {
         } catch (Exception e) {
             log.error("Timeframe validity validation failed", e);
             return ValidationResult.failure(
-                "TIMEFRAME_VALIDITY_ERROR",
-                "Timeframe validity check failed: " + e.getMessage()
+                    "TIMEFRAME_VALIDITY_ERROR",
+                    "Timeframe validity check failed: " + e.getMessage()
             );
         }
     }
@@ -199,15 +199,15 @@ public class ObjectValidityService {
 
         // Find hours configuration for current day
         Map<String, Object> dayHours = validityHoursPerDay.stream()
-            .filter(hours -> currentDayName.equals(hours.get("dayOfWeek")))
-            .findFirst()
-            .orElse(null);
+                .filter(hours -> currentDayName.equals(hours.get("dayOfWeek")))
+                .findFirst()
+                .orElse(null);
 
         if (dayHours == null) {
             // No specific hours configured for this day - consider invalid
             return ValidationResult.failure(
-                "OBJECT_INVALID_TIME",
-                String.format("No valid hours configured for day %s", currentDayName)
+                    "OBJECT_INVALID_TIME",
+                    String.format("No valid hours configured for day %s", currentDayName)
             );
         }
 
@@ -218,17 +218,17 @@ public class ObjectValidityService {
             if (startTimeStr != null && endTimeStr != null) {
                 // Parse time components (assuming format like "09:00:00+07:00")
                 OffsetDateTime startTime = OffsetDateTime.parse(
-                    currentDateTime.toLocalDate() + "T" + startTimeStr
+                        currentDateTime.toLocalDate() + "T" + startTimeStr
                 );
                 OffsetDateTime endTime = OffsetDateTime.parse(
-                    currentDateTime.toLocalDate() + "T" + endTimeStr
+                        currentDateTime.toLocalDate() + "T" + endTimeStr
                 );
 
                 if (currentDateTime.isBefore(startTime) || currentDateTime.isAfter(endTime)) {
                     return ValidationResult.failure(
-                        "OBJECT_INVALID_TIME",
-                        String.format("Current time %s is outside valid hours %s - %s",
-                                currentDateTime.toLocalTime(), startTimeStr, endTimeStr)
+                            "OBJECT_INVALID_TIME",
+                            String.format("Current time %s is outside valid hours %s - %s",
+                                    currentDateTime.toLocalTime(), startTimeStr, endTimeStr)
                     );
                 }
             }
@@ -238,8 +238,8 @@ public class ObjectValidityService {
         } catch (Exception e) {
             log.error("Error validating current time in valid hours", e);
             return ValidationResult.failure(
-                "OBJECT_INVALID_TIME",
-                "Failed to validate time range: " + e.getMessage()
+                    "OBJECT_INVALID_TIME",
+                    "Failed to validate time range: " + e.getMessage()
             );
         }
     }
@@ -254,8 +254,8 @@ public class ObjectValidityService {
                 boolean isActive = checkCampaignStatus(objectId);
                 if (!isActive) {
                     return ValidationResult.failure(
-                        "OBJECT_INACTIVE",
-                        String.format("Campaign %s is not in active status", objectId)
+                            "OBJECT_INACTIVE",
+                            String.format("Campaign %s is not in active status", objectId)
                     );
                 }
             }
@@ -265,8 +265,8 @@ public class ObjectValidityService {
         } catch (Exception e) {
             log.error("Object status validation failed for {}:{}", objectType, objectId, e);
             return ValidationResult.failure(
-                "OBJECT_STATUS_ERROR",
-                "Failed to validate object status: " + e.getMessage()
+                    "OBJECT_STATUS_ERROR",
+                    "Failed to validate object status: " + e.getMessage()
             );
         }
     }

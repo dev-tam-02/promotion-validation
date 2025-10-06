@@ -1,21 +1,29 @@
 # Application Package
 
 ## Description
-The application package contains the core business logic and use cases of the campaign module. It orchestrates the flow of data to and from the domain entities and implements the business rules specific to the application.
+
+The application package contains the core business logic and use cases of the campaign module. It orchestrates the flow
+of data to and from the domain entities and implements the business rules specific to the application.
 
 ## Purpose
-The purpose of this package is to encapsulate the application's use cases and define the boundaries between the domain layer and the outside world through ports.
+
+The purpose of this package is to encapsulate the application's use cases and define the boundaries between the domain
+layer and the outside world through ports.
 
 ## Usage
+
 This package is organized into two main subpackages:
+
 - `port`: Contains interfaces that define the boundaries of the application
-  - `in`: Input ports that define the operations that can be performed on the application
-  - `out`: Output ports that define the operations that the application needs from the outside world
-- `usecase`: Contains implementations of the application's use cases, which orchestrate the flow of data and implement business rules
+    - `in`: Input ports that define the operations that can be performed on the application
+    - `out`: Output ports that define the operations that the application needs from the outside world
+- `usecase`: Contains implementations of the application's use cases, which orchestrate the flow of data and implement
+  business rules
 
 ## Examples
 
 ### Input Port Interface Example
+
 ```java
 // CreateCampaignUseCase.java in application.port.in package
 public interface CreateCampaignUseCase {
@@ -36,6 +44,7 @@ public interface CreateCampaignUseCase {
 ```
 
 ### Output Port Interface Example
+
 ```java
 // SaveCampaignPort.java in application.port.out package
 public interface SaveCampaignPort {
@@ -49,6 +58,7 @@ public interface SaveCampaignPort {
 ```
 
 ### Use Case Implementation Example
+
 ```java
 // CreateCampaignService.java in application.usecase package
 @Service
@@ -93,6 +103,7 @@ public class CreateCampaignService implements CreateCampaignUseCase {
 ```
 
 ### Application Service Example
+
 ```java
 // CampaignApplicationService.java in application package
 @Service
@@ -141,6 +152,7 @@ public class CampaignApplicationService {
 ```
 
 ## Rules
+
 1. Application services should depend on domain entities and should not contain domain logic
 2. Use cases should implement the interfaces defined in the port.in package
 3. Use cases should depend on the interfaces defined in the port.out package, not on their implementations

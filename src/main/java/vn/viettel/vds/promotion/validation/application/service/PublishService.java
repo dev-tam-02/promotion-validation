@@ -6,13 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.PublishJobRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleTemporalLinkRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.RuleVersionRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.PublishJob;
 import vn.viettel.vds.promotion.validation.domain.entity.Rule;
 import vn.viettel.vds.promotion.validation.domain.entity.RuleTemporalLink;
 import vn.viettel.vds.promotion.validation.domain.entity.RuleVersion;
+import com.promix.platform.outbox.service.OutboxService;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,29 +27,29 @@ public class PublishService {
     private static final Logger logger = LoggerFactory.getLogger(PublishService.class);
 
     private final RuleService ruleService;
-    private final RuleVersionRepository ruleVersionRepository;
-    private final PublishJobRepository publishJobRepository;
-    private final RuleTemporalLinkRepository ruleTemporalLinkRepository;
+    private final RuleVersionPersistencePort ruleVersionPersistencePort;
+    private final PublishJobPersistencePort publishJobPersistencePort;
+    private final RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort;
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
-    private final OutboxEventService outboxEventService;
+    private final OutboxService outboxService;
     private final AuditService auditService;
 
     public PublishService(RuleService ruleService,
-                         RuleVersionRepository ruleVersionRepository,
-                         PublishJobRepository publishJobRepository,
-                         RuleTemporalLinkRepository ruleTemporalLinkRepository,
-                         OperatorService operatorService,
-                         RuleValidationService ruleValidationService,
-                         OutboxEventService outboxEventService,
-                         AuditService auditService) {
+                          RuleVersionPersistencePort ruleVersionPersistencePort,
+                          PublishJobPersistencePort publishJobPersistencePort,
+                          RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort,
+                          OperatorService operatorService,
+                          RuleValidationService ruleValidationService,
+                          OutboxService outboxService,
+                          AuditService auditService) {
         this.ruleService = ruleService;
-        this.ruleVersionRepository = ruleVersionRepository;
-        this.publishJobRepository = publishJobRepository;
-        this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
+        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
+        this.publishJobPersistencePort = publishJobPersistencePort;
+        this.ruleTemporalLinkPersistencePort = ruleTemporalLinkPersistencePort;
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
-        this.outboxEventService = outboxEventService;
+        this.outboxService = outboxService;
         this.auditService = auditService;
     }
 
@@ -67,10 +68,10 @@ public class PublishService {
         Integer nextVersion = getNextVersionNumber(rule.getTenantId(), ruleId);
 
         // Check if job already exists for this version
-        if (publishJobRepository.existsByTenantIdAndRuleIdAndTargetVersion(
+        if (publishJobPersistencePort.existsByTenantIdAndRuleIdAndTargetVersion(
                 rule.getTenantId(), ruleId, nextVersion)) {
             throw new BusinessException(new ResponseInfo("PUBLISH_JOB_EXISTS",
-                "Publish job already exists for rule " + ruleId + " version " + nextVersion, 400));
+                    "Publish job already exists for rule " + ruleId + " version " + nextVersion, 400));
         }
 
         // Create publish job
@@ -87,8 +88,8 @@ public class PublishService {
      */
     @Transactional(readOnly = true)
     public PublishJob getPublishJob(String jobId) {
-        return publishJobRepository.findById(jobId)
-            .orElseThrow(() -> new BusinessException(new ResponseInfo("PUBLISH_JOB_NOT_FOUND", "Publish job not found: " + jobId, 404)));
+        return publishJobPersistencePort.findById(jobId)
+                .orElseThrow(() -> new BusinessException(new ResponseInfo("PUBLISH_JOB_NOT_FOUND", "Publish job not found: " + jobId, 404)));
     }
 
     /**
@@ -96,7 +97,7 @@ public class PublishService {
      */
     @Transactional(readOnly = true)
     public List<PublishJob> getPublishJobsForRule(String tenantId, String ruleId) {
-        return publishJobRepository.findByTenantIdAndRuleIdOrderByTargetVersionDesc(tenantId, ruleId);
+        return publishJobPersistencePort.findByTenantIdAndRuleIdOrderByTargetVersionDesc(tenantId, ruleId);
     }
 
     /**
@@ -109,42 +110,42 @@ public class PublishService {
 
         if (job.getStatus() != PublishJob.JobStatus.RUNNING) {
             throw new BusinessException(new ResponseInfo("CANNOT_CANCEL_JOB",
-                "Cannot cancel job in status: " + job.getStatus(), 400));
+                    "Cannot cancel job in status: " + job.getStatus(), 400));
         }
 
         job.setStatus(PublishJob.JobStatus.FAILED);
         job.setCompletedAt(Instant.now());
         job.getErrors().add("Cancelled by " + cancelledBy);
 
-        return publishJobRepository.save(job);
+        return publishJobPersistencePort.save(job);
     }
 
     private void validateRuleForPublishing(Rule rule) {
         // Validate rule state
         if (rule.getState() == Rule.RuleState.ARCHIVED) {
             throw new BusinessException(new ResponseInfo("CANNOT_PUBLISH_ARCHIVED",
-                "Cannot publish archived rule: " + rule.getId(), 400));
+                    "Cannot publish archived rule: " + rule.getId(), 400));
         }
 
         // Validate rule structure and operators
         RuleValidationService.ValidationResult validation =
-            ruleValidationService.validateRuleForPublishing(rule.getTenantId(), rule);
+                ruleValidationService.validateRuleForPublishing(rule.getTenantId(), rule);
 
         if (!validation.isValid()) {
             String errors = validation.getIssues().stream()
-                .map(issue -> issue.getPath() + ": " + issue.getMessage())
-                .reduce((a, b) -> a + "; " + b)
-                .orElse("Unknown validation error");
+                    .map(issue -> issue.getPath() + ": " + issue.getMessage())
+                    .reduce((a, b) -> a + "; " + b)
+                    .orElse("Unknown validation error");
 
             throw new BusinessException(new ResponseInfo("RULE_VALIDATION_FAILED",
-                "Rule validation failed: " + errors, 400));
+                    "Rule validation failed: " + errors, 400));
         }
     }
 
     private Integer getNextVersionNumber(String tenantId, String ruleId) {
-        return ruleVersionRepository.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId)
-            .map(rv -> rv.getVersion() + 1)
-            .orElse(1);
+        return ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId)
+                .map(rv -> rv.getVersion() + 1)
+                .orElse(1);
     }
 
     private PublishJob createPublishJob(Rule rule, Integer targetVersion, String publishedBy, PublishOptions options) {
@@ -163,18 +164,18 @@ public class PublishService {
 
         // Calculate operators fingerprint
         List<String> operatorNames = rule.getNodes().stream()
-            .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
-            .map(Rule.RuleNode::getOperatorName)
-            .filter(name -> name != null)
-            .distinct()
-            .toList();
+                .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
+                .map(Rule.RuleNode::getOperatorName)
+                .filter(name -> name != null)
+                .distinct()
+                .toList();
 
         String operatorsFingerprint = operatorService.calculateOperatorsFingerprint(rule.getTenantId(), operatorNames);
         compileInfo.setOperatorsFingerprint(operatorsFingerprint);
 
         job.setCompile(compileInfo);
 
-        return publishJobRepository.save(job);
+        return publishJobPersistencePort.save(job);
     }
 
     private void executePublishJob(String jobId) {
@@ -197,21 +198,30 @@ public class PublishService {
                 // Complete the job
                 job.setStatus(PublishJob.JobStatus.SUCCESS);
                 job.setCompletedAt(Instant.now());
-                publishJobRepository.save(job);
+                publishJobPersistencePort.save(job);
 
                 // Publish outbox event
-                outboxEventService.publishRulePublishedEvent(
-                    rule.getTenantId(),
-                    rule.getId(),
-                    job.getTargetVersion(),
-                    rule.getCode(),
-                    job.getRequestedBy(),
-                    job.getCompletedAt()
+                Map<String, Object> eventPayload = Map.of(
+                        "ruleId", rule.getId(),
+                        "ruleVersion", job.getTargetVersion(),
+                        "code", rule.getCode(),
+                        "publishedBy", job.getRequestedBy(),
+                        "publishedAt", job.getCompletedAt().toString()
+                );
+
+                outboxService.createEvent(
+                        "Rule",                          // aggregateType
+                        rule.getId(),                    // aggregateId
+                        "rule.published",                // eventType
+                        eventPayload,                    // payload
+                        "http://validation-events",      // destination
+                        Map.of("tenantId", rule.getTenantId()), // metadata
+                        3                                // maxAttempts
                 );
 
                 // Log audit event
                 auditService.logRulePublished(rule.getTenantId(), rule.getId(), job.getRequestedBy(),
-                    Map.of("version", job.getTargetVersion(), "jobId", job.getId()));
+                        Map.of("version", job.getTargetVersion(), "jobId", job.getId()));
 
                 logger.info("Publish job completed successfully: id={}, version={}", jobId, job.getTargetVersion());
 
@@ -220,7 +230,7 @@ public class PublishService {
                 job.setStatus(PublishJob.JobStatus.FAILED);
                 job.setCompletedAt(Instant.now());
                 job.getErrors().add("Compilation failed");
-                publishJobRepository.save(job);
+                publishJobPersistencePort.save(job);
 
                 logger.error("Publish job failed: id={}", jobId);
             }
@@ -233,7 +243,7 @@ public class PublishService {
                 job.setStatus(PublishJob.JobStatus.FAILED);
                 job.setCompletedAt(Instant.now());
                 job.getErrors().add("Execution error: " + e.getMessage());
-                publishJobRepository.save(job);
+                publishJobPersistencePort.save(job);
             } catch (Exception saveError) {
                 logger.error("Error updating failed job status: id={}", jobId, saveError);
             }
@@ -253,23 +263,23 @@ public class PublishService {
         ruleVersion.setOperatorsFingerprint(job.getCompile().getOperatorsFingerprint());
 
         // Snapshot temporal links
-        List<RuleTemporalLink> currentLinks = ruleTemporalLinkRepository.findByTenantIdAndRuleId(
-            rule.getTenantId(), rule.getId());
+        List<RuleTemporalLink> currentLinks = ruleTemporalLinkPersistencePort.findByRuleId(
+                rule.getId());
 
         List<RuleVersion.TimeLink> timeLinks = currentLinks.stream()
-            .map(link -> {
-                RuleVersion.TimeLink timeLink = new RuleVersion.TimeLink();
-                timeLink.setPolicyId(link.getPolicyId());
-                timeLink.setMode(RuleVersion.TimeLink.TimeLinkMode.valueOf(link.getMode().name()));
-                return timeLink;
-            })
-            .toList();
+                .map(link -> {
+                    RuleVersion.TimeLink timeLink = new RuleVersion.TimeLink();
+                    timeLink.setPolicyId(link.getPolicyId());
+                    timeLink.setMode(RuleVersion.TimeLink.TimeLinkMode.valueOf(link.getMode().name()));
+                    return timeLink;
+                })
+                .toList();
 
         ruleVersion.setTimeLinks(timeLinks);
         ruleVersion.setPublishedAt(Instant.now());
         ruleVersion.setPublishedBy(job.getRequestedBy());
 
-        return ruleVersionRepository.save(ruleVersion);
+        return ruleVersionPersistencePort.save(ruleVersion);
     }
 
     private boolean simulateCompilation(PublishJob job, RuleVersion ruleVersion) {
@@ -293,7 +303,7 @@ public class PublishService {
             compileInfo.setLogs(List.of("Compilation started", "Operators resolved", "Bundle created successfully"));
 
             ruleVersion.setCompile(compileInfo);
-            ruleVersionRepository.save(ruleVersion);
+            ruleVersionPersistencePort.save(ruleVersion);
 
             // Update job with bundle hash
             job.getCompile().setBundleHash(bundleHash);
@@ -325,16 +335,36 @@ public class PublishService {
         private String note;
 
         // Getters and setters
-        public String getCompilerId() { return compilerId; }
-        public void setCompilerId(String compilerId) { this.compilerId = compilerId; }
+        public String getCompilerId() {
+            return compilerId;
+        }
 
-        public boolean isPinTemporalLinks() { return pinTemporalLinks; }
-        public void setPinTemporalLinks(boolean pinTemporalLinks) { this.pinTemporalLinks = pinTemporalLinks; }
+        public void setCompilerId(String compilerId) {
+            this.compilerId = compilerId;
+        }
 
-        public boolean isPinOperatorFingerprint() { return pinOperatorFingerprint; }
-        public void setPinOperatorFingerprint(boolean pinOperatorFingerprint) { this.pinOperatorFingerprint = pinOperatorFingerprint; }
+        public boolean isPinTemporalLinks() {
+            return pinTemporalLinks;
+        }
 
-        public String getNote() { return note; }
-        public void setNote(String note) { this.note = note; }
+        public void setPinTemporalLinks(boolean pinTemporalLinks) {
+            this.pinTemporalLinks = pinTemporalLinks;
+        }
+
+        public boolean isPinOperatorFingerprint() {
+            return pinOperatorFingerprint;
+        }
+
+        public void setPinOperatorFingerprint(boolean pinOperatorFingerprint) {
+            this.pinOperatorFingerprint = pinOperatorFingerprint;
+        }
+
+        public String getNote() {
+            return note;
+        }
+
+        public void setNote(String note) {
+            this.note = note;
+        }
     }
 }

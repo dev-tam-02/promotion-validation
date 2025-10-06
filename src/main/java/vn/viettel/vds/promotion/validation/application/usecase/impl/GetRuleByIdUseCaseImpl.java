@@ -1,0 +1,30 @@
+package vn.viettel.vds.promotion.validation.application.usecase.impl;
+
+import org.springframework.stereotype.Service;
+import vn.viettel.vds.promotion.validation.application.port.in.GetRuleByIdUseCase;
+import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
+import vn.viettel.vds.promotion.validation.application.port.in.query.GetRuleByIdQuery;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
+
+/**
+ * Implementation of GetRuleByIdUseCase
+ */
+@Service
+public class GetRuleByIdUseCaseImpl implements GetRuleByIdUseCase {
+
+    private final RulePersistencePort rulePersistencePort;
+
+    public GetRuleByIdUseCaseImpl(RulePersistencePort rulePersistencePort) {
+        this.rulePersistencePort = rulePersistencePort;
+    }
+
+    @Override
+    public RuleResponse execute(GetRuleByIdQuery query) {
+        // Note: This use case is not currently in use - uses incompatible domain model
+        // Minimal implementation to allow compilation
+        throw new UnsupportedOperationException("This use case is deprecated and not currently supported");
+    }
+}

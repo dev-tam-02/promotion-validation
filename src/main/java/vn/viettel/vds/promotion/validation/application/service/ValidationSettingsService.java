@@ -69,8 +69,8 @@ public class ValidationSettingsService {
         } catch (Exception e) {
             log.error("Validation setting validation failed for ruleId: {}", request.validationRuleId(), e);
             return ValidationResult.failure(
-                "VALIDATION_SETTING_PROCESSING_ERROR",
-                "Failed to process validation setting: " + e.getMessage()
+                    "VALIDATION_SETTING_PROCESSING_ERROR",
+                    "Failed to process validation setting: " + e.getMessage()
             );
         }
     }
@@ -80,23 +80,23 @@ public class ValidationSettingsService {
             // Check if rule exists and is active
             if (!ruleService.ruleExists(validationRuleId)) {
                 return ValidationResult.failure(
-                    "VALIDATION_RULE_NOT_FOUND",
-                    "Validation rule not found: " + validationRuleId
+                        "VALIDATION_RULE_NOT_FOUND",
+                        "Validation rule not found: " + validationRuleId
                 );
             }
 
             if (!ruleService.isRuleActive(validationRuleId)) {
                 return ValidationResult.failure(
-                    "VALIDATION_RULE_INACTIVE",
-                    "Validation rule is inactive: " + validationRuleId
+                        "VALIDATION_RULE_INACTIVE",
+                        "Validation rule is inactive: " + validationRuleId
                 );
             }
 
             // Validate rule type compatibility
             if (ruleType != null && !isRuleTypeCompatible(validationRuleId, ruleType)) {
                 return ValidationResult.failure(
-                    "VALIDATION_RULE_INVALID_TYPE",
-                    "Rule type mismatch for rule: " + validationRuleId + ", expected: " + ruleType
+                        "VALIDATION_RULE_INVALID_TYPE",
+                        "Rule type mismatch for rule: " + validationRuleId + ", expected: " + ruleType
                 );
             }
 
@@ -105,8 +105,8 @@ public class ValidationSettingsService {
         } catch (Exception e) {
             log.error("Rule validation failed for ruleId: {}", validationRuleId, e);
             return ValidationResult.failure(
-                "VALIDATION_RULE_ERROR",
-                "Rule validation error: " + e.getMessage()
+                    "VALIDATION_RULE_ERROR",
+                    "Rule validation error: " + e.getMessage()
             );
         }
     }
@@ -116,8 +116,8 @@ public class ValidationSettingsService {
             // Parse timeframe object
             if (!(timeframe instanceof Map)) {
                 return ValidationResult.failure(
-                    "TIMEFRAME_INVALID_FORMAT",
-                    "Timeframe must be an object"
+                        "TIMEFRAME_INVALID_FORMAT",
+                        "Timeframe must be an object"
                 );
             }
 
@@ -147,15 +147,15 @@ public class ValidationSettingsService {
 
                 if (duration != null && !isValidDuration(duration)) {
                     return ValidationResult.failure(
-                        "TIMEFRAME_INVALID_DURATION",
-                        "Invalid duration format: " + duration
+                            "TIMEFRAME_INVALID_DURATION",
+                            "Invalid duration format: " + duration
                     );
                 }
 
                 if (interval != null && !isValidInterval(interval)) {
                     return ValidationResult.failure(
-                        "TIMEFRAME_INVALID_INTERVAL",
-                        "Invalid interval format: " + interval
+                            "TIMEFRAME_INVALID_INTERVAL",
+                            "Invalid interval format: " + interval
                     );
                 }
             }
@@ -165,8 +165,8 @@ public class ValidationSettingsService {
         } catch (Exception e) {
             log.error("Timeframe validation failed", e);
             return ValidationResult.failure(
-                "TIMEFRAME_VALIDATION_ERROR",
-                "Timeframe validation error: " + e.getMessage()
+                    "TIMEFRAME_VALIDATION_ERROR",
+                    "Timeframe validation error: " + e.getMessage()
             );
         }
     }
@@ -179,15 +179,15 @@ public class ValidationSettingsService {
 
             if (start.isAfter(end)) {
                 return ValidationResult.failure(
-                    "TIMEFRAME_END_DATE_BEFORE_START",
-                    "End date must be after start date"
+                        "TIMEFRAME_END_DATE_BEFORE_START",
+                        "End date must be after start date"
                 );
             }
 
             if (start.isBefore(now)) {
                 return ValidationResult.failure(
-                    "TIMEFRAME_START_DATE_IN_PAST",
-                    "Start date cannot be in the past"
+                        "TIMEFRAME_START_DATE_IN_PAST",
+                        "Start date cannot be in the past"
                 );
             }
 
@@ -195,8 +195,8 @@ public class ValidationSettingsService {
 
         } catch (Exception e) {
             return ValidationResult.failure(
-                "TIMEFRAME_INVALID_DATE_RANGE",
-                "Invalid date format or range: " + e.getMessage()
+                    "TIMEFRAME_INVALID_DATE_RANGE",
+                    "Invalid date format or range: " + e.getMessage()
             );
         }
     }
@@ -205,8 +205,8 @@ public class ValidationSettingsService {
         for (Integer day : validityDaysOfWeek) {
             if (day < 1 || day > 7) {
                 return ValidationResult.failure(
-                    "TIMEFRAME_INVALID_DAY_OF_WEEK",
-                    "Day of week must be between 1 and 7, got: " + day
+                        "TIMEFRAME_INVALID_DAY_OF_WEEK",
+                        "Day of week must be between 1 and 7, got: " + day
                 );
             }
         }
@@ -225,16 +225,16 @@ public class ValidationSettingsService {
 
                 if (dayOfWeek == null || startTime == null || expirationTime == null) {
                     return ValidationResult.failure(
-                        "TIMEFRAME_INVALID_HOURS",
-                        "Missing required fields in validity hours"
+                            "TIMEFRAME_INVALID_HOURS",
+                            "Missing required fields in validity hours"
                     );
                 }
 
                 // Basic time format validation
                 if (!isValidTimeFormat(startTime) || !isValidTimeFormat(expirationTime)) {
                     return ValidationResult.failure(
-                        "TIMEFRAME_INVALID_HOURS",
-                        "Invalid time format in validity hours"
+                            "TIMEFRAME_INVALID_HOURS",
+                            "Invalid time format in validity hours"
                     );
                 }
             }

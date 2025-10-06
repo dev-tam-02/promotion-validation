@@ -15,7 +15,7 @@ public class ValidationEngineErrorHandler implements ResponseErrorHandler {
     @Override
     public boolean hasError(ClientHttpResponse response) throws IOException {
         return response.getStatusCode().is4xxClientError() ||
-               response.getStatusCode().is5xxServerError();
+                response.getStatusCode().is5xxServerError();
     }
 
     @Override
@@ -23,12 +23,12 @@ public class ValidationEngineErrorHandler implements ResponseErrorHandler {
         HttpStatus statusCode = (HttpStatus) response.getStatusCode();
 
         logger.error("Validation engine request failed with status: {} {}",
-                    statusCode.value(), statusCode.getReasonPhrase());
+                statusCode.value(), statusCode.getReasonPhrase());
 
         String errorMessage = String.format("Validation engine request failed: %s",
-                                          statusCode.getReasonPhrase());
+                statusCode.getReasonPhrase());
 
         throw new ValidationEngineException(errorMessage, "http-request",
-                                          statusCode.value(), null);
+                statusCode.value(), null);
     }
 }

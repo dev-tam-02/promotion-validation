@@ -52,26 +52,61 @@ public class CreateRuleRequest {
     private String notes;
 
     // Getters and setters
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getCode() {
+        return code;
+    }
 
-    public String getLogic() { return logic; }
-    public void setLogic(String logic) { this.logic = logic; }
+    public void setCode(String code) {
+        this.code = code;
+    }
 
-    public Map<String, Object> getLimits() { return limits; }
-    public void setLimits(Map<String, Object> limits) { this.limits = limits; }
+    public String getName() {
+        return name;
+    }
 
-    public List<RuleNodeDto> getNodes() { return nodes; }
-    public void setNodes(List<RuleNodeDto> nodes) { this.nodes = nodes; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
+    public String getLogic() {
+        return logic;
+    }
+
+    public void setLogic(String logic) {
+        this.logic = logic;
+    }
+
+    public Map<String, Object> getLimits() {
+        return limits;
+    }
+
+    public void setLimits(Map<String, Object> limits) {
+        this.limits = limits;
+    }
+
+    public List<RuleNodeDto> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(List<RuleNodeDto> nodes) {
+        this.nodes = nodes;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
 
     // Nested class for backward compatibility with tests
     @Schema(description = "Rule node request (nested class for backward compatibility)")
@@ -87,31 +122,76 @@ public class CreateRuleRequest {
         private Integer order;
 
         // Getters and setters
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+        public String getId() {
+            return id;
+        }
 
-        public String getType() { return type; }
-        public void setType(String type) { this.type = type; }
+        public void setId(String id) {
+            this.id = id;
+        }
 
-        public String getGroupLogic() { return groupLogic; }
-        public void setGroupLogic(String groupLogic) { this.groupLogic = groupLogic; }
+        public String getType() {
+            return type;
+        }
 
-        public String getOperatorName() { return operatorName; }
-        public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
+        public void setType(String type) {
+            this.type = type;
+        }
 
-        public Integer getOperatorVersion() { return operatorVersion; }
-        public void setOperatorVersion(Integer operatorVersion) { this.operatorVersion = operatorVersion; }
+        public String getGroupLogic() {
+            return groupLogic;
+        }
 
-        public Map<String, Object> getParams() { return params; }
-        public void setParams(Map<String, Object> params) { this.params = params; }
+        public void setGroupLogic(String groupLogic) {
+            this.groupLogic = groupLogic;
+        }
 
-        public String getReasonCode() { return reasonCode; }
-        public void setReasonCode(String reasonCode) { this.reasonCode = reasonCode; }
+        public String getOperatorName() {
+            return operatorName;
+        }
 
-        public List<String> getChildren() { return children; }
-        public void setChildren(List<String> children) { this.children = children; }
+        public void setOperatorName(String operatorName) {
+            this.operatorName = operatorName;
+        }
 
-        public Integer getOrder() { return order; }
-        public void setOrder(Integer order) { this.order = order; }
+        public Integer getOperatorVersion() {
+            return operatorVersion;
+        }
+
+        public void setOperatorVersion(Integer operatorVersion) {
+            this.operatorVersion = operatorVersion;
+        }
+
+        public Map<String, Object> getParams() {
+            return params;
+        }
+
+        public void setParams(Map<String, Object> params) {
+            this.params = params;
+        }
+
+        public String getReasonCode() {
+            return reasonCode;
+        }
+
+        public void setReasonCode(String reasonCode) {
+            this.reasonCode = reasonCode;
+        }
+
+        public List<String> getChildren() {
+            return children;
+        }
+
+        public void setChildren(List<String> children) {
+            this.children = children;
+        }
+
+        public Integer getOrder() {
+            return order;
+        }
+
+        public void setOrder(Integer order) {
+            this.order = order;
+        }
     }
 }

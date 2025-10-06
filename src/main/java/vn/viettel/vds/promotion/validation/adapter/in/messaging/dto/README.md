@@ -1,13 +1,21 @@
 # Adapter In Messaging DTO Package
 
 ## Description
-The adapter.in.messaging.dto package contains Data Transfer Objects (DTOs) used by messaging adapters to convert between external message formats and the application's domain model. These DTOs represent the structure of incoming messages and provide a clear boundary between external systems and the application core.
+
+The adapter.in.messaging.dto package contains Data Transfer Objects (DTOs) used by messaging adapters to convert between
+external message formats and the application's domain model. These DTOs represent the structure of incoming messages and
+provide a clear boundary between external systems and the application core.
 
 ## Purpose
-The purpose of this package is to isolate the structure of external messages from the domain model, allowing the application to evolve independently of the message formats used by external systems. DTOs also provide a place to implement validation and conversion logic specific to messaging interfaces.
+
+The purpose of this package is to isolate the structure of external messages from the domain model, allowing the
+application to evolve independently of the message formats used by external systems. DTOs also provide a place to
+implement validation and conversion logic specific to messaging interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - Message DTOs that represent the structure of incoming messages
 - Event DTOs that represent domain events received from external systems
 - Command DTOs that represent commands received from external systems
@@ -17,6 +25,7 @@ This package typically contains:
 ## Examples
 
 ### Message DTO Example
+
 ```java
 // ExternalCampaignEvent.java
 @Data
@@ -61,6 +70,7 @@ public class ExternalCampaignEvent {
 ```
 
 ### Nested DTO Example
+
 ```java
 // ExternalDiscountDto.java
 @Data
@@ -129,6 +139,7 @@ public class ExternalDiscountDto {
 ```
 
 ### DTO Mapper Example
+
 ```java
 // CampaignEventMapper.java
 @Component
@@ -184,6 +195,7 @@ public class CampaignEventMapper {
 ```
 
 ## Rules
+
 1. DTOs should be simple data containers with minimal logic
 2. DTOs should include validation annotations and/or validation methods
 3. DTOs should be designed to match the structure of incoming messages

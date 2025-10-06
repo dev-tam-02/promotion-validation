@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineOperatorClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsRequest;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsResponse;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.OperatorRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Operator;
 
 import java.time.Instant;
@@ -34,15 +34,15 @@ public class OperatorService {
 
     private static final Logger logger = LoggerFactory.getLogger(OperatorService.class);
 
-    private final OperatorRepository operatorRepository;
+    private final OperatorPersistencePort operatorPersistencePort;
     private final AuditService auditService;
     private final ValidationEngineOperatorClient validationEngineClient;
     private final ObjectMapper objectMapper;
     private final JsonSchemaFactory schemaFactory;
 
-    public OperatorService(OperatorRepository operatorRepository, AuditService auditService,
-                          ValidationEngineOperatorClient validationEngineClient) {
-        this.operatorRepository = operatorRepository;
+    public OperatorService(OperatorPersistencePort operatorPersistencePort, AuditService auditService,
+                           ValidationEngineOperatorClient validationEngineClient) {
+        this.operatorPersistencePort = operatorPersistencePort;
         this.auditService = auditService;
         this.validationEngineClient = validationEngineClient;
         this.objectMapper = new ObjectMapper();
@@ -53,13 +53,13 @@ public class OperatorService {
      * Create a new operator
      */
     public Operator createOperator(String tenantId, String name, Integer version, String context,
-                                  Map<String, Object> jsonSchema, String compilerId) {
+                                   Map<String, Object> jsonSchema, String compilerId) {
         logger.info("Creating operator: tenant={}, name={}, version={}", tenantId, name, version);
 
         // Check if operator with same name and version already exists
-        if (operatorRepository.existsByTenantIdAndNameAndVersion(tenantId, name, version)) {
+        if (operatorPersistencePort.existsByTenantIdAndNameAndVersion(tenantId, name, version)) {
             throw new BusinessException(new ResponseInfo("OPERATOR_EXISTS",
-                "Operator " + name + "@" + version + " already exists for tenant " + tenantId, 400));
+                    "Operator " + name + "@" + version + " already exists for tenant " + tenantId, 400));
         }
 
         // Validate JSON schema
@@ -80,7 +80,7 @@ public class OperatorService {
         operator.setCreatedAt(Instant.now());
         operator.setUpdatedAt(Instant.now());
 
-        Operator saved = operatorRepository.save(operator);
+        Operator saved = operatorPersistencePort.save(operator);
 
         // Log audit event
         auditService.logOperatorCreated(tenantId, saved.getId(), "system");
@@ -93,14 +93,14 @@ public class OperatorService {
      * Update operator status
      */
     public Operator updateOperatorStatus(String tenantId, String name, Integer version,
-                                        Operator.OperatorStatus status) {
+                                         Operator.OperatorStatus status) {
         logger.info("Updating operator status: name={}, version={}, status={}", name, version, status);
 
         Operator operator = getOperator(tenantId, name, version);
         operator.setStatus(status);
         operator.setUpdatedAt(Instant.now());
 
-        return operatorRepository.save(operator);
+        return operatorPersistencePort.save(operator);
     }
 
     /**
@@ -108,8 +108,8 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public Operator getOperator(String tenantId, String name, Integer version) {
-        return operatorRepository.findByTenantIdAndNameAndVersion(tenantId, name, version)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return operatorPersistencePort.findByTenantIdAndNameAndVersion(tenantId, name, version)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -117,7 +117,7 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public Optional<Operator> getLatestOperator(String tenantId, String name) {
-        return operatorRepository.findFirstByTenantIdAndNameOrderByVersionDesc(tenantId, name);
+        return operatorPersistencePort.findLatestVersion(tenantId, name);
     }
 
     /**
@@ -125,7 +125,7 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public List<Operator> getOperatorVersions(String tenantId, String name) {
-        return operatorRepository.findByTenantIdAndNameOrderByVersionDesc(tenantId, name);
+        return operatorPersistencePort.findAllVersions(tenantId, name);
     }
 
     /**
@@ -133,8 +133,8 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public Page<Operator> findOperators(String tenantId, String contextPattern,
-                                       Operator.OperatorStatus status, Pageable pageable) {
-        return operatorRepository.findWithFilters(tenantId, contextPattern, status, pageable);
+                                        Operator.OperatorStatus status, Pageable pageable) {
+        return operatorPersistencePort.findWithFilters(tenantId, contextPattern, status, pageable);
     }
 
     /**
@@ -142,8 +142,8 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public List<Operator> getActiveOperatorsByContext(String tenantId, String context) {
-        return operatorRepository.findByTenantIdAndContextAndStatus(tenantId, context,
-            Operator.OperatorStatus.ACTIVE, Pageable.unpaged()).getContent();
+        return operatorPersistencePort.findByTenantIdAndContextAndStatus(tenantId, context,
+                Operator.OperatorStatus.ACTIVE, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -151,14 +151,14 @@ public class OperatorService {
      */
     @Transactional(readOnly = true)
     public List<Operator> getActiveOperators(String tenantId) {
-        return operatorRepository.findByTenantIdAndStatus(tenantId, Operator.OperatorStatus.ACTIVE);
+        return operatorPersistencePort.findByTenantIdAndStatus(tenantId, Operator.OperatorStatus.ACTIVE);
     }
 
     /**
      * Validate operator parameters against JSON schema
      */
     public ValidationResult validateOperatorParams(String tenantId, String operatorName,
-                                                  Integer operatorVersion, Map<String, Object> params) {
+                                                   Integer operatorVersion, Map<String, Object> params) {
         logger.debug("Validating operator params: operator={}@{}", operatorName, operatorVersion);
 
         try {
@@ -180,15 +180,15 @@ public class OperatorService {
                 return ValidationResult.valid();
             } else {
                 List<ValidationIssue> issues = errors.stream()
-                    .map(error -> new ValidationIssue(error.getInstanceLocation().toString(), error.getMessage(), operatorName))
-                    .collect(Collectors.toList());
+                        .map(error -> new ValidationIssue(error.getInstanceLocation().toString(), error.getMessage(), operatorName))
+                        .collect(Collectors.toList());
                 return ValidationResult.invalid(issues);
             }
 
         } catch (Exception e) {
             logger.error("Error validating operator params", e);
             return ValidationResult.invalid(List.of(
-                new ValidationIssue("", "Schema validation error: " + e.getMessage(), operatorName)
+                    new ValidationIssue("", "Schema validation error: " + e.getMessage(), operatorName)
             ));
         }
     }
@@ -206,16 +206,16 @@ public class OperatorService {
                 Optional<Operator> operator = getLatestOperator(tenantId, operatorName);
                 if (operator.isPresent()) {
                     fingerprintData.append(operator.get().getName())
-                        .append("@")
-                        .append(operator.get().getVersion())
-                        .append("|");
+                            .append("@")
+                            .append(operator.get().getVersion())
+                            .append("|");
                 }
             }
 
             // Generate SHA-256 hash
             return "sha256:" + java.security.MessageDigest.getInstance("SHA-256")
-                .digest(fingerprintData.toString().getBytes())
-                .toString();
+                    .digest(fingerprintData.toString().getBytes())
+                    .toString();
 
         } catch (Exception e) {
             logger.error("Error calculating operators fingerprint", e);
@@ -236,28 +236,6 @@ public class OperatorService {
         return name + "@" + version;
     }
 
-    // Validation result classes
-    public static class ValidationResult {
-        private final boolean valid;
-        private final List<ValidationIssue> issues;
-
-        private ValidationResult(boolean valid, List<ValidationIssue> issues) {
-            this.valid = valid;
-            this.issues = issues;
-        }
-
-        public static ValidationResult valid() {
-            return new ValidationResult(true, List.of());
-        }
-
-        public static ValidationResult invalid(List<ValidationIssue> issues) {
-            return new ValidationResult(false, issues);
-        }
-
-        public boolean isValid() { return valid; }
-        public List<ValidationIssue> getIssues() { return issues; }
-    }
-
     /**
      * Validate operator support in validation engine
      */
@@ -267,7 +245,7 @@ public class OperatorService {
         try {
             // Validate with validation engine
             ValidateEngineOperatorsRequest request = new ValidateEngineOperatorsRequest(List.of(
-                new ValidateEngineOperatorsRequest.OperatorValidationItem(operatorName, version)
+                    new ValidateEngineOperatorsRequest.OperatorValidationItem(operatorName, version)
             ));
 
             ValidateEngineOperatorsResponse response = validationEngineClient.validateOperators(request);
@@ -279,11 +257,11 @@ public class OperatorService {
 
             if (!response.isValid()) {
                 List<String> reasons = response.getUnsupportedOperators().stream()
-                    .map(ValidateEngineOperatorsResponse.UnsupportedOperator::getReason)
-                    .toList();
+                        .map(ValidateEngineOperatorsResponse.UnsupportedOperator::getReason)
+                        .toList();
 
                 String errorMessage = String.format("Operator '%s' version %s is not supported by validation engine. Reasons: %s",
-                    operatorName, version, String.join(", ", reasons));
+                        operatorName, version, String.join(", ", reasons));
 
                 throw new BusinessException(new ResponseInfo("VALIDATION_ERROR", errorMessage, 400));
             }
@@ -328,6 +306,33 @@ public class OperatorService {
         }
     }
 
+    // Validation result classes
+    public static class ValidationResult {
+        private final boolean valid;
+        private final List<ValidationIssue> issues;
+
+        private ValidationResult(boolean valid, List<ValidationIssue> issues) {
+            this.valid = valid;
+            this.issues = issues;
+        }
+
+        public static ValidationResult valid() {
+            return new ValidationResult(true, List.of());
+        }
+
+        public static ValidationResult invalid(List<ValidationIssue> issues) {
+            return new ValidationResult(false, issues);
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public List<ValidationIssue> getIssues() {
+            return issues;
+        }
+    }
+
     public static class ValidationIssue {
         private final String path;
         private final String message;
@@ -339,8 +344,16 @@ public class OperatorService {
             this.operator = operator;
         }
 
-        public String getPath() { return path; }
-        public String getMessage() { return message; }
-        public String getOperator() { return operator; }
+        public String getPath() {
+            return path;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getOperator() {
+            return operator;
+        }
     }
 }

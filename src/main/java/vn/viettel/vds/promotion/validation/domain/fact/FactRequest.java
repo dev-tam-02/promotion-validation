@@ -6,13 +6,13 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record FactRequest(
-    String customerId,
-    String orderId,
-    CandidateInfo candidate,
-    String timezone,
-    Map<String, Object> embeddedPayload,
-    Map<String, Object> context,
-    FetchOptions fetchOptions
+        String customerId,
+        String orderId,
+        CandidateInfo candidate,
+        String timezone,
+        Map<String, Object> embeddedPayload,
+        Map<String, Object> context,
+        FetchOptions fetchOptions
 ) {
     public static Builder builder() {
         return new Builder();
@@ -69,16 +69,18 @@ public record FactRequest(
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record CandidateInfo(
-        String type,
-        String key,
-        String campaignId
-    ) {}
+            String type,
+            String key,
+            String campaignId
+    ) {
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record FetchOptions(
-        Boolean allowPartial,
-        Boolean enableFallback,
-        Long timeoutMs,
-        Boolean skipCache
-    ) {}
+            Boolean allowPartial,
+            Boolean enableFallback,
+            Long timeoutMs,
+            Boolean skipCache
+    ) {
+    }
 }

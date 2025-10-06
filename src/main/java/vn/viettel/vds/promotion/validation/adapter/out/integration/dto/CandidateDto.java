@@ -25,7 +25,8 @@ public class CandidateDto {
     private Map<String, Object> metadata;
 
     // Constructors
-    public CandidateDto() {}
+    public CandidateDto() {
+    }
 
     public CandidateDto(String id) {
         this.id = id;
@@ -37,12 +38,27 @@ public class CandidateDto {
     }
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public Map<String, Object> getMetadata() { return metadata; }
-    public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 }

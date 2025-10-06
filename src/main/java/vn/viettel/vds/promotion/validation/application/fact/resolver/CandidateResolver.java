@@ -25,9 +25,9 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
     private final String baseUrl;
 
     public CandidateResolver(
-        @Qualifier("catalogServiceCircuitBreaker") CircuitBreaker circuitBreaker,
-        @Qualifier("catalogServiceRetry") Retry retry,
-        ObjectMapper objectMapper
+            @Qualifier("catalogServiceCircuitBreaker") CircuitBreaker circuitBreaker,
+            @Qualifier("catalogServiceRetry") Retry retry,
+            ObjectMapper objectMapper
     ) {
         super(circuitBreaker, retry);
         this.objectMapper = objectMapper;
@@ -35,9 +35,9 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
 
         // Use Java 21 HTTP Client with virtual threads
         this.httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
-            .build();
+                .connectTimeout(Duration.ofSeconds(5))
+                .executor(java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor())
+                .build();
     }
 
     @Override
@@ -55,15 +55,16 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/api/promotions/" + request.candidate().key() + "/details"))
-                .timeout(Duration.ofMillis(getTimeoutMs()))
-                .GET()
-                .build();
+                    .uri(URI.create(baseUrl + "/api/promotions/" + request.candidate().key() + "/details"))
+                    .timeout(Duration.ofMillis(getTimeoutMs()))
+                    .GET()
+                    .build();
 
             HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                Map<String, Object> candidateData = objectMapper.readValue(response.body(), new TypeReference<>() {});
+                Map<String, Object> candidateData = objectMapper.readValue(response.body(), new TypeReference<>() {
+                });
                 CandidateFact result = mapToCandidateFact(candidateData);
                 log.debug("Successfully resolved candidate facts for: {}", request.candidate().key());
                 return result;
@@ -110,11 +111,11 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
         }
 
         return CandidateFact.builder()
-            .type(request.candidate().type())
-            .key(request.candidate().key())
-            .campaignId(request.candidate().campaignId())
-            .status("ACTIVE") // Default assumption
-            .build();
+                .type(request.candidate().type())
+                .key(request.candidate().key())
+                .campaignId(request.candidate().campaignId())
+                .status("ACTIVE") // Default assumption
+                .build();
     }
 
     private CandidateFact mapToCandidateFact(Map<String, Object> data) {

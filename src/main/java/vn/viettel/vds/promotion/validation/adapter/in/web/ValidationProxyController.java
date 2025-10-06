@@ -33,7 +33,7 @@ public class ValidationProxyController {
         try {
             Map<String, Object> result = validationProxyService.performFastCheck(request);
             log.debug("Fast-check completed for campaign: {} with decision: {}",
-                request.get("campaignId"), result.get("decision"));
+                    request.get("campaignId"), result.get("decision"));
             return result;
 
         } catch (Exception e) {
@@ -41,9 +41,9 @@ public class ValidationProxyController {
 
             // Return failure response
             return Map.of(
-                "decision", "DENY",
-                "reasonCode", "FAST_CHECK_ERROR",
-                "explanation", "Fast check service unavailable: " + e.getMessage()
+                    "decision", "DENY",
+                    "reasonCode", "FAST_CHECK_ERROR",
+                    "explanation", "Fast check service unavailable: " + e.getMessage()
             );
         }
     }
@@ -59,7 +59,7 @@ public class ValidationProxyController {
         try {
             Map<String, Object> result = validationProxyService.performExecution(request);
             log.debug("Execution completed for bundle: {} with decision: {}",
-                request.get("bundleHash"), result.get("decision"));
+                    request.get("bundleHash"), result.get("decision"));
             return result;
 
         } catch (Exception e) {
@@ -67,10 +67,10 @@ public class ValidationProxyController {
 
             // Return failure response
             return Map.of(
-                "ok", false,
-                "decision", "DENY",
-                "reasonCodes", java.util.List.of("EXECUTION_ERROR"),
-                "explain", java.util.List.of("Validation execution service unavailable: " + e.getMessage())
+                    "ok", false,
+                    "decision", "DENY",
+                    "reasonCodes", java.util.List.of("EXECUTION_ERROR"),
+                    "explain", java.util.List.of("Validation execution service unavailable: " + e.getMessage())
             );
         }
     }
@@ -84,19 +84,19 @@ public class ValidationProxyController {
             boolean isHealthy = validationProxyService.isValidationEngineHealthy();
 
             return Map.of(
-                "status", isHealthy ? "UP" : "DOWN",
-                "validation-engine", isHealthy ? "AVAILABLE" : "UNAVAILABLE",
-                "timestamp", java.time.Instant.now().toString()
+                    "status", isHealthy ? "UP" : "DOWN",
+                    "validation-engine", isHealthy ? "AVAILABLE" : "UNAVAILABLE",
+                    "timestamp", java.time.Instant.now().toString()
             );
 
         } catch (Exception e) {
             log.error("Health check failed", e);
 
             return Map.of(
-                "status", "DOWN",
-                "validation-engine", "ERROR",
-                "error", e.getMessage(),
-                "timestamp", java.time.Instant.now().toString()
+                    "status", "DOWN",
+                    "validation-engine", "ERROR",
+                    "error", e.getMessage(),
+                    "timestamp", java.time.Instant.now().toString()
             );
         }
     }

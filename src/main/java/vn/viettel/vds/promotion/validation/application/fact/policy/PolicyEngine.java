@@ -21,7 +21,7 @@ public class PolicyEngine {
 
     public CompletableFuture<ProvenanceInfo.FetchPolicy> determineFetchPolicy(FactRequest request) {
         log.debug("Determining fetch policy for request: customerId={}, orderId={}",
-            request.customerId(), request.orderId());
+                request.customerId(), request.orderId());
 
         return CompletableFuture.supplyAsync(() -> {
             ProvenanceInfo.FetchPolicy policy = fetchPolicyRules.evaluate(request);
@@ -32,17 +32,17 @@ public class PolicyEngine {
 
     public boolean shouldAllowPartialResults(FactRequest request) {
         return request.fetchOptions() != null &&
-               Boolean.TRUE.equals(request.fetchOptions().allowPartial());
+                Boolean.TRUE.equals(request.fetchOptions().allowPartial());
     }
 
     public boolean shouldEnableFallback(FactRequest request) {
         return request.fetchOptions() == null ||
-               !Boolean.FALSE.equals(request.fetchOptions().enableFallback());
+                !Boolean.FALSE.equals(request.fetchOptions().enableFallback());
     }
 
     public boolean shouldSkipCache(FactRequest request) {
         return request.fetchOptions() != null &&
-               Boolean.TRUE.equals(request.fetchOptions().skipCache());
+                Boolean.TRUE.equals(request.fetchOptions().skipCache());
     }
 
     public long getTimeoutMs(FactRequest request) {

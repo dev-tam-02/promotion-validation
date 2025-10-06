@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.repository.AssignmentRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.entity.Assignment;
 
 import java.time.Instant;
@@ -22,13 +22,13 @@ public class AssignmentService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
 
-    private final AssignmentRepository assignmentRepository;
+    private final AssignmentPersistencePort assignmentPersistencePort;
     private final RuleService ruleService;
     private final AuditService auditService;
 
-    public AssignmentService(AssignmentRepository assignmentRepository,
-                           RuleService ruleService, AuditService auditService) {
-        this.assignmentRepository = assignmentRepository;
+    public AssignmentService(AssignmentPersistencePort assignmentPersistencePort,
+                             RuleService ruleService, AuditService auditService) {
+        this.assignmentPersistencePort = assignmentPersistencePort;
         this.ruleService = ruleService;
         this.auditService = auditService;
     }
@@ -37,11 +37,11 @@ public class AssignmentService {
      * Create a new assignment
      */
     public Assignment createAssignment(String tenantId, String ruleId, String subjectType, String subjectKey,
-                                     Boolean active, Instant validFrom, Instant validTo,
-                                     Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
-                                     String createdBy) {
+                                       Boolean active, Instant validFrom, Instant validTo,
+                                       Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
+                                       String createdBy) {
         logger.info("Creating assignment: tenant={}, rule={}, subject={}:{}",
-            tenantId, ruleId, subjectType, subjectKey);
+                tenantId, ruleId, subjectType, subjectKey);
 
         // Verify rule exists
         ruleService.getRuleById(ruleId);
@@ -71,11 +71,11 @@ public class AssignmentService {
         assignment.setCreatedAt(Instant.now());
         assignment.setUpdatedAt(Instant.now());
 
-        Assignment saved = assignmentRepository.save(assignment);
+        Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
         auditService.logAssignmentUpdated(tenantId, saved.getId(), createdBy,
-            java.util.Map.of("action", "create"));
+                java.util.Map.of("action", "create"));
 
         logger.info("Assignment created successfully: id={}", saved.getId());
         return saved;
@@ -85,8 +85,8 @@ public class AssignmentService {
      * Update an existing assignment
      */
     public Assignment updateAssignment(String assignmentId, Boolean active, Instant validFrom, Instant validTo,
-                                     Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
-                                     Integer ruleVersionPinned, String updatedBy) {
+                                       Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
+                                       Integer ruleVersionPinned, String updatedBy) {
         logger.info("Updating assignment: id={}", assignmentId);
 
         Assignment assignment = getAssignmentById(assignmentId);
@@ -94,12 +94,12 @@ public class AssignmentService {
         // Check for overlapping assignments if making this assignment active
         if (Boolean.TRUE.equals(active) && !Boolean.TRUE.equals(assignment.getActive())) {
             checkForOverlappingAssignments(
-                assignment.getTenantId(),
-                assignment.getSubject().getType(),
-                assignment.getSubject().getKey(),
-                validFrom != null ? validFrom : assignment.getValidFrom(),
-                validTo != null ? validTo : assignment.getValidTo(),
-                assignmentId
+                    assignment.getTenantId(),
+                    assignment.getSubject().getType(),
+                    assignment.getSubject().getKey(),
+                    validFrom != null ? validFrom : assignment.getValidFrom(),
+                    validTo != null ? validTo : assignment.getValidTo(),
+                    assignmentId
             );
         }
 
@@ -131,14 +131,14 @@ public class AssignmentService {
         assignment.setAssignmentVersion(assignment.getAssignmentVersion() + 1);
         assignment.setUpdatedAt(Instant.now());
 
-        Assignment saved = assignmentRepository.save(assignment);
+        Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
         auditService.logAssignmentUpdated(assignment.getTenantId(), saved.getId(), updatedBy,
-            java.util.Map.of("action", "update", "version", saved.getAssignmentVersion()));
+                java.util.Map.of("action", "update", "version", saved.getAssignmentVersion()));
 
         logger.info("Assignment updated successfully: id={}, version={}",
-            saved.getId(), saved.getAssignmentVersion());
+                saved.getId(), saved.getAssignmentVersion());
         return saved;
     }
 
@@ -147,8 +147,8 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public Assignment getAssignmentById(String assignmentId) {
-        return assignmentRepository.findById(assignmentId)
-            .orElseThrow(() -> new ResourceNotFoundException());
+        return assignmentPersistencePort.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 
     /**
@@ -156,8 +156,8 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public Page<Assignment> findAssignments(String tenantId, String subjectType, String subjectKeyPattern,
-                                          Boolean active, String ruleId, Pageable pageable) {
-        return assignmentRepository.findWithFilters(tenantId, subjectType, subjectKeyPattern, active, ruleId, pageable);
+                                            Boolean active, String ruleId, Pageable pageable) {
+        return assignmentPersistencePort.findWithFilters(tenantId, subjectType, subjectKeyPattern, active, ruleId, pageable);
     }
 
     /**
@@ -165,7 +165,7 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public List<Assignment> getAssignmentsByRule(String tenantId, String ruleId) {
-        return assignmentRepository.findByTenantIdAndRuleIdOrderByAssignmentVersionDesc(tenantId, ruleId);
+        return assignmentPersistencePort.findByTenantIdAndRuleId(tenantId, ruleId);
     }
 
     /**
@@ -173,12 +173,12 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public Optional<Assignment> getActiveAssignmentForSubject(String tenantId, String subjectType, String subjectKey) {
-        List<Assignment> activeAssignments = assignmentRepository.findActiveByTenantIdAndSubject(
-            tenantId, subjectType, subjectKey);
+        List<Assignment> activeAssignments = assignmentPersistencePort.findActiveByTenantIdAndSubject(
+                tenantId, subjectType, subjectKey);
 
         // Return the latest version if multiple active assignments exist
         return activeAssignments.stream()
-            .max((a1, a2) -> a1.getAssignmentVersion().compareTo(a2.getAssignmentVersion()));
+                .max((a1, a2) -> a1.getAssignmentVersion().compareTo(a2.getAssignmentVersion()));
     }
 
     /**
@@ -186,7 +186,7 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public List<Assignment> getAssignmentsValidAtTime(String tenantId, Instant time) {
-        return assignmentRepository.findActiveAtTime(tenantId, time);
+        return assignmentPersistencePort.findActiveAtTime(tenantId, time);
     }
 
     /**
@@ -200,32 +200,32 @@ public class AssignmentService {
         assignment.setAssignmentVersion(assignment.getAssignmentVersion() + 1);
         assignment.setUpdatedAt(Instant.now());
 
-        Assignment saved = assignmentRepository.save(assignment);
+        Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
         auditService.logAssignmentUpdated(assignment.getTenantId(), saved.getId(), updatedBy,
-            java.util.Map.of("action", "deactivate"));
+                java.util.Map.of("action", "deactivate"));
 
         logger.info("Assignment deactivated successfully: id={}", saved.getId());
         return saved;
     }
 
     private void checkForOverlappingAssignments(String tenantId, String subjectType, String subjectKey,
-                                              Instant validFrom, Instant validTo, String excludeAssignmentId) {
-        List<Assignment> overlapping = assignmentRepository.findOverlappingAssignments(
-            tenantId, subjectType, subjectKey, validFrom, validTo);
+                                                Instant validFrom, Instant validTo, String excludeAssignmentId) {
+        List<Assignment> overlapping = assignmentPersistencePort.findOverlappingAssignments(
+                tenantId, subjectType, subjectKey, validFrom, validTo);
 
         // Filter out the current assignment if updating
         if (excludeAssignmentId != null) {
             overlapping = overlapping.stream()
-                .filter(assignment -> !assignment.getId().equals(excludeAssignmentId))
-                .toList();
+                    .filter(assignment -> !assignment.getId().equals(excludeAssignmentId))
+                    .toList();
         }
 
         if (!overlapping.isEmpty()) {
             throw new BusinessException(new ResponseInfo("ASSIGNMENT_OVERLAP",
-                String.format("Active assignment already exists for subject %s:%s in the specified time range",
-                    subjectType, subjectKey), 400));
+                    String.format("Active assignment already exists for subject %s:%s in the specified time range",
+                            subjectType, subjectKey), 400));
         }
     }
 
@@ -238,7 +238,7 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public boolean hasValidationAssignment(String objectType, String objectId) {
-        return assignmentRepository.existsBySubjectTypeAndSubjectKey(objectType, objectId);
+        return assignmentPersistencePort.existsBySubjectTypeAndSubjectKey(objectType, objectId);
     }
 
     /**
@@ -247,8 +247,8 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public java.util.Map<String, Object> getValidationSettings(String objectType, String objectId) {
-        Optional<Assignment> assignment = assignmentRepository
-            .findBySubjectTypeAndSubjectKey(objectType, objectId);
+        Optional<Assignment> assignment = assignmentPersistencePort
+                .findBySubjectTypeAndSubjectKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
             return null;
@@ -292,7 +292,7 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public Optional<Assignment> findBySubjectTypeAndKey(String subjectType, String subjectKey) {
-        return assignmentRepository.findBySubjectTypeAndSubjectKey(subjectType, subjectKey);
+        return assignmentPersistencePort.findBySubjectTypeAndSubjectKey(subjectType, subjectKey);
     }
 
     /**
@@ -300,6 +300,6 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public List<Assignment> findAllBySubjectTypeAndKey(String subjectType, String subjectKey) {
-        return assignmentRepository.findAllBySubjectTypeAndSubjectKey(subjectType, subjectKey);
+        return assignmentPersistencePort.findAllBySubjectTypeAndSubjectKey(subjectType, subjectKey);
     }
 }

@@ -8,19 +8,19 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CustomerFact(
-    String customerId,
-    String email,
-    String phone,
-    String tier,
-    Instant registrationDate,
-    Instant lastActivityDate,
-    Boolean isActive,
-    String region,
-    String language,
-    String currency,
-    List<String> tags,
-    Map<String, Object> attributes,
-    Map<String, Object> preferences
+        String customerId,
+        String email,
+        String phone,
+        String tier,
+        Instant registrationDate,
+        Instant lastActivityDate,
+        Boolean isActive,
+        String region,
+        String language,
+        String currency,
+        List<String> tags,
+        Map<String, Object> attributes,
+        Map<String, Object> preferences
 ) {
     public static Builder builder() {
         return new Builder();
@@ -108,8 +108,8 @@ public record CustomerFact(
 
         public CustomerFact build() {
             return new CustomerFact(
-                customerId, email, phone, tier, registrationDate, lastActivityDate,
-                isActive, region, language, currency, tags, attributes, preferences
+                    customerId, email, phone, tier, registrationDate, lastActivityDate,
+                    isActive, region, language, currency, tags, attributes, preferences
             );
         }
     }

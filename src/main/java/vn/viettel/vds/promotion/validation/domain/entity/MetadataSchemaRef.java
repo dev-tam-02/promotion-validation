@@ -31,24 +31,59 @@ public class MetadataSchemaRef {
     private Instant createdAt;
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getResourceType() { return resourceType; }
-    public void setResourceType(String resourceType) { this.resourceType = resourceType; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getSchemaService() { return schemaService; }
-    public void setSchemaService(String schemaService) { this.schemaService = schemaService; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getSchemaId() { return schemaId; }
-    public void setSchemaId(String schemaId) { this.schemaId = schemaId; }
+    public String getResourceType() {
+        return resourceType;
+    }
 
-    public Boolean getActive() { return active; }
-    public void setActive(Boolean active) { this.active = active; }
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public String getSchemaService() {
+        return schemaService;
+    }
+
+    public void setSchemaService(String schemaService) {
+        this.schemaService = schemaService;
+    }
+
+    public String getSchemaId() {
+        return schemaId;
+    }
+
+    public void setSchemaId(String schemaId) {
+        this.schemaId = schemaId;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
 }

@@ -1,13 +1,21 @@
 # Adapter In Web DTO Package
 
 ## Description
-The adapter.in.web.dto package contains Data Transfer Objects (DTOs) used by web adapters to convert between HTTP request/response formats and the application's domain model. These DTOs represent the structure of incoming requests and outgoing responses, providing a clear boundary between the web interface and the application core.
+
+The adapter.in.web.dto package contains Data Transfer Objects (DTOs) used by web adapters to convert between HTTP
+request/response formats and the application's domain model. These DTOs represent the structure of incoming requests and
+outgoing responses, providing a clear boundary between the web interface and the application core.
 
 ## Purpose
-The purpose of this package is to isolate the structure of HTTP requests and responses from the domain model, allowing the application to evolve independently of the API contracts. DTOs also provide a place to implement validation and conversion logic specific to web interfaces.
+
+The purpose of this package is to isolate the structure of HTTP requests and responses from the domain model, allowing
+the application to evolve independently of the API contracts. DTOs also provide a place to implement validation and
+conversion logic specific to web interfaces.
 
 ## Usage
+
 This package typically contains:
+
 - Request DTOs that represent the structure of incoming HTTP requests
 - Response DTOs that represent the structure of outgoing HTTP responses
 - Mappers that convert between DTOs and domain objects or commands
@@ -17,6 +25,7 @@ This package typically contains:
 ## Examples
 
 ### Request DTO Example
+
 ```java
 // CreateCampaignRequest.java
 @Data
@@ -71,6 +80,7 @@ public class CreateCampaignRequest {
 ```
 
 ### Response DTO Example
+
 ```java
 // CampaignResponse.java
 @Data
@@ -115,6 +125,7 @@ public class CampaignResponse {
 ```
 
 ### Nested Response DTO Example
+
 ```java
 // PromotionResponse.java
 @Data
@@ -157,6 +168,7 @@ public class PromotionResponse {
 ```
 
 ### DTO Mapper Example
+
 ```java
 // CampaignDtoMapper.java
 @Component
@@ -236,6 +248,7 @@ public class CampaignDtoMapper {
 ```
 
 ## Rules
+
 1. DTOs should be simple data containers with minimal logic
 2. DTOs should include validation annotations and/or validation methods
 3. DTOs should be designed to match the structure of HTTP requests and responses

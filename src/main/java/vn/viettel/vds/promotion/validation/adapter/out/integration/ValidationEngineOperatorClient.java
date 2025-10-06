@@ -9,9 +9,9 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateE
 import java.util.List;
 
 @FeignClient(
-    name = "validation-engine-operator",
-    url = "${integration.validation-engine.url:http://localhost:8082}",
-    fallback = ValidationEngineOperatorClientFallback.class
+        name = "validation-engine-operator",
+        url = "${integration.validation-engine.url:http://localhost:8082}",
+        fallback = ValidationEngineOperatorClientFallback.class
 )
 public interface ValidationEngineOperatorClient {
 
@@ -26,5 +26,5 @@ public interface ValidationEngineOperatorClient {
 
     @GetMapping("/v1/operators/supported/{operatorName}")
     Boolean isOperatorSupported(@PathVariable("operatorName") String operatorName,
-                               @RequestParam(value = "version", required = false) Integer version);
+                                @RequestParam(value = "version", required = false) Integer version);
 }

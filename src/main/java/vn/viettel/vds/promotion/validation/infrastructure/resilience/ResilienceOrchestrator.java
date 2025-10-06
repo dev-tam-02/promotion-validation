@@ -24,11 +24,11 @@ public class ResilienceOrchestrator {
     private final ResilienceConfiguration config;
 
     public ResilienceOrchestrator(CircuitBreakerService circuitBreakerService,
-                                RetryService retryService,
-                                TimeoutService timeoutService,
-                                BulkheadService bulkheadService,
-                                FallbackService fallbackService,
-                                ResilienceConfiguration config) {
+                                  RetryService retryService,
+                                  TimeoutService timeoutService,
+                                  BulkheadService bulkheadService,
+                                  FallbackService fallbackService,
+                                  ResilienceConfiguration config) {
         this.circuitBreakerService = circuitBreakerService;
         this.retryService = retryService;
         this.timeoutService = timeoutService;
@@ -38,7 +38,7 @@ public class ResilienceOrchestrator {
     }
 
     public ValidationResponse executeValidationWithResilience(ValidationRequest request,
-                                                            Supplier<ValidationResponse> validationSupplier) {
+                                                              Supplier<ValidationResponse> validationSupplier) {
         String operationName = "validation-" + request.getPromotionId();
         Instant startTime = Instant.now();
 
@@ -59,12 +59,12 @@ public class ResilienceOrchestrator {
         } finally {
             Duration executionTime = Duration.between(startTime, Instant.now());
             logger.info("Validation execution completed for request: {} in {}ms",
-                       request.getTransactionId(), executionTime.toMillis());
+                    request.getTransactionId(), executionTime.toMillis());
         }
     }
 
     public ValidationResponse executeCompilationWithResilience(ValidationRule rule,
-                                                             Supplier<ValidationResponse> compilationSupplier) {
+                                                               Supplier<ValidationResponse> compilationSupplier) {
         String operationName = "compilation-" + rule.getRuleId();
         Instant startTime = Instant.now();
 
@@ -85,15 +85,15 @@ public class ResilienceOrchestrator {
         } finally {
             Duration executionTime = Duration.between(startTime, Instant.now());
             logger.info("Compilation execution completed for rule: {} in {}ms",
-                       rule.getRuleId(), executionTime.toMillis());
+                    rule.getRuleId(), executionTime.toMillis());
         }
     }
 
     public <T> T executeWithAllPatterns(String operationName, Supplier<T> operation) {
         return executeWithCircuitBreaker(operationName, () ->
-            executeWithRetry(operationName, () ->
-                executeWithTimeout(operationName, () ->
-                    executeWithBulkhead(operationName, operation))));
+                executeWithRetry(operationName, () ->
+                        executeWithTimeout(operationName, () ->
+                                executeWithBulkhead(operationName, operation))));
     }
 
     public <T> T executeWithCircuitBreaker(String operationName, Supplier<T> operation) {
@@ -134,13 +134,13 @@ public class ResilienceOrchestrator {
 
     public ResilienceStatus getResilienceStatus() {
         return new ResilienceStatus(
-            config.isEnabled(),
-            circuitBreakerService.getCircuitBreakerStatus("default"),
-            retryService.getRetryStatus("default"),
-            timeoutService.getTimeoutStatus("default"),
-            bulkheadService.getBulkheadStatus("default"),
-            fallbackService.getFallbackStats(),
-            Instant.now()
+                config.isEnabled(),
+                circuitBreakerService.getCircuitBreakerStatus("default"),
+                retryService.getRetryStatus("default"),
+                timeoutService.getTimeoutStatus("default"),
+                bulkheadService.getBulkheadStatus("default"),
+                fallbackService.getFallbackStats(),
+                Instant.now()
         );
     }
 
@@ -163,8 +163,13 @@ public class ResilienceOrchestrator {
             this.failureType = failureType;
         }
 
-        public String getOperationName() { return operationName; }
-        public String getFailureType() { return failureType; }
+        public String getOperationName() {
+            return operationName;
+        }
+
+        public String getFailureType() {
+            return failureType;
+        }
     }
 
     // Comprehensive status class
@@ -178,12 +183,12 @@ public class ResilienceOrchestrator {
         private final Instant timestamp;
 
         public ResilienceStatus(boolean enabled,
-                              CircuitBreakerService.CircuitBreakerStatus circuitBreakerStatus,
-                              RetryService.RetryStatus retryStatus,
-                              TimeoutService.TimeoutStatus timeoutStatus,
-                              BulkheadService.BulkheadStatus bulkheadStatus,
-                              FallbackService.FallbackStats fallbackStats,
-                              Instant timestamp) {
+                                CircuitBreakerService.CircuitBreakerStatus circuitBreakerStatus,
+                                RetryService.RetryStatus retryStatus,
+                                TimeoutService.TimeoutStatus timeoutStatus,
+                                BulkheadService.BulkheadStatus bulkheadStatus,
+                                FallbackService.FallbackStats fallbackStats,
+                                Instant timestamp) {
             this.enabled = enabled;
             this.circuitBreakerStatus = circuitBreakerStatus;
             this.retryStatus = retryStatus;
@@ -194,18 +199,38 @@ public class ResilienceOrchestrator {
         }
 
         // Getters
-        public boolean isEnabled() { return enabled; }
-        public CircuitBreakerService.CircuitBreakerStatus getCircuitBreakerStatus() { return circuitBreakerStatus; }
-        public RetryService.RetryStatus getRetryStatus() { return retryStatus; }
-        public TimeoutService.TimeoutStatus getTimeoutStatus() { return timeoutStatus; }
-        public BulkheadService.BulkheadStatus getBulkheadStatus() { return bulkheadStatus; }
-        public FallbackService.FallbackStats getFallbackStats() { return fallbackStats; }
-        public Instant getTimestamp() { return timestamp; }
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public CircuitBreakerService.CircuitBreakerStatus getCircuitBreakerStatus() {
+            return circuitBreakerStatus;
+        }
+
+        public RetryService.RetryStatus getRetryStatus() {
+            return retryStatus;
+        }
+
+        public TimeoutService.TimeoutStatus getTimeoutStatus() {
+            return timeoutStatus;
+        }
+
+        public BulkheadService.BulkheadStatus getBulkheadStatus() {
+            return bulkheadStatus;
+        }
+
+        public FallbackService.FallbackStats getFallbackStats() {
+            return fallbackStats;
+        }
+
+        public Instant getTimestamp() {
+            return timestamp;
+        }
 
         public boolean isHealthy() {
             return enabled &&
-                   circuitBreakerStatus.isHealthy() &&
-                   !bulkheadStatus.isAtCapacity();
+                    circuitBreakerStatus.isHealthy() &&
+                    !bulkheadStatus.isAtCapacity();
         }
 
         public String getOverallStatus() {

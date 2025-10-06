@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.domain.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -14,12 +15,14 @@ public class ValidationRequest {
     private List<String> rules;
     private Instant timestamp;
     private BigDecimal orderValue;
+    private ValidationContext validationContext;
 
     public ValidationRequest() {
     }
 
     public ValidationRequest(String transactionId, String promotionId, String customerId, String sessionId,
-                           Map<String, Object> context, List<String> rules, Instant timestamp, BigDecimal orderValue) {
+                             Map<String, Object> context, List<String> rules, Instant timestamp, BigDecimal orderValue,
+                             ValidationContext validationContext) {
         this.transactionId = transactionId;
         this.promotionId = promotionId;
         this.customerId = customerId;
@@ -28,10 +31,15 @@ public class ValidationRequest {
         this.rules = rules;
         this.timestamp = timestamp;
         this.orderValue = orderValue;
+        this.validationContext = validationContext;
     }
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    public String getRequestId() {
+        return transactionId;
     }
 
     public String getTransactionId() {
@@ -98,6 +106,45 @@ public class ValidationRequest {
         this.orderValue = orderValue;
     }
 
+    public ValidationContext getValidationContext() {
+        return validationContext;
+    }
+
+    public void setValidationContext(ValidationContext validationContext) {
+        this.validationContext = validationContext;
+    }
+
+    public boolean isFastCheckEligible() {
+        if (validationContext == null || validationContext.getCustomer() == null) {
+            return false;
+        }
+        return !isHighValueTransaction() && validationContext.getCustomer().getTotalPurchaseAmount() != null;
+    }
+
+    public boolean isHighValueTransaction() {
+        return orderValue != null && orderValue.compareTo(new BigDecimal("1000000")) > 0;
+    }
+
+    public String getCustomerSegment() {
+        if (validationContext != null && validationContext.getCustomer() != null) {
+            return validationContext.getCustomer().getSegment();
+        }
+        return "STANDARD";
+    }
+
+    public boolean isWithinTimeWindow(int minutesWindow) {
+        if (timestamp == null) {
+            return false;
+        }
+        Instant now = Instant.now();
+        long minutesDifference = ChronoUnit.MINUTES.between(timestamp, now);
+        return Math.abs(minutesDifference) <= minutesWindow;
+    }
+
+    public boolean hasValidContext() {
+        return validationContext != null && validationContext.isValid();
+    }
+
     public static class Builder {
         private String transactionId;
         private String promotionId;
@@ -107,6 +154,7 @@ public class ValidationRequest {
         private List<String> rules;
         private Instant timestamp;
         private BigDecimal orderValue;
+        private ValidationContext validationContext;
 
         public Builder transactionId(String transactionId) {
             this.transactionId = transactionId;
@@ -148,8 +196,13 @@ public class ValidationRequest {
             return this;
         }
 
+        public Builder validationContext(ValidationContext validationContext) {
+            this.validationContext = validationContext;
+            return this;
+        }
+
         public ValidationRequest build() {
-            return new ValidationRequest(transactionId, promotionId, customerId, sessionId, context, rules, timestamp, orderValue);
+            return new ValidationRequest(transactionId, promotionId, customerId, sessionId, context, rules, timestamp, orderValue, validationContext);
         }
     }
 }

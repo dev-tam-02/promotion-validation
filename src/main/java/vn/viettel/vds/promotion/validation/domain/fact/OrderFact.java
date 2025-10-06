@@ -9,25 +9,25 @@ import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderFact(
-    String orderId,
-    String customerId,
-    Instant orderDate,
-    String status,
-    BigDecimal totalAmount,
-    BigDecimal subtotal,
-    BigDecimal tax,
-    BigDecimal shipping,
-    String currency,
-    String channel,
-    String paymentMethod,
-    List<OrderItemFact> items,
-    List<DiscountFact> appliedDiscounts,
-    BigDecimal cheapestItemPrice,
-    BigDecimal mostExpensiveItemPrice,
-    Integer totalQuantity,
-    Instant createdAt,
-    Instant updatedAt,
-    Map<String, Object> metadata
+        String orderId,
+        String customerId,
+        Instant orderDate,
+        String status,
+        BigDecimal totalAmount,
+        BigDecimal subtotal,
+        BigDecimal tax,
+        BigDecimal shipping,
+        String currency,
+        String channel,
+        String paymentMethod,
+        List<OrderItemFact> items,
+        List<DiscountFact> appliedDiscounts,
+        BigDecimal cheapestItemPrice,
+        BigDecimal mostExpensiveItemPrice,
+        Integer totalQuantity,
+        Instant createdAt,
+        Instant updatedAt,
+        Map<String, Object> metadata
 ) {
     public static Builder builder() {
         return new Builder();
@@ -152,10 +152,10 @@ public record OrderFact(
 
         public OrderFact build() {
             return new OrderFact(
-                orderId, customerId, orderDate, status, totalAmount, subtotal,
-                tax, shipping, currency, channel, paymentMethod, items,
-                appliedDiscounts, cheapestItemPrice, mostExpensiveItemPrice,
-                totalQuantity, createdAt, updatedAt, metadata
+                    orderId, customerId, orderDate, status, totalAmount, subtotal,
+                    tax, shipping, currency, channel, paymentMethod, items,
+                    appliedDiscounts, cheapestItemPrice, mostExpensiveItemPrice,
+                    totalQuantity, createdAt, updatedAt, metadata
             );
         }
     }

@@ -14,20 +14,45 @@ public class ResilienceConfiguration {
     private BulkheadConfig bulkhead = new BulkheadConfig();
 
     // Getters and setters
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public boolean isEnabled() {
+        return enabled;
+    }
 
-    public CircuitBreakerConfig getCircuitBreaker() { return circuitBreaker; }
-    public void setCircuitBreaker(CircuitBreakerConfig circuitBreaker) { this.circuitBreaker = circuitBreaker; }
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
-    public RetryConfig getRetry() { return retry; }
-    public void setRetry(RetryConfig retry) { this.retry = retry; }
+    public CircuitBreakerConfig getCircuitBreaker() {
+        return circuitBreaker;
+    }
 
-    public TimeoutConfig getTimeout() { return timeout; }
-    public void setTimeout(TimeoutConfig timeout) { this.timeout = timeout; }
+    public void setCircuitBreaker(CircuitBreakerConfig circuitBreaker) {
+        this.circuitBreaker = circuitBreaker;
+    }
 
-    public BulkheadConfig getBulkhead() { return bulkhead; }
-    public void setBulkhead(BulkheadConfig bulkhead) { this.bulkhead = bulkhead; }
+    public RetryConfig getRetry() {
+        return retry;
+    }
+
+    public void setRetry(RetryConfig retry) {
+        this.retry = retry;
+    }
+
+    public TimeoutConfig getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(TimeoutConfig timeout) {
+        this.timeout = timeout;
+    }
+
+    public BulkheadConfig getBulkhead() {
+        return bulkhead;
+    }
+
+    public void setBulkhead(BulkheadConfig bulkhead) {
+        this.bulkhead = bulkhead;
+    }
 
     public static class CircuitBreakerConfig {
         private float failureRateThreshold = 50.0f;
@@ -40,29 +65,69 @@ public class ResilienceConfiguration {
         private boolean automaticTransitionFromOpenToHalfOpenEnabled = true;
 
         // Getters and setters
-        public float getFailureRateThreshold() { return failureRateThreshold; }
-        public void setFailureRateThreshold(float failureRateThreshold) { this.failureRateThreshold = failureRateThreshold; }
+        public float getFailureRateThreshold() {
+            return failureRateThreshold;
+        }
 
-        public float getSlowCallRateThreshold() { return slowCallRateThreshold; }
-        public void setSlowCallRateThreshold(float slowCallRateThreshold) { this.slowCallRateThreshold = slowCallRateThreshold; }
+        public void setFailureRateThreshold(float failureRateThreshold) {
+            this.failureRateThreshold = failureRateThreshold;
+        }
 
-        public long getSlowCallDurationThreshold() { return slowCallDurationThreshold; }
-        public void setSlowCallDurationThreshold(long slowCallDurationThreshold) { this.slowCallDurationThreshold = slowCallDurationThreshold; }
+        public float getSlowCallRateThreshold() {
+            return slowCallRateThreshold;
+        }
 
-        public int getPermittedNumberOfCallsInHalfOpenState() { return permittedNumberOfCallsInHalfOpenState; }
-        public void setPermittedNumberOfCallsInHalfOpenState(int permittedNumberOfCallsInHalfOpenState) { this.permittedNumberOfCallsInHalfOpenState = permittedNumberOfCallsInHalfOpenState; }
+        public void setSlowCallRateThreshold(float slowCallRateThreshold) {
+            this.slowCallRateThreshold = slowCallRateThreshold;
+        }
 
-        public int getMinimumNumberOfCalls() { return minimumNumberOfCalls; }
-        public void setMinimumNumberOfCalls(int minimumNumberOfCalls) { this.minimumNumberOfCalls = minimumNumberOfCalls; }
+        public long getSlowCallDurationThreshold() {
+            return slowCallDurationThreshold;
+        }
 
-        public int getSlidingWindowSize() { return slidingWindowSize; }
-        public void setSlidingWindowSize(int slidingWindowSize) { this.slidingWindowSize = slidingWindowSize; }
+        public void setSlowCallDurationThreshold(long slowCallDurationThreshold) {
+            this.slowCallDurationThreshold = slowCallDurationThreshold;
+        }
 
-        public long getWaitDurationInOpenState() { return waitDurationInOpenState; }
-        public void setWaitDurationInOpenState(long waitDurationInOpenState) { this.waitDurationInOpenState = waitDurationInOpenState; }
+        public int getPermittedNumberOfCallsInHalfOpenState() {
+            return permittedNumberOfCallsInHalfOpenState;
+        }
 
-        public boolean isAutomaticTransitionFromOpenToHalfOpenEnabled() { return automaticTransitionFromOpenToHalfOpenEnabled; }
-        public void setAutomaticTransitionFromOpenToHalfOpenEnabled(boolean automaticTransitionFromOpenToHalfOpenEnabled) { this.automaticTransitionFromOpenToHalfOpenEnabled = automaticTransitionFromOpenToHalfOpenEnabled; }
+        public void setPermittedNumberOfCallsInHalfOpenState(int permittedNumberOfCallsInHalfOpenState) {
+            this.permittedNumberOfCallsInHalfOpenState = permittedNumberOfCallsInHalfOpenState;
+        }
+
+        public int getMinimumNumberOfCalls() {
+            return minimumNumberOfCalls;
+        }
+
+        public void setMinimumNumberOfCalls(int minimumNumberOfCalls) {
+            this.minimumNumberOfCalls = minimumNumberOfCalls;
+        }
+
+        public int getSlidingWindowSize() {
+            return slidingWindowSize;
+        }
+
+        public void setSlidingWindowSize(int slidingWindowSize) {
+            this.slidingWindowSize = slidingWindowSize;
+        }
+
+        public long getWaitDurationInOpenState() {
+            return waitDurationInOpenState;
+        }
+
+        public void setWaitDurationInOpenState(long waitDurationInOpenState) {
+            this.waitDurationInOpenState = waitDurationInOpenState;
+        }
+
+        public boolean isAutomaticTransitionFromOpenToHalfOpenEnabled() {
+            return automaticTransitionFromOpenToHalfOpenEnabled;
+        }
+
+        public void setAutomaticTransitionFromOpenToHalfOpenEnabled(boolean automaticTransitionFromOpenToHalfOpenEnabled) {
+            this.automaticTransitionFromOpenToHalfOpenEnabled = automaticTransitionFromOpenToHalfOpenEnabled;
+        }
     }
 
     public static class RetryConfig {
@@ -73,20 +138,45 @@ public class ResilienceConfiguration {
         private boolean enableRandomJitter = true;
 
         // Getters and setters
-        public int getMaxAttempts() { return maxAttempts; }
-        public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+        public int getMaxAttempts() {
+            return maxAttempts;
+        }
 
-        public long getWaitDuration() { return waitDuration; }
-        public void setWaitDuration(long waitDuration) { this.waitDuration = waitDuration; }
+        public void setMaxAttempts(int maxAttempts) {
+            this.maxAttempts = maxAttempts;
+        }
 
-        public double getExponentialBackoffMultiplier() { return exponentialBackoffMultiplier; }
-        public void setExponentialBackoffMultiplier(double exponentialBackoffMultiplier) { this.exponentialBackoffMultiplier = exponentialBackoffMultiplier; }
+        public long getWaitDuration() {
+            return waitDuration;
+        }
 
-        public long getMaxWaitDuration() { return maxWaitDuration; }
-        public void setMaxWaitDuration(long maxWaitDuration) { this.maxWaitDuration = maxWaitDuration; }
+        public void setWaitDuration(long waitDuration) {
+            this.waitDuration = waitDuration;
+        }
 
-        public boolean isEnableRandomJitter() { return enableRandomJitter; }
-        public void setEnableRandomJitter(boolean enableRandomJitter) { this.enableRandomJitter = enableRandomJitter; }
+        public double getExponentialBackoffMultiplier() {
+            return exponentialBackoffMultiplier;
+        }
+
+        public void setExponentialBackoffMultiplier(double exponentialBackoffMultiplier) {
+            this.exponentialBackoffMultiplier = exponentialBackoffMultiplier;
+        }
+
+        public long getMaxWaitDuration() {
+            return maxWaitDuration;
+        }
+
+        public void setMaxWaitDuration(long maxWaitDuration) {
+            this.maxWaitDuration = maxWaitDuration;
+        }
+
+        public boolean isEnableRandomJitter() {
+            return enableRandomJitter;
+        }
+
+        public void setEnableRandomJitter(boolean enableRandomJitter) {
+            this.enableRandomJitter = enableRandomJitter;
+        }
     }
 
     public static class TimeoutConfig {
@@ -96,17 +186,37 @@ public class ResilienceConfiguration {
         private boolean cancelRunningFuture = true;
 
         // Getters and setters
-        public long getDefaultTimeoutDuration() { return defaultTimeoutDuration; }
-        public void setDefaultTimeoutDuration(long defaultTimeoutDuration) { this.defaultTimeoutDuration = defaultTimeoutDuration; }
+        public long getDefaultTimeoutDuration() {
+            return defaultTimeoutDuration;
+        }
 
-        public long getCompilationTimeoutDuration() { return compilationTimeoutDuration; }
-        public void setCompilationTimeoutDuration(long compilationTimeoutDuration) { this.compilationTimeoutDuration = compilationTimeoutDuration; }
+        public void setDefaultTimeoutDuration(long defaultTimeoutDuration) {
+            this.defaultTimeoutDuration = defaultTimeoutDuration;
+        }
 
-        public long getExecutionTimeoutDuration() { return executionTimeoutDuration; }
-        public void setExecutionTimeoutDuration(long executionTimeoutDuration) { this.executionTimeoutDuration = executionTimeoutDuration; }
+        public long getCompilationTimeoutDuration() {
+            return compilationTimeoutDuration;
+        }
 
-        public boolean isCancelRunningFuture() { return cancelRunningFuture; }
-        public void setCancelRunningFuture(boolean cancelRunningFuture) { this.cancelRunningFuture = cancelRunningFuture; }
+        public void setCompilationTimeoutDuration(long compilationTimeoutDuration) {
+            this.compilationTimeoutDuration = compilationTimeoutDuration;
+        }
+
+        public long getExecutionTimeoutDuration() {
+            return executionTimeoutDuration;
+        }
+
+        public void setExecutionTimeoutDuration(long executionTimeoutDuration) {
+            this.executionTimeoutDuration = executionTimeoutDuration;
+        }
+
+        public boolean isCancelRunningFuture() {
+            return cancelRunningFuture;
+        }
+
+        public void setCancelRunningFuture(boolean cancelRunningFuture) {
+            this.cancelRunningFuture = cancelRunningFuture;
+        }
     }
 
     public static class BulkheadConfig {
@@ -114,10 +224,20 @@ public class ResilienceConfiguration {
         private long maxWaitDuration = 0; // No wait
 
         // Getters and setters
-        public int getMaxConcurrentCalls() { return maxConcurrentCalls; }
-        public void setMaxConcurrentCalls(int maxConcurrentCalls) { this.maxConcurrentCalls = maxConcurrentCalls; }
+        public int getMaxConcurrentCalls() {
+            return maxConcurrentCalls;
+        }
 
-        public long getMaxWaitDuration() { return maxWaitDuration; }
-        public void setMaxWaitDuration(long maxWaitDuration) { this.maxWaitDuration = maxWaitDuration; }
+        public void setMaxConcurrentCalls(int maxConcurrentCalls) {
+            this.maxConcurrentCalls = maxConcurrentCalls;
+        }
+
+        public long getMaxWaitDuration() {
+            return maxWaitDuration;
+        }
+
+        public void setMaxWaitDuration(long maxWaitDuration) {
+            this.maxWaitDuration = maxWaitDuration;
+        }
     }
 }

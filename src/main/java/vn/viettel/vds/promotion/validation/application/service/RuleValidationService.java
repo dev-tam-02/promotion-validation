@@ -53,7 +53,7 @@ public class RuleValidationService {
             boolean isValid = issues.isEmpty();
 
             logger.info("Rule linting completed: tenant={}, valid={}, issueCount={}",
-                tenantId, isValid, issues.size());
+                    tenantId, isValid, issues.size());
 
             return new LintResult(isValid, issues);
 
@@ -75,39 +75,39 @@ public class RuleValidationService {
         // Lint the rule structure
         LintResult lintResult = lintRule(tenantId, rule.getNodes());
         issues.addAll(lintResult.getIssues().stream()
-            .map(lint -> new ValidationIssue(lint.getPath(), lint.getMessage(), "LINT_ERROR"))
-            .collect(Collectors.toList()));
+                .map(lint -> new ValidationIssue(lint.getPath(), lint.getMessage(), "LINT_ERROR"))
+                .collect(Collectors.toList()));
 
         // Validate that all operators exist and are active
         Set<String> operatorNames = extractOperatorNames(rule.getNodes());
         for (String operatorName : operatorNames) {
             try {
                 Optional<vn.viettel.vds.promotion.validation.domain.entity.Operator> operator =
-                    operatorService.getLatestOperator(tenantId, operatorName);
+                        operatorService.getLatestOperator(tenantId, operatorName);
 
                 if (operator.isEmpty()) {
                     issues.add(new ValidationIssue("operators",
-                        "Operator not found: " + operatorName, "OPERATOR_NOT_FOUND"));
+                            "Operator not found: " + operatorName, "OPERATOR_NOT_FOUND"));
                 } else if (operator.get().getStatus() != vn.viettel.vds.promotion.validation.domain.entity.Operator.OperatorStatus.ACTIVE) {
                     issues.add(new ValidationIssue("operators",
-                        "Operator is not active: " + operatorName, "OPERATOR_INACTIVE"));
+                            "Operator is not active: " + operatorName, "OPERATOR_INACTIVE"));
                 }
             } catch (Exception e) {
                 issues.add(new ValidationIssue("operators",
-                    "Error validating operator " + operatorName + ": " + e.getMessage(), "OPERATOR_ERROR"));
+                        "Error validating operator " + operatorName + ": " + e.getMessage(), "OPERATOR_ERROR"));
             }
         }
 
         // Validate rule state
         if (rule.getState() == Rule.RuleState.ARCHIVED) {
             issues.add(new ValidationIssue("state",
-                "Cannot publish archived rule", "INVALID_STATE"));
+                    "Cannot publish archived rule", "INVALID_STATE"));
         }
 
         boolean isValid = issues.isEmpty();
 
         logger.info("Rule validation completed: id={}, valid={}, issueCount={}",
-            rule.getId(), isValid, issues.size());
+                rule.getId(), isValid, issues.size());
 
         return new ValidationResult(isValid, issues);
     }
@@ -173,14 +173,14 @@ public class RuleValidationService {
     private void validateNodeLimits(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
         if (nodes.size() > MAX_NODES) {
             issues.add(new LintIssue("nodes",
-                "Too many nodes (" + nodes.size() + "). Maximum allowed: " + MAX_NODES, null));
+                    "Too many nodes (" + nodes.size() + "). Maximum allowed: " + MAX_NODES, null));
         }
     }
 
     private void validateTreeStructure(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
         Map<String, Rule.RuleNode> nodeMap = nodes.stream()
-            .filter(node -> node.getId() != null)
-            .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+                .filter(node -> node.getId() != null)
+                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
 
         // Validate references and calculate depth
         for (Rule.RuleNode node : nodes) {
@@ -189,7 +189,7 @@ public class RuleValidationService {
                     String childId = child.getId();
                     if (childId != null && !nodeMap.containsKey(childId)) {
                         issues.add(new LintIssue("nodes",
-                            "Referenced child node not found: " + childId, null));
+                                "Referenced child node not found: " + childId, null));
                     }
                 }
             }
@@ -200,7 +200,7 @@ public class RuleValidationService {
             int maxDepth = calculateMaxDepth(nodes, nodeMap);
             if (maxDepth > MAX_DEPTH) {
                 issues.add(new LintIssue("nodes",
-                    "Tree depth too deep (" + maxDepth + "). Maximum allowed: " + MAX_DEPTH, null));
+                        "Tree depth too deep (" + maxDepth + "). Maximum allowed: " + MAX_DEPTH, null));
             }
         } catch (Exception e) {
             issues.add(new LintIssue("nodes", "Error calculating tree depth: " + e.getMessage(), null));
@@ -216,30 +216,30 @@ public class RuleValidationService {
                 try {
                     // Check if operator exists
                     Optional<vn.viettel.vds.promotion.validation.domain.entity.Operator> operator =
-                        operatorService.getLatestOperator(tenantId, node.getOperatorName());
+                            operatorService.getLatestOperator(tenantId, node.getOperatorName());
 
                     if (operator.isEmpty()) {
                         issues.add(new LintIssue(path + ".operatorName",
-                            "Operator not found: " + node.getOperatorName(), node.getOperatorName()));
+                                "Operator not found: " + node.getOperatorName(), node.getOperatorName()));
                         continue;
                     }
 
                     // Validate parameters against schema
                     if (node.getParams() != null) {
                         OperatorService.ValidationResult paramValidation =
-                            operatorService.validateOperatorParams(
-                                tenantId,
-                                node.getOperatorName(),
-                                operator.get().getVersion(),
-                                node.getParams()
-                            );
+                                operatorService.validateOperatorParams(
+                                        tenantId,
+                                        node.getOperatorName(),
+                                        operator.get().getVersion(),
+                                        node.getParams()
+                                );
 
                         if (!paramValidation.isValid()) {
                             for (OperatorService.ValidationIssue issue : paramValidation.getIssues()) {
                                 issues.add(new LintIssue(
-                                    path + ".params." + issue.getPath(),
-                                    issue.getMessage(),
-                                    node.getOperatorName()
+                                        path + ".params." + issue.getPath(),
+                                        issue.getMessage(),
+                                        node.getOperatorName()
                                 ));
                             }
                         }
@@ -247,7 +247,7 @@ public class RuleValidationService {
 
                 } catch (Exception e) {
                     issues.add(new LintIssue(path + ".operatorName",
-                        "Error validating operator: " + e.getMessage(), node.getOperatorName()));
+                            "Error validating operator: " + e.getMessage(), node.getOperatorName()));
                 }
             }
         }
@@ -262,11 +262,11 @@ public class RuleValidationService {
                 try {
                     if (!reasonCodeService.existsReasonCode(tenantId, node.getReasonCode())) {
                         issues.add(new LintIssue(path,
-                            "Reason code not found: " + node.getReasonCode(), null));
+                                "Reason code not found: " + node.getReasonCode(), null));
                     }
                 } catch (Exception e) {
                     issues.add(new LintIssue(path,
-                        "Error validating reason code: " + e.getMessage(), null));
+                            "Error validating reason code: " + e.getMessage(), null));
                 }
             }
         }
@@ -274,8 +274,8 @@ public class RuleValidationService {
 
     private void validateNoCircularReferences(List<Rule.RuleNode> nodes, List<LintIssue> issues) {
         Map<String, Rule.RuleNode> nodeMap = nodes.stream()
-            .filter(node -> node.getId() != null)
-            .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
+                .filter(node -> node.getId() != null)
+                .collect(Collectors.toMap(Rule.RuleNode::getId, node -> node));
 
         Set<String> visited = new HashSet<>();
         Set<String> recursionStack = new HashSet<>();
@@ -284,7 +284,7 @@ public class RuleValidationService {
             if (node.getId() != null && !visited.contains(node.getId())) {
                 if (hasCircularReference(node.getId(), nodeMap, visited, recursionStack)) {
                     issues.add(new LintIssue("nodes",
-                        "Circular reference detected starting from node: " + node.getId(), null));
+                            "Circular reference detected starting from node: " + node.getId(), null));
                     break;
                 }
             }
@@ -292,7 +292,7 @@ public class RuleValidationService {
     }
 
     private boolean hasCircularReference(String nodeId, Map<String, Rule.RuleNode> nodeMap,
-                                       Set<String> visited, Set<String> recursionStack) {
+                                         Set<String> visited, Set<String> recursionStack) {
         visited.add(nodeId);
         recursionStack.add(nodeId);
 
@@ -320,16 +320,16 @@ public class RuleValidationService {
 
         // Find root nodes (nodes not referenced by any parent)
         Set<String> referencedNodes = nodes.stream()
-            .filter(node -> node.getChildren() != null)
-            .flatMap(node -> node.getChildren().stream()
-                .map(Rule.RuleNode::getId)
-                .filter(id -> id != null))
-            .collect(Collectors.toSet());
+                .filter(node -> node.getChildren() != null)
+                .flatMap(node -> node.getChildren().stream()
+                        .map(Rule.RuleNode::getId)
+                        .filter(id -> id != null))
+                .collect(Collectors.toSet());
 
         List<String> rootNodes = nodes.stream()
-            .map(Rule.RuleNode::getId)
-            .filter(id -> id != null && !referencedNodes.contains(id))
-            .collect(Collectors.toList());
+                .map(Rule.RuleNode::getId)
+                .filter(id -> id != null && !referencedNodes.contains(id))
+                .collect(Collectors.toList());
 
         for (String rootId : rootNodes) {
             int depth = calculateDepthRecursive(rootId, nodeMap, new HashSet<>());
@@ -366,10 +366,10 @@ public class RuleValidationService {
 
     private Set<String> extractOperatorNames(List<Rule.RuleNode> nodes) {
         return nodes.stream()
-            .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
-            .map(Rule.RuleNode::getOperatorName)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
+                .filter(node -> node.getType() == Rule.RuleNode.NodeType.COND)
+                .map(Rule.RuleNode::getOperatorName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     // Result classes
@@ -382,8 +382,13 @@ public class RuleValidationService {
             this.issues = issues;
         }
 
-        public boolean isValid() { return valid; }
-        public List<LintIssue> getIssues() { return issues; }
+        public boolean isValid() {
+            return valid;
+        }
+
+        public List<LintIssue> getIssues() {
+            return issues;
+        }
     }
 
     public static class LintIssue {
@@ -397,9 +402,17 @@ public class RuleValidationService {
             this.operator = operator;
         }
 
-        public String getPath() { return path; }
-        public String getMessage() { return message; }
-        public String getOperator() { return operator; }
+        public String getPath() {
+            return path;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getOperator() {
+            return operator;
+        }
     }
 
     public static class ValidationResult {
@@ -411,8 +424,13 @@ public class RuleValidationService {
             this.issues = issues;
         }
 
-        public boolean isValid() { return valid; }
-        public List<ValidationIssue> getIssues() { return issues; }
+        public boolean isValid() {
+            return valid;
+        }
+
+        public List<ValidationIssue> getIssues() {
+            return issues;
+        }
     }
 
     public static class ValidationIssue {
@@ -426,8 +444,16 @@ public class RuleValidationService {
             this.type = type;
         }
 
-        public String getPath() { return path; }
-        public String getMessage() { return message; }
-        public String getType() { return type; }
+        public String getPath() {
+            return path;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getType() {
+            return type;
+        }
     }
 }

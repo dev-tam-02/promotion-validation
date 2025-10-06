@@ -1,5 +1,8 @@
 # validation
-Absolutely—here’s a MongoDB design that mirrors the “builder → publish → bundle” model (Voucherify-style), including time windows. I’ll show: collections, suggested schemas, indexes, sample docs, and a few operational tips. (English descriptions as requested.)
+
+Absolutely—here’s a MongoDB design that mirrors the “builder → publish → bundle” model (Voucherify-style), including
+time windows. I’ll show: collections, suggested schemas, indexes, sample docs, and a few operational tips. (English
+descriptions as requested.)
 
 ---
 
@@ -17,13 +20,15 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
     * A) `time_frames`, `validity_day_of_weeks`, `time_exceptions`, `rule_time_frames`
     * B) `temporal_policies`, `rule_temporal_links` (RRULE-style)
 
-> In MongoDB, prefer **embedding** when data is read together and has bounded growth (e.g., rule nodes), and **referencing** when reused across many parents (e.g., a time frame used by many rules).
+> In MongoDB, prefer **embedding** when data is read together and has bounded growth (e.g., rule nodes), and *
+*referencing** when reused across many parents (e.g., a time frame used by many rules).
 
 ---
 
 # 1) `operator_registry`
 
-**Purpose (EN):** Defines supported operators for the builder: their context, parameter JSON Schema, and how the compiler maps them to Drools (compiler template ID).
+**Purpose (EN):** Defines supported operators for the builder: their context, parameter JSON Schema, and how the
+compiler maps them to Drools (compiler template ID).
 
 **Document (sample):**
 
@@ -53,7 +58,8 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
 
 # 2) `validation_rules` (with embedded rule tree)
 
-**Purpose (EN):** Stores rule header (state/version/limits) and a **tree of nodes** (GROUP/COND) that the builder edits; published later to bundles.
+**Purpose (EN):** Stores rule header (state/version/limits) and a **tree of nodes** (GROUP/COND) that the builder edits;
+published later to bundles.
 
 **Document (sample):**
 
@@ -131,7 +137,8 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
 
 * Use **embedded nodes** for fast read by rules-service during compile.
 * Node ordering uses a simple `order` field; parent/child via IDs.
-* If the tree could become very large (hundreds of nodes), you can split into a `validation_rule_nodes` collection keyed by `ruleId`, but most promotion trees stay moderate.
+* If the tree could become very large (hundreds of nodes), you can split into a `validation_rule_nodes` collection keyed
+  by `ruleId`, but most promotion trees stay moderate.
 
 **Indexes:**
 
@@ -142,7 +149,8 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
 
 # 3) `rule_assignments`
 
-**Purpose (EN):** Attaches rules to “subjects” (voucher/campaign/tier/reward). Supports activation windows and canary rollout.
+**Purpose (EN):** Attaches rules to “subjects” (voucher/campaign/tier/reward). Supports activation windows and canary
+rollout.
 
 **Document (sample):**
 
@@ -171,7 +179,8 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
 
 # 4) `rule_bundles` (immutable)
 
-**Purpose (EN):** Stores compiled Drools KieModule artifact bytes keyed by subject and versions. **Do not update**; always append new bundle.
+**Purpose (EN):** Stores compiled Drools KieModule artifact bytes keyed by subject and versions. **Do not update**;
+always append new bundle.
 
 **Document (sample):**
 
@@ -189,7 +198,8 @@ Absolutely—here’s a MongoDB design that mirrors the “builder → publish �
 
 **Storage options:**
 
-* If artifacts are large, store them in **GridFS** (`fs.files`/`fs.chunks`) and keep only `bundleHash` + GridFS file ID here.
+* If artifacts are large, store them in **GridFS** (`fs.files`/`fs.chunks`) and keep only `bundleHash` + GridFS file ID
+  here.
 
 **Indexes:**
 
@@ -207,7 +217,8 @@ db.rule_bundles.findOne(
 
 ---
 
-# 5) `metadata_schemas` (manager in metadata-schemas-service, this service store key-value pairs and references to metadata schemas)
+# 5)
+`metadata_schemas` (manager in metadata-schemas-service, this service store key-value pairs and references to metadata schemas)
 
 **Purpose (EN):** Declares JSON Schemas for custom metadata spaces used in rules (e.g., customer/order/item).
 
@@ -421,12 +432,14 @@ db.runCommand({
 
 # Indexing & Sharding Guidance
 
-* **Hot read path (runtime):** `rule_bundles` by subject → index `{ "subject.type": 1, "subject.key": 1, ruleVersion: -1, assignmentVersion: -1 }`.
+* **Hot read path (runtime):** `rule_bundles` by subject → index
+  `{ "subject.type": 1, "subject.key": 1, ruleVersion: -1, assignmentVersion: -1 }`.
 * **Admin UI:**
 
     * `validation_rules` by `state`, `code`.
     * `operator_registry` by `context`.
-* **If sharding:** shard `rule_bundles` by `{ "subject.type", "subject.key" }` to colocate bundles of same subject; low cardinality? Consider hashed shard key on `bundleHash`.
+* **If sharding:** shard `rule_bundles` by `{ "subject.type", "subject.key" }` to colocate bundles of same subject; low
+  cardinality? Consider hashed shard key on `bundleHash`.
 * **Large artifacts:** consider **GridFS**; store file id in `rule_bundles.kieModuleFileId`.
 
 ---
@@ -479,7 +492,8 @@ const rule = db.validation_rules.findOne({ _id: "vr_abc123" });
 # Operational Notes
 
 * **Immutability:** Never update `rule_bundles`; append for each publish/assignment change.
-* **Concurrency:** Keep publish/assignment changes in a single writer flow (transactions if you update multiple collections together).
+* **Concurrency:** Keep publish/assignment changes in a single writer flow (transactions if you update multiple
+  collections together).
 * **Explainability:** Keep `reasonCode` per condition node; surface in validation responses.
 * **Time zones:** Always store instants in UTC; store `tz` in time frames or policies to evaluate local calendars.
 * **Testing:** Build golden tests (payload → expected decision) per rule version.

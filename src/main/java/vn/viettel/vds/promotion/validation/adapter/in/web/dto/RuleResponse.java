@@ -67,45 +67,115 @@ public class RuleResponse {
     private String updatedBy;
 
     // Getters and setters
-    public String getRuleId() { return ruleId; }
-    public void setRuleId(String ruleId) { this.ruleId = ruleId; }
+    public String getRuleId() {
+        return ruleId;
+    }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public void setRuleId(String ruleId) {
+        this.ruleId = ruleId;
+    }
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+    public String getTenantId() {
+        return tenantId;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
 
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
+    public String getCode() {
+        return code;
+    }
 
-    public Integer getLatestVersion() { return latestVersion; }
-    public void setLatestVersion(Integer latestVersion) { this.latestVersion = latestVersion; }
+    public void setCode(String code) {
+        this.code = code;
+    }
 
-    public String getLogic() { return logic; }
-    public void setLogic(String logic) { this.logic = logic; }
+    public String getName() {
+        return name;
+    }
 
-    public Map<String, Object> getLimits() { return limits; }
-    public void setLimits(Map<String, Object> limits) { this.limits = limits; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public List<RuleNodeDto> getNodes() { return nodes; }
-    public void setNodes(List<RuleNodeDto> nodes) { this.nodes = nodes; }
+    public String getState() {
+        return state;
+    }
 
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
+    public void setState(String state) {
+        this.state = state;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Integer getLatestVersion() {
+        return latestVersion;
+    }
 
-    public String getCreatedBy() { return createdBy; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public void setLatestVersion(Integer latestVersion) {
+        this.latestVersion = latestVersion;
+    }
 
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public String getLogic() {
+        return logic;
+    }
 
-    public String getUpdatedBy() { return updatedBy; }
-    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+    public void setLogic(String logic) {
+        this.logic = logic;
+    }
+
+    public Map<String, Object> getLimits() {
+        return limits;
+    }
+
+    public void setLimits(Map<String, Object> limits) {
+        this.limits = limits;
+    }
+
+    public List<RuleNodeDto> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(List<RuleNodeDto> nodes) {
+        this.nodes = nodes;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
 }
