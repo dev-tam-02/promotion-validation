@@ -6,7 +6,7 @@ spring:
 
   # MariaDB Secondary Database (for validation rules/metadata)
   datasource:
-    url: ${DB_URL:jdbc:mariadb://promixhub.com:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mariadb://promotion-mariadb:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
     username: root
     password: ${DB_PASSWORD:123123a@}
     driver-class-name: org.mariadb.jdbc.Driver
