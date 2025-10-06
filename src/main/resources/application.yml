@@ -37,8 +37,42 @@ server:
 # Eureka Configuration
 eureka:
   client:
+    enabled: true
+    healthcheck:
+      enabled: true
+    fetch-registry: true
+    register-with-eureka: true
+    instance-info-replication-interval-seconds: 10
+    registry-fetch-interval-seconds: 10
     service-url:
       defaultZone: http://service-registry:8761/eureka
+  instance:
+    appname: promotion-${spring.application.name}
+    instanceId: promotion-${spring.application.name}:${spring.application.instance-id:${random.value}}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+    status-page-url-path: ${management.endpoints.web.base-path}/info
+    health-check-url-path: ${management.endpoints.web.base-path}/health
+    virtual-host-name: promotion-${spring.application.name}
+
+# Management Configuration
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+    brave:
+      enabled: true
+    propagation:
+      type: b3
+  zipkin:
+    tracing:
+      endpoint: ""
 
 # Promix Platform Configuration - Dual Database Toggle
 promix:
@@ -102,6 +136,7 @@ promix:
         retries: 5
         batch-size: 16384
         linger: 10
+        compression-type: lz4
         buffer-memory: 33554432
         enable-idempotence: true
         max-in-flight: 5
@@ -153,11 +188,22 @@ promix:
       enabled: true
       prefix: "validation-cache:"
       default-ttl: 30m
+      password: ${REDIS_PASSWORD:}
       cluster:
         nodes:
           - node1:6379
           - node2:6380
           - node3:6381
+        max-redirects: 3
+      lettuce:
+        pool:
+          max-active: 128
+          max-idle: 64
+          min-idle: 16
+          max-wait: 2000
+        cluster:
+          refresh-period: 60000
+          adaptive: true
 
 # Mongock Configuration (DISABLED - using Liquibase from promix-data-jpa)
 mongock:
