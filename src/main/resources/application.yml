@@ -30,6 +30,15 @@ spring:
         order_inserts: true
         order_updates: true
 
+  # Liquibase Configuration
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: validation
+    drop-first: false
+    contexts: dev,test
+    labels: validation-schema,sample-data
+
 # Server Configuration
 server:
   port: 16014

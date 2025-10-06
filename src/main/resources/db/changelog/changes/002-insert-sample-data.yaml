@@ -1,0 +1,1033 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-insert-validation-error-messages
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000001
+              - column:
+                  name: error_code
+                  value: VAL_ERR_001
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' is required and cannot be empty
+              - column:
+                  name: description
+                  value: Mandatory field validation error
+              - column:
+                  name: suggested_action
+                  value: Please provide a value for field '{0}'
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: REQUIRED_FIELD
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000002
+              - column:
+                  name: error_code
+                  value: VAL_ERR_002
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' must match pattern '{1}'
+              - column:
+                  name: description
+                  value: Pattern validation error
+              - column:
+                  name: suggested_action
+                  value: Ensure field '{0}' follows the expected format
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: PATTERN
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000003
+              - column:
+                  name: error_code
+                  value: VAL_ERR_003
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' must be between {1} and {2}
+              - column:
+                  name: description
+                  value: Range validation error
+              - column:
+                  name: suggested_action
+                  value: Provide a value for '{0}' within the valid range
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: RANGE
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000004
+              - column:
+                  name: error_code
+                  value: VAL_ERR_004
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' length must be between {1} and {2} characters
+              - column:
+                  name: description
+                  value: Length validation error
+              - column:
+                  name: suggested_action
+                  value: Adjust the length of field '{0}' to meet requirements
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: LENGTH
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000005
+              - column:
+                  name: error_code
+                  value: VAL_ERR_005
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Invalid email format for field '{0}'
+              - column:
+                  name: description
+                  value: Email format validation error
+              - column:
+                  name: suggested_action
+                  value: Provide a valid email address (e.g., user@example.com)
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: FORMAT
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000006
+              - column:
+                  name: error_code
+                  value: VAL_ERR_006
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Invalid phone number format for field '{0}'
+              - column:
+                  name: description
+                  value: Phone number format validation error
+              - column:
+                  name: suggested_action
+                  value: Provide a valid phone number (e.g., +84901234567)
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: FORMAT
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000007
+              - column:
+                  name: error_code
+                  value: VAL_WARN_001
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' value is unusual but acceptable
+              - column:
+                  name: description
+                  value: Warning for unusual but valid values
+              - column:
+                  name: suggested_action
+                  value: Review the value for field '{0}' to ensure it is correct
+              - column:
+                  name: severity
+                  value: WARNING
+              - column:
+                  name: category
+                  value: BUSINESS_LOGIC
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000008
+              - column:
+                  name: error_code
+                  value: VAL_ERR_007
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Date '{0}' must be in the past
+              - column:
+                  name: description
+                  value: Past date validation error
+              - column:
+                  name: suggested_action
+                  value: Provide a date in the past for field '{0}'
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: DATE_VALIDATION
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000009
+              - column:
+                  name: error_code
+                  value: VAL_ERR_008
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Date '{0}' must be in the future
+              - column:
+                  name: description
+                  value: Future date validation error
+              - column:
+                  name: suggested_action
+                  value: Provide a future date for field '{0}'
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: DATE_VALIDATION
+
+        - insert:
+            tableName: validation_error_messages
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1234-7000-8000-000000000010
+              - column:
+                  name: error_code
+                  value: VAL_ERR_009
+              - column:
+                  name: language_code
+                  value: en
+              - column:
+                  name: message_template
+                  value: Field '{0}' must contain only alphanumeric characters
+              - column:
+                  name: description
+                  value: Alphanumeric validation error
+              - column:
+                  name: suggested_action
+                  value: Remove special characters from field '{0}'
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: category
+                  value: FORMAT
+
+  - changeSet:
+      id: 002-insert-validation-rules
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000001
+              - column:
+                  name: rule_code
+                  value: CUSTOMER_EMAIL_PATTERN
+              - column:
+                  name: rule_name
+                  value: Customer Email Pattern Validation
+              - column:
+                  name: rule_type
+                  value: PATTERN
+              - column:
+                  name: target_entity
+                  value: Customer
+              - column:
+                  name: target_field
+                  value: email
+              - column:
+                  name: validation_expression
+                  value: ^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$
+              - column:
+                  name: error_code
+                  value: VAL_ERR_005
+              - column:
+                  name: error_message_template
+                  value: Invalid email format for customer email
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 10
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000002
+              - column:
+                  name: rule_code
+                  value: CUSTOMER_PHONE_PATTERN
+              - column:
+                  name: rule_name
+                  value: Customer Phone Pattern Validation
+              - column:
+                  name: rule_type
+                  value: PATTERN
+              - column:
+                  name: target_entity
+                  value: Customer
+              - column:
+                  name: target_field
+                  value: phoneNumber
+              - column:
+                  name: validation_expression
+                  value: ^\+?[0-9]{10,15}$
+              - column:
+                  name: error_code
+                  value: VAL_ERR_006
+              - column:
+                  name: error_message_template
+                  value: Invalid phone number format
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 10
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000003
+              - column:
+                  name: rule_code
+                  value: CUSTOMER_ID_PATTERN
+              - column:
+                  name: rule_name
+                  value: Customer ID Pattern Validation
+              - column:
+                  name: rule_type
+                  value: PATTERN
+              - column:
+                  name: target_entity
+                  value: Customer
+              - column:
+                  name: target_field
+                  value: customerId
+              - column:
+                  name: validation_expression
+                  value: ^CUST[0-9]{10}$
+              - column:
+                  name: error_code
+                  value: VAL_ERR_002
+              - column:
+                  name: error_message_template
+                  value: Customer ID must follow pattern CUST followed by 10 digits
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 5
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000004
+              - column:
+                  name: rule_code
+                  value: ORDER_QUANTITY_RANGE
+              - column:
+                  name: rule_name
+                  value: Order Item Quantity Range
+              - column:
+                  name: rule_type
+                  value: RANGE
+              - column:
+                  name: target_entity
+                  value: OrderItem
+              - column:
+                  name: target_field
+                  value: quantity
+              - column:
+                  name: validation_expression
+                  value: min:1;max:1000
+              - column:
+                  name: error_code
+                  value: VAL_ERR_003
+              - column:
+                  name: error_message_template
+                  value: Order quantity must be between 1 and 1000
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 20
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000005
+              - column:
+                  name: rule_code
+                  value: ORDER_PRICE_RANGE
+              - column:
+                  name: rule_name
+                  value: Order Item Price Range
+              - column:
+                  name: rule_type
+                  value: RANGE
+              - column:
+                  name: target_entity
+                  value: OrderItem
+              - column:
+                  name: target_field
+                  value: price
+              - column:
+                  name: validation_expression
+                  value: min:0;precision:2
+              - column:
+                  name: error_code
+                  value: VAL_ERR_003
+              - column:
+                  name: error_message_template
+                  value: Price must be greater than 0 with maximum 2 decimal places
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 20
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000006
+              - column:
+                  name: rule_code
+                  value: PRODUCT_NAME_LENGTH
+              - column:
+                  name: rule_name
+                  value: Product Name Length Validation
+              - column:
+                  name: rule_type
+                  value: LENGTH
+              - column:
+                  name: target_entity
+                  value: Product
+              - column:
+                  name: target_field
+                  value: productName
+              - column:
+                  name: validation_expression
+                  value: min:3;max:255
+              - column:
+                  name: error_code
+                  value: VAL_ERR_004
+              - column:
+                  name: error_message_template
+                  value: Product name must be between 3 and 255 characters
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 15
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000007
+              - column:
+                  name: rule_code
+                  value: PROMOTION_CODE_FORMAT
+              - column:
+                  name: rule_name
+                  value: Promotion Code Format Validation
+              - column:
+                  name: rule_type
+                  value: PATTERN
+              - column:
+                  name: target_entity
+                  value: Promotion
+              - column:
+                  name: target_field
+                  value: promotionCode
+              - column:
+                  name: validation_expression
+                  value: ^PROMO[A-Z0-9]{6,12}$
+              - column:
+                  name: error_code
+                  value: VAL_ERR_002
+              - column:
+                  name: error_message_template
+                  value: Promotion code must start with PROMO followed by 6-12 alphanumeric characters
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 5
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000008
+              - column:
+                  name: rule_code
+                  value: DISCOUNT_PERCENTAGE_RANGE
+              - column:
+                  name: rule_name
+                  value: Discount Percentage Range
+              - column:
+                  name: rule_type
+                  value: RANGE
+              - column:
+                  name: target_entity
+                  value: Discount
+              - column:
+                  name: target_field
+                  value: discountPercentage
+              - column:
+                  name: validation_expression
+                  value: min:0;max:100
+              - column:
+                  name: error_code
+                  value: VAL_ERR_003
+              - column:
+                  name: error_message_template
+                  value: Discount percentage must be between 0 and 100
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 10
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000009
+              - column:
+                  name: rule_code
+                  value: SEGMENT_SIZE_WARNING
+              - column:
+                  name: rule_name
+                  value: Customer Segment Size Warning
+              - column:
+                  name: rule_type
+                  value: BUSINESS
+              - column:
+                  name: target_entity
+                  value: Segment
+              - column:
+                  name: target_field
+                  value: memberCount
+              - column:
+                  name: validation_expression
+                  value: warn_if_less_than:100
+              - column:
+                  name: error_code
+                  value: VAL_WARN_001
+              - column:
+                  name: error_message_template
+                  value: Segment has fewer than 100 members, which may impact campaign effectiveness
+              - column:
+                  name: severity
+                  value: WARNING
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 50
+
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-5678-7000-8000-000000000010
+              - column:
+                  name: rule_code
+                  value: CAMPAIGN_DATE_RANGE
+              - column:
+                  name: rule_name
+                  value: Campaign Date Range Validation
+              - column:
+                  name: rule_type
+                  value: BUSINESS
+              - column:
+                  name: target_entity
+                  value: Campaign
+              - column:
+                  name: target_field
+                  value: endDate
+              - column:
+                  name: validation_expression
+                  value: must_be_after:startDate
+              - column:
+                  name: error_code
+                  value: VAL_ERR_008
+              - column:
+                  name: error_message_template
+                  value: Campaign end date must be after start date
+              - column:
+                  name: severity
+                  value: ERROR
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: priority
+                  valueNumeric: 5
+
+  - changeSet:
+      id: 002-insert-validation-schemas
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_schemas
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-9abc-7000-8000-000000000001
+              - column:
+                  name: schema_name
+                  value: CustomerValidation
+              - column:
+                  name: schema_namespace
+                  value: vn.viettel.vds.promotion.validation.domain
+              - column:
+                  name: schema_version
+                  value: 1.0.0
+              - column:
+                  name: schema_type
+                  value: AVRO
+              - column:
+                  name: schema_content
+                  value: |
+                    {
+                      "namespace": "vn.viettel.vds.promotion.validation.domain",
+                      "type": "record",
+                      "name": "CustomerValidation",
+                      "fields": [
+                        {"name": "customerId", "type": "string"},
+                        {"name": "email", "type": ["null", "string"], "default": null},
+                        {"name": "phoneNumber", "type": "string"},
+                        {"name": "status", "type": {"type": "enum", "name": "CustomerStatus", "symbols": ["ACTIVE", "INACTIVE", "SUSPENDED", "DELETED"]}}
+                      ]
+                    }
+              - column:
+                  name: description
+                  value: Avro schema for customer validation
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: compatibility_mode
+                  value: BACKWARD
+
+        - insert:
+            tableName: validation_schemas
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-9abc-7000-8000-000000000002
+              - column:
+                  name: schema_name
+                  value: OrderValidation
+              - column:
+                  name: schema_namespace
+                  value: vn.viettel.vds.promotion.validation.domain
+              - column:
+                  name: schema_version
+                  value: 1.0.0
+              - column:
+                  name: schema_type
+                  value: AVRO
+              - column:
+                  name: schema_content
+                  value: |
+                    {
+                      "namespace": "vn.viettel.vds.promotion.validation.domain",
+                      "type": "record",
+                      "name": "OrderValidation",
+                      "fields": [
+                        {"name": "orderId", "type": "string"},
+                        {"name": "customerId", "type": "string"},
+                        {"name": "totalAmount", "type": "double"},
+                        {"name": "orderDate", "type": "long", "logicalType": "timestamp-millis"}
+                      ]
+                    }
+              - column:
+                  name: description
+                  value: Avro schema for order validation
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: compatibility_mode
+                  value: BACKWARD
+
+        - insert:
+            tableName: validation_schemas
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-9abc-7000-8000-000000000003
+              - column:
+                  name: schema_name
+                  value: ProductValidation
+              - column:
+                  name: schema_namespace
+                  value: vn.viettel.vds.promotion.validation.domain
+              - column:
+                  name: schema_version
+                  value: 1.0.0
+              - column:
+                  name: schema_type
+                  value: JSON
+              - column:
+                  name: schema_content
+                  value: |
+                    {
+                      "$schema": "http://json-schema.org/draft-07/schema#",
+                      "type": "object",
+                      "properties": {
+                        "productId": {"type": "string"},
+                        "productName": {"type": "string", "minLength": 3, "maxLength": 255},
+                        "price": {"type": "number", "minimum": 0},
+                        "category": {"type": "string"}
+                      },
+                      "required": ["productId", "productName", "price"]
+                    }
+              - column:
+                  name: description
+                  value: JSON schema for product validation
+              - column:
+                  name: is_active
+                  valueBoolean: true
+              - column:
+                  name: compatibility_mode
+                  value: FULL
+
+  - changeSet:
+      id: 002-insert-sample-validation-results
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_results
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-def0-7000-8000-000000000001
+              - column:
+                  name: entity_type
+                  value: Customer
+              - column:
+                  name: entity_id
+                  value: CUST0123456789
+              - column:
+                  name: is_valid
+                  valueBoolean: true
+              - column:
+                  name: error_count
+                  valueNumeric: 0
+              - column:
+                  name: warning_count
+                  valueNumeric: 0
+              - column:
+                  name: validation_errors
+                  value: '[]'
+              - column:
+                  name: validated_data_snapshot
+                  value: '{"customerId":"CUST0123456789","email":"customer@example.com","phoneNumber":"+84901234567","status":"ACTIVE"}'
+              - column:
+                  name: execution_time_ms
+                  valueNumeric: 15
+              - column:
+                  name: validation_context
+                  value: '{"source":"API","requestId":"req-001"}'
+              - column:
+                  name: created_by
+                  value: system
+
+        - insert:
+            tableName: validation_results
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-def0-7000-8000-000000000002
+              - column:
+                  name: entity_type
+                  value: Order
+              - column:
+                  name: entity_id
+                  value: ORD20250101001
+              - column:
+                  name: is_valid
+                  valueBoolean: false
+              - column:
+                  name: error_count
+                  valueNumeric: 2
+              - column:
+                  name: warning_count
+                  valueNumeric: 0
+              - column:
+                  name: validation_errors
+                  value: '[{"field":"quantity","errorCode":"VAL_ERR_003","message":"Order quantity must be between 1 and 1000","value":1500},{"field":"price","errorCode":"VAL_ERR_003","message":"Price must be greater than 0","value":-100}]'
+              - column:
+                  name: validated_data_snapshot
+                  value: '{"orderId":"ORD20250101001","items":[{"productId":"PROD001","quantity":1500,"price":-100}]}'
+              - column:
+                  name: execution_time_ms
+                  valueNumeric: 23
+              - column:
+                  name: validation_context
+                  value: '{"source":"BATCH","batchId":"batch-001"}'
+              - column:
+                  name: created_by
+                  value: batch-processor
+
+        - insert:
+            tableName: validation_results
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-def0-7000-8000-000000000003
+              - column:
+                  name: entity_type
+                  value: Product
+              - column:
+                  name: entity_id
+                  value: PROD001
+              - column:
+                  name: is_valid
+                  valueBoolean: true
+              - column:
+                  name: error_count
+                  valueNumeric: 0
+              - column:
+                  name: warning_count
+                  valueNumeric: 1
+              - column:
+                  name: validation_errors
+                  value: '[{"field":"stock","errorCode":"VAL_WARN_001","message":"Stock level is low","value":5,"severity":"WARNING"}]'
+              - column:
+                  name: validated_data_snapshot
+                  value: '{"productId":"PROD001","productName":"Sample Product","price":99.99,"stock":5}'
+              - column:
+                  name: execution_time_ms
+                  valueNumeric: 18
+              - column:
+                  name: validation_context
+                  value: '{"source":"WEBHOOK","webhookId":"webhook-001"}'
+              - column:
+                  name: created_by
+                  value: webhook-handler
+
+  - changeSet:
+      id: 002-insert-sample-rule-conditions
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: validation_rule_conditions
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1111-7000-8000-000000000001
+              - column:
+                  name: rule_id
+                  value: 01932b6f-5678-7000-8000-000000000001
+              - column:
+                  name: condition_type
+                  value: FIELD_EXISTS
+              - column:
+                  name: field_name
+                  value: email
+              - column:
+                  name: operator
+                  value: NOT_NULL
+              - column:
+                  name: expected_value
+                  value: ''
+              - column:
+                  name: logical_operator
+                  value: AND
+              - column:
+                  name: condition_order
+                  valueNumeric: 1
+              - column:
+                  name: is_active
+                  valueBoolean: true
+
+        - insert:
+            tableName: validation_rule_conditions
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1111-7000-8000-000000000002
+              - column:
+                  name: rule_id
+                  value: 01932b6f-5678-7000-8000-000000000009
+              - column:
+                  name: condition_type
+                  value: FIELD_VALUE
+              - column:
+                  name: field_name
+                  value: memberCount
+              - column:
+                  name: operator
+                  value: LESS_THAN
+              - column:
+                  name: expected_value
+                  value: '100'
+              - column:
+                  name: logical_operator
+                  value: AND
+              - column:
+                  name: condition_order
+                  valueNumeric: 1
+              - column:
+                  name: is_active
+                  valueBoolean: true
+
+        - insert:
+            tableName: validation_rule_conditions
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-1111-7000-8000-000000000003
+              - column:
+                  name: rule_id
+                  value: 01932b6f-5678-7000-8000-000000000010
+              - column:
+                  name: condition_type
+                  value: CUSTOM_EXPRESSION
+              - column:
+                  name: field_name
+                  value: endDate
+              - column:
+                  name: operator
+                  value: CUSTOM
+              - column:
+                  name: expected_value
+                  value: ''
+              - column:
+                  name: condition_expression
+                  value: endDate > startDate
+              - column:
+                  name: logical_operator
+                  value: AND
+              - column:
+                  name: condition_order
+                  valueNumeric: 1
+              - column:
+                  name: is_active
+                  valueBoolean: true
