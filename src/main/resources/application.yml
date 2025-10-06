@@ -4,39 +4,9 @@ spring:
   application:
     name: validation
 
-  # MongoDB Primary Database (for validation documents)
-  data:
-    mongodb:
-      uri: mongodb://root:123123a%40@mongodb:27017/validation?authSource=admin&retryWrites=false
-
-      # Connection pool settings
-      options:
-        min-connections-per-host: 2
-        max-connections-per-host: 10
-        threads-allowed-to-block-for-connection-multiplier: 5
-        max-wait-time: 120000
-        max-connection-idle-time: 600000
-        max-connection-life-time: 1800000
-        connect-timeout: 10000
-        socket-timeout: 0
-
-      # SSL/TLS Configuration
-      ssl:
-        enabled: false
-        invalid-host-name-allowed: false
-
-      # Write Concern Configuration
-      write-concern:
-        w: 1
-        w-timeout: 10000
-        j: true
-
-      # Read Preference Configuration
-      read-preference: primary
-
   # MariaDB Secondary Database (for validation rules/metadata)
   datasource:
-    url: ${DB_URL:jdbc:mariadb://promixhub.com:3306/validation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mariadb://promixhub.com:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
     username: root
     password: ${DB_PASSWORD:123123a@}
     driver-class-name: org.mariadb.jdbc.Driver
@@ -87,18 +57,18 @@ promix:
 
   # Outbox Pattern Configuration
   outbox:
-    enabled: false                         # Disable MongoDB outbox (from promix-outbox-autoconfigure)
+    enabled: true                         # Disable MongoDB outbox (from promix-outbox-autoconfigure)
     jpa:
       enabled: true                        # Enable JPA outbox implementation
     batch:
       enabled: true                        # Enable batch processing
       chunk-size: 100                      # Events per processing batch
       page-size: 1000                      # Events per database read
-      interval: 1m                         # Processing interval
+      interval-ms: 60000                   # Processing interval in milliseconds (60000ms = 1 minute)
     cleanup:
       enabled: true                        # Enable automatic cleanup
       retention-period: 7d                 # Keep processed events for 7 days
-      interval: 6h                         # Cleanup interval
+      interval-ms: 21600000                # Cleanup interval in milliseconds (21600000ms = 6 hours)
     retry:
       max-attempts: 3                      # Maximum retry attempts
       initial-delay: 1m                    # Initial retry delay
@@ -221,3 +191,13 @@ kafka:
   producer:
     client-id: validation-producer
 
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    # Enable DEBUG for Outbox Scheduler to see batch job execution logs
+    com.promix.platform.outbox.autoconfigure.OutboxSchedulerConfiguration: DEBUG
+    # Enable DEBUG for Spring Batch to see job execution details
+    org.springframework.batch.core: DEBUG
+    # Application logging
+    vn.viettel.vds.promotion.validation: INFO
