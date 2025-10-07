@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
+import vn.viettel.vds.promotion.validation.domain.common.Result;
 import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommandPayload;
@@ -35,18 +37,21 @@ public class SettingValidationRuleCommandHandler {
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final ValidationEngineDeploymentService validationEngineClient;
+    private final IdempotencyService idempotencyService;
 
     public SettingValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
             RuleTimeFrameJpaRepository ruleTimeFrameRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
-            ValidationEngineDeploymentService validationEngineClient) {
+            ValidationEngineDeploymentService validationEngineClient,
+            IdempotencyService idempotencyService) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;
         this.validationEngineClient = validationEngineClient;
+        this.idempotencyService = idempotencyService;
     }
 
     /**
@@ -57,6 +62,12 @@ public class SettingValidationRuleCommandHandler {
 
         try {
             logger.info("Processing SettingValidationRuleCommand: commandId={}", commandId);
+
+            // Check idempotency - if already processed, return success immediately
+            if (idempotencyService.isProcessed(commandId)) {
+                logger.info("Command already processed (idempotent check): commandId={}", commandId);
+                return true;
+            }
 
             // Extract command payload
             SettingValidationRuleCommandPayload payload = command.getPayload();
@@ -72,6 +83,10 @@ public class SettingValidationRuleCommandHandler {
             // Publish success/failure event
             if (result.isSuccess()) {
                 publishSuccessEvent(commandId, result);
+
+                // Mark as processed after successful processing
+                idempotencyService.markAsProcessed(commandId, result);
+
                 logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
                 return true;
             } else {
@@ -96,43 +111,39 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleCommand command,
             SettingValidationRuleCommandPayload payload) {
         try {
-            // Extract command components
-            vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData = payload.getAssignRule();
-            ApplicabilityScope applicableToData = payload.getApplicableTo();
-            TimeFrame timeframeData = payload.getTimeframe();
-            Integer priority = payload.getPriority();
-            String notes = payload.getNotes() != null ? payload.getNotes().toString() : null;
-
-            if (assignRuleData == null) {
-                return CommandProcessingResult.failure("MISSING_ASSIGN_RULE", "assignRule is required");
+            // Validate command components
+            Result<ComponentsData> componentsResult = validateCommandComponents(command, payload);
+            if (componentsResult.isFailure()) {
+                return CommandProcessingResult.failure(
+                    componentsResult.getFirstErrorCode().orElse(ErrorCode.COMMAND_VALIDATION_ERROR).name(),
+                    componentsResult.getFirstErrorMessage().orElse("Command validation failed")
+                );
             }
 
-            // ✅ FIX: Get campaign ID from command.subject
-            String campaignId = getCampaignIdFromCommand(command);
-            if (campaignId == null || campaignId.isEmpty()) {
-                return CommandProcessingResult.failure("MISSING_CAMPAIGN_ID",
-                        "Campaign ID is required in command.subject");
-            }
-
-            // Validate rule exists
-            String ruleId = assignRuleData.getRuleId().toString();
-            if (ruleId == null || !validationRuleRepository.existsById(ruleId)) {
-                return CommandProcessingResult.failure("RULE_NOT_FOUND",
-                        "Validation rule not found: " + ruleId);
-            }
+            ComponentsData components = componentsResult.getValue();
 
             // ✅ NEW: Validate rule has product.applicability.in node if applicableTo provided
-            if (applicableToData != null) {
-                boolean isValid = validateRuleHasProductApplicabilityNode(ruleId, applicableToData);
+            if (components.applicableToData() != null) {
+                boolean isValid = validateRuleHasProductApplicabilityNode(
+                    components.ruleId(),
+                    components.applicableToData()
+                );
                 if (!isValid) {
-                    return CommandProcessingResult.failure("RULE_MISSING_APPLICABILITY_NODE",
-                            "Rule must contain product.applicability.in condition node when applicableTo is provided");
+                    return CommandProcessingResult.failure(
+                        ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
+                        "Rule must contain product.applicability.in condition node when applicableTo is provided"
+                    );
                 }
             }
 
             // ✅ FIXED: Create rule assignment with campaign ID
             vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
-                    createRuleAssignment(assignRuleData, campaignId, priority, notes);
+                    createRuleAssignment(
+                        components.assignRuleData(),
+                        components.campaignId(),
+                        components.priority(),
+                        components.notes()
+                    );
 
             // Convert to JPA entity and save
             AssignmentEntity assignmentEntity = toAssignmentEntity(assignment);
@@ -140,29 +151,72 @@ public class SettingValidationRuleCommandHandler {
             assignment.setId(assignmentEntity.getId());
 
             logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}",
-                    campaignId, ruleId, assignment.getId());
+                    components.campaignId(), components.ruleId(), assignment.getId());
 
             // Process timeframe if provided
             String timeFrameId = null;
-            if (timeframeData != null) {
-                timeFrameId = processTimeframe(ruleId, timeframeData);
+            if (components.timeframeData() != null) {
+                timeFrameId = processTimeframe(components.ruleId(), components.timeframeData());
             }
 
             // Deploy rule to validation-engine
-            deployRuleToEngine(assignment, ruleId);
+            deployRuleToEngine(assignment, components.ruleId());
 
             // Create processing result
             return CommandProcessingResult.success(
                     assignment,
-                    applicableToData,
+                    components.applicableToData(),
                     timeFrameId,
-                    timeframeData
+                    components.timeframeData()
             );
 
         } catch (Exception e) {
             logger.error("Error processing command components: commandId={}", commandId, e);
             return CommandProcessingResult.failure("PROCESSING_ERROR", e.getMessage());
         }
+    }
+
+    /**
+     * Validate command components and extract data
+     */
+    private Result<ComponentsData> validateCommandComponents(
+            SettingValidationRuleCommand command,
+            SettingValidationRuleCommandPayload payload) {
+
+        // Extract command components
+        vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData = payload.getAssignRule();
+        ApplicabilityScope applicableToData = payload.getApplicableTo();
+        TimeFrame timeframeData = payload.getTimeframe();
+        Integer priority = payload.getPriority();
+        String notes = payload.getNotes() != null ? payload.getNotes().toString() : null;
+
+        // Validate assignRule
+        if (assignRuleData == null) {
+            return Result.failure(ErrorCode.MISSING_ASSIGN_RULE, "assignRule is required in payload");
+        }
+
+        // Get campaign ID from command.subject
+        String campaignId = getCampaignIdFromCommand(command);
+        if (campaignId == null || campaignId.isEmpty()) {
+            return Result.failure(ErrorCode.MISSING_CAMPAIGN_ID, "Campaign ID is required in command.subject");
+        }
+
+        // Validate rule exists
+        String ruleId = assignRuleData.getRuleId().toString();
+        if (ruleId == null || !validationRuleRepository.existsById(ruleId)) {
+            return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
+        }
+
+        // Return validated components
+        return Result.success(new ComponentsData(
+            assignRuleData,
+            applicableToData,
+            timeframeData,
+            priority,
+            notes,
+            campaignId,
+            ruleId
+        ));
     }
 
     /**
@@ -448,6 +502,19 @@ public class SettingValidationRuleCommandHandler {
 
         return entity;
     }
+
+    /**
+     * Record to hold validated command components
+     */
+    private record ComponentsData(
+        vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
+        ApplicabilityScope applicableToData,
+        TimeFrame timeframeData,
+        Integer priority,
+        String notes,
+        String campaignId,
+        String ruleId
+    ) {}
 
     /**
      * Result wrapper for command processing
