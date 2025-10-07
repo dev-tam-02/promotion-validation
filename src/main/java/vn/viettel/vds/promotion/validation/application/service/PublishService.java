@@ -11,11 +11,14 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLink
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 import com.promix.platform.outbox.service.OutboxService;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -113,11 +116,16 @@ public class PublishService {
                     "Cannot cancel job in status: " + job.getStatus(), 400));
         }
 
-        job.setStatus(PublishJob.JobStatus.FAILED);
-        job.setCompletedAt(Instant.now());
-        job.getErrors().add("Cancelled by " + cancelledBy);
+        List<String> updatedErrors = new ArrayList<>(job.getErrors() != null ? job.getErrors() : List.of());
+        updatedErrors.add("Cancelled by " + cancelledBy);
 
-        return publishJobPersistencePort.save(job);
+        PublishJob updatedJob = job.toBuilder()
+                .status(PublishJob.JobStatus.FAILED)
+                .completedAt(Instant.now())
+                .errors(updatedErrors)
+                .build();
+
+        return publishJobPersistencePort.save(updatedJob);
     }
 
     private void validateRuleForPublishing(Rule rule) {
@@ -144,23 +152,12 @@ public class PublishService {
 
     private Integer getNextVersionNumber(String tenantId, String ruleId) {
         return ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId)
-                .map(rv -> rv.getVersion() + 1)
+                .map(rv -> rv.getRuleVersion() + 1)
                 .orElse(1);
     }
 
     private PublishJob createPublishJob(Rule rule, Integer targetVersion, String publishedBy, PublishOptions options) {
-        PublishJob job = new PublishJob();
-        job.setId(generateJobId(rule.getTenantId(), rule.getId(), targetVersion));
-        job.setTenantId(rule.getTenantId());
-        job.setRuleId(rule.getId());
-        job.setTargetVersion(targetVersion);
-        job.setStatus(PublishJob.JobStatus.RUNNING);
-        job.setRequestedBy(publishedBy);
-        job.setRequestedAt(Instant.now());
-
-        // Set up compilation info
-        PublishJob.CompileJobInfo compileInfo = new PublishJob.CompileJobInfo();
-        compileInfo.setCompilerId(options != null ? options.getCompilerId() : "default_compiler_v1");
+        Instant now = Instant.now();
 
         // Calculate operators fingerprint
         List<String> operatorNames = rule.getNodes().stream()
@@ -171,9 +168,25 @@ public class PublishService {
                 .toList();
 
         String operatorsFingerprint = operatorService.calculateOperatorsFingerprint(rule.getTenantId(), operatorNames);
-        compileInfo.setOperatorsFingerprint(operatorsFingerprint);
 
-        job.setCompile(compileInfo);
+        // Set up compilation info
+        PublishJob.CompileJobInfo compileInfo = PublishJob.CompileJobInfo.builder()
+                .compilerId(options != null ? options.getCompilerId() : "default_compiler_v1")
+                .operatorsFingerprint(operatorsFingerprint)
+                .build();
+
+        PublishJob job = PublishJob.builder()
+                .id(generateJobId(rule.getTenantId(), rule.getId(), targetVersion))
+                .tenantId(rule.getTenantId())
+                .ruleId(rule.getId())
+                .targetVersion(targetVersion)
+                .status(PublishJob.JobStatus.RUNNING)
+                .requestedBy(publishedBy)
+                .requestedAt(now)
+                .compile(compileInfo)
+                .createdAt(now)
+                .version(0L)
+                .build();
 
         return publishJobPersistencePort.save(job);
     }
@@ -196,9 +209,12 @@ public class PublishService {
                 ruleService.markRuleAsPublished(rule.getId(), job.getTargetVersion());
 
                 // Complete the job
-                job.setStatus(PublishJob.JobStatus.SUCCESS);
-                job.setCompletedAt(Instant.now());
-                publishJobPersistencePort.save(job);
+                Instant completedTime = Instant.now();
+                PublishJob completedJob = job.toBuilder()
+                        .status(PublishJob.JobStatus.SUCCESS)
+                        .completedAt(completedTime)
+                        .build();
+                publishJobPersistencePort.save(completedJob);
 
                 // Publish outbox event
                 Map<String, Object> eventPayload = Map.of(
@@ -227,10 +243,15 @@ public class PublishService {
 
             } else {
                 // Mark job as failed
-                job.setStatus(PublishJob.JobStatus.FAILED);
-                job.setCompletedAt(Instant.now());
-                job.getErrors().add("Compilation failed");
-                publishJobPersistencePort.save(job);
+                List<String> failureErrors = new ArrayList<>(job.getErrors() != null ? job.getErrors() : List.of());
+                failureErrors.add("Compilation failed");
+
+                PublishJob failedJob = job.toBuilder()
+                        .status(PublishJob.JobStatus.FAILED)
+                        .completedAt(Instant.now())
+                        .errors(failureErrors)
+                        .build();
+                publishJobPersistencePort.save(failedJob);
 
                 logger.error("Publish job failed: id={}", jobId);
             }
@@ -240,10 +261,15 @@ public class PublishService {
 
             try {
                 PublishJob job = getPublishJob(jobId);
-                job.setStatus(PublishJob.JobStatus.FAILED);
-                job.setCompletedAt(Instant.now());
-                job.getErrors().add("Execution error: " + e.getMessage());
-                publishJobPersistencePort.save(job);
+                List<String> executionErrors = new ArrayList<>(job.getErrors() != null ? job.getErrors() : List.of());
+                executionErrors.add("Execution error: " + e.getMessage());
+
+                PublishJob errorJob = job.toBuilder()
+                        .status(PublishJob.JobStatus.FAILED)
+                        .completedAt(Instant.now())
+                        .errors(executionErrors)
+                        .build();
+                publishJobPersistencePort.save(errorJob);
             } catch (Exception saveError) {
                 logger.error("Error updating failed job status: id={}", jobId, saveError);
             }
@@ -251,35 +277,75 @@ public class PublishService {
     }
 
     private RuleVersion createRuleVersionSnapshot(Rule rule, PublishJob job) {
-        RuleVersion ruleVersion = new RuleVersion();
-        ruleVersion.setId(generateRuleVersionId(rule.getTenantId(), rule.getCode(), job.getTargetVersion()));
-        ruleVersion.setTenantId(rule.getTenantId());
-        ruleVersion.setRuleId(rule.getId());
-        ruleVersion.setCode(rule.getCode());
-        ruleVersion.setVersion(job.getTargetVersion());
-        ruleVersion.setLogic(rule.getLogic());
-        ruleVersion.setLimits(rule.getLimits());
-        ruleVersion.setNodes(rule.getNodes()); // Deep copy in real implementation
-        ruleVersion.setOperatorsFingerprint(job.getCompile().getOperatorsFingerprint());
+        Instant now = Instant.now();
 
-        // Snapshot temporal links
-        List<RuleTemporalLink> currentLinks = ruleTemporalLinkPersistencePort.findByRuleId(
-                rule.getId());
+        // Convert RuleNode objects to Map representation for storage
+        List<Map<String, Object>> nodesMaps = rule.getNodes() != null
+                ? rule.getNodes().stream()
+                        .map(this::convertRuleNodeToMap)
+                        .toList()
+                : List.of();
 
-        List<RuleVersion.TimeLink> timeLinks = currentLinks.stream()
-                .map(link -> {
-                    RuleVersion.TimeLink timeLink = new RuleVersion.TimeLink();
-                    timeLink.setPolicyId(link.getPolicyId());
-                    timeLink.setMode(RuleVersion.TimeLink.TimeLinkMode.valueOf(link.getMode().name()));
-                    return timeLink;
-                })
-                .toList();
-
-        ruleVersion.setTimeLinks(timeLinks);
-        ruleVersion.setPublishedAt(Instant.now());
-        ruleVersion.setPublishedBy(job.getRequestedBy());
+        RuleVersion ruleVersion = RuleVersion.builder()
+                .id(generateRuleVersionId(rule.getTenantId(), rule.getCode(), job.getTargetVersion()))
+                .tenantId(rule.getTenantId())
+                .ruleId(rule.getId())
+                .code(rule.getCode())
+                .ruleVersion(job.getTargetVersion())
+                .logic(rule.getLogic() != null ? RuleVersion.LogicType.valueOf(rule.getLogic().name()) : null)
+                .limits(convertUsageLimitsToMap(rule.getLimits()))
+                .nodes(nodesMaps)
+                .operatorsFingerprint(job.getCompile().getOperatorsFingerprint())
+                .publishedAt(now)
+                .publishedBy(job.getRequestedBy())
+                .createdAt(now)
+                .version(0L)
+                .build();
 
         return ruleVersionPersistencePort.save(ruleVersion);
+    }
+
+    private Map<String, Object> convertUsageLimitsToMap(Rule.UsageLimits limits) {
+        if (limits == null) return null;
+
+        Map<String, Object> map = new HashMap<>();
+        if (limits.getPerCodeTotal() != null) {
+            map.put("perCodeTotal", limits.getPerCodeTotal());
+        }
+        if (limits.getPerCustomer() != null) {
+            map.put("perCustomer", limits.getPerCustomer());
+        }
+        if (limits.getPerDay() != null) {
+            map.put("perDay", limits.getPerDay());
+        }
+        if (limits.getPerTransaction() != null) {
+            map.put("perTransaction", limits.getPerTransaction());
+        }
+        if (limits.getRemaining() != null) {
+            map.put("remaining", limits.getRemaining());
+        }
+        return map;
+    }
+
+    private Map<String, Object> convertRuleNodeToMap(RuleNode node) {
+        Map<String, Object> map = new HashMap<>();
+        if (node.getNodeId() != null) map.put("nodeId", node.getNodeId());
+        if (node.getField() != null) map.put("field", node.getField());
+        if (node.getOperator() != null) map.put("operator", node.getOperator());
+        if (node.getValue() != null) map.put("value", node.getValue());
+        if (node.getLogicType() != null) map.put("logicType", node.getLogicType().name());
+        if (node.getType() != null) map.put("type", node.getType().name());
+        if (node.getOperatorName() != null) map.put("operatorName", node.getOperatorName());
+        if (node.getReasonCode() != null) map.put("reasonCode", node.getReasonCode());
+        if (node.getDescription() != null) map.put("description", node.getDescription());
+        if (node.getParams() != null) map.put("params", node.getParams());
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            List<Map<String, Object>> childrenMaps = node.getChildren().stream()
+                    .map(this::convertRuleNodeToMap)
+                    .toList();
+            map.put("children", childrenMaps);
+        }
+        return map;
     }
 
     private boolean simulateCompilation(PublishJob job, RuleVersion ruleVersion) {
@@ -294,20 +360,20 @@ public class PublishService {
 
             // Simulate successful compilation
             String bundleHash = "sha256:" + java.util.UUID.randomUUID().toString().replace("-", "");
+            List<String> compilationLogs = List.of("Compilation started", "Operators resolved", "Bundle created successfully");
 
             // Update rule version with compilation results
-            RuleVersion.CompileInfo compileInfo = new RuleVersion.CompileInfo();
-            compileInfo.setStatus(RuleVersion.CompileInfo.CompileStatus.SUCCESS);
-            compileInfo.setCompilerId(job.getCompile().getCompilerId());
-            compileInfo.setBundleHash(bundleHash);
-            compileInfo.setLogs(List.of("Compilation started", "Operators resolved", "Bundle created successfully"));
+            RuleVersion.CompileInfo compileInfo = RuleVersion.CompileInfo.builder()
+                    .status(RuleVersion.CompileInfo.CompileStatus.SUCCESS)
+                    .compilerId(job.getCompile().getCompilerId())
+                    .bundleHash(bundleHash)
+                    .logs(compilationLogs)
+                    .build();
 
-            ruleVersion.setCompile(compileInfo);
-            ruleVersionPersistencePort.save(ruleVersion);
-
-            // Update job with bundle hash
-            job.getCompile().setBundleHash(bundleHash);
-            job.getCompile().setLogs(compileInfo.getLogs());
+            RuleVersion updatedRuleVersion = ruleVersion.toBuilder()
+                    .compile(compileInfo)
+                    .build();
+            ruleVersionPersistencePort.save(updatedRuleVersion);
 
             return true;
 

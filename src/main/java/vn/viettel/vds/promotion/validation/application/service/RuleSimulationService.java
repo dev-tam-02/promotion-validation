@@ -47,8 +47,8 @@ public class RuleSimulationService {
 
             if (version != null) {
                 RuleVersion ruleVersion = ruleVersionService.getRuleVersion(ruleId, version);
-                nodes = ruleVersion.getNodes();
-                rootLogic = ruleVersion.getLogic();
+                nodes = convertNodesToRuleNodes(ruleVersion.getNodes());
+                rootLogic = convertLogicType(ruleVersion.getLogic());
             } else {
                 Rule rule = ruleService.getRuleById(ruleId);
                 nodes = rule.getNodes();
@@ -608,5 +608,70 @@ public class RuleSimulationService {
         public List<String> getExplanations() {
             return explanations;
         }
+    }
+
+    /**
+     * Convert RuleVersion.LogicType to Rule.LogicType
+     */
+    private Rule.LogicType convertLogicType(RuleVersion.LogicType versionLogic) {
+        if (versionLogic == null) {
+            return null;
+        }
+        return Rule.LogicType.valueOf(versionLogic.name());
+    }
+
+    /**
+     * Convert List<Map<String, Object>> to List<RuleNode>
+     */
+    private List<RuleNode> convertNodesToRuleNodes(List<Map<String, Object>> nodeMaps) {
+        if (nodeMaps == null) {
+            return new ArrayList<>();
+        }
+
+        List<RuleNode> nodes = new ArrayList<>();
+        for (Map<String, Object> nodeMap : nodeMaps) {
+            nodes.add(convertMapToRuleNode(nodeMap));
+        }
+        return nodes;
+    }
+
+    /**
+     * Convert a Map to RuleNode
+     */
+    @SuppressWarnings("unchecked")
+    private RuleNode convertMapToRuleNode(Map<String, Object> nodeMap) {
+        RuleNode.Builder builder = RuleNode.builder();
+
+        if (nodeMap.containsKey("id")) {
+            builder.nodeId((String) nodeMap.get("id"));
+        }
+        if (nodeMap.containsKey("field")) {
+            builder.field((String) nodeMap.get("field"));
+        }
+        if (nodeMap.containsKey("operator")) {
+            builder.operator((String) nodeMap.get("operator"));
+        }
+        if (nodeMap.containsKey("value")) {
+            builder.value(nodeMap.get("value"));
+        }
+        if (nodeMap.containsKey("type")) {
+            String type = (String) nodeMap.get("type");
+            if ("GROUP".equals(type)) {
+                builder.type(RuleNode.NodeType.GROUP);
+            } else if ("COND".equals(type)) {
+                builder.type(RuleNode.NodeType.COND);
+            }
+        }
+        if (nodeMap.containsKey("operatorName")) {
+            builder.operatorName((String) nodeMap.get("operatorName"));
+        }
+        if (nodeMap.containsKey("reasonCode")) {
+            builder.reasonCode((String) nodeMap.get("reasonCode"));
+        }
+        if (nodeMap.containsKey("params")) {
+            builder.params((Map<String, Object>) nodeMap.get("params"));
+        }
+
+        return builder.build();
     }
 }

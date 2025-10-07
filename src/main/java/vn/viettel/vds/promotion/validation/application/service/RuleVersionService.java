@@ -80,7 +80,7 @@ public class RuleVersionService {
     public Integer getNextVersionNumber(String ruleId) {
         String tenantId = extractTenantIdFromRuleId(ruleId);
         Optional<RuleVersion> latest = ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
-        return latest.map(rv -> rv.getVersion() + 1).orElse(1);
+        return latest.map(rv -> rv.getRuleVersion() != null ? rv.getRuleVersion() + 1 : 1).orElse(1);
     }
 
     /**
@@ -159,10 +159,8 @@ public class RuleVersionService {
                 changes.add("Rule limits modified");
             }
 
-            boolean timeLinksDifferent = !java.util.Objects.equals(from.getTimeLinks(), to.getTimeLinks());
-            if (timeLinksDifferent) {
-                changes.add("Temporal links modified");
-            }
+            // Note: timeLinks field is not present in RuleVersion model
+            boolean timeLinksDifferent = false;
 
             boolean logicDifferent = !java.util.Objects.equals(from.getLogic(), to.getLogic());
             if (logicDifferent) {

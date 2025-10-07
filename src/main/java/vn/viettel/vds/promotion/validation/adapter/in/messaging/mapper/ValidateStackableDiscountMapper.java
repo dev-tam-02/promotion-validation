@@ -75,10 +75,15 @@ public class ValidateStackableDiscountMapper {
                     .collect(Collectors.toList());
         }
 
+        // Extract currency and amount from Money object
+        vn.viettel.vds.promotion.schema.common.Money orderValueMoney = avroOrderInfo.getOrderValue();
+        BigDecimal orderValue = new BigDecimal(orderValueMoney.getAmount());
+        String currency = orderValueMoney.getCurrencyCode();
+
         return new OrderInfo(
                 avroOrderInfo.getOrderId(),
-                BigDecimal.valueOf(avroOrderInfo.getOrderValue()),
-                avroOrderInfo.getCurrency(),
+                orderValue,
+                currency,
                 avroOrderInfo.getOrderDate(),
                 avroOrderInfo.getChannel(),
                 avroOrderInfo.getLocation(),
@@ -92,10 +97,14 @@ public class ValidateStackableDiscountMapper {
     private OrderItemInfo mapOrderItem(
             vn.viettel.vds.promotion.schema.redemption.command.ValidateOrderItem avroItem
     ) {
+        // Extract price from Money object
+        vn.viettel.vds.promotion.schema.common.Money priceMoney = avroItem.getPrice();
+        BigDecimal price = new BigDecimal(priceMoney.getAmount());
+
         return new OrderItemInfo(
                 avroItem.getSku(),
                 avroItem.getQuantity(),
-                BigDecimal.valueOf(avroItem.getPrice()),
+                price,
                 avroItem.getCategory()
         );
     }
@@ -117,13 +126,17 @@ public class ValidateStackableDiscountMapper {
     private DiscountRequest mapDiscountRequest(
             vn.viettel.vds.promotion.schema.redemption.command.ValidateDiscountRequest avroRequest
     ) {
-        BigDecimal expectedDiscount = avroRequest.getExpectedDiscount() != null
-                ? BigDecimal.valueOf(avroRequest.getExpectedDiscount())
-                : null;
+        // Extract expected discount from Money object
+        BigDecimal expectedDiscount = null;
+        if (avroRequest.getExpectedDiscount() != null) {
+            expectedDiscount = new BigDecimal(avroRequest.getExpectedDiscount().getAmount());
+        }
 
-        BigDecimal maxDiscountCap = avroRequest.getMaxDiscountCap() != null
-                ? BigDecimal.valueOf(avroRequest.getMaxDiscountCap())
-                : null;
+        // Extract max discount cap from Money object
+        BigDecimal maxDiscountCap = null;
+        if (avroRequest.getMaxDiscountCap() != null) {
+            maxDiscountCap = new BigDecimal(avroRequest.getMaxDiscountCap().getAmount());
+        }
 
         return new DiscountRequest(
                 mapDiscountObjectType(avroRequest.getObjectType()),

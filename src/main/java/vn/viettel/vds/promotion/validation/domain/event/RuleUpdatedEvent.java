@@ -19,10 +19,10 @@ public class RuleUpdatedEvent extends DomainEvent {
 
     public RuleUpdatedEvent(Rule rule, String updateSummary) {
         super("RULE_UPDATED");
-        this.ruleId = rule.getId().getValue();
-        this.tenantId = rule.getTenantId().getValue();
-        this.ruleCode = rule.getCode().getValue();
-        this.version = rule.getVersion().toString();
+        this.ruleId = rule.getId();
+        this.tenantId = rule.getTenantId();
+        this.ruleCode = rule.getCode();
+        this.version = rule.getVersion() != null ? rule.getVersion().toString() : "0";
         this.updatedBy = rule.getUpdatedBy();
         this.updatedAt = rule.getUpdatedAt();
         this.updateSummary = updateSummary;

@@ -1,8 +1,9 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
@@ -12,6 +13,8 @@ import java.time.Instant;
  */
 @Data
 @Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Assignment {
     private String id;
     private String tenantId;
@@ -36,6 +39,8 @@ public class Assignment {
      * Subject embeddable - represents the target of the assignment
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Subject {
         private String type;
         private String key;

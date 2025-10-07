@@ -57,7 +57,7 @@ public class RuleResponseMapper {
         response.setState(ruleStateToString(rule.getState()));
         response.setLatestVersion(rule.getLatestVersion());
         response.setLogic(logicTypeToString(rule.getLogic()));
-        response.setLimits(rule.getLimits());
+        response.setLimits(usageLimitsToMap(rule.getLimits()));
         response.setNodes(ruleNodesToDto(rule.getNodes()));
         response.setNotes(rule.getNotes());
         response.setCreatedAt(rule.getCreatedAt());
@@ -130,6 +130,32 @@ public class RuleResponseMapper {
         return dtos.stream()
                 .map(this::toRuleNode)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Converts UsageLimits object to Map for API response.
+     */
+    @Nullable
+    private java.util.Map<String, Object> usageLimitsToMap(@Nullable Rule.UsageLimits limits) {
+        if (limits == null) return null;
+
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        if (limits.getPerCodeTotal() != null) {
+            map.put("perCodeTotal", limits.getPerCodeTotal());
+        }
+        if (limits.getPerCustomer() != null) {
+            map.put("perCustomer", limits.getPerCustomer());
+        }
+        if (limits.getPerDay() != null) {
+            map.put("perDay", limits.getPerDay());
+        }
+        if (limits.getPerTransaction() != null) {
+            map.put("perTransaction", limits.getPerTransaction());
+        }
+        if (limits.getRemaining() != null) {
+            map.put("remaining", limits.getRemaining());
+        }
+        return map;
     }
 
     /**

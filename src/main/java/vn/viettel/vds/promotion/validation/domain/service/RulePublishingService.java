@@ -128,7 +128,7 @@ public class RulePublishingService {
             Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
-            if (rule.getState() != Rule.RuleState.PUBLISHED) {
+            if (Rule.RuleState.PUBLISHED != rule.getState()) {
                 return RulePublishResult.failed(ruleId, "Rule is not published, cannot unpublish");
             }
 
@@ -154,7 +154,7 @@ public class RulePublishingService {
             Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
-            if (rule.getState() != Rule.RuleState.PUBLISHED) {
+            if (!Rule.RuleState.PUBLISHED.name().equals(rule.getState())) {
                 return new RuleDeploymentStatus(ruleId, "NOT_DEPLOYED", false, null);
             }
 
@@ -346,13 +346,13 @@ public class RulePublishingService {
         validationRule.setVersion(rule.getLatestVersion());
         validationRule.setLogic(rule.getLogic() != null ? rule.getLogic().name() : null);
 
-        // Convert limits
+        // Convert limits from Rule.UsageLimits to ValidationRule.UsageLimits
         if (rule.getLimits() != null) {
-            Map<String, Object> limitsMap = rule.getLimits();
+            Rule.UsageLimits ruleLimits = rule.getLimits();
             ValidationRule.UsageLimits limits = new ValidationRule.UsageLimits(
-                    (Integer) limitsMap.get("perCodeTotal"),
-                    (Integer) limitsMap.get("perCustomer"),
-                    (Integer) limitsMap.get("perDay")
+                    ruleLimits.getPerCodeTotal(),
+                    ruleLimits.getPerCustomer(),
+                    ruleLimits.getPerDay()
             );
             validationRule.setLimits(limits);
         }
@@ -372,7 +372,7 @@ public class RulePublishingService {
         validationRule.setCreatedAt(rule.getCreatedAt());
         validationRule.setCreatedBy(rule.getCreatedBy());
         validationRule.setUpdatedAt(now);
-        validationRule.setUpdatedBy("rule-publishing-service");
+        // Note: updatedBy field is not present in ValidationRule domain model
 
         logger.info("Created ValidationRule from Rule: ruleId={}, validationRuleId={}",
                 rule.getId(), validationRule.getId());
@@ -381,24 +381,23 @@ public class RulePublishingService {
     }
 
     private RuleNode convertRuleNodeToValidationNode(RuleNode ruleNode) {
-        RuleNode validationNode = new RuleNode();
-        validationNode.setId(ruleNode.getId());
-        validationNode.setType(ruleNode.getType() != null ? ruleNode.getType().name() : null);
-        validationNode.setGroupLogic(ruleNode.getGroupLogic() != null ? ruleNode.getGroupLogic().name() : null);
-
-        // Convert children from List<RuleNode> to List<String> (IDs only)
+        // Convert children recursively
+        List<RuleNode> convertedChildren = new ArrayList<>();
         if (ruleNode.getChildren() != null) {
-            List<String> childIds = ruleNode.getChildren().stream()
-                    .map(RuleNode::getId)
+            convertedChildren = ruleNode.getChildren().stream()
+                    .map(this::convertRuleNodeToValidationNode)
                     .collect(Collectors.toList());
-            validationNode.setChildren(childIds);
         }
 
-        validationNode.setOperatorName(ruleNode.getOperatorName());
-        validationNode.setParams(ruleNode.getParams());
-        validationNode.setReasonCode(ruleNode.getReasonCode());
-        // Note: RuleNode doesn't have order field, so we skip it
-        return validationNode;
+        return RuleNode.builder()
+                .nodeId(ruleNode.getId())
+                .type(ruleNode.getType())
+                .groupLogic(ruleNode.getGroupLogic())
+                .children(convertedChildren)
+                .operatorName(ruleNode.getOperatorName())
+                .params(ruleNode.getParams())
+                .reasonCode(ruleNode.getReasonCode())
+                .build();
     }
 
     // Result classes

@@ -27,10 +27,10 @@ public interface AuditLogEntityMapper {
         if (embeddable == null) {
             return null;
         }
-        AuditLog.AuditTarget target = new AuditLog.AuditTarget();
-        target.setType(embeddable.getType());
-        target.setId(embeddable.getId());
-        return target;
+        return AuditLog.AuditTarget.builder()
+                .type(embeddable.getType())
+                .id(embeddable.getId())
+                .build();
     }
 
     default AuditLogEntity.AuditTargetEmbeddable mapTarget(AuditLog.AuditTarget target) {

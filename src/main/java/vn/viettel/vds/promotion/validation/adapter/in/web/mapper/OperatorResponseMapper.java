@@ -7,7 +7,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.OperatorResponse;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 @Mapper(componentModel = "spring")
-public interface OperatorMapper {
+public interface OperatorResponseMapper {
 
     @Mapping(source = "id", target = "operatorId")
     @Mapping(source = "status", target = "status", qualifiedByName = "operatorStatusToString")

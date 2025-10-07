@@ -59,18 +59,21 @@ public class TemporalPolicyService {
             validateRRule(rrule);
         }
 
-        TemporalPolicy policy = new TemporalPolicy();
-        policy.setId(generatePolicyId(tenantId, name));
-        policy.setTenantId(tenantId);
-        policy.setName(name);
-        policy.setTz(timezone);
-        policy.setRrule(rrule);
-        policy.setRdate(rdate);
-        policy.setExrule(exrule);
-        policy.setExdate(exdate);
-        policy.setTimeOfDayWindows(timeWindows);
-        policy.setCreatedAt(Instant.now());
-        policy.setUpdatedAt(Instant.now());
+        Instant now = Instant.now();
+        TemporalPolicy policy = TemporalPolicy.builder()
+                .id(generatePolicyId(tenantId, name))
+                .tenantId(tenantId)
+                .name(name)
+                .tz(timezone)
+                .rrule(rrule)
+                .rdate(rdate)
+                .exrule(exrule)
+                .exdate(exdate)
+                .timeOfDayWindows(timeWindows)
+                .createdAt(now)
+                .updatedAt(now)
+                .version(0L)
+                .build();
 
         TemporalPolicy saved = temporalPolicyPersistencePort.save(policy);
 

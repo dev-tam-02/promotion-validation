@@ -16,7 +16,7 @@ import java.util.Set;
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface ValidationRuleMapper {
+public abstract class ValidationRuleMapper {
 
     /**
      * Convert Rule domain model to ValidationRule domain model
@@ -29,13 +29,13 @@ public interface ValidationRuleMapper {
     @Mapping(source = "priority", target = "priority")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "targetSegments", target = "targetSegments", qualifiedByName = "listToSet")
+    @Mapping(source = "targetSegments", target = "targetSegments")
     @Mapping(source = "expression", target = "expression")
+    @Mapping(source = "effectiveFrom", target = "effectiveFrom")
+    @Mapping(source = "effectiveTo", target = "effectiveTo")
     @Mapping(target = "configuration", ignore = true)
-    @Mapping(target = "effectiveFrom", ignore = true)
-    @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(source = "active", target = "active")
-    ValidationRule toDomain(Rule rule);
+    public abstract ValidationRule toDomain(Rule rule);
 
     /**
      * Convert JPA RuleJpaEntity to ValidationRule domain model
@@ -48,13 +48,13 @@ public interface ValidationRuleMapper {
     @Mapping(source = "priority", target = "priority")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "targetSegments", target = "targetSegments", qualifiedByName = "listToSet")
+    @Mapping(source = "targetSegments", target = "targetSegments")
     @Mapping(target = "expression", ignore = true)
     @Mapping(target = "configuration", ignore = true)
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "active", expression = "java(\"PUBLISHED\".equals(entity.getState()))")
-    ValidationRule jpaEntityToDomain(RuleJpaEntity entity);
+    public abstract ValidationRule jpaEntityToDomain(RuleJpaEntity entity);
 
     /**
      * Convert ValidationRule domain model to Rule domain model
@@ -67,11 +67,14 @@ public interface ValidationRuleMapper {
     @Mapping(source = "priority", target = "priority")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "targetSegments", target = "targetSegments", qualifiedByName = "setToList")
+    @Mapping(source = "targetSegments", target = "targetSegments")
+    @Mapping(source = "effectiveFrom", target = "effectiveFrom")
+    @Mapping(source = "effectiveTo", target = "effectiveTo")
     @Mapping(source = "expression", target = "expression")
     @Mapping(source = "active", target = "active")
+    @Mapping(source = "limits", target = "limits", qualifiedByName = "validationUsageLimitsToRuleLimits")
     @Mapping(target = "tenantId", ignore = true)
-    @Mapping(target = "state", expression = "java(validationRule.isActive() ? \"PUBLISHED\" : \"DRAFT\")")
+    @Mapping(target = "state", expression = "java(validationRule.isActive() ? vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED : vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.DRAFT)")
     @Mapping(target = "code", ignore = true)
     @Mapping(target = "notes", ignore = true)
     @Mapping(target = "latestVersion", ignore = true)
@@ -86,21 +89,37 @@ public interface ValidationRuleMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "version", ignore = true)
-    Rule toEntity(ValidationRule validationRule);
+    @Mapping(target = "targetSegmentsList", ignore = true)
+    @Mapping(target = "nodes", ignore = true)
+    public abstract Rule toEntity(ValidationRule validationRule);
 
     /**
-     * Convert List to Set for target segments
+     * Convert ValidationRule.UsageLimits to Rule.UsageLimits
      */
-    @Named("listToSet")
-    default Set<String> listToSet(List<String> list) {
-        return list != null ? new HashSet<>(list) : new HashSet<>();
+    @Named("validationUsageLimitsToRuleLimits")
+    protected Rule.UsageLimits validationUsageLimitsToRuleLimits(ValidationRule.UsageLimits limits) {
+        if (limits == null) {
+            return null;
+        }
+        return Rule.UsageLimits.builder()
+            .perCodeTotal(limits.getPerCodeTotal())
+            .perCustomer(limits.getPerCustomer())
+            .perDay(limits.getPerDay())
+            .build();
     }
 
     /**
-     * Convert Set to List for target segments
+     * Convert Rule.UsageLimits to ValidationRule.UsageLimits
      */
-    @Named("setToList")
-    default List<String> setToList(Set<String> set) {
-        return set != null ? List.copyOf(set) : List.of();
+    @Named("ruleUsageLimitsToValidationLimits")
+    protected ValidationRule.UsageLimits ruleUsageLimitsToValidationLimits(Rule.UsageLimits limits) {
+        if (limits == null) {
+            return null;
+        }
+        return new ValidationRule.UsageLimits(
+            limits.getPerCodeTotal(),
+            limits.getPerCustomer(),
+            limits.getPerDay()
+        );
     }
 }

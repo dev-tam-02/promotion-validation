@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import vn.viettel.vds.promotion.validation.domain.exception.RuleEvaluationException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,16 +59,16 @@ public class RuleNode {
         }
 
         if (isLeafNode()) {
-            // Leaf nodes should have field and operator, but allow flexibility
-            // Objects.requireNonNull(field, "Field cannot be null for leaf node");
-            // Objects.requireNonNull(operator, "Operator cannot be null for leaf node");
-            // Value can be null for some operators like IS_NULL
+            // Leaf nodes must have field and operator
+            Objects.requireNonNull(field, "Field cannot be null for leaf node");
+            Objects.requireNonNull(operator, "Operator cannot be null for leaf node");
+            // Value can be null for some operators like IS_NULL, IS_NOT_NULL
         } else {
-            // Parent nodes should have logic type and children
-            // Objects.requireNonNull(logicType, "LogicType cannot be null for parent node");
-            // if (children.isEmpty()) {
-            //     throw new IllegalArgumentException("Parent node must have at least one child");
-            // }
+            // Parent nodes must have logic type and children
+            Objects.requireNonNull(logicType, "LogicType cannot be null for parent node");
+            if (children.isEmpty()) {
+                throw new IllegalArgumentException("Parent node must have at least one child");
+            }
         }
     }
 
@@ -83,8 +85,45 @@ public class RuleNode {
     }
 
     private boolean evaluateLeafNode(ValidationContext context) {
+        // Defensive null checks
+        if (field == null) {
+            throw new RuleEvaluationException("Field is null in leaf node", nodeId, field, operator);
+        }
+        if (operator == null) {
+            throw new RuleEvaluationException("Operator is null in leaf node", nodeId, field, operator);
+        }
+
+        // Get field value from context
         Object fieldValue = context.getValue(field);
+
+        // Allow null values only for null-checking operators
+        if (fieldValue == null && !isNullCheckOperator(operator)) {
+            // For non-null-check operators, treat null field value as false
+            return false;
+        }
+
+        // Allow null expected value only for null-checking operators
+        if (value == null && !isNullCheckOperator(operator)) {
+            throw new RuleEvaluationException(
+                "Expected value is null for non-null-check operator: " + operator,
+                nodeId, field, operator
+            );
+        }
+
         return OperatorEvaluator.evaluate(operator, fieldValue, value);
+    }
+
+    /**
+     * Check if operator is a null-checking operator that allows null values
+     */
+    private boolean isNullCheckOperator(String operator) {
+        if (operator == null) {
+            return false;
+        }
+        return operator.equals("IS_NULL") ||
+               operator.equals("IS_NOT_NULL") ||
+               operator.equals("is_null") ||
+               operator.equals("is_not_null");
     }
 
     private boolean evaluateParentNode(ValidationContext context) {
@@ -243,6 +282,36 @@ public class RuleNode {
 
         public RuleNode build() {
             return new RuleNode(this);
+        }
+
+        /**
+         * Build a partial node (for placeholder or incomplete nodes)
+         * Does not trigger validation
+         */
+        public RuleNode buildPartial() {
+            // Temporarily set nodeId to null to bypass validation
+            String tempNodeId = this.nodeId;
+            this.nodeId = null;
+            RuleNode node = new RuleNode(this);
+            this.nodeId = tempNodeId;
+            return node;
+        }
+
+        /**
+         * Check if the builder state is valid for building a complete node
+         */
+        public boolean isValid() {
+            if (nodeId == null) {
+                return false;
+            }
+
+            // Check leaf node requirements
+            if (children == null || children.isEmpty()) {
+                return field != null && operator != null;
+            }
+
+            // Check parent node requirements
+            return logicType != null && !children.isEmpty();
         }
     }
 }

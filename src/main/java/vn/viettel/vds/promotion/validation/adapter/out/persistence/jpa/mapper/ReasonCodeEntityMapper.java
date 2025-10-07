@@ -17,15 +17,17 @@ public interface ReasonCodeEntityMapper {
             return null;
         }
 
-        ReasonCode domain = new ReasonCode();
-        domain.setId(entity.getId());
-        domain.setTenantId(entity.getTenantId());
-        domain.setCategory(entity.getCategory());
-        domain.setSeverity(mapSeverity(entity.getSeverity()));
-        domain.setLabels(mapLabelsToString(entity.getLabels()));
-        domain.setCreatedAt(entity.getCreatedAt());
+        Long versionValue = entity.getVersion() != null ? entity.getVersion() : 1L;
 
-        return domain;
+        return ReasonCode.builder()
+                .id(entity.getId())
+                .tenantId(entity.getTenantId())
+                .category(entity.getCategory())
+                .severity(mapSeverity(entity.getSeverity()))
+                .labels(entity.getLabels())  // Already Map<String, Object>
+                .createdAt(entity.getCreatedAt())
+                .version(versionValue)
+                .build();
     }
 
     default ReasonCodeEntity toEntity(ReasonCode domain) {
@@ -38,7 +40,7 @@ public interface ReasonCodeEntityMapper {
         entity.setTenantId(domain.getTenantId());
         entity.setCategory(domain.getCategory());
         entity.setSeverity(mapSeverity(domain.getSeverity()));
-        entity.setLabels(mapLabelsToObject(domain.getLabels()));
+        entity.setLabels(domain.getLabels());
         entity.setCreatedAt(domain.getCreatedAt());
 
         return entity;

@@ -11,6 +11,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -100,10 +101,10 @@ public class RuleVersioningService {
             Rule savedRule = rulePersistencePort.save(rolledBackRule);
 
             logger.info("Rule rolled back successfully: ruleId={}, newVersion={}, rolledBackToVersion={}",
-                    ruleId, savedRule.getLatestVersion(), targetRuleVersion.getVersion());
+                    ruleId, savedRule.getLatestVersion(), targetRuleVersion.getVersion().intValue());
 
             return RuleVersionResult.success(savedRule.getId(), savedRule.getLatestVersion(),
-                    "Rolled back to version " + targetRuleVersion.getVersion());
+                    "Rolled back to version " + targetRuleVersion.getVersion().intValue());
 
         } catch (Exception e) {
             logger.error("Failed to rollback rule: tenantId={}, ruleId={}, targetVersion={}",
@@ -122,7 +123,7 @@ public class RuleVersioningService {
 
             return versions.stream()
                     .map(this::convertToVersionInfo)
-                    .sorted((v1, v2) -> Integer.compare(v2.getVersion(), v1.getVersion())) // Descending order
+                    .sorted((v1, v2) -> Integer.compare(v2.getVersion(), v1.getVersion().intValue())) // Descending order
                     .toList();
 
         } catch (Exception e) {
@@ -184,7 +185,7 @@ public class RuleVersioningService {
         copy.setCode(source.getCode());
         copy.setLogic(source.getLogic());
         copy.setNodes(source.getNodes()); // Deep copy needed for production
-        copy.setLimits(source.getLimits() != null ? new java.util.HashMap<>(source.getLimits()) : null);
+        copy.setLimits(copyUsageLimits(source.getLimits()));
         copy.setNotes(source.getNotes());
 
         return copy;
@@ -195,10 +196,14 @@ public class RuleVersioningService {
 
         rule.setTenantId(source.getTenantId());
         rule.setCode(source.getCode());
-        rule.setLogic(source.getLogic());
-        rule.setNodes(source.getNodes()); // Deep copy needed for production
-        rule.setLimits(source.getLimits() != null ? new java.util.HashMap<>(source.getLimits()) : null);
-        rule.setNotes("Restored from version " + source.getVersion());
+        // Convert RuleVersion.LogicType to Rule.LogicType
+        if (source.getLogic() != null) {
+            rule.setLogic(Rule.LogicType.valueOf(source.getLogic().name()));
+        }
+        // Convert List<Map<String, Object>> to List<RuleNode>
+        rule.setNodes(convertNodesToRuleNodes(source.getNodes()));
+        rule.setLimits(convertMapToUsageLimits(source.getLimits()));
+        rule.setNotes("Restored from version " + source.getVersion().intValue());
 
         return rule;
     }
@@ -209,7 +214,7 @@ public class RuleVersioningService {
         // Also check current rule version
         Optional<Rule> currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId);
         int maxVersion = versions.stream()
-                .mapToInt(ruleVersion -> ruleVersion.getVersion() != null ? ruleVersion.getVersion() : 0)
+                .mapToInt(ruleVersion -> ruleVersion.getRuleVersion() != null ? ruleVersion.getRuleVersion() : 0)
                 .max()
                 .orElse(0);
 
@@ -221,7 +226,7 @@ public class RuleVersioningService {
     }
 
     private void validateRollback(Rule currentRule, RuleVersion targetRuleVersion) {
-        if (currentRule.getLatestVersion().equals(targetRuleVersion.getVersion())) {
+        if (currentRule.getLatestVersion().equals(targetRuleVersion.getVersion().intValue())) {
             throw new IllegalArgumentException("Cannot rollback to the same version");
         }
 
@@ -231,10 +236,42 @@ public class RuleVersioningService {
         }
     }
 
+    private Rule.UsageLimits copyUsageLimits(Rule.UsageLimits source) {
+        if (source == null) return null;
+
+        return Rule.UsageLimits.builder()
+                .perCodeTotal(source.getPerCodeTotal())
+                .perCustomer(source.getPerCustomer())
+                .perDay(source.getPerDay())
+                .perTransaction(source.getPerTransaction())
+                .remaining(source.getRemaining())
+                .build();
+    }
+
+    private Rule.UsageLimits convertMapToUsageLimits(Map<String, Object> limitsMap) {
+        if (limitsMap == null) return null;
+
+        return Rule.UsageLimits.builder()
+                .perCodeTotal(getIntegerFromMap(limitsMap, "perCodeTotal"))
+                .perCustomer(getIntegerFromMap(limitsMap, "perCustomer"))
+                .perDay(getIntegerFromMap(limitsMap, "perDay"))
+                .perTransaction(getIntegerFromMap(limitsMap, "perTransaction"))
+                .remaining(getIntegerFromMap(limitsMap, "remaining"))
+                .build();
+    }
+
+    private Integer getIntegerFromMap(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Number) return ((Number) value).intValue();
+        return null;
+    }
+
     private RuleVersionInfo convertToVersionInfo(RuleVersion ruleVersion) {
         return new RuleVersionInfo(
                 ruleVersion.getRuleId(),
-                ruleVersion.getVersion(),
+                ruleVersion.getRuleVersion(), // Use ruleVersion (Integer) not version (Long)
                 ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT,
                 ruleVersion.getCode(), // Using code as name
                 null, // description not available in RuleVersion
@@ -346,5 +383,60 @@ public class RuleVersioningService {
         public java.util.Map<String, Object> getMetadata() {
             return metadata;
         }
+    }
+
+    /**
+     * Convert List<Map<String, Object>> to List<RuleNode>
+     */
+    private List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> convertNodesToRuleNodes(List<java.util.Map<String, Object>> nodeMaps) {
+        if (nodeMaps == null) {
+            return new java.util.ArrayList<>();
+        }
+
+        List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> nodes = new java.util.ArrayList<>();
+        for (java.util.Map<String, Object> nodeMap : nodeMaps) {
+            nodes.add(convertMapToRuleNode(nodeMap));
+        }
+        return nodes;
+    }
+
+    /**
+     * Convert a Map to RuleNode
+     */
+    @SuppressWarnings("unchecked")
+    private vn.viettel.vds.promotion.validation.domain.model.RuleNode convertMapToRuleNode(java.util.Map<String, Object> nodeMap) {
+        vn.viettel.vds.promotion.validation.domain.model.RuleNode.Builder builder = vn.viettel.vds.promotion.validation.domain.model.RuleNode.builder();
+
+        if (nodeMap.containsKey("id")) {
+            builder.nodeId((String) nodeMap.get("id"));
+        }
+        if (nodeMap.containsKey("field")) {
+            builder.field((String) nodeMap.get("field"));
+        }
+        if (nodeMap.containsKey("operator")) {
+            builder.operator((String) nodeMap.get("operator"));
+        }
+        if (nodeMap.containsKey("value")) {
+            builder.value(nodeMap.get("value"));
+        }
+        if (nodeMap.containsKey("type")) {
+            String type = (String) nodeMap.get("type");
+            if ("GROUP".equals(type)) {
+                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.GROUP);
+            } else if ("COND".equals(type)) {
+                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.COND);
+            }
+        }
+        if (nodeMap.containsKey("operatorName")) {
+            builder.operatorName((String) nodeMap.get("operatorName"));
+        }
+        if (nodeMap.containsKey("reasonCode")) {
+            builder.reasonCode((String) nodeMap.get("reasonCode"));
+        }
+        if (nodeMap.containsKey("params")) {
+            builder.params((java.util.Map<String, Object>) nodeMap.get("params"));
+        }
+
+        return builder.build();
     }
 }

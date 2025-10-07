@@ -120,8 +120,8 @@ public class SettingValidationRuleEventPublisher {
 
         // Build Applicability Result
         ApplicabilityResult applicabilityResult = ApplicabilityResult.newBuilder()
-                .setSubjectType(stats.getSubjectType())
-                .setSubjectKey(stats.getSubjectKey())
+                .setSubjectType("PRODUCT") // Default subject type for applicability
+                .setSubjectKey("*") // Default to all products
                 .setIncludedItemsCount(stats.getIncludedItemsCount())
                 .setExcludedItemsCount(stats.getExcludedItemsCount())
                 .setIncludedAll(stats.isIncludedAll())
@@ -150,8 +150,8 @@ public class SettingValidationRuleEventPublisher {
 
             timeframeResult = TimeframeResult.newBuilder()
                     .setTimeFrameId(result.getTimeFrameId())
-                    .setValidFrom(validFrom)
-                    .setValidTo(validTo)
+                    .setValidFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
+                    .setValidTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
                     .setMode(mode)
                     .setTimezone(timezone)
                     .build();
@@ -167,7 +167,7 @@ public class SettingValidationRuleEventPublisher {
                 .setApplicabilityResult(applicabilityResult)
                 .setTimeframeResult(timeframeResult)
                 .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now().toEpochMilli())
+                .setProcessedAt(Instant.now())
                 .build();
 
         // Build Metadata
@@ -183,7 +183,7 @@ public class SettingValidationRuleEventPublisher {
                 .setType("SettingValidationRuleEvent")
                 .setSource(serviceName)
                 .setSubject(assignment.getId())
-                .setOccurredAt(Instant.now().toEpochMilli())
+                .setOccurredAt(Instant.now())
                 .setVersion(1)
                 .setPayload(payload)
                 .setMetadata(metadata)
@@ -204,7 +204,7 @@ public class SettingValidationRuleEventPublisher {
                 .setApplicabilityResult(null)
                 .setTimeframeResult(null)
                 .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now().toEpochMilli())
+                .setProcessedAt(Instant.now())
                 .build();
 
         // Build Metadata
@@ -220,7 +220,7 @@ public class SettingValidationRuleEventPublisher {
                 .setType("SettingValidationRuleEvent")
                 .setSource(serviceName)
                 .setSubject(commandId)
-                .setOccurredAt(Instant.now().toEpochMilli())
+                .setOccurredAt(Instant.now())
                 .setVersion(1)
                 .setPayload(payload)
                 .setMetadata(metadata)
@@ -244,7 +244,7 @@ public class SettingValidationRuleEventPublisher {
                 .setApplicabilityResult(null)
                 .setTimeframeResult(null)
                 .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now().toEpochMilli())
+                .setProcessedAt(Instant.now())
                 .build();
 
         // Build Metadata with original command info
@@ -261,7 +261,7 @@ public class SettingValidationRuleEventPublisher {
                 .setType("SettingValidationRuleEvent")
                 .setSource(serviceName)
                 .setSubject(commandId)
-                .setOccurredAt(Instant.now().toEpochMilli())
+                .setOccurredAt(Instant.now())
                 .setVersion(1)
                 .setPayload(payload)
                 .setMetadata(metadata)
@@ -312,5 +312,108 @@ public class SettingValidationRuleEventPublisher {
             logger.error("Failed to publish Avro event to Kafka: topic={}, key={}", eventTopic, key, e);
             throw new RuntimeException("Failed to publish event to Kafka", e);
         }
+    }
+
+    /**
+     * Publish rollback success event
+     * Called when validation rule assignment rollback completes successfully
+     */
+    public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        try {
+            SettingValidationRuleEvent event = createRollbackSuccessEvent(commandId, campaignId, validationRuleId);
+            publishEvent(event, campaignId, commandId, "ROLLBACK_SUCCESS", campaignId);
+
+            logger.info("Published rollback success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+        } catch (Exception e) {
+            logger.error("Failed to publish rollback success event: commandId={}", commandId, e);
+            throw new RuntimeException("Failed to publish rollback success event", e);
+        }
+    }
+
+    /**
+     * Publish rollback error event
+     * Called when validation rule assignment rollback fails
+     */
+    public void publishRollbackErrorEvent(String commandId, String errorCode, String errorMessage) {
+        try {
+            SettingValidationRuleEvent event = createRollbackErrorEvent(commandId, errorCode, errorMessage);
+            publishEvent(event, commandId, commandId, "ROLLBACK_FAILURE", null);
+
+            logger.info("Published rollback error event: commandId={}, errorCode={}",
+                    commandId, errorCode);
+
+        } catch (Exception e) {
+            logger.error("Failed to publish rollback error event: commandId={}", commandId, e);
+            throw new RuntimeException("Failed to publish rollback error event", e);
+        }
+    }
+
+    /**
+     * Create rollback success event
+     */
+    private SettingValidationRuleEvent createRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("commandId", commandId);
+        metadata.put("eventType", "ROLLBACK_SUCCESS");
+        if (validationRuleId != null) {
+            metadata.put("validationRuleId", validationRuleId);
+        }
+
+        // Build event payload with rollback information
+        SettingValidationRuleEventPayload.Builder payloadBuilder = SettingValidationRuleEventPayload.newBuilder()
+                .setCommandId(commandId)
+                .setIsSuccess(true); // Rollback succeeded
+
+        // Set assignment result if available
+        if (validationRuleId != null) {
+            AssignmentResult assignmentResult = AssignmentResult.newBuilder()
+                    .setAssignmentId(validationRuleId)
+                    .setRuleId(validationRuleId)
+                    .setActive(false) // Marked as inactive after rollback
+                    .build();
+            payloadBuilder.setAssignmentResult(assignmentResult);
+        }
+
+        return SettingValidationRuleEvent.newBuilder()
+                .setId(IdGenerator.generateId())
+                .setAggregate("Validation")
+                .setType("SettingValidationRuleEvent")
+                .setSource(serviceName)
+                .setSubject(campaignId)
+                .setOccurredAt(Instant.now())
+                .setVersion(1)
+                .setPayload(payloadBuilder.build())
+                .setMetadata(metadata)
+                .build();
+    }
+
+    /**
+     * Create rollback error event
+     */
+    private SettingValidationRuleEvent createRollbackErrorEvent(String commandId, String errorCode, String errorMessage) {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("commandId", commandId);
+        metadata.put("eventType", "ROLLBACK_FAILURE");
+        metadata.put("errorCode", errorCode);
+
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                .setCommandId(commandId)
+                .setIsSuccess(false) // Rollback failed
+                .setErrorCode(errorCode)
+                .setErrorMessage(errorMessage)
+                .build();
+
+        return SettingValidationRuleEvent.newBuilder()
+                .setId(IdGenerator.generateId())
+                .setAggregate("Validation")
+                .setType("SettingValidationRuleEvent")
+                .setSource(serviceName)
+                .setOccurredAt(Instant.now())
+                .setVersion(1)
+                .setPayload(payload)
+                .setMetadata(metadata)
+                .build();
     }
 }

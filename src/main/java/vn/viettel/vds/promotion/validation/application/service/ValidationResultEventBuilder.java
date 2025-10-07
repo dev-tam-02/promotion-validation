@@ -61,12 +61,28 @@ public class ValidationResultEventBuilder {
             ValidateStackableDiscountCommand command,
             ValidateStackableDiscountResult result
     ) {
+        // Get currency from order info
+        String currency = command.orderInfo().currency();
+
+        // Build Money objects for amounts
+        vn.viettel.vds.promotion.schema.common.Money totalDiscount =
+                vn.viettel.vds.promotion.schema.common.Money.newBuilder()
+                        .setAmount(result.totalDiscountAmount().toString())
+                        .setCurrencyCode(currency)
+                        .build();
+
+        vn.viettel.vds.promotion.schema.common.Money finalAmount =
+                vn.viettel.vds.promotion.schema.common.Money.newBuilder()
+                        .setAmount(result.finalOrderAmount().toString())
+                        .setCurrencyCode(currency)
+                        .build();
+
         // Build validation summary
         ValidationSummary validationSummary = ValidationSummary.newBuilder()
                 .setOverallValid(result.isApproved())
                 .setCanStack(result.isApproved() || result.isPartial())
-                .setTotalDiscountAmount(result.totalDiscountAmount().longValue())
-                .setFinalAmount(result.finalOrderAmount().longValue())
+                .setTotalDiscountAmount(totalDiscount)
+                .setFinalAmount(finalAmount)
                 .setEffectiveDiscountRate(calculateDiscountRate(result))
                 .setValidationSummary(buildSummaryText(result))
                 .build();

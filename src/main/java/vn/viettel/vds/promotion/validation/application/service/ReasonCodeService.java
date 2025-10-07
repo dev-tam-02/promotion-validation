@@ -32,7 +32,7 @@ public class ReasonCodeService {
      * Create a new reason code
      */
     public ReasonCode createReasonCode(String tenantId, String id, String category,
-                                       ReasonCode.Severity severity, Map<String, String> labels) {
+                                       ReasonCode.Severity severity, Map<String, Object> labels) {
         logger.info("Creating reason code: tenant={}, id={}", tenantId, id);
 
         // Check if reason code already exists
@@ -41,13 +41,16 @@ public class ReasonCodeService {
                     "Reason code '" + id + "' already exists for tenant " + tenantId, 400));
         }
 
-        ReasonCode reasonCode = new ReasonCode();
-        reasonCode.setId(id);
-        reasonCode.setTenantId(tenantId);
-        reasonCode.setCategory(category);
-        reasonCode.setSeverity(severity);
-        reasonCode.setLabels(labels);
-        reasonCode.setCreatedAt(Instant.now());
+        Instant now = Instant.now();
+        ReasonCode reasonCode = ReasonCode.builder()
+                .id(id)
+                .tenantId(tenantId)
+                .category(category)
+                .severity(severity)
+                .labels(labels)
+                .createdAt(now)
+                .version(0L)
+                .build();
 
         ReasonCode saved = reasonCodePersistencePort.save(reasonCode);
 
@@ -116,13 +119,15 @@ public class ReasonCodeService {
     /**
      * Update reason code labels
      */
-    public ReasonCode updateReasonCodeLabels(String tenantId, String id, Map<String, String> labels) {
+    public ReasonCode updateReasonCodeLabels(String tenantId, String id, Map<String, Object> labels) {
         logger.info("Updating reason code labels: tenant={}, id={}", tenantId, id);
 
         ReasonCode reasonCode = getReasonCode(tenantId, id);
-        reasonCode.setLabels(labels);
+        ReasonCode updated = reasonCode.toBuilder()
+                .labels(labels)
+                .build();
 
-        ReasonCode saved = reasonCodePersistencePort.save(reasonCode);
+        ReasonCode saved = reasonCodePersistencePort.save(updated);
 
         logger.info("Reason code labels updated successfully: id={}", saved.getId());
         return saved;
@@ -160,19 +165,20 @@ public class ReasonCodeService {
             }
 
             // Try specific locale first, then fallback to English, then any available
-            String message = reasonCode.getLabels().get(locale);
-            if (message != null) {
-                return message;
+            Object messageObj = reasonCode.getLabels().get(locale);
+            if (messageObj != null) {
+                return messageObj.toString();
             }
 
-            message = reasonCode.getLabels().get("en");
-            if (message != null) {
-                return message;
+            messageObj = reasonCode.getLabels().get("en");
+            if (messageObj != null) {
+                return messageObj.toString();
             }
 
             // Return first available message
             return reasonCode.getLabels().values().stream()
                     .findFirst()
+                    .map(Object::toString)
                     .orElse(reasonCodeId);
 
         } catch (Exception e) {
@@ -234,9 +240,9 @@ public class ReasonCodeService {
         private final String id;
         private final String category;
         private final ReasonCode.Severity severity;
-        private final Map<String, String> labels;
+        private final Map<String, Object> labels;
 
-        public DefaultReasonCode(String id, String category, ReasonCode.Severity severity, Map<String, String> labels) {
+        public DefaultReasonCode(String id, String category, ReasonCode.Severity severity, Map<String, Object> labels) {
             this.id = id;
             this.category = category;
             this.severity = severity;
@@ -255,7 +261,7 @@ public class ReasonCodeService {
             return severity;
         }
 
-        public Map<String, String> getLabels() {
+        public Map<String, Object> getLabels() {
             return labels;
         }
     }

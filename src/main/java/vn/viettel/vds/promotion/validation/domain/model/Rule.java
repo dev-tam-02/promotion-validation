@@ -1,114 +1,290 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Simple domain model for Rule persistence operations.
- * This is used by application services and ports for CRUD operations.
+ * Authoritative domain model for Rule operations.
+ * This is the primary model for validation rules in the system.
  *
- * Note: This is different from RuleAggregate which is a DDD aggregate root with value objects.
+ * Use this model for all new development. ValidationRule is deprecated.
+ *
+ * Features:
+ * - Complete rule lifecycle management
+ * - Usage limits and quotas
+ * - Time-based effectiveness
+ * - Segment targeting
+ * - Campaign and rule set associations
  */
 @Data
 @Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class Rule {
+    // Core Identity
     private String id;
     private String tenantId;
     private String code;
+    private String ruleCode;
+
+    // Descriptive Information
     private String name;
     private String description;
-    private String state;
+    private String notes;
+
+    // State Management
+    private RuleState state;
+    private Boolean active;
     private Long ruleVersion;
-    private String logic;
+    private Integer latestVersion;
+
+    // Rule Logic
+    private LogicType logic;
+    private String type;
+    private String expression;
     private Map<String, Object> dsl;
+    private List<RuleNode> nodes;
+
+    // Execution Control
+    private Integer priority;
+    private Map<String, String> configuration;
+
+    // Usage Limits
+    private UsageLimits limits;
+
+    // Time Constraints
+    private Instant effectiveFrom;
+    private Instant effectiveTo;
+
+    // Targeting
+    private Set<String> targetSegments;
+    private List<String> targetSegmentsList;
+    private String campaignId;
+    private String ruleSetId;
+
+    // Publishing
     private Instant publishedAt;
     private String publishedBy;
 
-    // Audit fields
+    // Audit Trail
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
     private String updatedBy;
     private Long version;
 
-    // Additional fields from RuleJpaEntity
-    private String ruleCode;
-    private String notes;
-    private String expression;
-    private String type;
-    private Boolean active;
-    private Integer priority;
-    private Integer latestVersion;
-    private Map<String, String> configuration;
-    private List<String> targetSegments;
-    private String campaignId;
-    private String ruleSetId;
-    private List<RuleNode> nodes;
-    private Map<String, Object> limits;
-
     /**
-     * Rule state enum
+     * Rule state lifecycle enum
      */
     public enum RuleState {
-        DRAFT,
-        PUBLISHED,
-        ARCHIVED,
-        DEPRECATED
+        DRAFT,       // Being created/edited
+        PUBLISHED,   // Active and in use
+        ARCHIVED,    // Inactive but retained
+        DEPRECATED   // Superseded by newer version
     }
 
     /**
-     * Logic type enum
+     * Logic type for combining conditions
      */
     public enum LogicType {
-        ALL,  // AND
-        ANY,  // OR
-        NONE  // NOT
+        ALL,   // AND - all conditions must be true
+        ANY,   // OR - at least one condition must be true
+        NONE,  // NOT - all conditions must be false
+        XOR    // Exactly one condition must be true
     }
 
-    public Rule() {
-        this.dsl = new HashMap<>();
-        this.configuration = new HashMap<>();
-        this.targetSegments = new ArrayList<>();
+    /**
+     * Rule type classification
+     */
+    public enum RuleType {
+        REQUIRED,
+        FORMAT,
+        RANGE,
+        PATTERN,
+        CUSTOM,
+        BUSINESS_RULE,
+        BLACKLIST,
+        ELIGIBILITY,
+        VALIDATION
     }
 
-    public Rule(String id, String tenantId, String code, String name, String description, String state,
-                Long ruleVersion, String logic, Map<String, Object> dsl, Instant publishedAt, String publishedBy,
-                Instant createdAt, Instant updatedAt, String createdBy, String updatedBy, Long version,
-                String ruleCode, String notes, String expression, String type, Boolean active, Integer priority,
-                Integer latestVersion, Map<String, String> configuration, List<String> targetSegments,
-                String campaignId, String ruleSetId) {
-        this.id = id;
-        this.tenantId = tenantId;
-        this.code = code;
-        this.name = name;
-        this.description = description;
-        this.state = state;
-        this.ruleVersion = ruleVersion;
-        this.logic = logic;
-        this.dsl = dsl != null ? dsl : new HashMap<>();
-        this.publishedAt = publishedAt;
-        this.publishedBy = publishedBy;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.createdBy = createdBy;
-        this.updatedBy = updatedBy;
-        this.version = version;
-        this.ruleCode = ruleCode;
-        this.notes = notes;
-        this.expression = expression;
-        this.type = type;
-        this.active = active;
-        this.priority = priority;
-        this.latestVersion = latestVersion;
-        this.configuration = configuration != null ? configuration : new HashMap<>();
-        this.targetSegments = targetSegments != null ? targetSegments : new ArrayList<>();
-        this.campaignId = campaignId;
-        this.ruleSetId = ruleSetId;
+    /**
+     * Usage limits for rule application
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsageLimits {
+        private Integer perCodeTotal;     // Total uses across all customers
+        private Integer perCustomer;      // Uses per individual customer
+        private Integer perDay;           // Daily usage limit
+        private Integer perTransaction;   // Per transaction limit
+        private Integer remaining;        // Remaining uses
+
+        public boolean hasReachedLimit() {
+            if (perCodeTotal != null && remaining != null) {
+                return remaining <= 0;
+            }
+            return false;
+        }
+
+        public void decrementRemaining() {
+            if (remaining != null && remaining > 0) {
+                remaining--;
+            }
+        }
     }
+
+    /**
+     * Check if the rule is currently active
+     */
+    public boolean isActive() {
+        return Boolean.TRUE.equals(this.active);
+    }
+
+    /**
+     * Check if the rule is effective at the given time
+     */
+    public boolean isEffective(Instant checkTime) {
+        if (!isActive()) {
+            return false;
+        }
+
+        if (state != RuleState.PUBLISHED) {
+            return false;
+        }
+
+        Instant now = checkTime != null ? checkTime : Instant.now();
+
+        if (effectiveFrom != null && now.isBefore(effectiveFrom)) {
+            return false;
+        }
+
+        if (effectiveTo != null && now.isAfter(effectiveTo)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if rule is effective now
+     */
+    public boolean isEffective() {
+        return isEffective(Instant.now());
+    }
+
+    /**
+     * Check if the rule applies to a specific segment
+     */
+    public boolean appliesTo(String segment) {
+        // If no segments specified, applies to all
+        if ((targetSegments == null || targetSegments.isEmpty()) &&
+            (targetSegmentsList == null || targetSegmentsList.isEmpty())) {
+            return true;
+        }
+
+        if (targetSegments != null && targetSegments.contains(segment)) {
+            return true;
+        }
+
+        if (targetSegmentsList != null && targetSegmentsList.contains(segment)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Publish this rule
+     */
+    public void publish(String publishedByUser) {
+        this.state = RuleState.PUBLISHED;
+        this.publishedAt = Instant.now();
+        this.publishedBy = publishedByUser;
+        this.active = true;
+        this.updatedAt = Instant.now();
+        this.updatedBy = publishedByUser;
+    }
+
+    /**
+     * Archive this rule
+     */
+    public void archive(String archivedByUser) {
+        this.state = RuleState.ARCHIVED;
+        this.active = false;
+        this.updatedAt = Instant.now();
+        this.updatedBy = archivedByUser;
+    }
+
+    /**
+     * Deprecate this rule
+     */
+    public void deprecate(String deprecatedByUser) {
+        this.state = RuleState.DEPRECATED;
+        this.active = false;
+        this.updatedAt = Instant.now();
+        this.updatedBy = deprecatedByUser;
+    }
+
+    /**
+     * Get the status based on the state
+     */
+    public String getStatus() {
+        return state != null ? state.name() : null;
+    }
+
+    /**
+     * Get the logic type
+     */
+    public LogicType getLogicType() {
+        return this.logic;
+    }
+
+    /**
+     * Get rule type enum
+     */
+    public RuleType getRuleType() {
+        if (type == null) {
+            return RuleType.CUSTOM;
+        }
+        try {
+            return RuleType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return RuleType.CUSTOM;
+        }
+    }
+
+    /**
+     * Get target segments as Set
+     */
+    public Set<String> getTargetSegmentsSet() {
+        if (targetSegments != null) {
+            return targetSegments;
+        }
+        if (targetSegmentsList != null) {
+            return new HashSet<>(targetSegmentsList);
+        }
+        return new HashSet<>();
+    }
+
+    /**
+     * Evaluate this rule (placeholder for compatibility)
+     */
+    public Object evaluate(Object context) {
+        // This is a placeholder - actual evaluation should be done by RuleEvaluationService
+        throw new UnsupportedOperationException("Use RuleEvaluationService for rule evaluation");
+    }
+
 }

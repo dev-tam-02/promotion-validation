@@ -309,7 +309,7 @@ public class RuleService {
         logger.info("Getting rule by object: type={}, id={}", objectType, objectId);
 
         // Find assignment for this object
-        Optional<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignment =
+        Optional<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignment =
                 assignmentService.findBySubjectTypeAndKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
@@ -330,7 +330,7 @@ public class RuleService {
         logger.info("Getting all rules by object: type={}, id={}", objectType, objectId);
 
         // Find all assignments for this object
-        List<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignments =
+        List<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignments =
                 assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
 
         if (assignments.isEmpty()) {

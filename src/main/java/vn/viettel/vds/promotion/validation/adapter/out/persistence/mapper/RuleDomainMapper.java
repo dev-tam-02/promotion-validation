@@ -61,6 +61,10 @@ public class RuleDomainMapper {
                     .collect(Collectors.toList());
         }
 
+        String versionStr = (document.getVersion() != null && !document.getVersion().isEmpty())
+                ? document.getVersion()
+                : "1.0.0";
+
         return RuleAggregate.builder()
                 .id(RuleId.of(document.getId()))
                 .tenantId(TenantId.of(document.getTenantId()))
@@ -70,7 +74,7 @@ public class RuleDomainMapper {
                 .logicType(LogicType.valueOf(document.getLogicType()))
                 .nodes(nodes)
                 .status(RuleStatus.valueOf(document.getStatus()))
-                .version(Version.parse(document.getVersion()))
+                .version(Version.parse(versionStr))
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())
                 .createdBy(document.getCreatedBy())

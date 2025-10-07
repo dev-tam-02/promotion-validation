@@ -83,13 +83,13 @@ public class RuleValidationService {
         Set<String> operatorNames = extractOperatorNames(rule.getNodes());
         for (String operatorName : operatorNames) {
             try {
-                Optional<vn.viettel.vds.promotion.validation.domain.entity.Operator> operator =
+                Optional<vn.viettel.vds.promotion.validation.domain.model.Operator> operator =
                         operatorService.getLatestOperator(tenantId, operatorName);
 
                 if (operator.isEmpty()) {
                     issues.add(new ValidationIssue("operators",
                             "Operator not found: " + operatorName, "OPERATOR_NOT_FOUND"));
-                } else if (operator.get().getStatus() != vn.viettel.vds.promotion.validation.domain.entity.Operator.OperatorStatus.ACTIVE) {
+                } else if (operator.get().getStatus() != vn.viettel.vds.promotion.validation.domain.model.Operator.OperatorStatus.ACTIVE) {
                     issues.add(new ValidationIssue("operators",
                             "Operator is not active: " + operatorName, "OPERATOR_INACTIVE"));
                 }
@@ -216,7 +216,7 @@ public class RuleValidationService {
 
                 try {
                     // Check if operator exists
-                    Optional<vn.viettel.vds.promotion.validation.domain.entity.Operator> operator =
+                    Optional<vn.viettel.vds.promotion.validation.domain.model.Operator> operator =
                             operatorService.getLatestOperator(tenantId, node.getOperatorName());
 
                     if (operator.isEmpty()) {
@@ -231,7 +231,7 @@ public class RuleValidationService {
                                 operatorService.validateOperatorParams(
                                         tenantId,
                                         node.getOperatorName(),
-                                        operator.get().getVersion(),
+                                        operator.get().getVersion().intValue(),
                                         node.getParams()
                                 );
 

@@ -101,18 +101,22 @@ public class AuditService {
     public void logAuditEvent(String tenantId, String actor, AuditLog.AuditAction action,
                               String targetType, String targetId, Map<String, Object> diff) {
         try {
-            AuditLog auditLog = new AuditLog();
-            auditLog.setTenantId(tenantId);
-            auditLog.setActor(actor);
-            auditLog.setAction(action);
+            Instant now = Instant.now();
+            AuditLog.AuditTarget target = AuditLog.AuditTarget.builder()
+                    .type(targetType)
+                    .id(targetId)
+                    .build();
 
-            AuditLog.AuditTarget target = new AuditLog.AuditTarget();
-            target.setType(targetType);
-            target.setId(targetId);
-            auditLog.setTarget(target);
-
-            auditLog.setDiff(diff != null ? diff : new HashMap<>());
-            auditLog.setAt(Instant.now());
+            AuditLog auditLog = AuditLog.builder()
+                    .tenantId(tenantId)
+                    .actor(actor)
+                    .action(action)
+                    .target(target)
+                    .diff(diff != null ? diff : new HashMap<>())
+                    .at(now)
+                    .createdAt(now)
+                    .version(0L)
+                    .build();
 
             auditLogPersistencePort.save(auditLog);
 

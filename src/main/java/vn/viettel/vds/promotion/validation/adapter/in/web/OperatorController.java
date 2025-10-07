@@ -16,7 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
-import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.OperatorMapper;
+import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.OperatorResponseMapper;
 import vn.viettel.vds.promotion.validation.application.service.OperatorService;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
@@ -31,9 +31,9 @@ public class OperatorController {
     private static final Logger logger = LoggerFactory.getLogger(OperatorController.class);
 
     private final OperatorService operatorService;
-    private final OperatorMapper operatorMapper;
+    private final OperatorResponseMapper operatorMapper;
 
-    public OperatorController(OperatorService operatorService, OperatorMapper operatorMapper) {
+    public OperatorController(OperatorService operatorService, OperatorResponseMapper operatorMapper) {
         this.operatorService = operatorService;
         this.operatorMapper = operatorMapper;
     }
@@ -85,7 +85,7 @@ public class OperatorController {
             @Valid @RequestBody CreateOperatorRequest request) {
 
         logger.info("Creating operator: tenant={}, name={}, version={}",
-                request.getTenantId(), request.getName(), request.getVersion());
+                request.getTenantId(), request.getName(), request.getVersion().intValue());
 
         Operator operator = operatorService.createOperator(
                 request.getTenantId(),
@@ -175,7 +175,7 @@ public class OperatorController {
     public ValidationResponse lintOperatorParams(
             @Valid @RequestBody LintOperatorParamsRequest request) {
 
-        logger.info("Linting operator params: operator={}@{}", request.getName(), request.getVersion());
+        logger.info("Linting operator params: operator={}@{}", request.getName(), request.getVersion().intValue());
 
         OperatorService.ValidationResult result = operatorService.validateOperatorParams(
                 request.getTenantId(),

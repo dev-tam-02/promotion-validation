@@ -29,8 +29,8 @@ public class RuleEvaluationService {
         if (!rule.isActive()) {
             return ValidationResult.builder()
                     .validationId(UUID.randomUUID().toString())
-                    .ruleId(rule.getId().getValue())
-                    .ruleCode(rule.getCode().getValue())
+                    .ruleId(rule.getId())
+                    .ruleCode(rule.getCode())
                     .decision(ValidationResult.Decision.PENDING)
                     .reasonCodes(List.of("RULE_NOT_ACTIVE"))
                     .explanations(List.of("Rule is not in active status"))
@@ -42,13 +42,13 @@ public class RuleEvaluationService {
 
         try {
             // Perform the actual evaluation
-            ValidationResult ruleResult = rule.evaluate(context);
+            ValidationResult ruleResult = (ValidationResult) rule.evaluate(context);
 
             // Enrich with timing information
             return ValidationResult.builder()
                     .validationId(UUID.randomUUID().toString())
-                    .ruleId(rule.getId().getValue())
-                    .ruleCode(rule.getCode().getValue())
+                    .ruleId(rule.getId())
+                    .ruleCode(rule.getCode())
                     .decision(mapStatusToDecision(ruleResult))
                     .message(ruleResult.getMessage())
                     .reasonCodes(extractReasonCodes(ruleResult))
@@ -229,7 +229,7 @@ public class RuleEvaluationService {
     private String generateCacheKey(Rule rule, ValidationContext context) {
         // Generate a unique key based on rule ID and context data
         StringBuilder keyBuilder = new StringBuilder();
-        keyBuilder.append(rule.getId().getValue());
+        keyBuilder.append(rule.getId());
         keyBuilder.append(":");
 
         // Add relevant context data to key

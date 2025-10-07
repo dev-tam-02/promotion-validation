@@ -1,6 +1,6 @@
 package vn.viettel.vds.promotion.validation.domain.service;
 
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleAggregate;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
@@ -19,7 +19,7 @@ public class RuleVersioningDomainService {
     /**
      * Create a new version of an existing rule
      */
-    public Rule createNewVersion(Rule existingRule, VersionType versionType, String createdBy) {
+    public RuleAggregate createNewVersion(RuleAggregate existingRule, VersionType versionType, String createdBy) {
         Objects.requireNonNull(existingRule, "Existing rule cannot be null");
         Objects.requireNonNull(versionType, "Version type cannot be null");
         Objects.requireNonNull(createdBy, "Created by cannot be null");
@@ -36,7 +36,7 @@ public class RuleVersioningDomainService {
         Version newVersion = calculateNewVersion(existingRule.getVersion(), versionType);
 
         // Create new rule with incremented version
-        Rule newRule = Rule.builder()
+        RuleAggregate newRule = RuleAggregate.builder()
                 .id(RuleId.generate())
                 .tenantId(existingRule.getTenantId())
                 .code(existingRule.getCode()) // Same code, different version
@@ -74,7 +74,7 @@ public class RuleVersioningDomainService {
     /**
      * Check if a rule can replace another rule
      */
-    public boolean canReplace(Rule newRule, Rule existingRule) {
+    public boolean canReplace(RuleAggregate newRule, RuleAggregate existingRule) {
         // Must have same code
         if (!newRule.getCode().equals(existingRule.getCode())) {
             return false;
@@ -93,7 +93,7 @@ public class RuleVersioningDomainService {
     /**
      * Merge changes from one rule to another
      */
-    public Rule mergeChanges(Rule targetRule, Rule sourceRule, MergeStrategy strategy) {
+    public RuleAggregate mergeChanges(RuleAggregate targetRule, RuleAggregate sourceRule, MergeStrategy strategy) {
         Objects.requireNonNull(targetRule, "Target rule cannot be null");
         Objects.requireNonNull(sourceRule, "Source rule cannot be null");
         Objects.requireNonNull(strategy, "Merge strategy cannot be null");
@@ -148,7 +148,7 @@ public class RuleVersioningDomainService {
     /**
      * Compare two rules for differences
      */
-    public RuleDifference compareRules(Rule rule1, Rule rule2) {
+    public RuleDifference compareRules(RuleAggregate rule1, RuleAggregate rule2) {
         RuleDifference diff = new RuleDifference();
 
         // Compare basic properties
@@ -201,20 +201,20 @@ public class RuleVersioningDomainService {
     /**
      * Get version history for a rule code
      */
-    public List<Rule> getVersionHistory(List<Rule> allRules, RuleCode code) {
+    public List<RuleAggregate> getVersionHistory(List<RuleAggregate> allRules, RuleCode code) {
         return allRules.stream()
                 .filter(rule -> rule.getCode().equals(code))
-                .sorted(Comparator.comparing(Rule::getVersion).reversed())
+                .sorted(Comparator.comparing(RuleAggregate::getVersion).reversed())
                 .collect(java.util.stream.Collectors.toList());
     }
 
     /**
      * Find the latest version of a rule
      */
-    public Optional<Rule> findLatestVersion(List<Rule> rules, RuleCode code) {
+    public Optional<RuleAggregate> findLatestVersion(List<RuleAggregate> rules, RuleCode code) {
         return rules.stream()
                 .filter(rule -> rule.getCode().equals(code))
-                .max(Comparator.comparing(Rule::getVersion));
+                .max(Comparator.comparing(RuleAggregate::getVersion));
     }
 
     /**

@@ -129,7 +129,7 @@ public class RuleFactory {
             String name,
             String createdBy
     ) {
-        Rule rule = createRule(
+        RuleAggregate rule = createRule(
                 tenantId,
                 code,
                 name,

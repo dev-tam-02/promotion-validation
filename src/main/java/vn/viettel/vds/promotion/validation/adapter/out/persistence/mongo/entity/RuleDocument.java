@@ -1,7 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.mongo.entity;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 import java.util.List;
@@ -9,9 +7,7 @@ import java.util.List;
 /**
  * MongoDB document for Rule persistence
  */
-@Document(collection = "rules")
 public class RuleDocument {
-    @Id
     private String id;
     private String tenantId;
     private String code;
@@ -136,7 +132,7 @@ public class RuleDocument {
         return publishedAt;
     }
 
-    public void setPublishedAt(String publishedAt) {
+    public void setPublishedAt(Instant publishedAt) {
         this.publishedAt = publishedAt;
     }
 

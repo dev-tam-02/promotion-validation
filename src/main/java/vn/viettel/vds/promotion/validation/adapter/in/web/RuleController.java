@@ -16,7 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
-import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleMapper;
+import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
 import vn.viettel.vds.promotion.validation.application.service.AssignmentService;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
@@ -36,12 +36,12 @@ public class RuleController {
     private static final Logger logger = LoggerFactory.getLogger(RuleController.class);
 
     private final RuleService ruleService;
-    private final RuleMapper ruleMapper;
+    private final RuleResponseMapper ruleMapper;
     private final RuleValidationService ruleValidationService;
     private final RuleSimulationService ruleSimulationService;
     private final AssignmentService assignmentService;
 
-    public RuleController(RuleService ruleService, RuleMapper ruleMapper,
+    public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
                           RuleSimulationService ruleSimulationService,
                           AssignmentService assignmentService) {
@@ -220,7 +220,7 @@ public class RuleController {
             @Parameter(description = "Rule ID") @PathVariable String ruleId,
             @Valid @RequestBody SimulateRuleRequest request) {
 
-        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion());
+        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion().intValue());
 
         RuleSimulationService.SimulationResult result = ruleSimulationService.simulateRule(
                 ruleId,
@@ -363,7 +363,7 @@ public class RuleController {
         logger.info("Getting rule by object: type={}, id={}", objectType, objectId);
 
         // Get assignment details
-        Optional<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignment =
+        Optional<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignment =
                 assignmentService.findBySubjectTypeAndKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
@@ -410,7 +410,7 @@ public class RuleController {
         logger.info("Getting all rules by object: type={}, id={}", objectType, objectId);
 
         // Get all assignments for this object
-        List<vn.viettel.vds.promotion.validation.domain.entity.Assignment> assignments =
+        List<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignments =
                 assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
 
         if (assignments.isEmpty()) {

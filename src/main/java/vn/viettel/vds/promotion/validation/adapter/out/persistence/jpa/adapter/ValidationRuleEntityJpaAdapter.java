@@ -115,13 +115,14 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
         jpaEntity.setState(mongoEntity.getState());
         jpaEntity.setRuleVersion(mongoEntity.getVersion() != null ? mongoEntity.getVersion().longValue() : 1L);
         jpaEntity.setLogic(mongoEntity.getLogic());
-        jpaEntity.setDsl(mongoEntity.getDsl());
+        // Note: dsl is optional and not present in ValidationRule domain model
+        jpaEntity.setDsl(null);
         jpaEntity.setPublishedAt(mongoEntity.getPublishedAt());
         jpaEntity.setPublishedBy(mongoEntity.getPublishedBy());
         jpaEntity.setCreatedAt(mongoEntity.getCreatedAt());
         jpaEntity.setCreatedBy(mongoEntity.getCreatedBy());
         jpaEntity.setUpdatedAt(mongoEntity.getUpdatedAt());
-        jpaEntity.setUpdatedBy(mongoEntity.getUpdatedBy());
+        // Note: updatedBy is not present in ValidationRule domain model
         return jpaEntity;
     }
 
@@ -136,13 +137,13 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
         mongoEntity.setState(jpaEntity.getState());
         mongoEntity.setVersion(jpaEntity.getRuleVersion() != null ? jpaEntity.getRuleVersion().intValue() : 1);
         mongoEntity.setLogic(jpaEntity.getLogic());
-        mongoEntity.setDsl(jpaEntity.getDsl());
+        // Note: dsl is optional and not mapped to ValidationRule domain model
         mongoEntity.setPublishedAt(jpaEntity.getPublishedAt());
         mongoEntity.setPublishedBy(jpaEntity.getPublishedBy());
         mongoEntity.setCreatedAt(jpaEntity.getCreatedAt());
         mongoEntity.setCreatedBy(jpaEntity.getCreatedBy());
         mongoEntity.setUpdatedAt(jpaEntity.getUpdatedAt());
-        mongoEntity.setUpdatedBy(jpaEntity.getUpdatedBy());
+        // Note: updatedBy is not present in ValidationRule domain model
         return mongoEntity;
     }
 }

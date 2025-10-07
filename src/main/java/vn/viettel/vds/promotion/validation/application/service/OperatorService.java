@@ -68,17 +68,20 @@ public class OperatorService {
         // Validate operator support in validation engine
         validateOperatorSupport(name, version);
 
-        Operator operator = new Operator();
-        operator.setId(generateOperatorId(name, version));
-        operator.setTenantId(tenantId);
-        operator.setName(name);
-        operator.setVersion(version);
-        operator.setContext(context);
-        operator.setJsonSchema(jsonSchema);
-        operator.setCompilerId(compilerId);
-        operator.setStatus(Operator.OperatorStatus.ACTIVE);
-        operator.setCreatedAt(Instant.now());
-        operator.setUpdatedAt(Instant.now());
+        Instant now = Instant.now();
+        Operator operator = Operator.builder()
+                .id(generateOperatorId(name, version))
+                .tenantId(tenantId)
+                .name(name)
+                .operatorVersion(version)
+                .context(context)
+                .jsonSchema(jsonSchema)
+                .compilerId(compilerId)
+                .status(Operator.OperatorStatus.ACTIVE)
+                .createdAt(now)
+                .updatedAt(now)
+                .version(0L)
+                .build();
 
         Operator saved = operatorPersistencePort.save(operator);
 
@@ -97,10 +100,12 @@ public class OperatorService {
         logger.info("Updating operator status: name={}, version={}, status={}", name, version, status);
 
         Operator operator = getOperator(tenantId, name, version);
-        operator.setStatus(status);
-        operator.setUpdatedAt(Instant.now());
+        Operator updated = operator.toBuilder()
+                .status(status)
+                .updatedAt(Instant.now())
+                .build();
 
-        return operatorPersistencePort.save(operator);
+        return operatorPersistencePort.save(updated);
     }
 
     /**
@@ -207,7 +212,7 @@ public class OperatorService {
                 if (operator.isPresent()) {
                     fingerprintData.append(operator.get().getName())
                             .append("@")
-                            .append(operator.get().getVersion())
+                            .append(operator.get().getOperatorVersion())
                             .append("|");
                 }
             }

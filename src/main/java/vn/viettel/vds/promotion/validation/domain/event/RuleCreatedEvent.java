@@ -15,10 +15,10 @@ public class RuleCreatedEvent extends DomainEvent {
 
     public RuleCreatedEvent(Rule rule) {
         super("RULE_CREATED");
-        this.ruleId = rule.getId().getValue();
-        this.tenantId = rule.getTenantId().getValue();
-        this.ruleCode = rule.getCode().getValue();
-        this.ruleName = rule.getName().getValue();
+        this.ruleId = rule.getId();
+        this.tenantId = rule.getTenantId();
+        this.ruleCode = rule.getCode();
+        this.ruleName = rule.getName();
         this.createdBy = rule.getCreatedBy();
     }
 

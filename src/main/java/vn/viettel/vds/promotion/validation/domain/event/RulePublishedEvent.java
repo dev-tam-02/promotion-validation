@@ -18,10 +18,10 @@ public class RulePublishedEvent extends DomainEvent {
 
     public RulePublishedEvent(Rule rule) {
         super("RULE_PUBLISHED");
-        this.ruleId = rule.getId().getValue();
-        this.tenantId = rule.getTenantId().getValue();
-        this.ruleCode = rule.getCode().getValue();
-        this.version = rule.getVersion().toString();
+        this.ruleId = rule.getId();
+        this.tenantId = rule.getTenantId();
+        this.ruleCode = rule.getCode();
+        this.version = rule.getVersion() != null ? rule.getVersion().toString() : "0";
         this.publishedBy = rule.getPublishedBy();
         this.publishedAt = rule.getPublishedAt();
     }

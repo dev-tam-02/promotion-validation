@@ -6,8 +6,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Legacy validation rule model.
+ *
+ * @deprecated Use {@link Rule} instead. This class is kept for backward compatibility only.
+ * Will be removed in version 2.0.0.
+ *
+ * Migration path:
+ * - Use {@link RuleMigrationMapper} to convert between ValidationRule and Rule
+ * - Update all new code to use Rule directly
+ * - Existing code should be gradually migrated to use Rule
+ */
+@Deprecated(since = "1.0.0", forRemoval = true)
 public class ValidationRule {
+    private String id;
     private String ruleId;
+    private String code;
     private String ruleCode;
     private String name;
     private String description;
@@ -21,6 +35,14 @@ public class ValidationRule {
     private Instant effectiveFrom;
     private Instant effectiveTo;
     private Set<String> targetSegments = new HashSet<>();
+    private String state;
+    private Integer version;
+    private String logic;
+    private UsageLimits limits;
+    private java.util.List<RuleNode> nodes;
+    private Instant publishedAt;
+    private String publishedBy;
+    private String createdBy;
 
     public ValidationRule() {
     }
@@ -166,6 +188,86 @@ public class ValidationRule {
 
     public void setTargetSegments(Set<String> targetSegments) {
         this.targetSegments = targetSegments;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public String getLogic() {
+        return logic;
+    }
+
+    public void setLogic(String logic) {
+        this.logic = logic;
+    }
+
+    public UsageLimits getLimits() {
+        return limits;
+    }
+
+    public void setLimits(UsageLimits limits) {
+        this.limits = limits;
+    }
+
+    public java.util.List<RuleNode> getNodes() {
+        return nodes;
+    }
+
+    public void setNodes(java.util.List<RuleNode> nodes) {
+        this.nodes = nodes;
+    }
+
+    public Instant getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(Instant publishedAt) {
+        this.publishedAt = publishedAt;
+    }
+
+    public String getPublishedBy() {
+        return publishedBy;
+    }
+
+    public void setPublishedBy(String publishedBy) {
+        this.publishedBy = publishedBy;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
 
     public Builder toBuilder() {
@@ -408,6 +510,45 @@ public class ValidationRule {
                 rule.setTargetSegments(targetSegments);
             }
             return rule;
+        }
+    }
+
+    public static class UsageLimits {
+        private Integer perCodeTotal;
+        private Integer perCustomer;
+        private Integer perDay;
+
+        public UsageLimits() {
+        }
+
+        public UsageLimits(Integer perCodeTotal, Integer perCustomer, Integer perDay) {
+            this.perCodeTotal = perCodeTotal;
+            this.perCustomer = perCustomer;
+            this.perDay = perDay;
+        }
+
+        public Integer getPerCodeTotal() {
+            return perCodeTotal;
+        }
+
+        public void setPerCodeTotal(Integer perCodeTotal) {
+            this.perCodeTotal = perCodeTotal;
+        }
+
+        public Integer getPerCustomer() {
+            return perCustomer;
+        }
+
+        public void setPerCustomer(Integer perCustomer) {
+            this.perCustomer = perCustomer;
+        }
+
+        public Integer getPerDay() {
+            return perDay;
+        }
+
+        public void setPerDay(Integer perDay) {
+            this.perDay = perDay;
         }
     }
 }
