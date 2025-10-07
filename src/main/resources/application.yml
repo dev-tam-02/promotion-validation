@@ -1,4 +1,5 @@
-# Validation Service Configuration - Dual Database Strategy
+# Validation Service Configuration
+# Database Strategy: JPA/MariaDB ONLY (MongoDB disabled)
 
 spring:
   application:
@@ -80,12 +81,11 @@ management:
     tracing:
       endpoint: ""
 
-# Promix Platform Configuration - Dual Database Toggle
+# Promix Platform Configuration
 promix:
-  # MongoDB Configuration - Toggle ON/OFF
-  # Set to false to disable MongoDB completely
+  # MongoDB Configuration - DISABLED (using JPA as primary database)
   mongo:
-    enabled: false  # Disabled - using JPA as primary
+    enabled: false
     outbox:
       enabled: false
       publisher: "kafka"
@@ -211,15 +211,6 @@ promix:
           refresh-period: 60000
           adaptive: true
 
-# Mongock Configuration (DISABLED - using Liquibase from promix-data-jpa)
-mongock:
-  migration-scan-package:
-    - vn.viettel.vds.promotion.validation.infrastructure.migration
-  throw-exception-if-cannot-obtain-lock: true
-  track-ignored: false
-  enabled: false  # Disabled - using Liquibase from promix-data-jpa-starter
-  transaction-enabled: false  # Disable transaction for standalone MongoDB
-
 # Kafka Topics Configuration
 kafka:
   topics:
@@ -242,6 +233,12 @@ kafka:
 
   producer:
     client-id: validation-producer
+
+# Promix Messaging Topics (for Spring property injection)
+promix:
+  messaging:
+    topics:
+      setting-validation-rule-events: promotion_validation_events
 
 # Logging Configuration
 logging:

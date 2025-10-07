@@ -1,14 +1,21 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promix.platform.core.util.IdGenerator;
 import com.promix.platform.messaging.autoconfigure.utils.KafkaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
+import vn.viettel.vds.promotion.schema.validation.event.ApplicabilityResult;
+import vn.viettel.vds.promotion.schema.validation.event.AssignmentResult;
+import vn.viettel.vds.promotion.schema.validation.event.SettingValidationRuleEvent;
+import vn.viettel.vds.promotion.schema.validation.event.SettingValidationRuleEventPayload;
+import vn.viettel.vds.promotion.schema.validation.event.TimeframeResult;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
@@ -16,7 +23,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Publisher for SettingValidationRuleEvent
+ * Publisher for SettingValidationRuleEvent using Avro serialization.
+ * Publishes validation rule processing results to Kafka with proper headers.
  */
 @Service
 public class SettingValidationRuleEventPublisher {
@@ -24,31 +32,30 @@ public class SettingValidationRuleEventPublisher {
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleEventPublisher.class);
 
     private final KafkaUtils kafkaUtils;
-    private final ObjectMapper objectMapper;
     private final CommandMappingService mappingService;
     private final String eventTopic;
     private final String serviceName;
 
     public SettingValidationRuleEventPublisher(
             KafkaUtils kafkaUtils,
-            ObjectMapper objectMapper,
             CommandMappingService mappingService,
-            @Value("${promix.messaging.topics.setting-validation-rule-events:setting-validation-rule-events}") String eventTopic,
+            @Value("${promix.messaging.topics.setting-validation-rule-events:promotion_validation_events}") String eventTopic,
             @Value("${spring.application.name:validation}") String serviceName) {
         this.kafkaUtils = kafkaUtils;
-        this.objectMapper = objectMapper;
         this.mappingService = mappingService;
         this.eventTopic = eventTopic;
         this.serviceName = serviceName;
     }
 
     /**
-     * Publish success event
+     * Publish success event with Avro schema
      */
     public void publishSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         try {
-            Map<String, Object> event = createSuccessEvent(commandId, result);
-            publishEvent(event, result.getAssignment().getId());
+            SettingValidationRuleEvent event = createSuccessEvent(commandId, result);
+            String sagaId = result.getAssignment().getSubject().getKey(); // Campaign ID
+
+            publishEvent(event, result.getAssignment().getId(), commandId, "SUCCESS", sagaId);
 
             logger.info("Published SettingValidationRuleEvent success: commandId={}, assignmentId={}",
                     commandId, result.getAssignment().getId());
@@ -60,12 +67,12 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish error event
+     * Publish error event with Avro schema
      */
     public void publishErrorEvent(String commandId, String errorCode, String errorMessage) {
         try {
-            Map<String, Object> event = createErrorEvent(commandId, errorCode, errorMessage);
-            publishEvent(event, commandId);
+            SettingValidationRuleEvent event = createErrorEvent(commandId, errorCode, errorMessage);
+            publishEvent(event, commandId, commandId, "FAILURE", null);
 
             logger.info("Published SettingValidationRuleEvent error: commandId={}, errorCode={}",
                     commandId, errorCode);
@@ -77,12 +84,12 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish dead letter event
+     * Publish dead letter event with Avro schema
      */
     public void publishDeadLetterEvent(String commandId, SettingValidationRuleCommand originalCommand) {
         try {
-            Map<String, Object> event = createDeadLetterEvent(commandId, originalCommand);
-            publishEvent(event, commandId);
+            SettingValidationRuleEvent event = createDeadLetterEvent(commandId, originalCommand);
+            publishEvent(event, commandId, commandId, "DEAD_LETTER", null);
 
             logger.warn("Published SettingValidationRuleEvent dead letter: commandId={}", commandId);
 
@@ -92,203 +99,218 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Create success event payload
+     * Create success event payload using Avro builder
      */
-    private Map<String, Object> createSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
+    private SettingValidationRuleEvent createSuccessEvent(
+            String commandId,
+            SettingValidationRuleCommandHandler.CommandProcessingResult result) {
+
         Assignment assignment = result.getAssignment();
-        CommandMappingService.ApplicabilityStats stats = mappingService.calculateApplicabilityStats(result.getApplicabilityData());
+        CommandMappingService.ApplicabilityStats stats =
+            mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
-        Map<String, Object> event = new HashMap<>();
-        event.put("id", IdGenerator.generateId());
-        event.put("type", "SettingValidationRuleEvent");
-        event.put("source", serviceName);
-        event.put("subject", assignment.getId());
-        event.put("occurredAt", Instant.now().toEpochMilli());
-        event.put("version", 1);
+        // Build Assignment Result
+        AssignmentResult assignmentResult = AssignmentResult.newBuilder()
+                .setAssignmentId(assignment.getId())
+                .setRuleId(assignment.getRuleId())
+                .setActive(assignment.getActive() != null ? assignment.getActive() : false)
+                .setTrafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
+                .setPriority(0) // TODO: Add priority to assignment entity
+                .build();
 
-        // Create payload
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("commandId", commandId);
-        payload.put("isSuccess", true);
-        payload.put("errorCode", null);
-        payload.put("errorMessage", null);
+        // Build Applicability Result
+        ApplicabilityResult applicabilityResult = ApplicabilityResult.newBuilder()
+                .setSubjectType(stats.getSubjectType())
+                .setSubjectKey(stats.getSubjectKey())
+                .setIncludedItemsCount(stats.getIncludedItemsCount())
+                .setExcludedItemsCount(stats.getExcludedItemsCount())
+                .setIncludedAll(stats.isIncludedAll())
+                .build();
 
-        // Assignment result
-        Map<String, Object> assignmentResult = new HashMap<>();
-        assignmentResult.put("assignmentId", assignment.getId());
-        assignmentResult.put("ruleId", assignment.getRuleId());
-        assignmentResult.put("active", assignment.getActive());
-        assignmentResult.put("trafficPercent", assignment.getTrafficPercent());
-        assignmentResult.put("priority", 0); // TODO: Add priority to assignment entity
-        payload.put("assignmentResult", assignmentResult);
-
-        // Applicability result
-        Map<String, Object> applicabilityResult = new HashMap<>();
-        applicabilityResult.put("subjectType", stats.getSubjectType());
-        applicabilityResult.put("subjectKey", stats.getSubjectKey());
-        applicabilityResult.put("includedItemsCount", stats.getIncludedItemsCount());
-        applicabilityResult.put("excludedItemsCount", stats.getExcludedItemsCount());
-        applicabilityResult.put("includedAll", stats.isIncludedAll());
-        payload.put("applicabilityResult", applicabilityResult);
-
-        // Timeframe result (if provided)
+        // Build Timeframe Result (if provided)
+        TimeframeResult timeframeResult = null;
         if (result.getTimeFrameId() != null) {
-            Map<String, Object> timeframeResult = new HashMap<>();
-            timeframeResult.put("timeFrameId", result.getTimeFrameId());
-
-            // Extract timeframe details from command data
             TimeFrame timeframeData = result.getTimeframeData();
+
+            Long validFrom = null;
+            Long validTo = null;
+            String mode = "ALLOW";
+            String timezone = "UTC";
+
             if (timeframeData != null) {
-                // Extract from validityTimeframe if available
-                Long validFrom = null;
-                Long validTo = null;
                 if (timeframeData.getValidityTimeframe() != null) {
                     java.time.Instant startDate = timeframeData.getValidityTimeframe().getStartDate();
                     java.time.Instant expirationDate = timeframeData.getValidityTimeframe().getExpirationDate();
                     validFrom = startDate != null ? startDate.toEpochMilli() : null;
                     validTo = expirationDate != null ? expirationDate.toEpochMilli() : null;
                 }
-
-                timeframeResult.put("validFrom", validFrom);
-                timeframeResult.put("validTo", validTo);
-                timeframeResult.put("mode", timeframeData.getMode().toString());
-                timeframeResult.put("timezone", timeframeData.getTimezone().toString());
-            } else {
-                timeframeResult.put("validFrom", null);
-                timeframeResult.put("validTo", null);
-                timeframeResult.put("mode", "ALLOW");
-                timeframeResult.put("timezone", "UTC");
+                mode = timeframeData.getMode().toString();
+                timezone = timeframeData.getTimezone().toString();
             }
-            payload.put("timeframeResult", timeframeResult);
+
+            timeframeResult = TimeframeResult.newBuilder()
+                    .setTimeFrameId(result.getTimeFrameId())
+                    .setValidFrom(validFrom)
+                    .setValidTo(validTo)
+                    .setMode(mode)
+                    .setTimezone(timezone)
+                    .build();
         }
 
-        payload.put("processedBy", serviceName);
-        payload.put("processedAt", Instant.now().toEpochMilli());
+        // Build Event Payload
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                .setCommandId(commandId)
+                .setIsSuccess(true)
+                .setErrorCode(null)
+                .setErrorMessage(null)
+                .setAssignmentResult(assignmentResult)
+                .setApplicabilityResult(applicabilityResult)
+                .setTimeframeResult(timeframeResult)
+                .setProcessedBy(serviceName)
+                .setProcessedAt(Instant.now().toEpochMilli())
+                .build();
 
-        event.put("payload", payload);
-        event.put("metadata", createMetadata(commandId));
+        // Build Metadata
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("correlationId", commandId);
+        metadata.put("serviceName", serviceName);
+        metadata.put("serviceVersion", "1.0.0");
 
-        return event;
+        // Build Complete Event
+        return SettingValidationRuleEvent.newBuilder()
+                .setId(IdGenerator.generateId())
+                .setAggregate("Validation")
+                .setType("SettingValidationRuleEvent")
+                .setSource(serviceName)
+                .setSubject(assignment.getId())
+                .setOccurredAt(Instant.now().toEpochMilli())
+                .setVersion(1)
+                .setPayload(payload)
+                .setMetadata(metadata)
+                .build();
     }
 
     /**
-     * Create error event payload
+     * Create error event payload using Avro builder
      */
-    private Map<String, Object> createErrorEvent(String commandId, String errorCode, String errorMessage) {
-        Map<String, Object> event = new HashMap<>();
-        event.put("id", IdGenerator.generateId());
-        event.put("type", "SettingValidationRuleEvent");
-        event.put("source", serviceName);
-        event.put("subject", commandId);
-        event.put("occurredAt", Instant.now().toEpochMilli());
-        event.put("version", 1);
+    private SettingValidationRuleEvent createErrorEvent(String commandId, String errorCode, String errorMessage) {
+        // Build Event Payload for error
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                .setCommandId(commandId)
+                .setIsSuccess(false)
+                .setErrorCode(errorCode)
+                .setErrorMessage(errorMessage)
+                .setAssignmentResult(null)
+                .setApplicabilityResult(null)
+                .setTimeframeResult(null)
+                .setProcessedBy(serviceName)
+                .setProcessedAt(Instant.now().toEpochMilli())
+                .build();
 
-        // Create payload
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("commandId", commandId);
-        payload.put("isSuccess", false);
-        payload.put("errorCode", errorCode);
-        payload.put("errorMessage", errorMessage);
-        payload.put("assignmentResult", null);
-        payload.put("applicabilityResult", null);
-        payload.put("timeframeResult", null);
-        payload.put("processedBy", serviceName);
-        payload.put("processedAt", Instant.now().toEpochMilli());
+        // Build Metadata
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("correlationId", commandId);
+        metadata.put("serviceName", serviceName);
+        metadata.put("serviceVersion", "1.0.0");
 
-        event.put("payload", payload);
-        event.put("metadata", createMetadata(commandId));
-
-        return event;
+        // Build Complete Event
+        return SettingValidationRuleEvent.newBuilder()
+                .setId(IdGenerator.generateId())
+                .setAggregate("Validation")
+                .setType("SettingValidationRuleEvent")
+                .setSource(serviceName)
+                .setSubject(commandId)
+                .setOccurredAt(Instant.now().toEpochMilli())
+                .setVersion(1)
+                .setPayload(payload)
+                .setMetadata(metadata)
+                .build();
     }
 
     /**
-     * Create dead letter event payload
+     * Create dead letter event payload using Avro builder
      */
-    private Map<String, Object> createDeadLetterEvent(String commandId, SettingValidationRuleCommand originalCommand) {
-        Map<String, Object> event = new HashMap<>();
-        event.put("id", IdGenerator.generateId());
-        event.put("type", "SettingValidationRuleEvent");
-        event.put("source", serviceName);
-        event.put("subject", commandId);
-        event.put("occurredAt", Instant.now().toEpochMilli());
-        event.put("version", 1);
+    private SettingValidationRuleEvent createDeadLetterEvent(
+            String commandId,
+            SettingValidationRuleCommand originalCommand) {
 
-        // Create payload
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("commandId", commandId);
-        payload.put("isSuccess", false);
-        payload.put("errorCode", "DEAD_LETTER");
-        payload.put("errorMessage", "Command sent to dead letter queue after max retries");
-        payload.put("assignmentResult", null);
-        payload.put("applicabilityResult", null);
-        payload.put("timeframeResult", null);
-        payload.put("processedBy", serviceName);
-        payload.put("processedAt", Instant.now().toEpochMilli());
+        // Build Event Payload for dead letter
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                .setCommandId(commandId)
+                .setIsSuccess(false)
+                .setErrorCode("DEAD_LETTER")
+                .setErrorMessage("Command sent to dead letter queue after max retries")
+                .setAssignmentResult(null)
+                .setApplicabilityResult(null)
+                .setTimeframeResult(null)
+                .setProcessedBy(serviceName)
+                .setProcessedAt(Instant.now().toEpochMilli())
+                .build();
 
-        event.put("payload", payload);
+        // Build Metadata with original command info
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("correlationId", commandId);
+        metadata.put("serviceName", serviceName);
+        metadata.put("serviceVersion", "1.0.0");
+        metadata.put("originalCommandId", originalCommand.getId().toString());
 
-        // Include original command in metadata for debugging
-        Map<String, Object> metadata = createMetadata(commandId);
-        metadata.put("originalCommand", originalCommand);
-        event.put("metadata", metadata);
-
-        return event;
+        // Build Complete Event
+        return SettingValidationRuleEvent.newBuilder()
+                .setId(IdGenerator.generateId())
+                .setAggregate("Validation")
+                .setType("SettingValidationRuleEvent")
+                .setSource(serviceName)
+                .setSubject(commandId)
+                .setOccurredAt(Instant.now().toEpochMilli())
+                .setVersion(1)
+                .setPayload(payload)
+                .setMetadata(metadata)
+                .build();
     }
 
     /**
-     * Publish event to Kafka using KafkaUtils
+     * Publish Avro event to Kafka with proper headers
      */
-    private void publishEvent(Map<String, Object> event, String key) {
+    private void publishEvent(
+            SettingValidationRuleEvent event,
+            String key,
+            String correlationId,
+            String resultStatus,
+            String sagaId) {
         try {
-            // KafkaUtils will automatically add traceId and message metadata
+            // Build message with headers
+            MessageBuilder<SettingValidationRuleEvent> messageBuilder = MessageBuilder
+                    .withPayload(event)
+                    .setHeader(KafkaHeaders.KEY, key)
+                    .setHeader("correlation-id", correlationId)
+                    .setHeader("result-status", resultStatus)
+                    .setHeader("timestamp", String.valueOf(Instant.now().toEpochMilli()));
+
+            // Add saga-id header if provided
+            if (sagaId != null) {
+                messageBuilder.setHeader("saga-id", sagaId);
+            }
+
+            Message<SettingValidationRuleEvent> message = messageBuilder.build();
+
+            // Use KafkaUtils to send with Avro serialization
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.debug("Published event to topic {}: key={}, partition={}, offset={}",
+                            logger.debug("Published Avro event to topic {}: key={}, partition={}, offset={}",
                                     eventTopic, key,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
-                            logger.error("Failed to publish event to Kafka: topic={}, key={}", eventTopic, key, ex);
+                            logger.error("Failed to publish Avro event to Kafka: topic={}, key={}",
+                                    eventTopic, key, ex);
                             throw new RuntimeException("Failed to publish event to Kafka", ex);
                         }
                     });
 
         } catch (Exception e) {
-            logger.error("Failed to publish event to Kafka: topic={}, key={}", eventTopic, key, e);
+            logger.error("Failed to publish Avro event to Kafka: topic={}, key={}", eventTopic, key, e);
             throw new RuntimeException("Failed to publish event to Kafka", e);
         }
-    }
-
-    /**
-     * Create event metadata
-     */
-    private Map<String, Object> createMetadata(String commandId) {
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("correlationId", commandId);
-        metadata.put("serviceName", serviceName);
-        metadata.put("serviceVersion", "1.0.0"); // TODO: Get from build properties
-        return metadata;
-    }
-
-    /**
-     * Extract nested value from timeframe data using dot notation
-     */
-    private Object extractTimeframeValue(Map<String, Object> data, String path) {
-        String[] parts = path.split("\\.");
-        Object current = data;
-
-        for (String part : parts) {
-            if (current instanceof Map) {
-                current = ((Map<String, Object>) current).get(part);
-                if (current == null) {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-
-        return current;
     }
 }
