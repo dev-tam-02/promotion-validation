@@ -188,6 +188,10 @@ promix:
           max-failures: 3
           include-headers: true
 
+    # Messaging Topics (for Spring property injection)
+    topics:
+      setting-validation-rule-events: promotion_validation_events
+
   # Cache Configuration
   cache:
     redis:
@@ -233,12 +237,6 @@ kafka:
 
   producer:
     client-id: validation-producer
-
-# Promix Messaging Topics (for Spring property injection)
-promix:
-  messaging:
-    topics:
-      setting-validation-rule-events: promotion_validation_events
 
 # Idempotency Configuration
 idempotency:
