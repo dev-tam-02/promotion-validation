@@ -2,7 +2,9 @@ package vn.viettel.vds.promotion.validation.adapter.config;
 
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +14,16 @@ import vn.viettel.vds.promotion.validation.infrastructure.resilience.ResilienceC
 public class ResilienceConfig {
 
     private final ResilienceConfiguration config;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final RetryRegistry retryRegistry;
 
-    public ResilienceConfig(ResilienceConfiguration config) {
+    public ResilienceConfig(
+            ResilienceConfiguration config,
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            RetryRegistry retryRegistry) {
         this.config = config;
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.retryRegistry = retryRegistry;
     }
 
     @Bean
@@ -75,5 +84,23 @@ public class ResilienceConfig {
     @Bean
     public TimeLimiter factResolverTimeLimiter() {
         return TimeLimiter.ofDefaults("factResolver");
+    }
+
+    /**
+     * Circuit breaker for segments fact resolver.
+     * Configuration is loaded from application.yml under resilience4j.circuitbreaker.instances.segmentsCircuitBreaker
+     */
+    @Bean
+    public CircuitBreaker segmentsCircuitBreaker() {
+        return circuitBreakerRegistry.circuitBreaker("segmentsCircuitBreaker");
+    }
+
+    /**
+     * Retry configuration for segments fact resolver.
+     * Configuration is loaded from application.yml under resilience4j.retry.instances.segmentsRetry
+     */
+    @Bean
+    public Retry segmentsRetry() {
+        return retryRegistry.retry("segmentsRetry");
     }
 }
