@@ -269,6 +269,108 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
+     * Publish rollback success event for saga compensation
+     */
+    public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        try {
+            // Build Event Payload for rollback success
+            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                    .setCommandId(commandId)
+                    .setIsSuccess(true)
+                    .setErrorCode(null)
+                    .setErrorMessage(null)
+                    .setAssignmentResult(null)
+                    .setApplicabilityResult(null)
+                    .setTimeframeResult(null)
+                    .setProcessedBy(serviceName)
+                    .setProcessedAt(Instant.now())
+                    .build();
+
+            // Build Metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("correlationId", commandId);
+            metadata.put("serviceName", serviceName);
+            metadata.put("serviceVersion", "1.0.0");
+            metadata.put("eventType", "ROLLBACK_SUCCESS");
+            metadata.put("campaignId", campaignId);
+            if (validationRuleId != null) {
+                metadata.put("validationRuleId", validationRuleId);
+            }
+
+            // Build Complete Event
+            SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
+                    .setId(IdGenerator.generateId())
+                    .setAggregate("Validation")
+                    .setType("ValidationRollbackSuccessEvent")
+                    .setSource(serviceName)
+                    .setSubject(campaignId)
+                    .setOccurredAt(Instant.now())
+                    .setVersion(1)
+                    .setPayload(payload)
+                    .setMetadata(metadata)
+                    .build();
+
+            publishEvent(event, campaignId, commandId, "ROLLBACK_SUCCESS", campaignId);
+
+            logger.info("Published rollback success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+        } catch (Exception e) {
+            logger.error("Failed to publish rollback success event: commandId={}", commandId, e);
+            throw new RuntimeException("Failed to publish rollback success event", e);
+        }
+    }
+
+    /**
+     * Publish rollback error event for saga compensation
+     */
+    public void publishRollbackErrorEvent(String commandId, String errorCode, String errorMessage) {
+        try {
+            // Build Event Payload for rollback error
+            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
+                    .setCommandId(commandId)
+                    .setIsSuccess(false)
+                    .setErrorCode(errorCode)
+                    .setErrorMessage(errorMessage)
+                    .setAssignmentResult(null)
+                    .setApplicabilityResult(null)
+                    .setTimeframeResult(null)
+                    .setProcessedBy(serviceName)
+                    .setProcessedAt(Instant.now())
+                    .build();
+
+            // Build Metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("correlationId", commandId);
+            metadata.put("serviceName", serviceName);
+            metadata.put("serviceVersion", "1.0.0");
+            metadata.put("eventType", "ROLLBACK_ERROR");
+
+            // Build Complete Event
+            SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
+                    .setId(IdGenerator.generateId())
+                    .setAggregate("Validation")
+                    .setType("ValidationRollbackErrorEvent")
+                    .setSource(serviceName)
+                    .setSubject(commandId)
+                    .setOccurredAt(Instant.now())
+                    .setVersion(1)
+                    .setPayload(payload)
+                    .setMetadata(metadata)
+                    .build();
+
+            publishEvent(event, commandId, commandId, "ROLLBACK_ERROR", null);
+
+            logger.info("Published rollback error event: commandId={}, errorCode={}, errorMessage={}",
+                    commandId, errorCode, errorMessage);
+
+        } catch (Exception e) {
+            logger.error("Failed to publish rollback error event: commandId={}", commandId, e);
+            throw new RuntimeException("Failed to publish rollback error event", e);
+        }
+    }
+
+    /**
      * Publish Avro event to Kafka with proper headers
      */
     private void publishEvent(
