@@ -195,26 +195,24 @@ promix:
 
   # Cache Configuration
   cache:
-    redis:
+    redisson:
       enabled: true
-      prefix: "validation-cache:"
-      default-ttl: 30m
+      mode: CLUSTER
       password: ${REDIS_PASSWORD:}
+      connection-timeout: 3000
+      timeout: 3000
+      retry-attempts: 3
+      retry-interval: 1500
       cluster:
         nodes:
-          - node1:6379
-          - node2:6380
-          - node3:6381
-        max-redirects: 3
-      lettuce:
-        pool:
-          max-active: 128
-          max-idle: 64
-          min-idle: 16
-          max-wait: 2000
-        cluster:
-          refresh-period: 60000
-          adaptive: true
+          - redis://node1:6379
+          - redis://node2:6380
+          - redis://node3:6381
+        max-redirections: 3
+        scan-interval: 1000
+      pool:
+        min-idle: 16
+        max-pool-size: 128
 
 # Kafka Topics Configuration
 kafka:

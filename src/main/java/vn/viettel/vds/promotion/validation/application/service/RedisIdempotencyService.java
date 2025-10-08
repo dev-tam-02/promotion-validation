@@ -2,14 +2,16 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Redis-based implementation of IdempotencyService.
@@ -27,15 +29,15 @@ public class RedisIdempotencyService implements IdempotencyService {
 
     private static final String KEY_PREFIX = "validation:idempotency:";
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
     private final Duration ttl;
 
     public RedisIdempotencyService(
-            RedisTemplate<String, String> redisTemplate,
+            RedissonClient redissonClient,
             ObjectMapper objectMapper,
             @Value("${promix.idempotency.ttl-seconds:86400}") long ttlSeconds) {
-        this.redisTemplate = redisTemplate;
+        this.redissonClient = redissonClient;
         this.objectMapper = objectMapper;
         this.ttl = Duration.ofSeconds(ttlSeconds);
 
@@ -51,9 +53,9 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         try {
             String redisKey = buildRedisKey(idempotencyKey);
-            Boolean exists = redisTemplate.hasKey(redisKey);
+            RBucket<String> bucket = redissonClient.getBucket(redisKey);
+            boolean processed = bucket.isExists();
 
-            boolean processed = Boolean.TRUE.equals(exists);
             logger.debug("Idempotency check: key={}, processed={}", idempotencyKey, processed);
 
             return processed;
@@ -76,7 +78,8 @@ public class RedisIdempotencyService implements IdempotencyService {
             String redisKey = buildRedisKey(idempotencyKey);
             String resultJson = serializeResult(result);
 
-            redisTemplate.opsForValue().set(redisKey, resultJson, ttl);
+            RBucket<String> bucket = redissonClient.getBucket(redisKey);
+            bucket.set(resultJson, ttl.toSeconds(), TimeUnit.SECONDS);
 
             logger.info("Marked command as processed: key={}, ttl={}", idempotencyKey, ttl);
             logger.debug("Stored result: key={}, result={}", idempotencyKey, resultJson);
@@ -96,7 +99,8 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         try {
             String redisKey = buildRedisKey(idempotencyKey);
-            String resultJson = redisTemplate.opsForValue().get(redisKey);
+            RBucket<String> bucket = redissonClient.getBucket(redisKey);
+            String resultJson = bucket.get();
 
             if (resultJson == null) {
                 logger.debug("No cached result found for idempotency key: {}", idempotencyKey);
@@ -123,9 +127,10 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         try {
             String redisKey = buildRedisKey(idempotencyKey);
-            Boolean deleted = redisTemplate.delete(redisKey);
+            RBucket<String> bucket = redissonClient.getBucket(redisKey);
+            boolean deleted = bucket.delete();
 
-            if (Boolean.TRUE.equals(deleted)) {
+            if (deleted) {
                 logger.info("Removed idempotency key: {}", idempotencyKey);
             } else {
                 logger.debug("Idempotency key not found for removal: {}", idempotencyKey);
