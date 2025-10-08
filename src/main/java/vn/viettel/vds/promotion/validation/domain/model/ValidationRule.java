@@ -27,7 +27,6 @@ public class ValidationRule {
     private String description;
     private String expression;
     private String type;
-    private boolean active;
     private int priority;
     private Map<String, Object> configuration;
     private Instant createdAt;
@@ -48,7 +47,7 @@ public class ValidationRule {
     }
 
     public ValidationRule(String ruleId, String ruleCode, String name, String description, String expression,
-                          String type, boolean active, int priority, Map<String, Object> configuration,
+                          String type, int priority, Map<String, Object> configuration,
                           Instant createdAt, Instant updatedAt, Instant effectiveFrom, Instant effectiveTo) {
         this.ruleId = ruleId;
         this.ruleCode = ruleCode;
@@ -56,7 +55,6 @@ public class ValidationRule {
         this.description = description;
         this.expression = expression;
         this.type = type;
-        this.active = active;
         this.priority = priority;
         this.configuration = configuration;
         this.createdAt = createdAt;
@@ -119,11 +117,7 @@ public class ValidationRule {
     }
 
     public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
+        return "published".equalsIgnoreCase(state);
     }
 
     public int getPriority() {
@@ -278,7 +272,6 @@ public class ValidationRule {
                 .description(this.description)
                 .expression(this.expression)
                 .type(this.type)
-                .active(this.active)
                 .priority(this.priority)
                 .configuration(this.configuration)
                 .createdAt(this.createdAt)
@@ -302,7 +295,7 @@ public class ValidationRule {
     }
 
     public boolean isEffective(Instant checkTime) {
-        if (!active) {
+        if (!"published".equalsIgnoreCase(state)) {
             return false;
         }
 
@@ -414,8 +407,8 @@ public class ValidationRule {
         private String description;
         private String expression;
         private String type;
-        private boolean active;
         private int priority;
+        private String state;
         private Map<String, Object> configuration;
         private Instant createdAt;
         private Instant updatedAt;
@@ -453,13 +446,13 @@ public class ValidationRule {
             return this;
         }
 
-        public Builder active(boolean active) {
-            this.active = active;
+        public Builder priority(int priority) {
+            this.priority = priority;
             return this;
         }
 
-        public Builder priority(int priority) {
-            this.priority = priority;
+        public Builder state(String state) {
+            this.state = state;
             return this;
         }
 
@@ -504,10 +497,13 @@ public class ValidationRule {
         }
 
         public ValidationRule build() {
-            ValidationRule rule = new ValidationRule(ruleId, ruleCode, name, description, expression, type, active,
+            ValidationRule rule = new ValidationRule(ruleId, ruleCode, name, description, expression, type,
                     priority, configuration, createdAt, updatedAt, effectiveFrom, effectiveTo);
             if (targetSegments != null) {
                 rule.setTargetSegments(targetSegments);
+            }
+            if (state != null) {
+                rule.setState(state);
             }
             return rule;
         }

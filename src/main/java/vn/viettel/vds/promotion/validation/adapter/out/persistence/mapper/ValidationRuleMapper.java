@@ -34,7 +34,7 @@ public abstract class ValidationRuleMapper {
     @Mapping(source = "effectiveFrom", target = "effectiveFrom")
     @Mapping(source = "effectiveTo", target = "effectiveTo")
     @Mapping(target = "configuration", ignore = true)
-    @Mapping(source = "active", target = "active")
+    @Mapping(target = "state", expression = "java(rule.getState() != null ? rule.getState().name().toLowerCase() : \"draft\")")
     public abstract ValidationRule toDomain(Rule rule);
 
     /**
@@ -49,11 +49,11 @@ public abstract class ValidationRuleMapper {
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
     @Mapping(source = "targetSegments", target = "targetSegments")
+    @Mapping(source = "state", target = "state")
     @Mapping(target = "expression", ignore = true)
     @Mapping(target = "configuration", ignore = true)
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
-    @Mapping(target = "active", expression = "java(\"PUBLISHED\".equals(entity.getState()))")
     public abstract ValidationRule jpaEntityToDomain(RuleJpaEntity entity);
 
     /**
@@ -71,10 +71,10 @@ public abstract class ValidationRuleMapper {
     @Mapping(source = "effectiveFrom", target = "effectiveFrom")
     @Mapping(source = "effectiveTo", target = "effectiveTo")
     @Mapping(source = "expression", target = "expression")
-    @Mapping(source = "active", target = "active")
     @Mapping(source = "limits", target = "limits", qualifiedByName = "validationUsageLimitsToRuleLimits")
     @Mapping(target = "tenantId", ignore = true)
-    @Mapping(target = "state", expression = "java(validationRule.isActive() ? vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED : vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.DRAFT)")
+    @Mapping(target = "state", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()) ? vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED : vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.DRAFT)")
+    @Mapping(target = "active", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()))")
     @Mapping(target = "code", ignore = true)
     @Mapping(target = "notes", ignore = true)
     @Mapping(target = "latestVersion", ignore = true)

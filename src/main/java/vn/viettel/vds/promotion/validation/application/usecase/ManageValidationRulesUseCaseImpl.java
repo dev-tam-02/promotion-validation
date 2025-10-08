@@ -50,7 +50,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .description(command.getDescription())
                 .expression(command.getExpression())
                 .type(command.getType())
-                .active(command.isActive())
+                .state(command.isActive() ? "published" : "draft")
                 .priority(command.getPriority())
                 .configuration(command.getConfiguration())
                 .targetSegments(command.getTargetSegments())
@@ -96,7 +96,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             updatedRule.type(command.getType());
         }
         if (command.getActive() != null) {
-            updatedRule.active(command.getActive());
+            updatedRule.state(command.getActive() ? "published" : "draft");
         }
         if (command.getPriority() != null) {
             updatedRule.priority(command.getPriority());
@@ -161,7 +161,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
         ValidationRule activated = rule.toBuilder()
-                .active(true)
+                .state("published")
                 .updatedAt(Instant.now())
                 .build();
 
@@ -176,7 +176,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
         ValidationRule deactivated = rule.toBuilder()
-                .active(false)
+                .state("archived")
                 .updatedAt(Instant.now())
                 .build();
 
@@ -249,7 +249,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .ruleId(UUID.randomUUID().toString())
                 .ruleCode(newRuleCode)
                 .name(originalRule.getName() + " (Copy)")
-                .active(false) // Start as inactive
+                .state("draft") // Start as draft
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

@@ -20,9 +20,13 @@ public interface ValidationRuleRepositoryPort {
     Optional<ValidationRule> findById(String ruleId);
 
     /**
-     * Find all active rules
+     * Find all active rules (rules in PUBLISHED state)
+     * <p>
+     * Active rules are those with state = "published". The state field determines
+     * whether a rule is active, not a separate active boolean flag.
+     * </p>
      *
-     * @return list of active validation rules
+     * @return list of active (published) validation rules sorted by priority
      */
     List<ValidationRule> findActiveRules();
 

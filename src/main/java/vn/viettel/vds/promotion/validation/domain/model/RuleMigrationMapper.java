@@ -109,7 +109,7 @@ public class RuleMigrationMapper {
         validationRule.setDescription(rule.getDescription());
         validationRule.setExpression(rule.getExpression());
         validationRule.setType(rule.getType());
-        validationRule.setActive(Boolean.TRUE.equals(rule.getActive()));
+        validationRule.setState(Boolean.TRUE.equals(rule.getActive()) ? "published" : "draft");
         validationRule.setPriority(rule.getPriority() != null ? rule.getPriority() : 0);
         validationRule.setConfiguration(convertMapStringToMapObject(rule.getConfiguration()));
         validationRule.setEffectiveFrom(rule.getEffectiveFrom());

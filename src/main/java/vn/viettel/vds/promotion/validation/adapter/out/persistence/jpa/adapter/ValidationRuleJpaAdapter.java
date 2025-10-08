@@ -39,12 +39,11 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
 
     @Override
     public List<ValidationRule> findActiveRules() {
-        log.debug("Finding all active rules");
+        log.debug("Finding all active rules (published state)");
         // Get published rules from JPA (PUBLISHED state means active)
         return jpaRepository.findAll().stream()
                 .filter(e -> "PUBLISHED".equals(e.getState()))
                 .map(mapper::jpaEntityToDomain)
-                .filter(ValidationRule::isActive)
                 .sorted((r1, r2) -> Integer.compare(r1.getPriority(), r2.getPriority()))
                 .collect(Collectors.toList());
     }
