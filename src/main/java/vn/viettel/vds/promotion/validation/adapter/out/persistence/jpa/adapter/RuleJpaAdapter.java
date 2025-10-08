@@ -42,28 +42,25 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public Optional<Rule> findByTenantIdAndCode(String tenantId, String code) {
-        // JPA repo has different method - filter manually
-        return repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) && code.equals(e.getCode()))
-                .findFirst()
-                .map(mapper::toDomain);
+        // Note: tenantId field no longer exists in validation_rules table
+        // Searching by code only - tenantId parameter is ignored
+        return repository.findByCode(code).map(mapper::toDomain);
     }
 
     @Override
     public Page<Rule> findByTenantIdAndState(String tenantId, Rule.RuleState state, Pageable pageable) {
-        // Manual filtering by tenantId and state
-        List<RuleJpaEntity> all = repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) && state.name().equals(e.getState()))
-                .collect(Collectors.toList());
+        // Note: tenantId field no longer exists in validation_rules table
+        // Searching by state only - tenantId parameter is ignored
+        List<RuleJpaEntity> all = repository.findByState(state.name());
         return convertToPage(all, pageable);
     }
 
     @Override
     public Page<Rule> findByTenantIdWithFilters(String tenantId, Rule.RuleState state,
                                                 String codePattern, String namePattern, Pageable pageable) {
-        // Manual filtering
+        // Note: tenantId field no longer exists in validation_rules table
+        // Manual filtering by state, code pattern, and name pattern only
         List<RuleJpaEntity> all = repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()))
                 .filter(e -> state == null || state.name().equals(e.getState()))
                 .filter(e -> codePattern == null ||
                         (e.getCode() != null && e.getCode().toLowerCase().contains(codePattern.toLowerCase())))
@@ -75,8 +72,9 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public List<Rule> findByTenantIdOrderByUpdatedAtDesc(String tenantId) {
+        // Note: tenantId field no longer exists in validation_rules table
+        // Returning all rules ordered by updated_at desc - tenantId parameter is ignored
         return repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()))
                 .sorted((e1, e2) -> e2.getUpdatedAt().compareTo(e1.getUpdatedAt()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
@@ -84,59 +82,61 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public boolean existsByTenantIdAndCode(String tenantId, String code) {
-        return repository.findAll().stream()
-                .anyMatch(e -> tenantId.equals(e.getTenantId()) && code.equals(e.getCode()));
+        // Note: tenantId field no longer exists in validation_rules table
+        // Checking by code only - tenantId parameter is ignored
+        return repository.existsByCode(code);
     }
 
     @Override
     public long countByTenantIdAndState(String tenantId, Rule.RuleState state) {
-        return repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) && state.name().equals(e.getState()))
-                .count();
+        // Note: tenantId field no longer exists in validation_rules table
+        // Counting by state only - tenantId parameter is ignored
+        return repository.findByState(state.name()).size();
     }
 
     @Override
     public List<Rule> findByTenantIdAndStateNot(String tenantId, Rule.RuleState state) {
+        // Note: tenantId field no longer exists in validation_rules table
+        // Returning all rules with different state - tenantId parameter is ignored
         return repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) && !state.name().equals(e.getState()))
+                .filter(e -> !state.name().equals(e.getState()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<Rule> findByState(Rule.RuleState state) {
-        return repository.findAll().stream()
-                .filter(e -> state.name().equals(e.getState()))
+        return repository.findByState(state.name()).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<Rule> findByType(String type) {
-        return repository.findByType(type).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        // Note: type field no longer exists in validation_rules table
+        // This method will return empty list - consider removing from port interface
+        return List.of();
     }
 
     @Override
     public List<Rule> findByRuleSetId(String ruleSetId) {
-        return repository.findByRuleSetId(ruleSetId).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        // Note: ruleSetId field no longer exists in validation_rules table
+        // This method will return empty list - consider removing from port interface
+        return List.of();
     }
 
     @Override
     public List<Rule> findByCampaignId(String campaignId) {
-        return repository.findByCampaignId(campaignId).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        // Note: campaignId field no longer exists in validation_rules table
+        // This method will return empty list - consider removing from port interface
+        return List.of();
     }
 
     @Override
     public List<Rule> findByPriorityBetween(int minPriority, int maxPriority) {
-        return repository.findByPriorityBetween(minPriority, maxPriority).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        // Note: priority field no longer exists in validation_rules table
+        // This method will return empty list - consider removing from port interface
+        return List.of();
     }
 
     @Override

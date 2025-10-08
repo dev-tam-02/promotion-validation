@@ -41,36 +41,37 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     public List<ValidationRule> findActiveRules() {
         log.debug("Finding all active rules (published state)");
         // Get published rules from JPA (PUBLISHED state means active)
-        return jpaRepository.findAll().stream()
-                .filter(e -> "PUBLISHED".equals(e.getState()))
+        // Note: priority field no longer exists, so no sorting by priority
+        return jpaRepository.findByState("PUBLISHED").stream()
                 .map(mapper::jpaEntityToDomain)
-                .sorted((r1, r2) -> Integer.compare(r1.getPriority(), r2.getPriority()))
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<ValidationRule> findByType(ValidationRule.RuleType type) {
         log.debug("Finding rules by type: {}", type);
-        return jpaRepository.findByType(type.toString()).stream()
-                .map(mapper::jpaEntityToDomain)
-                .collect(Collectors.toList());
+        // Note: type field no longer exists in validation_rules table
+        // Returning empty list - this method should be deprecated
+        log.warn("findByType called but type field no longer exists in schema - returning empty list");
+        return List.of();
     }
 
     @Override
     public List<ValidationRule> findByRuleSetId(String ruleSetId) {
         log.debug("Finding rules by rule set ID: {}", ruleSetId);
-        return jpaRepository.findByRuleSetId(ruleSetId).stream()
-                .map(mapper::jpaEntityToDomain)
-                .sorted((r1, r2) -> Integer.compare(r1.getPriority(), r2.getPriority()))
-                .collect(Collectors.toList());
+        // Note: ruleSetId field no longer exists in validation_rules table
+        // Returning empty list - this method should be deprecated
+        log.warn("findByRuleSetId called but ruleSetId field no longer exists in schema - returning empty list");
+        return List.of();
     }
 
     @Override
     public List<ValidationRule> findByPromotionId(String promotionId) {
         log.debug("Finding rules by promotion ID: {}", promotionId);
-        return jpaRepository.findByCampaignId(promotionId).stream()
-                .map(mapper::jpaEntityToDomain)
-                .collect(Collectors.toList());
+        // Note: campaignId field no longer exists in validation_rules table
+        // Returning empty list - this method should be deprecated
+        log.warn("findByPromotionId called but campaignId field no longer exists in schema - returning empty list");
+        return List.of();
     }
 
     @Override
@@ -95,10 +96,10 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     @Override
     public List<ValidationRule> findByPriorityRange(int minPriority, int maxPriority) {
         log.debug("Finding rules by priority range: {} - {}", minPriority, maxPriority);
-        return jpaRepository.findByPriorityBetween(minPriority, maxPriority).stream()
-                .map(mapper::jpaEntityToDomain)
-                .sorted((r1, r2) -> Integer.compare(r1.getPriority(), r2.getPriority()))
-                .collect(Collectors.toList());
+        // Note: priority field no longer exists in validation_rules table
+        // Returning empty list - this method should be deprecated
+        log.warn("findByPriorityRange called but priority field no longer exists in schema - returning empty list");
+        return List.of();
     }
 
     @Override

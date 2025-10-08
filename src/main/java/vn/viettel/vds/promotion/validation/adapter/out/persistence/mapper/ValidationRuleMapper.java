@@ -39,17 +39,20 @@ public abstract class ValidationRuleMapper {
 
     /**
      * Convert JPA RuleJpaEntity to ValidationRule domain model
+     *
+     * Note: RuleJpaEntity no longer has notes, type, or priority fields.
+     * Only mapping fields that actually exist in the validation_rules table.
      */
     @Mapping(source = "id", target = "ruleId")
     @Mapping(source = "code", target = "ruleCode")
     @Mapping(source = "name", target = "name")
-    @Mapping(source = "notes", target = "description")
-    @Mapping(source = "type", target = "type")
-    @Mapping(source = "priority", target = "priority")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
     @Mapping(source = "targetSegments", target = "targetSegments")
     @Mapping(source = "state", target = "state")
+    @Mapping(target = "description", ignore = true)  // notes field removed from entity
+    @Mapping(target = "type", ignore = true)  // type field removed from entity
+    @Mapping(target = "priority", ignore = true)  // priority field removed from entity
     @Mapping(target = "expression", ignore = true)
     @Mapping(target = "configuration", ignore = true)
     @Mapping(target = "effectiveFrom", ignore = true)

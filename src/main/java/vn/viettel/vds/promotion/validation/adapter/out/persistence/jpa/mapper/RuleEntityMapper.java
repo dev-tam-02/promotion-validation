@@ -16,39 +16,92 @@ import java.util.stream.Collectors;
  *
  * <p>Mapping Notes:</p>
  * <ul>
- *   <li><strong>ruleVersion, publishedAt, publishedBy</strong>: These fields exist in the domain model
- *       but are not persisted in the RuleJpaEntity table. They are managed separately in a rule_versions
- *       table or versioning system.</li>
+ *   <li><strong>ruleVersion, publishedAt, publishedBy</strong>: Now properly mapped - these fields
+ *       exist in both the validation_rules table AND the domain model.</li>
+ *   <li><strong>dsl</strong>: Maps to domain's 'dsl' field (configuration was removed from entity)</li>
  *   <li><strong>nodes</strong>: Rule node tree structure is stored in a separate rule_nodes table and
  *       loaded via dedicated services, not through this basic entity mapping.</li>
  *   <li><strong>limits</strong>: Dynamic limits are calculated from configuration or stored elsewhere,
  *       not in the main rules table.</li>
- *   <li><strong>version (JPA)</strong>: The JPA @Version field for optimistic locking is different from
- *       the domain's latestVersion field which tracks business version numbers.</li>
  * </ul>
+ *
+ * <p>Schema Alignment:</p>
+ * The entity now correctly matches the validation_rules table schema:
+ * - id, code, name, state, rule_version, logic, dsl, published_at, published_by
+ * - created_at, updated_at, created_by, updated_by
+ * - Plus ElementCollections: rule_configuration, rule_target_segments
  */
 @Mapper(componentModel = "spring")
 public interface RuleEntityMapper {
 
-    @Mapping(target = "dsl", source = "configuration", qualifiedByName = "stringMapToObjectMap")
     @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
-    @Mapping(target = "ruleVersion", ignore = true)  // Stored in separate rule_versions table
-    @Mapping(target = "publishedAt", ignore = true)  // Stored in separate rule_versions table
-    @Mapping(target = "publishedBy", ignore = true)  // Stored in separate rule_versions table
+    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
+    @Mapping(target = "tenantId", ignore = true)     // No longer exists in entity
+    @Mapping(target = "ruleCode", ignore = true)     // No longer exists in entity
+    @Mapping(target = "description", ignore = true)  // No longer exists in entity
+    @Mapping(target = "notes", ignore = true)        // No longer exists in entity
+    @Mapping(target = "active", ignore = true)       // No longer exists in entity
+    @Mapping(target = "latestVersion", ignore = true) // No longer exists in entity
+    @Mapping(target = "type", ignore = true)         // No longer exists in entity
+    @Mapping(target = "expression", ignore = true)   // No longer exists in entity
+    @Mapping(target = "priority", ignore = true)     // No longer exists in entity
+    @Mapping(target = "effectiveFrom", ignore = true) // No longer exists in entity
+    @Mapping(target = "effectiveTo", ignore = true)  // No longer exists in entity
+    @Mapping(target = "targetSegmentsList", ignore = true) // Duplicate of targetSegments
+    @Mapping(target = "campaignId", ignore = true)   // No longer exists in entity
+    @Mapping(target = "ruleSetId", ignore = true)    // No longer exists in entity
+    @Mapping(target = "version", ignore = true)      // No longer exists in entity
     Rule toDomain(RuleJpaEntity entity);
 
-    @Mapping(target = "configuration", source = "dsl", qualifiedByName = "objectMapToStringMap")
     @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
-    @Mapping(target = "version", ignore = true) // JPA version is different from domain latestVersion
+    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "objectMapToString")
     RuleJpaEntity toEntity(Rule domain);
 
     List<Rule> toDomainList(List<RuleJpaEntity> entities);
 
     List<RuleJpaEntity> toEntityList(List<Rule> domains);
+
+    /**
+     * Convert JSON string (from database TEXT field) to Map<String, Object>
+     * Used when loading DSL from database into domain model
+     */
+    @Named("stringToObjectMap")
+    static Map<String, Object> stringToObjectMap(String dslJson) {
+        if (dslJson == null || dslJson.trim().isEmpty()) {
+            return new HashMap<>();
+        }
+        // Parse JSON string to Map
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return objectMapper.readValue(dslJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            // If parsing fails, return empty map
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * Convert Map<String, Object> to JSON string (for database TEXT field)
+     * Used when persisting DSL from domain model to database
+     */
+    @Named("objectMapToString")
+    static String objectMapToString(Map<String, Object> dslMap) {
+        if (dslMap == null || dslMap.isEmpty()) {
+            return null;
+        }
+        // Convert Map to JSON string
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return objectMapper.writeValueAsString(dslMap);
+        } catch (Exception e) {
+            // If serialization fails, return null
+            return null;
+        }
+    }
 
     @Named("stringMapToObjectMap")
     static Map<String, Object> stringMapToObjectMap(Map<String, String> source) {

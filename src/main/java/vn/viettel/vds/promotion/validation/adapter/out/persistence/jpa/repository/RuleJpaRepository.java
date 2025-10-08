@@ -11,59 +11,67 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * JPA repository for validation rules
+ * JPA repository for validation rules.
+ *
+ * Note: This repository only includes queries for fields that exist in the validation_rules table.
+ * Removed methods that referenced non-existent fields:
+ * - findByRuleCode (ruleCode field doesn't exist)
+ * - findByType (type field doesn't exist)
+ * - findByCampaignId (campaignId field doesn't exist)
+ * - findByRuleSetId (ruleSetId field doesn't exist)
+ * - findByPriorityBetween (priority field doesn't exist)
+ *
+ * Use the 'code' field instead of 'ruleCode' for code-based queries.
  */
 @ConditionalOnPromixJpa
 @Repository
 public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> {
 
     /**
-     * Find rule by rule code
+     * Find rule by code (this is the actual column in validation_rules table)
      */
-    Optional<RuleJpaEntity> findByRuleCode(String ruleCode);
+    Optional<RuleJpaEntity> findByCode(String code);
 
     /**
-     * Find rules by type
+     * Find rules by state (draft, published, archived)
      */
-    List<RuleJpaEntity> findByType(String type);
+    List<RuleJpaEntity> findByState(String state);
 
     /**
-     * Find rules by campaign ID
+     * Find rules by state ordered by rule version descending
      */
-    List<RuleJpaEntity> findByCampaignId(String campaignId);
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = :state ORDER BY r.ruleVersion DESC")
+    List<RuleJpaEntity> findByStateOrderByRuleVersionDesc(@Param("state") String state);
 
     /**
-     * Find rules by rule set ID
+     * Find rules by logic type
      */
-    List<RuleJpaEntity> findByRuleSetId(String ruleSetId);
+    List<RuleJpaEntity> findByLogic(String logic);
 
     /**
-     * Find rules by priority range
+     * Find all rules ordered by rule version descending
      */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.priority BETWEEN :minPriority AND :maxPriority ORDER BY r.priority")
-    List<RuleJpaEntity> findByPriorityBetween(
-            @Param("minPriority") Integer minPriority,
-            @Param("maxPriority") Integer maxPriority
-    );
+    List<RuleJpaEntity> findAllByOrderByRuleVersionDesc();
+
+    /**
+     * Find rules by version number
+     */
+    List<RuleJpaEntity> findByRuleVersion(Long ruleVersion);
 
     /**
      * Check if rule exists by code
      */
-    boolean existsByRuleCode(String ruleCode);
+    boolean existsByCode(String code);
 
     /**
-     * Delete rules by campaign ID
+     * Find latest version for a given code
      */
-    void deleteByCampaignId(String campaignId);
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.code = :code ORDER BY r.ruleVersion DESC")
+    List<RuleJpaEntity> findByCodeOrderByRuleVersionDesc(@Param("code") String code);
 
     /**
-     * Find rules by campaign ordered by priority
+     * Find published rules
      */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.campaignId = :campaignId ORDER BY r.priority")
-    List<RuleJpaEntity> findByCampaignIdOrderByPriority(@Param("campaignId") String campaignId);
-
-    /**
-     * Find rules ordered by priority
-     */
-    List<RuleJpaEntity> findAllByOrderByPriorityAsc();
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' ORDER BY r.ruleVersion DESC")
+    List<RuleJpaEntity> findPublishedRules();
 }
