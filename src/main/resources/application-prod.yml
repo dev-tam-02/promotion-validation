@@ -171,27 +171,42 @@ promix:
 
   # Cache Configuration
   cache:
+    # MASTER SWITCH: Enable cache support globally
     enabled: true
+
+    # Disable Caffeine to make Redisson the default cache manager
     caffeine:
-      enabled: true
-      maximum-size: 1000
-      expire-after-write: 10m
+      enabled: false
+
+    # Disable standard Redis cache manager (using Redisson instead)
     redis:
-      enabled: true
-      prefix: "validation-cache:"
-      default-ttl: 30m
-      timeout: 5s
+      enabled: false
       cluster:
-        nodes: ${REDIS_CLUSTER_NODES:node1:6379,node2:6380,node3:6381}
-        max-redirects: 3
+        nodes: []  # Empty to prevent initialization
+
+    # Enable Redisson as the default cache manager
+    redisson:
+      enabled: true
+      mode: CLUSTER
       password: ${REDIS_PASSWORD:}
-      database: ${REDIS_DATABASE:0}
-      lettuce:
-        pool:
-          max-active: 20
-          max-idle: 10
-          min-idle: 2
-          max-wait: 3s
+      connection-timeout: 3000
+      timeout: 3000
+      retry-attempts: 3
+      retry-interval: 1500
+      default-ttl: 30m
+      max-idle-time: 15m
+      default-max-size: 1000
+      codec: org.redisson.codec.JsonJacksonCodec
+      pool:
+        min-idle: 5
+        max-pool-size: 50
+      cluster:
+        nodes:
+          - redis://node1:6379
+          - redis://node2:6380
+          - redis://node3:6381
+        max-redirections: 3
+        scan-interval: 1000
 
 # Server Configuration
 server:

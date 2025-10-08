@@ -195,6 +195,20 @@ promix:
 
   # Cache Configuration
   cache:
+    # MASTER SWITCH: Enable cache support globally
+    enabled: true
+
+    # Disable Caffeine to make Redisson the default cache manager
+    caffeine:
+      enabled: false
+
+    # Disable standard Redis cache manager (using Redisson instead)
+    redis:
+      enabled: false
+      cluster:
+        nodes: []  # Empty to prevent initialization
+
+    # Enable Redisson as the default cache manager
     redisson:
       enabled: true
       mode: CLUSTER
@@ -203,6 +217,13 @@ promix:
       timeout: 3000
       retry-attempts: 3
       retry-interval: 1500
+      default-ttl: 30m
+      max-idle-time: 15m
+      default-max-size: 1000
+      codec: org.redisson.codec.JsonJacksonCodec
+      pool:
+        min-idle: 5
+        max-pool-size: 50
       cluster:
         nodes:
           - redis://node1:6379
@@ -210,9 +231,6 @@ promix:
           - redis://node3:6381
         max-redirections: 3
         scan-interval: 1000
-      pool:
-        min-idle: 16
-        max-pool-size: 128
 
 # Kafka Topics Configuration
 kafka:
