@@ -1,0 +1,143 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-outbox-events-table
+      author: claude
+      comment: Create outbox_events table for transactional outbox pattern with Spring Batch
+      changes:
+        - createTable:
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: aggregate_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregate_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: destination
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: metadata
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: status
+                  type: varchar(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempts
+                  type: int
+                  constraints:
+                    nullable: false
+                  defaultValue: 0
+              - column:
+                  name: max_attempts
+                  type: int
+                  constraints:
+                    nullable: false
+                  defaultValue: 3
+              - column:
+                  name: last_error
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_attempt_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: published_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+                  defaultValue: 0
+
+        - createIndex:
+            indexName: idx_outbox_status
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: status
+
+        - createIndex:
+            indexName: idx_outbox_created_at
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: created_at
+
+        - createIndex:
+            indexName: idx_outbox_tenant_id
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: tenant_id
+
+        - createIndex:
+            indexName: idx_outbox_aggregate
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: aggregate_type
+              - column:
+                  name: aggregate_id
+
+        - createIndex:
+            indexName: idx_outbox_event_type
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: event_type
+
+        - createIndex:
+            indexName: idx_outbox_status_attempts
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: attempts
+
+      rollback:
+        - dropTable:
+            tableName: outbox_events

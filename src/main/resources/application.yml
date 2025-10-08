@@ -84,25 +84,27 @@ management:
     tracing:
       endpoint: ""
 
+# Spring Batch Configuration
+spring:
+  batch:
+    job:
+      enabled: false  # Disable auto-start of jobs (we'll use scheduling)
+    jdbc:
+      initialize-schema: always  # Create Spring Batch tables if not exist
+
 # Promix Platform Configuration
 promix:
   # MongoDB Configuration - DISABLED (using JPA as primary database)
   mongo:
     enabled: false
-    outbox:
-      enabled: false
-      publisher: "kafka"
 
   # JPA/MariaDB Configuration - Toggle ON/OFF
   # Set to false to disable JPA/MariaDB completely
   jpa:
     enabled: true  # Primary database for validation documents and metadata
 
-  # Outbox Pattern Configuration
+  # Outbox Pattern Configuration (Custom Spring Batch implementation)
   outbox:
-    enabled: true                         # Disable MongoDB outbox (from promix-outbox-autoconfigure)
-    jpa:
-      enabled: true                        # Enable JPA outbox implementation
     batch:
       enabled: true                        # Enable batch processing
       chunk-size: 100                      # Events per processing batch
@@ -114,9 +116,6 @@ promix:
       interval-ms: 21600000                # Cleanup interval in milliseconds (21600000ms = 6 hours)
     retry:
       max-attempts: 3                      # Maximum retry attempts
-      initial-delay: 1m                    # Initial retry delay
-      max-delay: 1h                        # Maximum retry delay
-      multiplier: 2.0                      # Delay multiplier for exponential backoff
 
   # Kafka Configuration
   messaging:

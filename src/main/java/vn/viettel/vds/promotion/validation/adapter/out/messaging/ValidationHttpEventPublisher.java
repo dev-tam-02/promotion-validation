@@ -1,12 +1,11 @@
 package vn.viettel.vds.promotion.validation.adapter.out.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.promix.platform.outbox.model.OutboxEvent;
-import com.promix.platform.outbox.publisher.EventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 
 import java.net.URI;
 import java.net.http.HttpClient;

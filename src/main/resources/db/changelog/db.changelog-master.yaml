@@ -1,5 +1,7 @@
 databaseChangeLog:
   - include:
-      file: db/changelog/changes/001-create-validation-schema.yaml
+      file: db/changelog/changes/001-create-validation-rule-engine-schema.yaml
   - include:
-      file: db/changelog/changes/002-insert-sample-data.yaml
+      file: db/changelog/changes/002-insert-rule-engine-sample-data.yaml
+  - include:
+      file: db/changelog/changes/003-create-outbox-events-table.yaml

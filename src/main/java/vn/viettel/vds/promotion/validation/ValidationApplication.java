@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation;
 
-import com.promix.batch.autoconfigure.EnablePromixBatch;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
@@ -20,7 +19,6 @@ import vn.viettel.vds.promotion.validation.config.ValidationModuleProperties;
 })
 @EnableFeignClients
 @EnableJpaRepositories(basePackages = "vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository")
-@EnablePromixBatch
 @EnableConfigurationProperties(ValidationModuleProperties.class)
 public class ValidationApplication {
 

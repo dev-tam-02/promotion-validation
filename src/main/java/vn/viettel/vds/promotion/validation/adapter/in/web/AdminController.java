@@ -1,13 +1,12 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
 import com.promix.platform.web.annotation.ResponseWrapper;
-import com.promix.platform.outbox.service.OutboxService;
-import com.promix.platform.outbox.service.OutboxStatistics;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import vn.viettel.vds.promotion.validation.application.service.ConnectivityService;
+import vn.viettel.vds.promotion.validation.application.service.OutboxEventService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -18,12 +17,12 @@ import java.util.Map;
 @RequestMapping("/v1/admin")
 public class AdminController {
 
-    private final OutboxService outboxService;
+    private final OutboxEventService outboxEventService;
     private final ConnectivityService connectivityService;
 
-    public AdminController(OutboxService outboxService,
+    public AdminController(OutboxEventService outboxEventService,
                            ConnectivityService connectivityService) {
-        this.outboxService = outboxService;
+        this.outboxEventService = outboxEventService;
         this.connectivityService = connectivityService;
     }
 
@@ -49,7 +48,7 @@ public class AdminController {
         );
 
         // Outbox metrics
-        OutboxStatistics stats = outboxService.getStatistics();
+        OutboxEventService.OutboxStatistics stats = outboxEventService.getStatistics();
         Map<String, Object> outboxMetrics = Map.of(
                 "pendingEvents", stats.getPendingCount(),
                 "processingEvents", stats.getProcessingCount(),
@@ -86,7 +85,7 @@ public class AdminController {
      */
     @GetMapping("/outbox/stats")
     public Map<String, Object> getOutboxStats() {
-        OutboxStatistics stats = outboxService.getStatistics();
+        OutboxEventService.OutboxStatistics stats = outboxEventService.getStatistics();
         return Map.of(
                 "pendingEvents", stats.getPendingCount(),
                 "processingEvents", stats.getProcessingCount(),
@@ -100,13 +99,13 @@ public class AdminController {
 
     /**
      * Manually trigger outbox event processing
-     * Note: With promix-outbox-jpa, batch processing is automatic via Spring Batch
+     * Note: With Spring Batch, processing is automatic and scheduled
      */
     @PostMapping("/outbox/process")
     public Map<String, Object> triggerOutboxProcessing() {
         return Map.of(
                 "message", "Outbox processing is handled automatically by Spring Batch",
-                "note", "Events are processed in batches based on configuration",
+                "note", "Events are processed in batches based on configuration at regular intervals",
                 "timestamp", Instant.now()
         );
     }

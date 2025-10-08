@@ -14,7 +14,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
-import com.promix.platform.outbox.service.OutboxService;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,7 +34,7 @@ public class PublishService {
     private final RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort;
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
-    private final OutboxService outboxService;
+    private final OutboxEventService outboxEventService;
     private final AuditService auditService;
 
     public PublishService(RuleService ruleService,
@@ -44,7 +43,7 @@ public class PublishService {
                           RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort,
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
-                          OutboxService outboxService,
+                          OutboxEventService outboxEventService,
                           AuditService auditService) {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
@@ -52,7 +51,7 @@ public class PublishService {
         this.ruleTemporalLinkPersistencePort = ruleTemporalLinkPersistencePort;
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
-        this.outboxService = outboxService;
+        this.outboxEventService = outboxEventService;
         this.auditService = auditService;
     }
 
@@ -225,7 +224,7 @@ public class PublishService {
                         "publishedAt", job.getCompletedAt().toString()
                 );
 
-                outboxService.createEvent(
+                outboxEventService.createEvent(
                         "Rule",                          // aggregateType
                         rule.getId(),                    // aggregateId
                         "rule.published",                // eventType
