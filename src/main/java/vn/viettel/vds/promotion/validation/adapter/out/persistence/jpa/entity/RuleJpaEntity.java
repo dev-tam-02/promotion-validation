@@ -56,10 +56,6 @@ public class RuleJpaEntity {
     @Column(name = "state", length = 50)
     private String state;
 
-    @Column(name = "active")
-    @Builder.Default
-    private Boolean active = true;
-
     @Column(name = "priority")
     @Builder.Default
     private Integer priority = 100;
@@ -117,9 +113,6 @@ public class RuleJpaEntity {
     public void prePersist() {
         if (id == null) {
             id = java.util.UUID.randomUUID().toString();
-        }
-        if (active == null) {
-            active = true;
         }
         if (priority == null) {
             priority = 100;

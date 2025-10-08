@@ -23,11 +23,6 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
     Optional<RuleJpaEntity> findByRuleCode(String ruleCode);
 
     /**
-     * Find all active rules
-     */
-    List<RuleJpaEntity> findByActiveTrue();
-
-    /**
      * Find rules by type
      */
     List<RuleJpaEntity> findByType(String type);
@@ -62,18 +57,13 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
     void deleteByCampaignId(String campaignId);
 
     /**
-     * Find active rules by campaign
+     * Find rules by campaign ordered by priority
      */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.campaignId = :campaignId AND r.active = true ORDER BY r.priority")
-    List<RuleJpaEntity> findActiveByCampaignId(@Param("campaignId") String campaignId);
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.campaignId = :campaignId ORDER BY r.priority")
+    List<RuleJpaEntity> findByCampaignIdOrderByPriority(@Param("campaignId") String campaignId);
 
     /**
      * Find rules ordered by priority
      */
     List<RuleJpaEntity> findAllByOrderByPriorityAsc();
-
-    /**
-     * Count active rules
-     */
-    long countByActiveTrue();
 }

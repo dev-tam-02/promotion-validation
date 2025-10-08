@@ -44,7 +44,6 @@ public interface RuleEntityMapper {
     @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
     @Mapping(target = "version", ignore = true) // JPA version is different from domain latestVersion
-    @Mapping(target = "active", expression = "java(domain.getState() == vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED)")
     RuleJpaEntity toEntity(Rule domain);
 
     List<Rule> toDomainList(List<RuleJpaEntity> entities);
