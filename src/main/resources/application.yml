@@ -37,6 +37,13 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     drop-first: false
 
+  # Spring Batch Configuration
+  batch:
+    job:
+      enabled: false  # Disable auto-start of jobs (we'll use scheduling)
+    jdbc:
+      initialize-schema: always  # Create Spring Batch tables if not exist
+
 # Server Configuration
 server:
   port: 16014
@@ -83,14 +90,6 @@ management:
   zipkin:
     tracing:
       endpoint: ""
-
-# Spring Batch Configuration
-spring:
-  batch:
-    job:
-      enabled: false  # Disable auto-start of jobs (we'll use scheduling)
-    jdbc:
-      initialize-schema: always  # Create Spring Batch tables if not exist
 
 # Promix Platform Configuration
 promix:
