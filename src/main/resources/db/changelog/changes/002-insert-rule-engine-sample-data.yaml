@@ -298,7 +298,7 @@ databaseChangeLog:
                   value: Metadata does not match required criteria
               - column:
                   name: message_template
-                  value: {field} must be {value}
+                  value: "{field} must be {value}"
               - column:
                   name: category
                   value: METADATA_VALIDATION
