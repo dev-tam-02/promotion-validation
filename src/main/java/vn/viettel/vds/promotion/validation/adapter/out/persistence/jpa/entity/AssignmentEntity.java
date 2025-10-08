@@ -1,71 +1,74 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
-import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
+/**
+ * JPA entity for assignments mapped to assignments table.
+ *
+ * IMPORTANT: This entity does NOT extend BaseEntity because the schema does NOT have
+ * created_by, updated_by, or version columns that BaseEntity provides.
+ *
+ * Schema columns (from 001-create-validation-rule-engine-schema.yaml:1215-1257):
+ * - id: varchar(36) - Primary key
+ * - entity_type: varchar(100) - Entity type
+ * - entity_id: varchar(100) - Entity identifier
+ * - rule_id: varchar(100) - Rule identifier
+ * - priority: int - Assignment priority
+ * - active: boolean - Whether assignment is active
+ * - created_at: timestamp - Creation timestamp
+ * - updated_at: timestamp - Last update timestamp
+ *
+ * NOTE: Schema does NOT have tenant_id, subject_type, subject_key, assignment_version,
+ * valid_from, valid_to, traffic_percent, or sticky_key_strategy columns
+ */
 @Getter
 @Setter
 @Entity
 @Table(name = "assignments", indexes = {
-        @Index(name = "idx_assignments_subject", columnList = "tenant_id, subject_type, subject_key"),
-        @Index(name = "idx_assignments_rule_version", columnList = "tenant_id, rule_id, assignment_version"),
-        @Index(name = "idx_assignments_active_subject", columnList = "tenant_id, active, subject_type, subject_key")
+        @Index(name = "idx_assignments_entity", columnList = "entity_type, entity_id")
 })
-public class AssignmentEntity extends BaseEntity {
+public class AssignmentEntity {
 
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
+    @Id
+    @Column(name = "id", length = 36)
+    private String id;
 
-    @Column(name = "rule_id", nullable = false, length = 100)
+    @Column(name = "entity_type", length = 100)
+    private String entityType;
+
+    @Column(name = "entity_id", length = 100)
+    private String entityId;
+
+    @Column(name = "rule_id", length = 100)
     private String ruleId;
 
-    @Column(name = "rule_version_pinned")
-    private Integer ruleVersionPinned;
-
-    @Embedded
-    private SubjectEmbeddable subject;
-
-    @Column(name = "assignment_version", nullable = false)
-    private Integer assignmentVersion;
+    @Column(name = "priority")
+    private Integer priority;
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
-    @Column(name = "valid_from")
-    private Instant validFrom;
-
-    @Column(name = "valid_to")
-    private Instant validTo;
-
-    @Column(name = "traffic_percent")
-    private Integer trafficPercent;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sticky_key_strategy", length = 50)
-    private StickyKeyStrategy stickyKeyStrategy;
-
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public enum StickyKeyStrategy {
-        CUSTOMER_ID, ORDER_ID, DEVICE_ID
-    }
-
-    @Embeddable
-    @Getter
-    @Setter
-    public static class SubjectEmbeddable {
-        @Column(name = "subject_type", length = 50)
-        private String type;
-
-        @Column(name = "subject_key", length = 200)
-        private String key;
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+        }
+        if (active == null) {
+            active = true;
+        }
     }
 }

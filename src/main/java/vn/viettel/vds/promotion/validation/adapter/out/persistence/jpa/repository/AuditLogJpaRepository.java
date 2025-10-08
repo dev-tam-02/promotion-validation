@@ -9,29 +9,32 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Au
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * JPA Repository for AuditLogEntity.
+ *
+ * NOTE: The schema does NOT have tenant_id or target embeddable.
+ * It has entity_type, entity_id, actor_id, action, timestamp instead.
+ */
 @Repository
 public interface AuditLogJpaRepository extends JpaRepository<AuditLogEntity, String> {
 
-    List<AuditLogEntity> findByTenantIdAndActionOrderByAtDesc(
-            String tenantId,
-            AuditLogEntity.AuditAction action
-    );
+    List<AuditLogEntity> findByActionOrderByTimestampDesc(String action);
 
-    List<AuditLogEntity> findByTenantIdOrderByAtDesc(String tenantId);
+    List<AuditLogEntity> findAllByOrderByTimestampDesc();
 
-    @Query("SELECT a FROM AuditLogEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.at BETWEEN :fromDate AND :toDate ORDER BY a.at DESC")
-    List<AuditLogEntity> findByTenantIdAndDateRange(
-            @Param("tenantId") String tenantId,
+    @Query("SELECT a FROM AuditLogEntity a WHERE " +
+            "a.timestamp BETWEEN :fromDate AND :toDate ORDER BY a.timestamp DESC")
+    List<AuditLogEntity> findByDateRange(
             @Param("fromDate") Instant fromDate,
             @Param("toDate") Instant toDate
     );
 
-    @Query("SELECT a FROM AuditLogEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.target.type = :targetType AND a.target.id = :targetId ORDER BY a.at DESC")
-    List<AuditLogEntity> findByTenantIdAndTarget(
-            @Param("tenantId") String tenantId,
-            @Param("targetType") String targetType,
-            @Param("targetId") String targetId
+    @Query("SELECT a FROM AuditLogEntity a WHERE " +
+            "a.entityType = :entityType AND a.entityId = :entityId ORDER BY a.timestamp DESC")
+    List<AuditLogEntity> findByEntity(
+            @Param("entityType") String entityType,
+            @Param("entityId") String entityId
     );
+
+    List<AuditLogEntity> findByActorIdOrderByTimestampDesc(String actorId);
 }

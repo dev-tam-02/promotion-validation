@@ -13,54 +13,41 @@ import java.util.Optional;
 @Repository
 public interface AssignmentJpaRepository extends JpaRepository<AssignmentEntity, String> {
 
-    @Query("SELECT a FROM AssignmentEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.subject.type = :subjectType AND a.subject.key = :subjectKey")
-    List<AssignmentEntity> findByTenantIdAndSubject(
-            @Param("tenantId") String tenantId,
-            @Param("subjectType") String subjectType,
-            @Param("subjectKey") String subjectKey
+    // Updated to use entityType/entityId instead of subject.type/subject.key
+    @Query("SELECT a FROM AssignmentEntity a WHERE " +
+            "a.entityType = :entityType AND a.entityId = :entityId")
+    List<AssignmentEntity> findByEntityTypeAndEntityId(
+            @Param("entityType") String entityType,
+            @Param("entityId") String entityId
     );
 
-    @Query("SELECT a FROM AssignmentEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.ruleId = :ruleId ORDER BY a.assignmentVersion DESC")
-    List<AssignmentEntity> findByTenantIdAndRuleIdOrderByVersionDesc(
-            @Param("tenantId") String tenantId,
-            @Param("ruleId") String ruleId
+    // Updated to use entityType/entityId with active flag
+    @Query("SELECT a FROM AssignmentEntity a WHERE " +
+            "a.entityType = :entityType AND a.entityId = :entityId AND a.active = :active")
+    List<AssignmentEntity> findByEntityTypeAndEntityIdAndActive(
+            @Param("entityType") String entityType,
+            @Param("entityId") String entityId,
+            @Param("active") Boolean active
     );
 
-    @Query("SELECT a FROM AssignmentEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.active = true AND a.subject.type = :subjectType AND a.subject.key = :subjectKey")
-    List<AssignmentEntity> findActiveAssignmentsBySubject(
-            @Param("tenantId") String tenantId,
-            @Param("subjectType") String subjectType,
-            @Param("subjectKey") String subjectKey
-    );
+    // Removed tenantId, using createdAt for ordering instead of assignmentVersion
+    @Query("SELECT a FROM AssignmentEntity a WHERE a.ruleId = :ruleId ORDER BY a.createdAt DESC")
+    List<AssignmentEntity> findByRuleIdOrderByCreatedAtDesc(@Param("ruleId") String ruleId);
 
-    @Query("SELECT a FROM AssignmentEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.active = true AND (a.validFrom IS NULL OR a.validFrom <= :now) " +
-            "AND (a.validTo IS NULL OR a.validTo >= :now)")
-    List<AssignmentEntity> findCurrentActiveAssignments(
-            @Param("tenantId") String tenantId,
-            @Param("now") Instant now
-    );
+    // Simplified active check (validFrom/validTo removed from schema)
+    @Query("SELECT a FROM AssignmentEntity a WHERE a.active = :active")
+    List<AssignmentEntity> findByActive(@Param("active") Boolean active);
 
-    @Query("SELECT a FROM AssignmentEntity a WHERE a.tenantId = :tenantId " +
-            "AND a.ruleId = :ruleId AND a.assignmentVersion = :version")
-    Optional<AssignmentEntity> findByTenantIdAndRuleIdAndVersion(
-            @Param("tenantId") String tenantId,
-            @Param("ruleId") String ruleId,
-            @Param("version") Integer version
-    );
+    // Removed - assignmentVersion field no longer exists
+    // Optional<AssignmentEntity> findByTenantIdAndRuleIdAndVersion(...)
 
-    @Query("SELECT COALESCE(MAX(a.assignmentVersion), 0) FROM AssignmentEntity a " +
-            "WHERE a.tenantId = :tenantId AND a.ruleId = :ruleId")
-    Integer findMaxVersionByRuleId(
-            @Param("tenantId") String tenantId,
-            @Param("ruleId") String ruleId
-    );
+    // Removed - assignmentVersion field no longer exists
+    // Integer findMaxVersionByRuleId(...)
 
-    boolean existsByTenantIdAndRuleId(String tenantId, String ruleId);
+    // Simplified to only check ruleId
+    boolean existsByRuleId(String ruleId);
 
-    @Query("SELECT COUNT(a) FROM AssignmentEntity a WHERE a.tenantId = :tenantId AND a.active = :active")
-    long countByTenantIdAndActive(@Param("tenantId") String tenantId, @Param("active") Boolean active);
+    // Removed tenantId parameter
+    @Query("SELECT COUNT(a) FROM AssignmentEntity a WHERE a.active = :active")
+    long countByActive(@Param("active") Boolean active);
 }

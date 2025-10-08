@@ -39,46 +39,44 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
 
     @Override
     public Page<AuditLog> findByTenantIdAndAction(String tenantId, AuditLog.AuditAction action, Pageable pageable) {
-        List<AuditLogEntity> entities = repository.findByTenantIdAndActionOrderByAtDesc(
-                tenantId,
-                AuditLogEntity.AuditAction.valueOf(action.name())
-        );
+        // Note: tenantId removed from schema, using action field only
+        List<AuditLogEntity> entities = repository.findByActionOrderByTimestampDesc(action.name());
         return convertToPage(entities, pageable);
     }
 
     @Override
     public Page<AuditLog> findByTenantIdAndTimeBetween(String tenantId, Instant from, Instant to, Pageable pageable) {
-        List<AuditLogEntity> entities = repository.findByTenantIdAndDateRange(tenantId, from, to);
+        // Note: tenantId removed from schema
+        List<AuditLogEntity> entities = repository.findByDateRange(from, to);
         return convertToPage(entities, pageable);
     }
 
     @Override
     public Page<AuditLog> findByTenantIdAndActor(String tenantId, String actor, Pageable pageable) {
-        // JPA repository doesn't have this method - filtering manually
-        List<AuditLogEntity> all = repository.findByTenantIdOrderByAtDesc(tenantId);
-        List<AuditLogEntity> filtered = all.stream()
-                .filter(e -> e.getActor() != null && e.getActor().equals(actor))
-                .collect(Collectors.toList());
-        return convertToPage(filtered, pageable);
+        // Note: tenantId removed, using actorId field
+        List<AuditLogEntity> entities = repository.findByActorIdOrderByTimestampDesc(actor);
+        return convertToPage(entities, pageable);
     }
 
     @Override
     public Page<AuditLog> findWithFilters(String tenantId, AuditLog.AuditAction action, String actorPattern,
                                          Instant from, Instant to, Pageable pageable) {
-        List<AuditLogEntity> all = repository.findByTenantIdOrderByAtDesc(tenantId);
+        // Note: tenantId removed, filtering from all logs
+        List<AuditLogEntity> all = repository.findAllByOrderByTimestampDesc();
         List<AuditLogEntity> filtered = all.stream()
-                .filter(e -> action == null || e.getAction().name().equals(action.name()))
+                .filter(e -> action == null || e.getAction().equals(action.name()))
                 .filter(e -> actorPattern == null ||
-                        (e.getActor() != null && e.getActor().contains(actorPattern)))
-                .filter(e -> from == null || e.getAt().isAfter(from) || e.getAt().equals(from))
-                .filter(e -> to == null || e.getAt().isBefore(to) || e.getAt().equals(to))
+                        (e.getActorId() != null && e.getActorId().contains(actorPattern)))
+                .filter(e -> from == null || e.getTimestamp().isAfter(from) || e.getTimestamp().equals(from))
+                .filter(e -> to == null || e.getTimestamp().isBefore(to) || e.getTimestamp().equals(to))
                 .collect(Collectors.toList());
         return convertToPage(filtered, pageable);
     }
 
     @Override
     public List<AuditLog> findByTenantIdAndTarget(String tenantId, String targetType, String targetId) {
-        List<AuditLogEntity> entities = repository.findByTenantIdAndTarget(tenantId, targetType, targetId);
+        // Note: tenantId removed, using entityType/entityId fields
+        List<AuditLogEntity> entities = repository.findByEntity(targetType, targetId);
         return entities.stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
@@ -86,36 +84,36 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
 
     @Override
     public Page<AuditLog> findByTenantId(String tenantId, Pageable pageable) {
-        List<AuditLogEntity> entities = repository.findByTenantIdOrderByAtDesc(tenantId);
+        // Note: tenantId removed from schema, returning all logs
+        List<AuditLogEntity> entities = repository.findAllByOrderByTimestampDesc();
         return convertToPage(entities, pageable);
     }
 
     @Override
     public List<AuditLog> findLogsOlderThan(Instant cutoffTime) {
-        // JPA repository doesn't have this method - need to add or use findAll with filter
+        // Filter logs by timestamp
         return repository.findAll().stream()
-                .filter(e -> e.getAt().isBefore(cutoffTime))
+                .filter(e -> e.getTimestamp().isBefore(cutoffTime))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public long countByTenantIdAndAction(String tenantId, AuditLog.AuditAction action) {
-        return repository.findByTenantIdAndActionOrderByAtDesc(
-                tenantId,
-                AuditLogEntity.AuditAction.valueOf(action.name())
-        ).size();
+        // Note: tenantId removed from schema
+        return repository.findByActionOrderByTimestampDesc(action.name()).size();
     }
 
     @Override
     public long countByTenantIdAndTimeBetween(String tenantId, Instant from, Instant to) {
-        return repository.findByTenantIdAndDateRange(tenantId, from, to).size();
+        // Note: tenantId removed from schema
+        return repository.findByDateRange(from, to).size();
     }
 
     @Override
     public void deleteLogsOlderThan(Instant cutoffTime) {
         List<AuditLogEntity> oldLogs = repository.findAll().stream()
-                .filter(e -> e.getAt().isBefore(cutoffTime))
+                .filter(e -> e.getTimestamp().isBefore(cutoffTime))
                 .collect(Collectors.toList());
         repository.deleteAll(oldLogs);
     }

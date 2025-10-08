@@ -160,7 +160,7 @@ public class RollbackValidationRuleCommandHandler {
     private void rollbackAssignment(AssignmentEntity assignment) {
         try {
             logger.info("Rolling back assignment: assignmentId={}, ruleId={}, campaignId={}",
-                    assignment.getId(), assignment.getRuleId(), assignment.getSubject().getKey());
+                    assignment.getId(), assignment.getRuleId(), assignment.getEntityId());
 
             // Mark assignment as INACTIVE (soft delete)
             assignment.setActive(false);
@@ -182,17 +182,16 @@ public class RollbackValidationRuleCommandHandler {
 
     /**
      * Find assignments by campaign ID
-     * Searches for assignments where subject.key = campaignId
+     * Searches for assignments where entityType = "campaign" AND entityId = campaignId
      *
      * @param campaignId The campaign ID to search for
      * @return List of assignments for the campaign
      */
     private List<AssignmentEntity> findAssignmentsByCampaignId(String campaignId) {
-        // Query assignments where subject.type = "campaign" AND subject.key = campaignId
+        // Query assignments where entityType = "campaign" AND entityId = campaignId
         return assignmentRepository.findAll().stream()
-                .filter(a -> a.getSubject() != null)
-                .filter(a -> "campaign".equalsIgnoreCase(a.getSubject().getType()))
-                .filter(a -> campaignId.equals(a.getSubject().getKey()))
+                .filter(a -> "campaign".equalsIgnoreCase(a.getEntityType()))
+                .filter(a -> campaignId.equals(a.getEntityId()))
                 .toList();
     }
 

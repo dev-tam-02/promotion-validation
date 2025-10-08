@@ -6,71 +6,39 @@ import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 /**
  * MapStruct mapper for converting between Assignment domain model and AssignmentEntity.
+ *
+ * NOTE: The domain model contains fields that don't exist in the database schema.
+ * This mapper provides best-effort mapping between the two structures.
  */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface AssignmentMapper {
 
-    @Mapping(source = "subject", target = "subject")
-    @Mapping(source = "stickyKeyStrategy", target = "stickyKeyStrategy")
+    @Mapping(source = "entityType", target = "subject.type")
+    @Mapping(source = "entityId", target = "subject.key")
+    @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "ruleVersionPinned", ignore = true)
+    @Mapping(target = "assignmentVersion", ignore = true)
+    @Mapping(target = "validFrom", ignore = true)
+    @Mapping(target = "validTo", ignore = true)
+    @Mapping(target = "trafficPercent", ignore = true)
+    @Mapping(target = "stickyKeyStrategy", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "version", ignore = true)
     Assignment toDomain(AssignmentEntity entity);
 
-    @Mapping(source = "subject", target = "subject")
-    @Mapping(source = "stickyKeyStrategy", target = "stickyKeyStrategy")
+    @Mapping(source = "subject.type", target = "entityType")
+    @Mapping(source = "subject.key", target = "entityId")
+    @Mapping(target = "priority", ignore = true)
     AssignmentEntity toEntity(Assignment domain);
 
     /**
      * Update entity from domain model.
      */
-    @Mapping(source = "subject", target = "subject")
-    @Mapping(source = "stickyKeyStrategy", target = "stickyKeyStrategy")
+    @Mapping(source = "subject.type", target = "entityType")
+    @Mapping(source = "subject.key", target = "entityId")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "priority", ignore = true)
     void updateEntityFromDomain(Assignment domain, @MappingTarget AssignmentEntity entity);
-
-    /**
-     * Map Subject to SubjectEmbeddable
-     */
-    default AssignmentEntity.SubjectEmbeddable mapSubject(Assignment.Subject subject) {
-        if (subject == null) {
-            return null;
-        }
-        AssignmentEntity.SubjectEmbeddable embeddable = new AssignmentEntity.SubjectEmbeddable();
-        embeddable.setType(subject.getType());
-        embeddable.setKey(subject.getKey());
-        return embeddable;
-    }
-
-    /**
-     * Map SubjectEmbeddable to Subject
-     */
-    default Assignment.Subject mapSubjectEmbeddable(AssignmentEntity.SubjectEmbeddable embeddable) {
-        if (embeddable == null) {
-            return null;
-        }
-        Assignment.Subject subject = new Assignment.Subject();
-        subject.setType(embeddable.getType());
-        subject.setKey(embeddable.getKey());
-        return subject;
-    }
-
-    /**
-     * Map StickyKeyStrategy enum
-     */
-    default Assignment.StickyKeyStrategy mapStickyKeyStrategy(AssignmentEntity.StickyKeyStrategy strategy) {
-        if (strategy == null) {
-            return null;
-        }
-        return Assignment.StickyKeyStrategy.valueOf(strategy.name());
-    }
-
-    /**
-     * Map StickyKeyStrategy enum (reverse)
-     */
-    default AssignmentEntity.StickyKeyStrategy mapStickyKeyStrategyToEntity(Assignment.StickyKeyStrategy strategy) {
-        if (strategy == null) {
-            return null;
-        }
-        return AssignmentEntity.StickyKeyStrategy.valueOf(strategy.name());
-    }
 }

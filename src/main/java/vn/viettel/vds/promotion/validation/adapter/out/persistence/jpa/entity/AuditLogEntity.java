@@ -1,54 +1,61 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
-import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.Map;
 
+/**
+ * JPA entity for admin audit logs mapped to admin_audit_logs table.
+ *
+ * Schema columns (from 001-create-validation-rule-engine-schema.yaml:1003-1079):
+ * - id: varchar(36) - Primary key (from BaseEntity)
+ * - entity_type: varchar(100) - Entity type (Rule, Operator, Assignment, etc.)
+ * - entity_id: varchar(100) - Entity identifier
+ * - action: varchar(50) - Action performed
+ * - actor_id: varchar(100) - User who performed action
+ * - details: text - Action details as JSON
+ * - snapshot_before: text - Entity state before action
+ * - snapshot_after: text - Entity state after action
+ * - timestamp: timestamp - When action occurred
+ * - created_at: timestamp (from BaseEntity)
+ * - updated_at: timestamp (from BaseEntity)
+ *
+ * NOTE: Schema does NOT have tenant_id or diff columns
+ */
 @Getter
 @Setter
 @Entity
 @Table(name = "admin_audit_logs", indexes = {
-        @Index(name = "idx_audit_logs_action_time", columnList = "tenant_id, action, at")
+        @Index(name = "idx_audit_logs_entity", columnList = "entity_type, entity_id"),
+        @Index(name = "idx_audit_logs_timestamp", columnList = "timestamp"),
+        @Index(name = "idx_audit_logs_actor", columnList = "actor_id")
 })
 public class AuditLogEntity extends BaseEntity {
 
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
+    @Column(name = "entity_type", nullable = false, length = 100)
+    private String entityType;
 
-    @Column(name = "actor", nullable = false, length = 100)
-    private String actor;
+    @Column(name = "entity_id", nullable = false, length = 100)
+    private String entityId;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "action", nullable = false, length = 50)
-    private AuditAction action;
+    private String action;
 
-    @Embedded
-    private AuditTargetEmbeddable target;
+    @Column(name = "actor_id", nullable = false, length = 100)
+    private String actorId;
 
-    @Convert(converter = MapStringObjectConverter.class)
-    @Column(name = "diff", columnDefinition = "TEXT")
-    private Map<String, Object> diff;
+    @Column(name = "details", columnDefinition = "TEXT")
+    private String details;
 
-    @Column(name = "at", nullable = false)
-    private Instant at;
+    @Column(name = "snapshot_before", columnDefinition = "TEXT")
+    private String snapshotBefore;
 
-    public enum AuditAction {
-        RULE_CREATE, RULE_EDIT, RULE_PUBLISH, OP_CREATE, ASSIGN_UPDATE
-    }
+    @Column(name = "snapshot_after", columnDefinition = "TEXT")
+    private String snapshotAfter;
 
-    @Embeddable
-    @Getter
-    @Setter
-    public static class AuditTargetEmbeddable {
-        @Column(name = "target_type", length = 50)
-        private String type;
-
-        @Column(name = "target_id", length = 100)
-        private String id;
-    }
+    @Column(name = "timestamp", nullable = false)
+    private Instant timestamp;
 }

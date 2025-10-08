@@ -1,14 +1,35 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
-import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * JPA entity for operators mapped to operators table.
+ *
+ * IMPORTANT: This entity does NOT extend BaseEntity because the schema does NOT have
+ * created_by, updated_by, or version columns that BaseEntity provides.
+ *
+ * Schema columns (from 001-create-validation-rule-engine-schema.yaml:256-334):
+ * - id: varchar(36) - Primary key
+ * - tenant_id: varchar(50) - Tenant identifier
+ * - name: varchar(100) - Operator name
+ * - operator_version: int - Operator version
+ * - context: varchar(100) - Operator context (order, customer, time, etc.)
+ * - json_schema: text - JSON Schema for operator parameters
+ * - compiler_id: varchar(100) - Compiler template ID
+ * - status: varchar(20) - Operator status (ACTIVE, DEPRECATED)
+ * - created_at: timestamp - Creation timestamp
+ * - updated_at: timestamp - Last update timestamp
+ *
+ * NOTE: Schema does NOT have created_by, updated_by, or version columns
+ */
 @Getter
 @Setter
 @Entity
@@ -16,7 +37,11 @@ import java.util.Map;
         @Index(name = "idx_operators_name_version", columnList = "tenant_id, name, operator_version", unique = true),
         @Index(name = "idx_operators_context_status", columnList = "tenant_id, context, status")
 })
-public class OperatorEntity extends BaseEntity {
+public class OperatorEntity {
+
+    @Id
+    @Column(name = "id", length = 36)
+    private String id;
 
     @Column(name = "tenant_id", nullable = false, length = 50)
     private String tenantId;
@@ -41,11 +66,20 @@ public class OperatorEntity extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private OperatorStatus status;
 
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+        }
+    }
 
     public enum OperatorStatus {
         ACTIVE, DEPRECATED

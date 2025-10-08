@@ -468,37 +468,30 @@ public class SettingValidationRuleCommandHandler {
 
     /**
      * Convert domain Assignment to JPA AssignmentEntity
+     * Maps domain Subject (type/key) to entity fields (entityType/entityId)
      */
     private AssignmentEntity toAssignmentEntity(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment) {
         AssignmentEntity entity = new AssignmentEntity();
         entity.setId(assignment.getId());
-        entity.setTenantId(assignment.getTenantId());
         entity.setRuleId(assignment.getRuleId());
-        entity.setRuleVersionPinned(assignment.getRuleVersionPinned());
 
-        // Convert Subject
+        // Convert Subject to flat fields (entityType/entityId)
         if (assignment.getSubject() != null) {
-            AssignmentEntity.SubjectEmbeddable subject = new AssignmentEntity.SubjectEmbeddable();
-            subject.setType(assignment.getSubject().getType());
-            subject.setKey(assignment.getSubject().getKey());
-            entity.setSubject(subject);
+            entity.setEntityType(assignment.getSubject().getType());
+            entity.setEntityId(assignment.getSubject().getKey());
         }
 
-        entity.setAssignmentVersion(assignment.getAssignmentVersion());
         entity.setActive(assignment.getActive());
-        entity.setValidFrom(assignment.getValidFrom());
-        entity.setValidTo(assignment.getValidTo());
-        entity.setTrafficPercent(assignment.getTrafficPercent());
-
-        // Convert StickyKeyStrategy enum
-        if (assignment.getStickyKeyStrategy() != null) {
-            entity.setStickyKeyStrategy(
-                AssignmentEntity.StickyKeyStrategy.valueOf(assignment.getStickyKeyStrategy().name())
-            );
-        }
-
         entity.setCreatedAt(assignment.getCreatedAt());
         entity.setUpdatedAt(assignment.getUpdatedAt());
+
+        // Note: Fields removed from entity schema:
+        // - tenantId (removed - multi-tenancy handled at application level)
+        // - ruleVersionPinned (removed from schema)
+        // - assignmentVersion (removed from schema)
+        // - validFrom/validTo (removed from schema)
+        // - trafficPercent (removed from schema)
+        // - stickyKeyStrategy (removed from schema)
 
         return entity;
     }

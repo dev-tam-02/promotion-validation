@@ -42,9 +42,8 @@ public class ValidationEngineIntegrationService {
         logger.info("Starting full rule synchronization with validation-engine");
 
         try {
-            // Get all active assignments (using a generic tenant for now)
-            java.time.Instant now = java.time.Instant.now();
-            List<AssignmentEntity> activeAssignments = assignmentRepository.findCurrentActiveAssignments("default", now);
+            // Get all active assignments (validFrom/validTo removed from schema)
+            List<AssignmentEntity> activeAssignments = assignmentRepository.findByActive(true);
 
             int successCount = 0;
             int failureCount = 0;
@@ -190,8 +189,8 @@ public class ValidationEngineIntegrationService {
      */
     public SynchronizationStatus getSynchronizationStatus() {
         try {
-            // Count active assignments (using default tenant)
-            long activeAssignments = assignmentRepository.countByTenantIdAndActive("default", true);
+            // Count active assignments (tenantId removed from schema)
+            long activeAssignments = assignmentRepository.countByActive(true);
 
             // Check validation-engine health
             boolean engineHealthy = isValidationEngineHealthy();

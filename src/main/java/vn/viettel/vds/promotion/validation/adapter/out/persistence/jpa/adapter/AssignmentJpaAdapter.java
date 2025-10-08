@@ -42,33 +42,34 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
 
     @Override
     public Optional<Assignment> findByTenantIdAndSubjectTypeAndSubjectKey(String tenantId, String subjectType, String subjectKey) {
-        List<AssignmentEntity> entities = repository.findByTenantIdAndSubject(tenantId, subjectType, subjectKey);
+        // Note: tenantId removed from schema, using entityType/entityId for subject
+        List<AssignmentEntity> entities = repository.findByEntityTypeAndEntityId(subjectType, subjectKey);
         return entities.stream().findFirst().map(mapper::toDomain);
     }
 
     @Override
     public List<Assignment> findActiveByTenantIdAndSubject(String tenantId, String subjectType, String subjectKey) {
-        List<AssignmentEntity> entities = repository.findActiveAssignmentsBySubject(tenantId, subjectType, subjectKey);
+        // Note: tenantId removed from schema, using entityType/entityId and active flag
+        List<AssignmentEntity> entities = repository.findByEntityTypeAndEntityIdAndActive(subjectType, subjectKey, true);
         return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
     public List<Assignment> findByTenantIdAndRuleId(String tenantId, String ruleId) {
-        List<AssignmentEntity> entities = repository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        // Note: tenantId removed, only filtering by ruleId
+        List<AssignmentEntity> entities = repository.findByRuleIdOrderByCreatedAtDesc(ruleId);
         return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
     public Page<Assignment> findWithFilters(String tenantId, String subjectType, String subjectKeyPattern,
                                            Boolean active, String ruleId, Pageable pageable) {
-        // Simplified filtering - can be enhanced with Specifications
+        // Simplified filtering - tenantId removed from schema
         List<AssignmentEntity> all = repository.findAll();
         List<AssignmentEntity> filtered = all.stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
-                .filter(e -> subjectType == null ||
-                        (e.getSubject() != null && e.getSubject().getType().equals(subjectType)))
+                .filter(e -> subjectType == null || subjectType.equals(e.getEntityType()))
                 .filter(e -> subjectKeyPattern == null ||
-                        (e.getSubject() != null && e.getSubject().getKey().contains(subjectKeyPattern)))
+                        (e.getEntityId() != null && e.getEntityId().contains(subjectKeyPattern)))
                 .filter(e -> active == null || e.getActive().equals(active))
                 .filter(e -> ruleId == null || e.getRuleId().equals(ruleId))
                 .collect(Collectors.toList());
@@ -77,69 +78,71 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
 
     @Override
     public List<Assignment> findActiveAtTime(String tenantId, Instant time) {
-        List<AssignmentEntity> entities = repository.findCurrentActiveAssignments(tenantId, time);
+        // Note: validFrom/validTo removed from schema, only checking active flag
+        List<AssignmentEntity> entities = repository.findByActive(true);
         return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
     public List<Assignment> findOverlappingAssignments(String tenantId, String subjectType, String subjectKey,
                                                        Instant validFrom, Instant validTo) {
-        // JPA repo doesn't have this method - implement with filters
-        List<AssignmentEntity> active = repository.findActiveAssignmentsBySubject(tenantId, subjectType, subjectKey);
+        // Note: validFrom/validTo removed from schema, returning active assignments by subject
+        List<AssignmentEntity> active = repository.findByEntityTypeAndEntityIdAndActive(subjectType, subjectKey, true);
         return active.stream()
-                .filter(e -> e.getValidFrom() == null || e.getValidFrom().isBefore(validTo))
-                .filter(e -> e.getValidTo() == null || e.getValidTo().isAfter(validFrom))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public Page<Assignment> findByTenantIdAndRuleIdPaged(String tenantId, String ruleId, Pageable pageable) {
-        List<AssignmentEntity> entities = repository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        // Note: tenantId removed from schema
+        List<AssignmentEntity> entities = repository.findByRuleIdOrderByCreatedAtDesc(ruleId);
         return convertToPage(entities, pageable);
     }
 
     @Override
     public boolean existsActiveAssignmentForSubject(String tenantId, String subjectType, String subjectKey) {
-        return !repository.findActiveAssignmentsBySubject(tenantId, subjectType, subjectKey).isEmpty();
+        // Note: tenantId removed from schema
+        return !repository.findByEntityTypeAndEntityIdAndActive(subjectType, subjectKey, true).isEmpty();
     }
 
     @Override
     public long countByTenantIdAndActive(String tenantId, Boolean active) {
-        return repository.countByTenantIdAndActive(tenantId, active);
+        // Note: tenantId removed from schema
+        return repository.countByActive(active);
     }
 
     @Override
     public Optional<Assignment> findLatestVersionByRuleId(String tenantId, String ruleId) {
-        List<AssignmentEntity> entities = repository.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        // Note: tenantId and version removed from schema, using createdAt for ordering
+        List<AssignmentEntity> entities = repository.findByRuleIdOrderByCreatedAtDesc(ruleId);
         return entities.stream().findFirst().map(mapper::toDomain);
     }
 
     @Override
     public boolean existsBySubjectTypeAndSubjectKey(String subjectType, String subjectKey) {
-        // Need to implement custom query or search all
+        // Using new entityType/entityId fields
         return repository.findAll().stream()
-                .anyMatch(e -> e.getSubject() != null &&
-                        e.getSubject().getType().equals(subjectType) &&
-                        e.getSubject().getKey().equals(subjectKey));
+                .anyMatch(e -> subjectType.equals(e.getEntityType()) &&
+                        subjectKey.equals(e.getEntityId()));
     }
 
     @Override
     public Optional<Assignment> findBySubjectTypeAndSubjectKey(String subjectType, String subjectKey) {
+        // Using new entityType/entityId fields
         return repository.findAll().stream()
-                .filter(e -> e.getSubject() != null &&
-                        e.getSubject().getType().equals(subjectType) &&
-                        e.getSubject().getKey().equals(subjectKey))
+                .filter(e -> subjectType.equals(e.getEntityType()) &&
+                        subjectKey.equals(e.getEntityId()))
                 .findFirst()
                 .map(mapper::toDomain);
     }
 
     @Override
     public List<Assignment> findAllBySubjectTypeAndSubjectKey(String subjectType, String subjectKey) {
+        // Using new entityType/entityId fields
         return repository.findAll().stream()
-                .filter(e -> e.getSubject() != null &&
-                        e.getSubject().getType().equals(subjectType) &&
-                        e.getSubject().getKey().equals(subjectKey))
+                .filter(e -> subjectType.equals(e.getEntityType()) &&
+                        subjectKey.equals(e.getEntityId()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
