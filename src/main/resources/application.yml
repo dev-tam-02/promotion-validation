@@ -70,6 +70,9 @@ management:
       base-path: /actuator
       exposure:
         include: health,info,metrics,prometheus
+  health:
+    mongo:
+      enabled: false  # Disable MongoDB health check - using JPA/MariaDB only
   tracing:
     sampling:
       probability: 1.0

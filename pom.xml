@@ -61,6 +61,25 @@
         <dependency>
             <groupId>com.promix.platform</groupId>
             <artifactId>promix-outbox-jpa-spring-boot-starter</artifactId>
+            <exclusions>
+                <!-- Exclude MongoDB dependencies - validation uses JPA/MariaDB only -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-data-mongodb</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-sync</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>mongodb-driver-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mongodb</groupId>
+                    <artifactId>bson</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.promix.platform</groupId>
