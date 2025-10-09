@@ -128,7 +128,8 @@ public interface RuleEntityMapper {
             return null;
         }
         try {
-            return Rule.RuleState.valueOf(state);
+            // Handle both lowercase and uppercase states from database
+            return Rule.RuleState.valueOf(state.toUpperCase());
         } catch (IllegalArgumentException e) {
             return Rule.RuleState.DRAFT;
         }
@@ -145,7 +146,8 @@ public interface RuleEntityMapper {
             return null;
         }
         try {
-            return Rule.LogicType.valueOf(logic);
+            // Handle both lowercase and uppercase logic types from database
+            return Rule.LogicType.valueOf(logic.toUpperCase());
         } catch (IllegalArgumentException e) {
             return Rule.LogicType.ALL;
         }

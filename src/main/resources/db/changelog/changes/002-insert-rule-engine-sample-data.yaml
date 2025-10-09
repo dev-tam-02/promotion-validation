@@ -328,7 +328,7 @@ databaseChangeLog:
                   value: Weekend VIP ≥500k, HCM express
               - column:
                   name: state
-                  value: published
+                  value: DRAFT
               - column:
                   name: rule_version
                   valueNumeric: 1
@@ -338,12 +338,6 @@ databaseChangeLog:
               - column:
                   name: dsl
                   value: '{}'
-              - column:
-                  name: published_at
-                  valueDate: 2025-01-01T10:00:00
-              - column:
-                  name: published_by
-                  value: admin
               - column:
                   name: created_by
                   value: admin
@@ -365,7 +359,7 @@ databaseChangeLog:
                   value: Business Hours Promotion
               - column:
                   name: state
-                  value: draft
+                  value: DRAFT
               - column:
                   name: rule_version
                   valueNumeric: 1

@@ -7,10 +7,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleEntityMapper;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleNodeEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleNodeRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,10 +26,15 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     private final RuleJpaRepository repository;
     private final RuleEntityMapper mapper;
+    private final RuleNodeRepository nodeRepository;
+    private final RuleNodeEntityMapper nodeMapper;
 
-    public RuleJpaAdapter(RuleJpaRepository repository, RuleEntityMapper mapper) {
+    public RuleJpaAdapter(RuleJpaRepository repository, RuleEntityMapper mapper,
+                          RuleNodeRepository nodeRepository, RuleNodeEntityMapper nodeMapper) {
         this.repository = repository;
         this.mapper = mapper;
+        this.nodeRepository = nodeRepository;
+        this.nodeMapper = nodeMapper;
     }
 
     @Override
@@ -37,12 +46,30 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public Optional<Rule> findById(String id) {
-        return repository.findById(id).map(mapper::toDomain);
+        return repository.findById(id).map(entity -> {
+            Rule rule = mapper.toDomain(entity);
+            // Load nodes from rule_nodes table
+            List<RuleNodeEntity> nodeEntities = nodeRepository.findByValidationRuleIdOrderByOrder(id);
+            if (nodeEntities != null && !nodeEntities.isEmpty()) {
+                List<RuleNode> nodes = nodeMapper.toDomainList(nodeEntities);
+                rule.setNodes(nodes);
+            }
+            return rule;
+        });
     }
 
     @Override
     public Optional<Rule> findByCode(String code) {
-        return repository.findByCode(code).map(mapper::toDomain);
+        return repository.findByCode(code).map(entity -> {
+            Rule rule = mapper.toDomain(entity);
+            // Load nodes from rule_nodes table
+            List<RuleNodeEntity> nodeEntities = nodeRepository.findByValidationRuleIdOrderByOrder(rule.getId());
+            if (nodeEntities != null && !nodeEntities.isEmpty()) {
+                List<RuleNode> nodes = nodeMapper.toDomainList(nodeEntities);
+                rule.setNodes(nodes);
+            }
+            return rule;
+        });
     }
 
     @Override
