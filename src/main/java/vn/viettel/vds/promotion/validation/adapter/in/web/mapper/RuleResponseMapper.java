@@ -51,7 +51,6 @@ public class RuleResponseMapper {
 
         RuleResponse response = new RuleResponse();
         response.setRuleId(rule.getId());
-        response.setTenantId(rule.getTenantId());
         response.setCode(rule.getCode());
         response.setName(rule.getName());
         response.setState(ruleStateToString(rule.getState()));

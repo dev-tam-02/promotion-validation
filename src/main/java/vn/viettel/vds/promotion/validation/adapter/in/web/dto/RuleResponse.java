@@ -14,10 +14,6 @@ public class RuleResponse {
     @JsonProperty("ruleId")
     private String ruleId;
 
-    @Schema(description = "Tenant ID", example = "t1")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Rule code", example = "WEEKEND_VIP_500K")
     @JsonProperty("code")
     private String code;
@@ -73,14 +69,6 @@ public class RuleResponse {
 
     public void setRuleId(String ruleId) {
         this.ruleId = ruleId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     public String getCode() {

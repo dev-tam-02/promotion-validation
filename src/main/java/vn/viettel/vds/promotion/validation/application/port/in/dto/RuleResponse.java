@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 public class RuleResponse {
 
     private final String id;
-    private final String tenantId;
     private final String code;
     private final String name;
     private final String description;
@@ -31,7 +30,6 @@ public class RuleResponse {
 
     private RuleResponse(Builder builder) {
         this.id = builder.id;
-        this.tenantId = builder.tenantId;
         this.code = builder.code;
         this.name = builder.name;
         this.description = builder.description;
@@ -50,7 +48,6 @@ public class RuleResponse {
     public static RuleResponse from(Rule rule) {
         return builder()
                 .id(rule.getId())
-                .tenantId(rule.getTenantId())
                 .code(rule.getCode())
                 .name(rule.getName())
                 .description(rule.getDescription())
@@ -77,10 +74,6 @@ public class RuleResponse {
     // Getters
     public String getId() {
         return id;
-    }
-
-    public String getTenantId() {
-        return tenantId;
     }
 
     public String getCode() {
@@ -137,7 +130,6 @@ public class RuleResponse {
 
     public static class Builder {
         private String id;
-        private String tenantId;
         private String code;
         private String name;
         private String description;
@@ -154,11 +146,6 @@ public class RuleResponse {
 
         public Builder id(String id) {
             this.id = id;
-            return this;
-        }
-
-        public Builder tenantId(String tenantId) {
-            this.tenantId = tenantId;
             return this;
         }
 
