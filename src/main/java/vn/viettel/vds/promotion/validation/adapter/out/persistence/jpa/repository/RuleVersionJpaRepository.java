@@ -12,46 +12,37 @@ import java.util.Optional;
 @Repository
 public interface RuleVersionJpaRepository extends JpaRepository<RuleVersionEntity, String> {
 
-    Optional<RuleVersionEntity> findByTenantIdAndRuleIdAndRuleVersion(
-            String tenantId,
+    Optional<RuleVersionEntity> findByRuleIdAndRuleVersion(
             String ruleId,
             Integer ruleVersion
     );
 
-    Optional<RuleVersionEntity> findByTenantIdAndCodeAndRuleVersion(
-            String tenantId,
+    Optional<RuleVersionEntity> findByCodeAndRuleVersion(
             String code,
             Integer ruleVersion
     );
 
-    List<RuleVersionEntity> findByTenantIdAndRuleIdOrderByRuleVersionDesc(
-            String tenantId,
+    List<RuleVersionEntity> findByRuleIdOrderByRuleVersionDesc(
             String ruleId
     );
 
-    @Query("SELECT rv FROM RuleVersionEntity rv WHERE rv.tenantId = :tenantId " +
-            "AND rv.ruleId = :ruleId ORDER BY rv.ruleVersion DESC")
+    @Query("SELECT rv FROM RuleVersionEntity rv WHERE rv.ruleId = :ruleId ORDER BY rv.ruleVersion DESC")
     List<RuleVersionEntity> findAllVersionsByRule(
-            @Param("tenantId") String tenantId,
             @Param("ruleId") String ruleId
     );
 
-    @Query("SELECT rv FROM RuleVersionEntity rv WHERE rv.tenantId = :tenantId " +
-            "AND rv.compile.bundleHash = :bundleHash")
+    @Query("SELECT rv FROM RuleVersionEntity rv WHERE rv.compile.bundleHash = :bundleHash")
     Optional<RuleVersionEntity> findByBundleHash(
-            @Param("tenantId") String tenantId,
             @Param("bundleHash") String bundleHash
     );
 
     @Query("SELECT COALESCE(MAX(rv.ruleVersion), 0) FROM RuleVersionEntity rv " +
-            "WHERE rv.tenantId = :tenantId AND rv.ruleId = :ruleId")
+            "WHERE rv.ruleId = :ruleId")
     Integer findMaxVersionByRuleId(
-            @Param("tenantId") String tenantId,
             @Param("ruleId") String ruleId
     );
 
-    boolean existsByTenantIdAndRuleIdAndRuleVersion(
-            String tenantId,
+    boolean existsByRuleIdAndRuleVersion(
             String ruleId,
             Integer ruleVersion
     );

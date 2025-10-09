@@ -91,13 +91,6 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
-    public List<Rule> findByState(Rule.RuleState state) {
-        return repository.findByState(state.name()).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public List<Rule> findByType(String type) {
         // Note: type field no longer exists in validation_rules table
         // This method will return empty list - consider removing from port interface

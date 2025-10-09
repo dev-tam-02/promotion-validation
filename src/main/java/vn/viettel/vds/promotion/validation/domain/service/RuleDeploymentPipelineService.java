@@ -119,7 +119,7 @@ public class RuleDeploymentPipelineService {
         logger.debug("Checking environment health: tenantId={}", tenantId);
 
         try {
-            List<Rule> activeRules = rulePersistencePort.findByTenantIdAndState(tenantId, Rule.RuleState.PUBLISHED, Pageable.unpaged()).getContent();
+            List<Rule> activeRules = rulePersistencePort.findByState(Rule.RuleState.PUBLISHED, Pageable.unpaged()).getContent();
 
             int totalRules = activeRules.size();
             int deployedRules = 0;
@@ -164,7 +164,7 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing validation stage: ruleId={}", ruleId);
 
         try {
-            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Validate rule structure
@@ -189,7 +189,7 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing compilation stage: ruleId={}", ruleId);
 
         try {
-            RulePublishingService.RulePublishResult result = rulePublishingService.publishRule(tenantId, ruleId);
+            RulePublishingService.RulePublishResult result = rulePublishingService.publishRule(ruleId);
 
             if (result.isSuccess()) {
                 return DeploymentStage.success("COMPILATION",
@@ -245,7 +245,7 @@ public class RuleDeploymentPipelineService {
             // Direct deployment is already handled by publishing
             // Just verify the deployment
             RulePublishingService.RuleDeploymentStatus status =
-                    rulePublishingService.getDeploymentStatus(tenantId, ruleId);
+                    rulePublishingService.getDeploymentStatus(ruleId);
 
             if (status.isDeployed()) {
                 return DeploymentStage.success("DIRECT_DEPLOYMENT", "Rule deployed successfully");
@@ -262,7 +262,7 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing health check stage: ruleId={}", ruleId);
 
         try {
-            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Note: Health check would require bundleHash field in Rule entity

@@ -41,74 +41,73 @@ public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
     }
 
     @Override
-    public Optional<RuleVersion> findByTenantIdAndRuleIdAndVersion(String tenantId, String ruleId, Integer version) {
-        return repository.findByTenantIdAndRuleIdAndRuleVersion(tenantId, ruleId, version)
+    public Optional<RuleVersion> findByRuleIdAndVersion(String ruleId, Integer version) {
+        return repository.findByRuleIdAndRuleVersion(ruleId, version)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public List<RuleVersion> findByTenantIdAndRuleIdOrderByVersionDesc(String tenantId, String ruleId) {
-        return repository.findByTenantIdAndRuleIdOrderByRuleVersionDesc(tenantId, ruleId).stream()
+    public List<RuleVersion> findByRuleIdOrderByVersionDesc(String ruleId) {
+        return repository.findByRuleIdOrderByRuleVersionDesc(ruleId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<RuleVersion> findFirstByTenantIdAndRuleIdOrderByVersionDesc(String tenantId, String ruleId) {
-        List<RuleVersionEntity> versions = repository.findByTenantIdAndRuleIdOrderByRuleVersionDesc(tenantId, ruleId);
+    public Optional<RuleVersion> findFirstByRuleIdOrderByVersionDesc(String ruleId) {
+        List<RuleVersionEntity> versions = repository.findByRuleIdOrderByRuleVersionDesc(ruleId);
         return versions.stream().findFirst().map(mapper::toDomain);
     }
 
     @Override
-    public Page<RuleVersion> findByTenantIdAndRuleId(String tenantId, String ruleId, Pageable pageable) {
+    public Page<RuleVersion> findByRuleId(String ruleId, Pageable pageable) {
         // Manual pagination
-        List<RuleVersionEntity> all = repository.findByTenantIdAndRuleIdOrderByRuleVersionDesc(tenantId, ruleId);
+        List<RuleVersionEntity> all = repository.findByRuleIdOrderByRuleVersionDesc(ruleId);
         return convertToPage(all, pageable);
     }
 
     @Override
-    public Optional<RuleVersion> findByTenantIdAndBundleHash(String tenantId, String bundleHash) {
-        return repository.findByBundleHash(tenantId, bundleHash).map(mapper::toDomain);
+    public Optional<RuleVersion> findByBundleHash(String bundleHash) {
+        return repository.findByBundleHash(bundleHash).map(mapper::toDomain);
     }
 
     @Override
-    public List<RuleVersion> findByTenantIdAndCodeOrderByVersionDesc(String tenantId, String code) {
+    public List<RuleVersion> findByCodeOrderByVersionDesc(String code) {
         // JPA repo doesn't have this exact method - filter manually
         return repository.findAll().stream()
-                .filter(e -> e.getTenantId().equals(tenantId) && e.getCode().equals(code))
+                .filter(e -> e.getCode().equals(code))
                 .sorted((e1, e2) -> e2.getRuleVersion().compareTo(e1.getRuleVersion()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<RuleVersion> findTopVersionByTenantIdAndRuleId(String tenantId, String ruleId) {
-        return findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+    public Optional<RuleVersion> findTopVersionByRuleId(String ruleId) {
+        return findFirstByRuleIdOrderByVersionDesc(ruleId);
     }
 
     @Override
-    public List<RuleVersion> findByTenantIdAndOperatorsFingerprint(String tenantId, String operatorsFingerprint) {
+    public List<RuleVersion> findByOperatorsFingerprint(String operatorsFingerprint) {
         // JPA doesn't have this query - filter manually
         return repository.findAll().stream()
-                .filter(e -> e.getTenantId().equals(tenantId) &&
-                        operatorsFingerprint.equals(e.getOperatorsFingerprint()))
+                .filter(e -> operatorsFingerprint.equals(e.getOperatorsFingerprint()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public long countByTenantIdAndRuleId(String tenantId, String ruleId) {
-        return repository.findByTenantIdAndRuleIdOrderByRuleVersionDesc(tenantId, ruleId).size();
+    public long countByRuleId(String ruleId) {
+        return repository.findByRuleIdOrderByRuleVersionDesc(ruleId).size();
     }
 
     @Override
-    public Integer findMaxVersionByRuleId(String tenantId, String ruleId) {
-        return repository.findMaxVersionByRuleId(tenantId, ruleId);
+    public Integer findMaxVersionByRuleId(String ruleId) {
+        return repository.findMaxVersionByRuleId(ruleId);
     }
 
     @Override
-    public boolean existsByTenantIdAndRuleIdAndVersion(String tenantId, String ruleId, Integer version) {
-        return repository.existsByTenantIdAndRuleIdAndRuleVersion(tenantId, ruleId, version);
+    public boolean existsByRuleIdAndVersion(String ruleId, Integer version) {
+        return repository.existsByRuleIdAndRuleVersion(ruleId, version);
     }
 
     @Override

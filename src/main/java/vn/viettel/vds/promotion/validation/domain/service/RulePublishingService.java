@@ -154,7 +154,7 @@ public class RulePublishingService {
             Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
-            if (!Rule.RuleState.PUBLISHED.name().equals(rule.getState())) {
+            if (Rule.RuleState.PUBLISHED != rule.getState()) {
                 return new RuleDeploymentStatus(ruleId, "NOT_DEPLOYED", false, null);
             }
 

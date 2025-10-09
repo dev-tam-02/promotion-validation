@@ -129,18 +129,16 @@ mvn clean compile -DskipTests
 
 ## 🔧 Available Commands
 
-### Đã có sẵn:
-- ✅ `/fix-task-01` - Fix Persistence Ports
-- ✅ `/fix-task-03` - Fix Domain Events
-- ✅ `/fix-task-04` - Fix DTOs
-
-### Cần tạo thêm:
-- ⬜ `/fix-task-02` - Fix RuleJpaAdapter
-- ⬜ `/fix-task-05` - Fix DeploymentService
-- ⬜ `/fix-task-06` - Fix CommandHandler
-- ⬜ `/fix-task-07` - Fix Repositories
-- ⬜ `/fix-task-08` - Fix PublishService
-- ⬜ `/fix-task-09` - Final Verification
+### Available Commands:
+- ✅ `/fix-task-01` - Fix Persistence Ports (20 min) - **DONE**
+- ✅ `/fix-task-02` - Fix RuleJpaAdapter (25 min) - needs task-01
+- ✅ `/fix-task-03` - Fix Domain Events (20 min) - **DONE**
+- ✅ `/fix-task-04` - Fix DTOs (15 min) - **DONE**
+- ✅ `/fix-task-05` - Fix DeploymentService (20 min) - 10 errors
+- ✅ `/fix-task-06` - Fix CommandHandler (15 min) - 8 errors
+- ✅ `/fix-task-07` - Fix JPA Adapters (30 min) - 50 errors total
+- ✅ `/fix-task-08` - Fix Version Services (25 min) - 34 errors total
+- ✅ `/fix-task-09` - Final Verification (15 min) - needs ALL tasks
 
 ## 💡 Tips
 

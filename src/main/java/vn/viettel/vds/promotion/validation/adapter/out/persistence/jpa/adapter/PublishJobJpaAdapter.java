@@ -42,24 +42,24 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
     }
 
     @Override
-    public Optional<PublishJob> findByTenantIdAndRuleIdAndTargetVersion(String tenantId, String ruleId, Integer targetVersion) {
-        return repository.findByTenantIdAndRuleIdAndTargetVersion(tenantId, ruleId, targetVersion)
+    public Optional<PublishJob> findByRuleIdAndTargetVersion(String ruleId, Integer targetVersion) {
+        return repository.findByRuleIdAndTargetVersion(ruleId, targetVersion)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public List<PublishJob> findByTenantIdAndRuleIdOrderByTargetVersionDesc(String tenantId, String ruleId) {
-        return repository.findByTenantIdAndRuleIdOrderByTargetVersionDesc(tenantId, ruleId).stream()
+    public List<PublishJob> findByRuleIdOrderByTargetVersionDesc(String ruleId) {
+        return repository.findByRuleIdOrderByTargetVersionDesc(ruleId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Page<PublishJob> findByTenantIdAndStatusOrderByRequestedAtDesc(String tenantId, PublishJob.JobStatus status, Pageable pageable) {
+    public Page<PublishJob> findByStatusOrderByRequestedAtDesc(PublishJob.JobStatus status, Pageable pageable) {
         // Map enum
         PublishJobEntity.JobStatus entityStatus = PublishJobEntity.JobStatus.valueOf(status.name());
 
-        List<PublishJobEntity> all = repository.findByTenantIdAndStatusOrderByRequestedAtDesc(tenantId, entityStatus);
+        List<PublishJobEntity> all = repository.findByStatusOrderByRequestedAtDesc(entityStatus);
         return convertToPage(all, pageable);
     }
 
@@ -76,19 +76,18 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
     }
 
     @Override
-    public Optional<PublishJob> findFirstByTenantIdAndRuleIdOrderByRequestedAtDesc(String tenantId, String ruleId) {
+    public Optional<PublishJob> findFirstByRuleIdOrderByRequestedAtDesc(String ruleId) {
         // Manual filtering and sorting
-        return repository.findByTenantIdAndRuleIdOrderByTargetVersionDesc(tenantId, ruleId).stream()
+        return repository.findByRuleIdOrderByTargetVersionDesc(ruleId).stream()
                 .max((e1, e2) -> e1.getRequestedAt().compareTo(e2.getRequestedAt()))
                 .map(mapper::toDomain);
     }
 
     @Override
-    public Page<PublishJob> findWithFilters(String tenantId, PublishJob.JobStatus status, Instant from, Instant to, Pageable pageable) {
+    public Page<PublishJob> findWithFilters(PublishJob.JobStatus status, Instant from, Instant to, Pageable pageable) {
         // Manual filtering
         List<PublishJobEntity> all = repository.findAll();
         List<PublishJobEntity> filtered = all.stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
                 .filter(e -> status == null ||
                         (e.getStatus() != null && e.getStatus().name().equals(status.name())))
                 .filter(e -> e.getRequestedAt() == null ||
@@ -98,10 +97,10 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
     }
 
     @Override
-    public long countByTenantIdAndStatus(String tenantId, PublishJob.JobStatus status) {
+    public long countByStatus(PublishJob.JobStatus status) {
         // JPA doesn't have this exact method
         PublishJobEntity.JobStatus entityStatus = PublishJobEntity.JobStatus.valueOf(status.name());
-        return repository.findByTenantIdAndStatusOrderByRequestedAtDesc(tenantId, entityStatus).size();
+        return repository.findByStatusOrderByRequestedAtDesc(entityStatus).size();
     }
 
     @Override
@@ -117,18 +116,17 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
     }
 
     @Override
-    public Page<PublishJob> findByTenantIdOrderByRequestedAtDesc(String tenantId, Pageable pageable) {
+    public Page<PublishJob> findAllOrderByRequestedAtDesc(Pageable pageable) {
         // Manual filtering and sorting
         List<PublishJobEntity> all = repository.findAll().stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
                 .sorted((e1, e2) -> e2.getRequestedAt().compareTo(e1.getRequestedAt()))
                 .collect(Collectors.toList());
         return convertToPage(all, pageable);
     }
 
     @Override
-    public boolean existsByTenantIdAndRuleIdAndTargetVersion(String tenantId, String ruleId, Integer targetVersion) {
-        return repository.findByTenantIdAndRuleIdAndTargetVersion(tenantId, ruleId, targetVersion).isPresent();
+    public boolean existsByRuleIdAndTargetVersion(String ruleId, Integer targetVersion) {
+        return repository.findByRuleIdAndTargetVersion(ruleId, targetVersion).isPresent();
     }
 
     @Override

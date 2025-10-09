@@ -12,31 +12,25 @@ import java.util.Optional;
 @Repository
 public interface PublishJobJpaRepository extends JpaRepository<PublishJobEntity, String> {
 
-    Optional<PublishJobEntity> findByTenantIdAndRuleIdAndTargetVersion(
-            String tenantId,
+    Optional<PublishJobEntity> findByRuleIdAndTargetVersion(
             String ruleId,
             Integer targetVersion
     );
 
-    List<PublishJobEntity> findByTenantIdAndStatusOrderByRequestedAtDesc(
-            String tenantId,
+    List<PublishJobEntity> findByStatusOrderByRequestedAtDesc(
             PublishJobEntity.JobStatus status
     );
 
-    List<PublishJobEntity> findByTenantIdAndRuleIdOrderByTargetVersionDesc(
-            String tenantId,
+    List<PublishJobEntity> findByRuleIdOrderByTargetVersionDesc(
             String ruleId
     );
 
-    @Query("SELECT p FROM PublishJobEntity p WHERE p.tenantId = :tenantId " +
-            "AND p.status = :status ORDER BY p.requestedAt ASC")
+    @Query("SELECT p FROM PublishJobEntity p WHERE p.status = :status ORDER BY p.requestedAt ASC")
     List<PublishJobEntity> findPendingJobs(
-            @Param("tenantId") String tenantId,
             @Param("status") PublishJobEntity.JobStatus status
     );
 
-    long countByTenantIdAndRuleIdAndStatus(
-            String tenantId,
+    long countByRuleIdAndStatus(
             String ruleId,
             PublishJobEntity.JobStatus status
     );
