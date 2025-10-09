@@ -75,6 +75,13 @@ databaseChangeLog:
                   name: updated_by
                   type: varchar(100)
                   remarks: Last updater
+              - column:
+                  name: version
+                  type: bigint
+                  remarks: Optimistic locking version
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
 
         - createIndex:
             indexName: idx_validation_rules_state_version
