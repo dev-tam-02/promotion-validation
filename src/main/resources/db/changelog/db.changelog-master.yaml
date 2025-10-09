@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/002-insert-rule-engine-sample-data.yaml
   - include:
       file: db/changelog/changes/003-create-outbox-events-table.yaml
+  - include:
+      file: db/changelog/changes/004-add-base-entity-columns.yaml
