@@ -29,10 +29,7 @@ public class RuleVersionService {
      * Get rule version by rule ID and version number
      */
     public RuleVersion getRuleVersion(String ruleId, Integer version) {
-        // Extract tenant ID from rule ID (assuming format: rul_tenant_code)
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-
-        return ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version)
+        return ruleVersionPersistencePort.findByRuleIdAndVersion(ruleId, version)
                 .orElseThrow(() -> new ResourceNotFoundException());
     }
 
@@ -40,46 +37,42 @@ public class RuleVersionService {
      * Get latest version of a rule
      */
     public Optional<RuleVersion> getLatestRuleVersion(String ruleId) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        return ruleVersionPersistencePort.findFirstByRuleIdOrderByVersionDesc(ruleId);
     }
 
     /**
      * Get all versions of a rule
      */
     public List<RuleVersion> getAllRuleVersions(String ruleId) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionPersistencePort.findByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        return ruleVersionPersistencePort.findByRuleIdOrderByVersionDesc(ruleId);
     }
 
     /**
      * Get rule versions with pagination
      */
     public Page<RuleVersion> getRuleVersions(String ruleId, Pageable pageable) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionPersistencePort.findByTenantIdAndRuleId(tenantId, ruleId, pageable);
+        return ruleVersionPersistencePort.findByRuleId(ruleId, pageable);
     }
 
     /**
      * Get rule version by bundle hash
      */
-    public Optional<RuleVersion> getRuleVersionByBundleHash(String tenantId, String bundleHash) {
-        return ruleVersionPersistencePort.findByTenantIdAndBundleHash(tenantId, bundleHash);
+    public Optional<RuleVersion> getRuleVersionByBundleHash(String bundleHash) {
+        return ruleVersionPersistencePort.findByBundleHash(bundleHash);
     }
 
     /**
-     * Get rule versions by code and tenant
+     * Get rule versions by code
      */
-    public List<RuleVersion> getRuleVersionsByCode(String tenantId, String code) {
-        return ruleVersionPersistencePort.findByTenantIdAndCodeOrderByVersionDesc(tenantId, code);
+    public List<RuleVersion> getRuleVersionsByCode(String code) {
+        return ruleVersionPersistencePort.findByCodeOrderByVersionDesc(code);
     }
 
     /**
      * Get next version number for a rule
      */
     public Integer getNextVersionNumber(String ruleId) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        Optional<RuleVersion> latest = ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId);
+        Optional<RuleVersion> latest = ruleVersionPersistencePort.findFirstByRuleIdOrderByVersionDesc(ruleId);
         return latest.map(rv -> rv.getRuleVersion() != null ? rv.getRuleVersion() + 1 : 1).orElse(1);
     }
 
@@ -87,23 +80,21 @@ public class RuleVersionService {
      * Check if a specific version exists
      */
     public boolean versionExists(String ruleId, Integer version) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionPersistencePort.findByTenantIdAndRuleIdAndVersion(tenantId, ruleId, version).isPresent();
+        return ruleVersionPersistencePort.findByRuleIdAndVersion(ruleId, version).isPresent();
     }
 
     /**
      * Count versions for a rule
      */
     public long countVersions(String ruleId) {
-        String tenantId = extractTenantIdFromRuleId(ruleId);
-        return ruleVersionPersistencePort.countByTenantIdAndRuleId(tenantId, ruleId);
+        return ruleVersionPersistencePort.countByRuleId(ruleId);
     }
 
     /**
      * Find rule versions with specific operators fingerprint
      */
-    public List<RuleVersion> findVersionsWithOperatorsFingerprint(String tenantId, String operatorsFingerprint) {
-        return ruleVersionPersistencePort.findByTenantIdAndOperatorsFingerprint(tenantId, operatorsFingerprint);
+    public List<RuleVersion> findVersionsWithOperatorsFingerprint(String operatorsFingerprint) {
+        return ruleVersionPersistencePort.findByOperatorsFingerprint(operatorsFingerprint);
     }
 
     /**
@@ -114,17 +105,6 @@ public class RuleVersionService {
         RuleVersion to = getRuleVersion(ruleId, toVersion);
 
         return VersionDiff.compare(from, to);
-    }
-
-    private String extractTenantIdFromRuleId(String ruleId) {
-        // Assuming rule ID format: rul_tenant_code
-        if (ruleId != null && ruleId.startsWith("rul_")) {
-            String[] parts = ruleId.split("_");
-            if (parts.length >= 2) {
-                return parts[1];
-            }
-        }
-        throw new IllegalArgumentException("Invalid rule ID format: " + ruleId);
     }
 
     /**
