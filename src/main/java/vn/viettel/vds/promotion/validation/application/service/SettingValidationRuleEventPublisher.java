@@ -385,8 +385,7 @@ public class SettingValidationRuleEventPublisher {
                     .withPayload(event)
                     .setHeader(KafkaHeaders.KEY, key)
                     .setHeader("correlation-id", correlationId)
-                    .setHeader("result-status", resultStatus)
-                    .setHeader("timestamp", String.valueOf(Instant.now().toEpochMilli()));
+                    .setHeader("result-status", resultStatus);
 
             // Add saga-id header if provided
             if (sagaId != null) {
