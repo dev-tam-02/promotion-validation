@@ -58,17 +58,19 @@ public class RuleNode {
             return;
         }
 
-        if (isLeafNode()) {
-            // Leaf nodes must have field and operator
-            Objects.requireNonNull(field, "Field cannot be null for leaf node");
-            Objects.requireNonNull(operator, "Operator cannot be null for leaf node");
-            // Value can be null for some operators like IS_NULL, IS_NOT_NULL
-        } else {
-            // Parent nodes must have logic type and children
-            Objects.requireNonNull(logicType, "LogicType cannot be null for parent node");
+        Objects.requireNonNull(type, "NodeType cannot be null");
+
+        if (type == NodeType.GROUP) {
+            // Group nodes must have groupLogic and children
+            Objects.requireNonNull(groupLogic, "GroupLogic cannot be null for GROUP nodes");
             if (children.isEmpty()) {
-                throw new IllegalArgumentException("Parent node must have at least one child");
+                throw new IllegalArgumentException("GROUP node must have at least one child");
             }
+        } else if (type == NodeType.COND) {
+            // COND nodes must have operatorName and reasonCode
+            Objects.requireNonNull(operatorName, "OperatorName cannot be null for COND nodes");
+            Objects.requireNonNull(reasonCode, "ReasonCode cannot be null for COND nodes");
+            // params can be null or empty for operators that don't require parameters
         }
     }
 
@@ -301,17 +303,17 @@ public class RuleNode {
          * Check if the builder state is valid for building a complete node
          */
         public boolean isValid() {
-            if (nodeId == null) {
+            if (nodeId == null || type == null) {
                 return false;
             }
 
-            // Check leaf node requirements
-            if (children == null || children.isEmpty()) {
-                return field != null && operator != null;
+            if (type == NodeType.GROUP) {
+                return groupLogic != null && children != null && !children.isEmpty();
+            } else if (type == NodeType.COND) {
+                return operatorName != null && reasonCode != null;
             }
 
-            // Check parent node requirements
-            return logicType != null && !children.isEmpty();
+            return false;
         }
     }
 }
