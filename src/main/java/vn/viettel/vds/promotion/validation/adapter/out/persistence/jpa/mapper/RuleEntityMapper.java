@@ -39,7 +39,6 @@ public interface RuleEntityMapper {
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
-    @Mapping(target = "tenantId", ignore = true)     // No longer exists in entity
     @Mapping(target = "ruleCode", ignore = true)     // No longer exists in entity
     @Mapping(target = "description", ignore = true)  // No longer exists in entity
     @Mapping(target = "notes", ignore = true)        // No longer exists in entity

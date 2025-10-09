@@ -36,7 +36,7 @@ public class RuleVersioningService {
         logger.info("Creating new version for rule: tenantId={}, ruleId={}", tenantId, ruleId);
 
         try {
-            Rule currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule currentRule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Create new version
@@ -67,7 +67,7 @@ public class RuleVersioningService {
         RuleVersion targetRuleVersion = null;
         try {
             // Find current active rule
-            Rule currentRule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule currentRule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Find target version
@@ -82,7 +82,7 @@ public class RuleVersioningService {
             // Unpublish current rule if it's active
             if (currentRule.getState() == Rule.RuleState.PUBLISHED) {
                 logger.info("Unpublishing current rule before rollback: ruleId={}", ruleId);
-                rulePublishingService.unpublishRule(tenantId, ruleId);
+                rulePublishingService.unpublishRule(ruleId);
             }
 
             // Create new version from target
@@ -181,7 +181,6 @@ public class RuleVersioningService {
     private Rule createRuleCopy(Rule source) {
         Rule copy = new Rule();
 
-        copy.setTenantId(source.getTenantId());
         copy.setCode(source.getCode());
         copy.setLogic(source.getLogic());
         copy.setNodes(source.getNodes()); // Deep copy needed for production
@@ -194,7 +193,6 @@ public class RuleVersioningService {
     private Rule createRuleFromVersion(RuleVersion source) {
         Rule rule = new Rule();
 
-        rule.setTenantId(source.getTenantId());
         rule.setCode(source.getCode());
         // Convert RuleVersion.LogicType to Rule.LogicType
         if (source.getLogic() != null) {
@@ -230,8 +228,7 @@ public class RuleVersioningService {
             throw new IllegalArgumentException("Cannot rollback to the same version");
         }
 
-        if (!currentRule.getTenantId().equals(targetRuleVersion.getTenantId()) ||
-                !currentRule.getCode().equals(targetRuleVersion.getCode())) {
+        if (!currentRule.getCode().equals(targetRuleVersion.getCode())) {
             throw new IllegalArgumentException("Rules do not match for rollback");
         }
     }

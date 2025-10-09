@@ -75,7 +75,6 @@ public abstract class ValidationRuleMapper {
     @Mapping(source = "effectiveTo", target = "effectiveTo")
     @Mapping(source = "expression", target = "expression")
     @Mapping(source = "limits", target = "limits", qualifiedByName = "validationUsageLimitsToRuleLimits")
-    @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "state", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()) ? vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED : vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.DRAFT)")
     @Mapping(target = "active", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()))")
     @Mapping(target = "code", ignore = true)
