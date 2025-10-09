@@ -1,31 +1,20 @@
 package vn.viettel.vds.promotion.validation.domain.event;
 
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.time.Instant;
-
-/**
- * Event raised when a rule is updated
- */
 public class RuleUpdatedEvent extends DomainEvent {
-
     private final String ruleId;
-    private final String tenantId;
     private final String ruleCode;
-    private final String version;
     private final String updatedBy;
-    private final Instant updatedAt;
-    private final String updateSummary;
+    private final Map<String, Object> changes;
 
-    public RuleUpdatedEvent(Rule rule, String updateSummary) {
+    public RuleUpdatedEvent(String ruleId, String ruleCode, String updatedBy, Map<String, Object> changes) {
         super("RULE_UPDATED");
-        this.ruleId = rule.getId();
-        this.tenantId = rule.getTenantId();
-        this.ruleCode = rule.getCode();
-        this.version = rule.getVersion() != null ? rule.getVersion().toString() : "0";
-        this.updatedBy = rule.getUpdatedBy();
-        this.updatedAt = rule.getUpdatedAt();
-        this.updateSummary = updateSummary;
+        this.ruleId = ruleId;
+        this.ruleCode = ruleCode;
+        this.updatedBy = updatedBy;
+        this.changes = changes;
     }
 
     @Override
@@ -35,34 +24,22 @@ public class RuleUpdatedEvent extends DomainEvent {
 
     @Override
     public String getAggregateTenantId() {
-        return tenantId;
+        return null; // No longer using tenantId
     }
 
     public String getRuleId() {
         return ruleId;
     }
 
-    public String getTenantId() {
-        return tenantId;
-    }
-
     public String getRuleCode() {
         return ruleCode;
-    }
-
-    public String getVersion() {
-        return version;
     }
 
     public String getUpdatedBy() {
         return updatedBy;
     }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public String getUpdateSummary() {
-        return updateSummary;
+    public Map<String, Object> getChanges() {
+        return changes != null ? new HashMap<>(changes) : new HashMap<>();
     }
 }

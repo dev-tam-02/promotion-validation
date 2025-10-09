@@ -1,25 +1,15 @@
 package vn.viettel.vds.promotion.validation.domain.event;
 
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-
-/**
- * Event raised when a new rule is created
- */
 public class RuleCreatedEvent extends DomainEvent {
-
     private final String ruleId;
-    private final String tenantId;
     private final String ruleCode;
-    private final String ruleName;
     private final String createdBy;
 
-    public RuleCreatedEvent(Rule rule) {
+    public RuleCreatedEvent(String ruleId, String ruleCode, String createdBy) {
         super("RULE_CREATED");
-        this.ruleId = rule.getId();
-        this.tenantId = rule.getTenantId();
-        this.ruleCode = rule.getCode();
-        this.ruleName = rule.getName();
-        this.createdBy = rule.getCreatedBy();
+        this.ruleId = ruleId;
+        this.ruleCode = ruleCode;
+        this.createdBy = createdBy;
     }
 
     @Override
@@ -29,23 +19,15 @@ public class RuleCreatedEvent extends DomainEvent {
 
     @Override
     public String getAggregateTenantId() {
-        return tenantId;
+        return null; // No longer using tenantId
     }
 
     public String getRuleId() {
         return ruleId;
     }
 
-    public String getTenantId() {
-        return tenantId;
-    }
-
     public String getRuleCode() {
         return ruleCode;
-    }
-
-    public String getRuleName() {
-        return ruleName;
     }
 
     public String getCreatedBy() {

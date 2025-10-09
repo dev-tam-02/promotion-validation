@@ -1,29 +1,17 @@
 package vn.viettel.vds.promotion.validation.domain.event;
 
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-
-import java.time.Instant;
-
-/**
- * Event raised when a rule is published
- */
 public class RulePublishedEvent extends DomainEvent {
-
     private final String ruleId;
-    private final String tenantId;
     private final String ruleCode;
-    private final String version;
+    private final Integer version;
     private final String publishedBy;
-    private final Instant publishedAt;
 
-    public RulePublishedEvent(Rule rule) {
+    public RulePublishedEvent(String ruleId, String ruleCode, Integer version, String publishedBy) {
         super("RULE_PUBLISHED");
-        this.ruleId = rule.getId();
-        this.tenantId = rule.getTenantId();
-        this.ruleCode = rule.getCode();
-        this.version = rule.getVersion() != null ? rule.getVersion().toString() : "0";
-        this.publishedBy = rule.getPublishedBy();
-        this.publishedAt = rule.getPublishedAt();
+        this.ruleId = ruleId;
+        this.ruleCode = ruleCode;
+        this.version = version;
+        this.publishedBy = publishedBy;
     }
 
     @Override
@@ -33,30 +21,22 @@ public class RulePublishedEvent extends DomainEvent {
 
     @Override
     public String getAggregateTenantId() {
-        return tenantId;
+        return null; // No longer using tenantId
     }
 
     public String getRuleId() {
         return ruleId;
     }
 
-    public String getTenantId() {
-        return tenantId;
-    }
-
     public String getRuleCode() {
         return ruleCode;
     }
 
-    public String getVersion() {
+    public Integer getVersion() {
         return version;
     }
 
     public String getPublishedBy() {
         return publishedBy;
-    }
-
-    public Instant getPublishedAt() {
-        return publishedAt;
     }
 }
