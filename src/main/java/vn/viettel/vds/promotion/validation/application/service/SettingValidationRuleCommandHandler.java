@@ -311,29 +311,31 @@ public class SettingValidationRuleCommandHandler {
             productNode.setOperatorName("product.applicability.in");
             productNode.setValidationRule(rule);
 
-            // Build node data from applicableToData
-            StringBuilder nodeData = new StringBuilder();
+            // Build params map for RuleNodeEntity from applicableToData
+            java.util.Map<String, Object> params = new java.util.HashMap<>();
 
-            if (applicableToData.getIncludedAll() != null && applicableToData.getIncludedAll()) {
-                nodeData.append("includedAll:true");
+            if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
+                params.put("includedAll", true);
             } else {
                 if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
-                    nodeData.append("included:[");
-                    nodeData.append(String.join(",", applicableToData.getIncluded()));
-                    nodeData.append("]");
+                    // Extract IDs from ApplicabilityRule objects
+                    List<String> includedIds = applicableToData.getIncluded().stream()
+                            .map(applicabilityRule -> applicabilityRule.getId())
+                            .collect(java.util.stream.Collectors.toList());
+                    params.put("included", includedIds);
                 }
 
                 if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
-                    if (nodeData.length() > 0) {
-                        nodeData.append(";");
-                    }
-                    nodeData.append("excluded:[");
-                    nodeData.append(String.join(",", applicableToData.getExcluded()));
-                    nodeData.append("]");
+                    // Extract IDs from ApplicabilityRule objects
+                    List<String> excludedIds = applicableToData.getExcluded().stream()
+                            .map(applicabilityRule -> applicabilityRule.getId())
+                            .collect(java.util.stream.Collectors.toList());
+                    params.put("excluded", excludedIds);
                 }
             }
 
-            productNode.setData(nodeData.toString());
+            // Set params on the node
+            productNode.setParams(params);
             productNode.setCreatedAt(Instant.now());
             productNode.setUpdatedAt(Instant.now());
 
@@ -346,8 +348,8 @@ public class SettingValidationRuleCommandHandler {
             // Save rule with new node
             validationRuleRepository.save(rule);
 
-            logger.info("Created product.applicability.in node for rule: ruleId={}, nodeId={}, data={}",
-                    ruleId, productNode.getId(), nodeData.toString());
+            logger.info("Created product.applicability.in node for rule: ruleId={}, nodeId={}, params={}",
+                    ruleId, productNode.getId(), params);
             return true;
 
         } catch (Exception e) {
