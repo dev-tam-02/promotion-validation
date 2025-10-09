@@ -42,7 +42,7 @@ public class RulePublishingService {
 
         try {
             // Find the rule to publish
-            Rule rule = rulePersistencePort.findByCode(ruleId)
+            Rule rule = rulePersistencePort.findById(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Validate rule before publishing
@@ -125,7 +125,7 @@ public class RulePublishingService {
         logger.info("Unpublishing rule: ruleId={}", ruleId);
 
         try {
-            Rule rule = rulePersistencePort.findByCode(ruleId)
+            Rule rule = rulePersistencePort.findById(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (Rule.RuleState.PUBLISHED != rule.getState()) {
@@ -151,7 +151,7 @@ public class RulePublishingService {
 
     public RuleDeploymentStatus getDeploymentStatus(String ruleId) {
         try {
-            Rule rule = rulePersistencePort.findByCode(ruleId)
+            Rule rule = rulePersistencePort.findById(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (Rule.RuleState.PUBLISHED != rule.getState()) {
