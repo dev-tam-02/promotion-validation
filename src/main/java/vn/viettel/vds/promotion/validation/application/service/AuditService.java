@@ -55,29 +55,29 @@ public class AuditService {
     /**
      * Log rule creation
      */
-    public void logRuleCreated(String tenantId, String ruleId, String actor) {
-        logAuditEvent(tenantId, actor, AuditLog.AuditAction.RULE_CREATE, "rule", ruleId, null);
+    public void logRuleCreated(String ruleId, String actor) {
+        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_CREATE, "rule", ruleId, null);
     }
 
     /**
      * Log rule update
      */
-    public void logRuleUpdated(String tenantId, String ruleId, String actor) {
-        logAuditEvent(tenantId, actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId, null);
+    public void logRuleUpdated(String ruleId, String actor) {
+        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId, null);
     }
 
     /**
      * Log rule published
      */
-    public void logRulePublished(String tenantId, String ruleId, String actor, Map<String, Object> details) {
-        logAuditEvent(tenantId, actor, AuditLog.AuditAction.RULE_PUBLISH, "rule", ruleId, details);
+    public void logRulePublished(String ruleId, String actor, Map<String, Object> details) {
+        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_PUBLISH, "rule", ruleId, details);
     }
 
     /**
      * Log rule archived
      */
-    public void logRuleArchived(String tenantId, String ruleId, String actor) {
-        logAuditEvent(tenantId, actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId,
+    public void logRuleArchived(String ruleId, String actor) {
+        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId,
                 Map.of("action", "archive"));
     }
 

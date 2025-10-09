@@ -41,25 +41,19 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
-    public Optional<Rule> findByTenantIdAndCode(String tenantId, String code) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Searching by code only - tenantId parameter is ignored
+    public Optional<Rule> findByCode(String code) {
         return repository.findByCode(code).map(mapper::toDomain);
     }
 
     @Override
-    public Page<Rule> findByTenantIdAndState(String tenantId, Rule.RuleState state, Pageable pageable) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Searching by state only - tenantId parameter is ignored
+    public Page<Rule> findByState(Rule.RuleState state, Pageable pageable) {
         List<RuleJpaEntity> all = repository.findByState(state.name());
         return convertToPage(all, pageable);
     }
 
     @Override
-    public Page<Rule> findByTenantIdWithFilters(String tenantId, Rule.RuleState state,
-                                                String codePattern, String namePattern, Pageable pageable) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Manual filtering by state, code pattern, and name pattern only
+    public Page<Rule> findWithFilters(Rule.RuleState state,
+                                      String codePattern, String namePattern, Pageable pageable) {
         List<RuleJpaEntity> all = repository.findAll().stream()
                 .filter(e -> state == null || state.name().equals(e.getState()))
                 .filter(e -> codePattern == null ||
@@ -71,9 +65,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
-    public List<Rule> findByTenantIdOrderByUpdatedAtDesc(String tenantId) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Returning all rules ordered by updated_at desc - tenantId parameter is ignored
+    public List<Rule> findAllOrderByUpdatedAtDesc() {
         return repository.findAll().stream()
                 .sorted((e1, e2) -> e2.getUpdatedAt().compareTo(e1.getUpdatedAt()))
                 .map(mapper::toDomain)
@@ -81,23 +73,17 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
-    public boolean existsByTenantIdAndCode(String tenantId, String code) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Checking by code only - tenantId parameter is ignored
+    public boolean existsByCode(String code) {
         return repository.existsByCode(code);
     }
 
     @Override
-    public long countByTenantIdAndState(String tenantId, Rule.RuleState state) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Counting by state only - tenantId parameter is ignored
+    public long countByState(Rule.RuleState state) {
         return repository.findByState(state.name()).size();
     }
 
     @Override
-    public List<Rule> findByTenantIdAndStateNot(String tenantId, Rule.RuleState state) {
-        // Note: tenantId field no longer exists in validation_rules table
-        // Returning all rules with different state - tenantId parameter is ignored
+    public List<Rule> findByStateNot(Rule.RuleState state) {
         return repository.findAll().stream()
                 .filter(e -> !state.name().equals(e.getState()))
                 .map(mapper::toDomain)

@@ -16,22 +16,20 @@ public interface RulePersistencePort {
 
     Optional<Rule> findById(String id);
 
-    Optional<Rule> findByTenantIdAndCode(String tenantId, String code);
+    Optional<Rule> findByCode(String code);
 
-    Page<Rule> findByTenantIdAndState(String tenantId, Rule.RuleState state, Pageable pageable);
+    Page<Rule> findByState(Rule.RuleState state, Pageable pageable);
 
-    Page<Rule> findByTenantIdWithFilters(String tenantId, Rule.RuleState state,
-                                         String codePattern, String namePattern, Pageable pageable);
+    Page<Rule> findWithFilters(Rule.RuleState state,
+                                String codePattern, String namePattern, Pageable pageable);
 
-    List<Rule> findByTenantIdOrderByUpdatedAtDesc(String tenantId);
+    List<Rule> findAllOrderByUpdatedAtDesc();
 
-    boolean existsByTenantIdAndCode(String tenantId, String code);
+    boolean existsByCode(String code);
 
-    long countByTenantIdAndState(String tenantId, Rule.RuleState state);
+    long countByState(Rule.RuleState state);
 
-    List<Rule> findByTenantIdAndStateNot(String tenantId, Rule.RuleState state);
-
-    List<Rule> findByState(Rule.RuleState state);
+    List<Rule> findByStateNot(Rule.RuleState state);
 
     List<Rule> findByType(String type);
 

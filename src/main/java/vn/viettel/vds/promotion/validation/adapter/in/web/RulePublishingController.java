@@ -45,14 +45,13 @@ public class RulePublishingController {
     })
     @PostMapping("/rules/{ruleId}")
     public RulePublishResponse publishRule(
-            @Parameter(description = "Tenant ID") @RequestHeader("X-Tenant-ID") String tenantId,
             @Parameter(description = "Rule ID") @PathVariable String ruleId,
             @Valid @RequestBody(required = false) PublishRuleRequest request) {
 
-        logger.info("Publishing rule: tenantId={}, ruleId={}", tenantId, ruleId);
+        logger.info("Publishing rule: ruleId={}", ruleId);
 
         try {
-            RulePublishingService.RulePublishResult result = rulePublishingService.publishRule(tenantId, ruleId);
+            RulePublishingService.RulePublishResult result = rulePublishingService.publishRule(ruleId);
 
             RulePublishResponse response = new RulePublishResponse();
             response.setRuleId(result.getRuleId());
@@ -87,14 +86,13 @@ public class RulePublishingController {
     })
     @PostMapping("/batch")
     public List<RulePublishResponse> publishRuleBatch(
-            @Parameter(description = "Tenant ID") @RequestHeader("X-Tenant-ID") String tenantId,
             @Valid @RequestBody PublishRuleBatchRequest request) {
 
-        logger.info("Publishing rule batch: tenantId={}, count={}", tenantId, request.getRuleIds().size());
+        logger.info("Publishing rule batch: count={}", request.getRuleIds().size());
 
         try {
             List<RulePublishingService.RulePublishResult> results =
-                    rulePublishingService.publishRuleBatch(tenantId, request.getRuleIds());
+                    rulePublishingService.publishRuleBatch(request.getRuleIds());
 
             List<RulePublishResponse> responses = results.stream()
                     .map(result -> {
@@ -115,7 +113,7 @@ public class RulePublishingController {
             return responses;
 
         } catch (Exception e) {
-            logger.error("Batch publishing failed: tenantId={}", tenantId, e);
+            logger.error("Batch publishing failed", e);
             throw new RuntimeException("Batch publishing failed", e);
         }
     }
@@ -130,13 +128,12 @@ public class RulePublishingController {
     })
     @DeleteMapping("/rules/{ruleId}")
     public RulePublishResponse unpublishRule(
-            @Parameter(description = "Tenant ID") @RequestHeader("X-Tenant-ID") String tenantId,
             @Parameter(description = "Rule ID") @PathVariable String ruleId) {
 
-        logger.info("Unpublishing rule: tenantId={}, ruleId={}", tenantId, ruleId);
+        logger.info("Unpublishing rule: ruleId={}", ruleId);
 
         try {
-            RulePublishingService.RulePublishResult result = rulePublishingService.unpublishRule(tenantId, ruleId);
+            RulePublishingService.RulePublishResult result = rulePublishingService.unpublishRule(ruleId);
 
             RulePublishResponse response = new RulePublishResponse();
             response.setRuleId(result.getRuleId());
@@ -169,14 +166,13 @@ public class RulePublishingController {
     })
     @GetMapping("/rules/{ruleId}/status")
     public RuleDeploymentStatusResponse getDeploymentStatus(
-            @Parameter(description = "Tenant ID") @RequestHeader("X-Tenant-ID") String tenantId,
             @Parameter(description = "Rule ID") @PathVariable String ruleId) {
 
-        logger.debug("Getting deployment status: tenantId={}, ruleId={}", tenantId, ruleId);
+        logger.debug("Getting deployment status: ruleId={}", ruleId);
 
         try {
             RulePublishingService.RuleDeploymentStatus status =
-                    rulePublishingService.getDeploymentStatus(tenantId, ruleId);
+                    rulePublishingService.getDeploymentStatus(ruleId);
 
             RuleDeploymentStatusResponse response = new RuleDeploymentStatusResponse();
             response.setRuleId(status.getRuleId());
@@ -204,10 +200,9 @@ public class RulePublishingController {
     })
     @PostMapping("/rules/{ruleId}/validate")
     public Map<String, Object> validateRuleForPublishing(
-            @Parameter(description = "Tenant ID") @RequestHeader("X-Tenant-ID") String tenantId,
             @Parameter(description = "Rule ID") @PathVariable String ruleId) {
 
-        logger.debug("Validating rule for publishing: tenantId={}, ruleId={}", tenantId, ruleId);
+        logger.debug("Validating rule for publishing: ruleId={}", ruleId);
 
         try {
             // This would use a validation method in the service

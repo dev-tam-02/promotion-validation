@@ -37,12 +37,12 @@ public class RulePublishingService {
         this.validationRuleEntityPersistencePort = validationRuleEntityPersistencePort;
     }
 
-    public RulePublishResult publishRule(String tenantId, String ruleId) {
-        logger.info("Publishing rule: tenantId={}, ruleId={}", tenantId, ruleId);
+    public RulePublishResult publishRule(String ruleId) {
+        logger.info("Publishing rule: ruleId={}", ruleId);
 
         try {
             // Find the rule to publish
-            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             // Validate rule before publishing
@@ -86,23 +86,23 @@ public class RulePublishingService {
             return RulePublishResult.success(ruleId, compileResponse.getBundleHash(), compileResponse.getArtifactSize());
 
         } catch (Exception e) {
-            logger.error("Failed to publish rule: tenantId={}, ruleId={}", tenantId, ruleId, e);
+            logger.error("Failed to publish rule: ruleId={}", ruleId, e);
             return RulePublishResult.failed(ruleId, "Publishing failed: " + e.getMessage());
         }
     }
 
-    public List<RulePublishResult> publishRuleBatch(String tenantId, List<String> ruleIds) {
-        logger.info("Publishing rule batch: tenantId={}, count={}", tenantId, ruleIds.size());
+    public List<RulePublishResult> publishRuleBatch(List<String> ruleIds) {
+        logger.info("Publishing rule batch: count={}", ruleIds.size());
 
         List<RulePublishResult> results = new ArrayList<>();
 
         for (String ruleId : ruleIds) {
             try {
-                RulePublishResult result = publishRule(tenantId, ruleId);
+                RulePublishResult result = publishRule(ruleId);
                 results.add(result);
 
                 // If critical rule fails, consider stopping batch
-                if (!result.isSuccess() && isCriticalRule(tenantId, ruleId)) {
+                if (!result.isSuccess() && isCriticalRule(ruleId)) {
                     logger.warn("Critical rule failed in batch, stopping: ruleId={}", ruleId);
                     break;
                 }
@@ -121,11 +121,11 @@ public class RulePublishingService {
         return results;
     }
 
-    public RulePublishResult unpublishRule(String tenantId, String ruleId) {
-        logger.info("Unpublishing rule: tenantId={}, ruleId={}", tenantId, ruleId);
+    public RulePublishResult unpublishRule(String ruleId) {
+        logger.info("Unpublishing rule: ruleId={}", ruleId);
 
         try {
-            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (Rule.RuleState.PUBLISHED != rule.getState()) {
@@ -144,14 +144,14 @@ public class RulePublishingService {
             return RulePublishResult.success(ruleId, null, 0L);
 
         } catch (Exception e) {
-            logger.error("Failed to unpublish rule: tenantId={}, ruleId={}", tenantId, ruleId, e);
+            logger.error("Failed to unpublish rule: ruleId={}", ruleId, e);
             return RulePublishResult.failed(ruleId, "Unpublishing failed: " + e.getMessage());
         }
     }
 
-    public RuleDeploymentStatus getDeploymentStatus(String tenantId, String ruleId) {
+    public RuleDeploymentStatus getDeploymentStatus(String ruleId) {
         try {
-            Rule rule = rulePersistencePort.findByTenantIdAndCode(tenantId, ruleId)
+            Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
             if (!Rule.RuleState.PUBLISHED.name().equals(rule.getState())) {
@@ -168,7 +168,7 @@ public class RulePublishingService {
             );
 
         } catch (Exception e) {
-            logger.error("Failed to get deployment status: tenantId={}, ruleId={}", tenantId, ruleId, e);
+            logger.error("Failed to get deployment status: ruleId={}", ruleId, e);
             return new RuleDeploymentStatus(ruleId, "ERROR", false, null);
         }
     }
@@ -215,7 +215,7 @@ public class RulePublishingService {
         List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
         CompileRequest compileRequest = new CompileRequest();
-        compileRequest.setTenantId(rule.getTenantId());
+        compileRequest.setTenantId("default"); // Use default tenant since we removed multi-tenancy
         compileRequest.setRuleId(rule.getId());
         compileRequest.setVersion(rule.getLatestVersion());
         compileRequest.setNodes(nodeDtos);
@@ -319,7 +319,7 @@ public class RulePublishingService {
         // candidate.setCode("TEST"); // Method not available in DTO
 
         ExecutionContextDto context = new ExecutionContextDto();
-        context.setTenantId(rule.getTenantId());
+        context.setTenantId("default"); // Use default tenant
         // context.setTimestamp(System.currentTimeMillis()); // Method not available in DTO
 
         request.setCustomer(customer);
@@ -330,7 +330,7 @@ public class RulePublishingService {
         return request;
     }
 
-    private boolean isCriticalRule(String tenantId, String ruleId) {
+    private boolean isCriticalRule(String ruleId) {
         // Implement logic to determine if a rule is critical
         // For now, assume all rules are non-critical
         return false;

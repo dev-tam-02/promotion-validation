@@ -27,8 +27,8 @@ public class RuleValidationService {
     /**
      * Comprehensive rule linting/validation
      */
-    public LintResult lintRule(String tenantId, List<RuleNode> nodes) {
-        logger.debug("Linting rule: tenant={}, nodeCount={}", tenantId, nodes.size());
+    public LintResult lintRule(List<RuleNode> nodes) {
+        logger.debug("Linting rule: nodeCount={}", nodes.size());
 
         List<LintIssue> issues = new ArrayList<>();
 
@@ -43,18 +43,18 @@ public class RuleValidationService {
             validateTreeStructure(nodes, issues);
 
             // Operator validation
-            validateOperators(tenantId, nodes, issues);
+            validateOperators("default", nodes, issues);
 
             // Reason code validation
-            validateReasonCodes(tenantId, nodes, issues);
+            validateReasonCodes("default", nodes, issues);
 
             // Circular reference validation
             validateNoCircularReferences(nodes, issues);
 
             boolean isValid = issues.isEmpty();
 
-            logger.info("Rule linting completed: tenant={}, valid={}, issueCount={}",
-                    tenantId, isValid, issues.size());
+            logger.info("Rule linting completed: valid={}, issueCount={}",
+                    isValid, issues.size());
 
             return new LintResult(isValid, issues);
 
@@ -68,13 +68,13 @@ public class RuleValidationService {
     /**
      * Validate rule against operators and business rules
      */
-    public ValidationResult validateRuleForPublishing(String tenantId, Rule rule) {
+    public ValidationResult validateRuleForPublishing(Rule rule) {
         logger.info("Validating rule for publishing: id={}", rule.getId());
 
         List<ValidationIssue> issues = new ArrayList<>();
 
         // Lint the rule structure
-        LintResult lintResult = lintRule(tenantId, rule.getNodes());
+        LintResult lintResult = lintRule(rule.getNodes());
         issues.addAll(lintResult.getIssues().stream()
                 .map(lint -> new ValidationIssue(lint.getPath(), lint.getMessage(), "LINT_ERROR"))
                 .collect(Collectors.toList()));
@@ -84,7 +84,7 @@ public class RuleValidationService {
         for (String operatorName : operatorNames) {
             try {
                 Optional<vn.viettel.vds.promotion.validation.domain.model.Operator> operator =
-                        operatorService.getLatestOperator(tenantId, operatorName);
+                        operatorService.getLatestOperator("default", operatorName);
 
                 if (operator.isEmpty()) {
                     issues.add(new ValidationIssue("operators",
