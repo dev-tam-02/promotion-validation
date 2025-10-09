@@ -67,11 +67,10 @@ public class PublishService {
         validateRuleForPublishing(rule);
 
         // Get next version number
-        Integer nextVersion = getNextVersionNumber(rule.getTenantId(), ruleId);
+        Integer nextVersion = getNextVersionNumber(ruleId);
 
         // Check if job already exists for this version
-        if (publishJobPersistencePort.existsByTenantIdAndRuleIdAndTargetVersion(
-                rule.getTenantId(), ruleId, nextVersion)) {
+        if (publishJobPersistencePort.existsByRuleIdAndTargetVersion(ruleId, nextVersion)) {
             throw new BusinessException(new ResponseInfo("PUBLISH_JOB_EXISTS",
                     "Publish job already exists for rule " + ruleId + " version " + nextVersion, 400));
         }
@@ -98,8 +97,8 @@ public class PublishService {
      * Get publish jobs for a rule
      */
     @Transactional(readOnly = true)
-    public List<PublishJob> getPublishJobsForRule(String tenantId, String ruleId) {
-        return publishJobPersistencePort.findByTenantIdAndRuleIdOrderByTargetVersionDesc(tenantId, ruleId);
+    public List<PublishJob> getPublishJobsForRule(String ruleId) {
+        return publishJobPersistencePort.findByRuleIdOrderByTargetVersionDesc(ruleId);
     }
 
     /**
@@ -136,7 +135,7 @@ public class PublishService {
 
         // Validate rule structure and operators
         RuleValidationService.ValidationResult validation =
-                ruleValidationService.validateRuleForPublishing(rule.getTenantId(), rule);
+                ruleValidationService.validateRuleForPublishing(rule);
 
         if (!validation.isValid()) {
             String errors = validation.getIssues().stream()
@@ -149,8 +148,8 @@ public class PublishService {
         }
     }
 
-    private Integer getNextVersionNumber(String tenantId, String ruleId) {
-        return ruleVersionPersistencePort.findFirstByTenantIdAndRuleIdOrderByVersionDesc(tenantId, ruleId)
+    private Integer getNextVersionNumber(String ruleId) {
+        return ruleVersionPersistencePort.findFirstByRuleIdOrderByVersionDesc(ruleId)
                 .map(rv -> rv.getRuleVersion() + 1)
                 .orElse(1);
     }
@@ -166,7 +165,7 @@ public class PublishService {
                 .distinct()
                 .toList();
 
-        String operatorsFingerprint = operatorService.calculateOperatorsFingerprint(rule.getTenantId(), operatorNames);
+        String operatorsFingerprint = operatorService.calculateOperatorsFingerprint("default", operatorNames);
 
         // Set up compilation info
         PublishJob.CompileJobInfo compileInfo = PublishJob.CompileJobInfo.builder()
@@ -175,8 +174,8 @@ public class PublishService {
                 .build();
 
         PublishJob job = PublishJob.builder()
-                .id(generateJobId(rule.getTenantId(), rule.getId(), targetVersion))
-                .tenantId(rule.getTenantId())
+                .id(generateJobId(rule.getId(), targetVersion))
+                .tenantId("default")
                 .ruleId(rule.getId())
                 .targetVersion(targetVersion)
                 .status(PublishJob.JobStatus.RUNNING)
@@ -230,12 +229,12 @@ public class PublishService {
                         "rule.published",                // eventType
                         eventPayload,                    // payload
                         "http://validation-events",      // destination
-                        Map.of("tenantId", rule.getTenantId()), // metadata
+                        Map.of("tenantId", "default"), // metadata
                         3                                // maxAttempts
                 );
 
                 // Log audit event
-                auditService.logRulePublished(rule.getTenantId(), rule.getId(), job.getRequestedBy(),
+                auditService.logRulePublished(rule.getId(), job.getRequestedBy(),
                         Map.of("version", job.getTargetVersion(), "jobId", job.getId()));
 
                 logger.info("Publish job completed successfully: id={}, version={}", jobId, job.getTargetVersion());
@@ -286,8 +285,8 @@ public class PublishService {
                 : List.of();
 
         RuleVersion ruleVersion = RuleVersion.builder()
-                .id(generateRuleVersionId(rule.getTenantId(), rule.getCode(), job.getTargetVersion()))
-                .tenantId(rule.getTenantId())
+                .id(generateRuleVersionId(rule.getCode(), job.getTargetVersion()))
+                .tenantId("default")
                 .ruleId(rule.getId())
                 .code(rule.getCode())
                 .ruleVersion(job.getTargetVersion())
@@ -382,12 +381,12 @@ public class PublishService {
         }
     }
 
-    private String generateJobId(String tenantId, String ruleId, Integer version) {
-        return "pj_" + tenantId + "_" + ruleId + "_v" + version;
+    private String generateJobId(String ruleId, Integer version) {
+        return "pj_" + ruleId + "_v" + version;
     }
 
-    private String generateRuleVersionId(String tenantId, String code, Integer version) {
-        return "rv_" + tenantId + "_" + code + "_v" + version;
+    private String generateRuleVersionId(String code, Integer version) {
+        return "rv_" + code + "_v" + version;
     }
 
     /**
