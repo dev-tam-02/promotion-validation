@@ -64,10 +64,9 @@ public class RuleController {
             @Valid @RequestBody CreateRuleRequest request,
             @Parameter(description = "User making the request") @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
 
-        logger.info("Creating rule: tenant={}, code={}", request.getTenantId(), request.getCode());
+        logger.info("Creating rule: code={}", request.getCode());
 
         Rule rule = ruleService.createRule(
-                request.getTenantId(),
                 request.getCode(),
                 request.getName(),
                 Rule.LogicType.valueOf(request.getLogic()),
@@ -99,7 +98,6 @@ public class RuleController {
     })
     @GetMapping
     public PageResponse<RuleResponse> listRules(
-            @Parameter(description = "Tenant ID") @RequestParam(required = false, defaultValue = "default") String tenantId,
             @Parameter(description = "Filter by state") @RequestParam(required = false) String state,
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
@@ -109,14 +107,14 @@ public class RuleController {
             @Parameter(description = "Sort field") @RequestParam(defaultValue = "updatedAt") String sort,
             @Parameter(description = "Sort direction") @RequestParam(defaultValue = "desc") String direction) {
 
-        logger.info("Listing rules: tenant={}, page={}, size={}", tenantId, page, size);
+        logger.info("Listing rules: page={}, size={}", page, size);
 
         Sort sortObj = Sort.by(Sort.Direction.fromString(direction), sort);
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
-        Page<Rule> rules = ruleService.findRules(tenantId, stateEnum, code, name, pageable);
+        Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
         Page<RuleResponse> responses = rules.map(ruleMapper::toRuleResponse);
 
         return PageResponse.from(responses);
@@ -168,6 +166,23 @@ public class RuleController {
         return ruleMapper.toRuleResponse(rule);
     }
 
+    @Operation(summary = "Activate rule", description = "Activate a rule from DRAFT state (ready for publishing)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Rule activated successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "400", description = "Rule is not in DRAFT state")
+    })
+    @PostMapping("/{ruleId}:activate")
+    public RuleResponse activateRule(
+            @Parameter(description = "Rule ID") @PathVariable String ruleId,
+            @Parameter(description = "User making the request") @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
+
+        logger.info("Activating rule: id={}", ruleId);
+
+        Rule rule = ruleService.activateRule(ruleId, userId);
+        return ruleMapper.toRuleResponse(rule);
+    }
+
     @Operation(summary = "Archive rule", description = "Archive a rule (mark as inactive)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Rule archived successfully"),
@@ -193,11 +208,9 @@ public class RuleController {
     public LintResponse lintRules(
             @Valid @RequestBody LintRulesRequest request) {
 
-        logger.info("Linting rules: tenant={}, nodeCount={}",
-                request.getTenantId(), request.getNodes().size());
+        logger.info("Linting rules: nodeCount={}", request.getNodes().size());
 
         RuleValidationService.LintResult result = ruleValidationService.lintRule(
-                request.getTenantId(),
                 ruleMapper.toRuleNodes(request.getNodes())
         );
 

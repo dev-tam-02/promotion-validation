@@ -174,12 +174,13 @@ public class RulePublishingService {
     }
 
     private void validateRuleForPublishing(Rule rule) {
-        if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-            throw new IllegalArgumentException("Rule has no nodes defined");
+        // Check rule state - cannot publish DRAFT rules
+        if (rule.getState() == Rule.RuleState.DRAFT) {
+            throw new IllegalArgumentException("Cannot publish rule in DRAFT state. Rule must be activated first.");
         }
 
-        if (rule.getTenantId() == null || rule.getTenantId().isBlank()) {
-            throw new IllegalArgumentException("Rule must have a tenant ID");
+        if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
+            throw new IllegalArgumentException("Rule has no nodes defined");
         }
 
         // Validate node structure

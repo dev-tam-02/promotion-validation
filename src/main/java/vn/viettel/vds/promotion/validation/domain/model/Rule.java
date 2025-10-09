@@ -33,7 +33,6 @@ import java.util.Set;
 public class Rule {
     // Core Identity
     private String id;
-    private String tenantId;
     private String code;
     private String ruleCode;
 

@@ -122,17 +122,26 @@ public class SettingValidationRuleCommandHandler {
 
             ComponentsData components = componentsResult.getValue();
 
-            // ✅ NEW: Validate rule has product.applicability.in node if applicableTo provided
+            // ✅ ENHANCED: Auto-create product.applicability.in node if applicableTo provided
             if (components.applicableToData() != null) {
-                boolean isValid = validateRuleHasProductApplicabilityNode(
+                boolean hasNode = validateRuleHasProductApplicabilityNode(
                     components.ruleId(),
                     components.applicableToData()
                 );
-                if (!isValid) {
-                    return CommandProcessingResult.failure(
-                        ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
-                        "Rule must contain product.applicability.in condition node when applicableTo is provided"
+                if (!hasNode) {
+                    logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}",
+                            components.ruleId());
+                    // Auto-create the node instead of failing
+                    boolean created = createProductApplicabilityNode(
+                        components.ruleId(),
+                        components.applicableToData()
                     );
+                    if (!created) {
+                        return CommandProcessingResult.failure(
+                            ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
+                            "Failed to create product.applicability.in node for rule"
+                        );
+                    }
                 }
             }
 
@@ -275,6 +284,74 @@ public class SettingValidationRuleCommandHandler {
 
         } catch (Exception e) {
             logger.error("Error validating rule applicability node: ruleId={}", ruleId, e);
+            return false;
+        }
+    }
+
+    /**
+     * ✅ NEW: Create product.applicability.in condition node in rule
+     * Adds the node to rule's nodes if it doesn't exist
+     */
+    private boolean createProductApplicabilityNode(
+            String ruleId,
+            ApplicabilityScope applicableToData) {
+        try {
+            var ruleOpt = validationRuleRepository.findById(ruleId);
+            if (ruleOpt.isEmpty()) {
+                logger.error("Rule not found when creating applicability node: ruleId={}", ruleId);
+                return false;
+            }
+
+            ValidationRuleEntity rule = ruleOpt.get();
+
+            // Create new COND node for product.applicability.in
+            RuleNodeEntity productNode = new RuleNodeEntity();
+            productNode.setId(IdGenerator.generateId());
+            productNode.setType("COND");
+            productNode.setOperatorName("product.applicability.in");
+            productNode.setValidationRule(rule);
+
+            // Build node data from applicableToData
+            StringBuilder nodeData = new StringBuilder();
+
+            if (applicableToData.getIncludedAll() != null && applicableToData.getIncludedAll()) {
+                nodeData.append("includedAll:true");
+            } else {
+                if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
+                    nodeData.append("included:[");
+                    nodeData.append(String.join(",", applicableToData.getIncluded()));
+                    nodeData.append("]");
+                }
+
+                if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
+                    if (nodeData.length() > 0) {
+                        nodeData.append(";");
+                    }
+                    nodeData.append("excluded:[");
+                    nodeData.append(String.join(",", applicableToData.getExcluded()));
+                    nodeData.append("]");
+                }
+            }
+
+            productNode.setData(nodeData.toString());
+            productNode.setCreatedAt(Instant.now());
+            productNode.setUpdatedAt(Instant.now());
+
+            // Add node to rule
+            if (rule.getNodes() == null) {
+                rule.setNodes(new java.util.ArrayList<>());
+            }
+            rule.getNodes().add(productNode);
+
+            // Save rule with new node
+            validationRuleRepository.save(rule);
+
+            logger.info("Created product.applicability.in node for rule: ruleId={}, nodeId={}, data={}",
+                    ruleId, productNode.getId(), nodeData.toString());
+            return true;
+
+        } catch (Exception e) {
+            logger.error("Error creating product applicability node: ruleId={}", ruleId, e);
             return false;
         }
     }

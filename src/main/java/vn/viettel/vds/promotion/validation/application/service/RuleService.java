@@ -57,22 +57,21 @@ public class RuleService {
     /**
      * Create a new rule
      */
-    public Rule createRule(String tenantId, String code, String name, Rule.LogicType logic,
+    public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String createdBy) {
-        logger.info("Creating rule: tenant={}, code={}", tenantId, code);
+        logger.info("Creating rule: code={}", code);
 
         // Check if rule with same code already exists
-        if (rulePersistencePort.existsByTenantIdAndCode(tenantId, code)) {
+        if (rulePersistencePort.existsByCode(code)) {
             throw new BusinessException(new ResponseInfo("RULE_CODE_EXISTS",
-                    "Rule with code '" + code + "' already exists for tenant " + tenantId, 400));
+                    "Rule with code '" + code + "' already exists", 400));
         }
 
         // Validate rule nodes
         validateRuleNodes(nodes);
 
         Rule rule = new Rule();
-        rule.setId(generateRuleId(tenantId, code));
-        rule.setTenantId(tenantId);
+        rule.setId(generateRuleId(code));
         rule.setCode(code);
         rule.setName(name);
         rule.setState(Rule.RuleState.DRAFT);
@@ -87,7 +86,7 @@ public class RuleService {
         Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
-        auditService.logRuleCreated(tenantId, saved.getId(), createdBy);
+        auditService.logRuleCreated(saved.getId(), createdBy);
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
@@ -128,7 +127,7 @@ public class RuleService {
         Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
-        auditService.logRuleUpdated(rule.getTenantId(), saved.getId(), updatedBy);
+        auditService.logRuleUpdated(saved.getId(), updatedBy);
 
         logger.info("Rule updated successfully: id={}", saved.getId());
         return saved;
@@ -143,13 +142,43 @@ public class RuleService {
         Rule sourceRule = getRuleById(sourceRuleId);
 
         return createRule(
-                sourceRule.getTenantId(),
                 newCode,
                 newName,
                 sourceRule.getLogic(),
                 sourceRule.getNodes(),
                 createdBy
         );
+    }
+
+    /**
+     * Activate a rule (move from DRAFT to PUBLISHED state, ready for publishing)
+     */
+    public Rule activateRule(String ruleId, String activatedBy) {
+        logger.info("Activating rule: id={}", ruleId);
+
+        Rule rule = getRuleById(ruleId);
+
+        // Only allow activating draft rules
+        if (rule.getState() != Rule.RuleState.DRAFT) {
+            throw new BusinessException(new ResponseInfo("RULE_STATE_INVALID",
+                    "Can only activate rules in DRAFT state. Current state: " + rule.getState(), 400));
+        }
+
+        // Validate rule is complete before activation
+        validateRuleNodes(rule.getNodes());
+
+        rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setActive(true);
+        rule.setUpdatedAt(Instant.now());
+        rule.setUpdatedBy(activatedBy);
+
+        Rule saved = rulePersistencePort.save(rule);
+
+        // Log audit event
+        auditService.logRuleUpdated(saved.getId(), activatedBy);
+
+        logger.info("Rule activated successfully: id={}", saved.getId());
+        return saved;
     }
 
     /**
@@ -161,13 +190,14 @@ public class RuleService {
         Rule rule = getRuleById(ruleId);
 
         rule.setState(Rule.RuleState.ARCHIVED);
+        rule.setActive(false);
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(archivedBy);
 
         Rule saved = rulePersistencePort.save(rule);
 
         // Log audit event
-        auditService.logRuleArchived(rule.getTenantId(), saved.getId(), archivedBy);
+        auditService.logRuleArchived(saved.getId(), archivedBy);
 
         logger.info("Rule archived successfully: id={}", saved.getId());
         return saved;
@@ -183,40 +213,40 @@ public class RuleService {
     }
 
     /**
-     * Get rule by tenant and code
+     * Get rule by code
      */
     @Transactional(readOnly = true)
-    public Optional<Rule> getRuleByCode(String tenantId, String code) {
-        return rulePersistencePort.findByTenantIdAndCode(tenantId, code);
+    public Optional<Rule> getRuleByCode(String code) {
+        return rulePersistencePort.findByCode(code);
     }
 
     /**
      * Find rules with filters and pagination
      */
     @Transactional(readOnly = true)
-    public Page<Rule> findRules(String tenantId, Rule.RuleState state, String codePattern,
+    public Page<Rule> findRules(Rule.RuleState state, String codePattern,
                                 String namePattern, Pageable pageable) {
         if (state != null || codePattern != null || namePattern != null) {
-            return rulePersistencePort.findByTenantIdWithFilters(tenantId, state, codePattern, namePattern, pageable);
+            return rulePersistencePort.findWithFilters(state, codePattern, namePattern, pageable);
         } else {
             return rulePersistencePort.findAll(pageable);
         }
     }
 
     /**
-     * Get rules by tenant and state
+     * Get rules by state
      */
     @Transactional(readOnly = true)
-    public Page<Rule> getRulesByState(String tenantId, Rule.RuleState state, Pageable pageable) {
-        return rulePersistencePort.findByTenantIdAndState(tenantId, state, pageable);
+    public Page<Rule> getRulesByState(Rule.RuleState state, Pageable pageable) {
+        return rulePersistencePort.findByState(state, pageable);
     }
 
     /**
-     * Get all rules for tenant
+     * Get all rules
      */
     @Transactional(readOnly = true)
-    public List<Rule> getAllRulesByTenant(String tenantId) {
-        return rulePersistencePort.findByTenantIdOrderByUpdatedAtDesc(tenantId);
+    public List<Rule> getAllRules() {
+        return rulePersistencePort.findAllOrderByUpdatedAtDesc();
     }
 
     /**
@@ -279,8 +309,8 @@ public class RuleService {
         }
     }
 
-    private String generateRuleId(String tenantId, String code) {
-        return "rul_" + tenantId + "_" + code;
+    private String generateRuleId(String code) {
+        return "rul_" + code + "_" + System.currentTimeMillis();
     }
 
     /**
