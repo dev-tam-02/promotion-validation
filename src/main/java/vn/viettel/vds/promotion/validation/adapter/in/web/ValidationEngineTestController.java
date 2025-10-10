@@ -142,35 +142,43 @@ public class ValidationEngineTestController {
 
     private CompileRequest createSampleCompileRequest() {
         CompileRequest request = new CompileRequest();
+        request.setTenantId("default");
         request.setRuleId("vip_weekend_rule");
         request.setVersion(1);
-        request.setLogic("ALL");
+        request.setCompilerId("test-compiler-v1");
 
-        // Create rule nodes matching our sample data
-        RuleNodeDto groupNode = new RuleNodeDto();
-        groupNode.setId("n1");
-        groupNode.setType("GROUP");
-        groupNode.setGroupLogic("ALL");
+        // Create rule nodes as Map objects matching our sample data
+        Map<String, Object> groupNode = Map.of(
+                "id", "n1",
+                "type", "GROUP",
+                "groupLogic", "ALL",
+                "children", List.of("n2", "n3")
+        );
 
-        RuleNodeDto segmentNode = new RuleNodeDto();
-        segmentNode.setId("n2");
-        segmentNode.setType("COND");
-        segmentNode.setOperatorName("customer.segment.in");
-        segmentNode.setParams(Map.of("segments", List.of("VIP")));
-        segmentNode.setReasonCode("CUSTOMER_SEGMENT_VIP");
+        Map<String, Object> segmentNode = Map.of(
+                "id", "n2",
+                "type", "COND",
+                "operatorName", "customer.segment.in",
+                "params", Map.of("segments", List.of("VIP")),
+                "reasonCode", "CUSTOMER_SEGMENT_VIP"
+        );
 
-        RuleNodeDto amountNode = new RuleNodeDto();
-        amountNode.setId("n3");
-        amountNode.setType("COND");
-        amountNode.setOperatorName("order.amount.gte");
-        amountNode.setParams(Map.of("amount", 500000, "currency", "VND"));
-        amountNode.setReasonCode("ORDER_AMOUNT_MIN");
+        Map<String, Object> amountNode = Map.of(
+                "id", "n3",
+                "type", "COND",
+                "operatorName", "order.amount.gte",
+                "params", Map.of("amount", 500000, "currency", "VND"),
+                "reasonCode", "ORDER_AMOUNT_MIN"
+        );
 
-        groupNode.setChildren(List.of("n2", "n3"));
         request.setNodes(List.of(groupNode, segmentNode, amountNode));
-
-
         request.setOperatorsFingerprint("sha256:abc123def456");
+
+        // Set source information
+        CompileRequest.Source source = new CompileRequest.Source();
+        source.setRuleVersionId("vip_weekend_rule-v1");
+        source.setSnapshotHash("test-snapshot-hash");
+        request.setSource(source);
 
         return request;
     }

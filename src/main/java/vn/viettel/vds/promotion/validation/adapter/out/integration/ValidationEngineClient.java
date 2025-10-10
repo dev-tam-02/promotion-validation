@@ -10,12 +10,12 @@ import java.util.Map;
 
 @FeignClient(
         name = "validation-engine-service",
-        url = "${integration.validation-engine.url:http://localhost:8082}",
+        url = "${integration.validation-engine.url:http://localhost:16013}",
         fallback = ValidationEngineClientFallback.class
 )
 public interface ValidationEngineClient {
 
-    @PostMapping("/v1/compile")
+    @PostMapping("/v1/compiler/compile")
     CompileResponse compile(@RequestBody CompileRequest request);
 
     @PostMapping("/v1/execute")

@@ -28,13 +28,16 @@ public class RulePublishingService {
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
     private final ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort;
+    private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
-                                 ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort) {
+                                 ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort,
+                                 vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.validationRuleEntityPersistencePort = validationRuleEntityPersistencePort;
+        this.tenantProperties = tenantProperties;
     }
 
     public RulePublishResult publishRule(String ruleId) {
@@ -212,13 +215,32 @@ public class RulePublishingService {
     }
 
     private CompileResponse compileRuleInEngine(Rule rule) {
-        List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
+        List<Map<String, Object>> nodesMaps = convertNodesToMaps(rule.getNodes());
 
         CompileRequest compileRequest = new CompileRequest();
+        compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(rule.getId());
         compileRequest.setVersion(rule.getLatestVersion());
-        compileRequest.setNodes(nodeDtos);
+        compileRequest.setNodes(nodesMaps);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
+        compileRequest.setCompilerId(tenantProperties.getCompilerId());
+
+        // Set limits if available
+        if (rule.getLimits() != null) {
+            CompileRequest.Limits limits = new CompileRequest.Limits();
+            limits.setPerCustomer(rule.getLimits().getPerCustomer());
+            limits.setPerDay(rule.getLimits().getPerDay());
+            compileRequest.setLimits(limits);
+        }
+
+        // Set source information
+        CompileRequest.Source source = new CompileRequest.Source();
+        source.setRuleVersionId(rule.getId() + "-v" + rule.getLatestVersion());
+        source.setSnapshotHash(generateSnapshotHash(rule));
+        compileRequest.setSource(source);
+
+        // Time links can be added later if needed
+        compileRequest.setTimeLinks(null);
 
         return validationEngineClient.compile(compileRequest);
     }
@@ -252,6 +274,45 @@ public class RulePublishingService {
         return dtos;
     }
 
+    private List<Map<String, Object>> convertNodesToMaps(List<RuleNode> nodes) {
+        List<Map<String, Object>> nodeMaps = new ArrayList<>();
+
+        for (RuleNode node : nodes) {
+            Map<String, Object> nodeMap = new HashMap<>();
+            nodeMap.put("id", node.getId());
+            nodeMap.put("type", node.getType() != null ? node.getType().name() : null);
+
+            if (node.getGroupLogic() != null) {
+                nodeMap.put("groupLogic", node.getGroupLogic().name());
+            }
+
+            if (node.getOperatorName() != null) {
+                nodeMap.put("operatorName", node.getOperatorName());
+            }
+
+            if (node.getParams() != null) {
+                nodeMap.put("params", node.getParams());
+            }
+
+            if (node.getReasonCode() != null) {
+                nodeMap.put("reasonCode", node.getReasonCode());
+            }
+
+            // Convert children to IDs
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                List<String> childIds = new ArrayList<>();
+                for (RuleNode child : node.getChildren()) {
+                    childIds.add(child.getId());
+                }
+                nodeMap.put("children", childIds);
+            }
+
+            nodeMaps.add(nodeMap);
+        }
+
+        return nodeMaps;
+    }
+
     private String generateOperatorFingerprint(List<RuleNode> nodes) {
         // Generate a fingerprint based on operators used
         StringBuilder fingerprint = new StringBuilder();
@@ -263,7 +324,26 @@ public class RulePublishingService {
                         .append(";");
             }
         }
-        return fingerprint.toString();
+        return fingerprint.toString().isEmpty() ? "default-fingerprint" : fingerprint.toString();
+    }
+
+    private String generateSnapshotHash(Rule rule) {
+        // Generate a hash based on rule content for versioning
+        StringBuilder content = new StringBuilder();
+        content.append(rule.getId());
+        content.append("|");
+        content.append(rule.getLatestVersion());
+        content.append("|");
+        if (rule.getLogic() != null) {
+            content.append(rule.getLogic().name());
+        }
+        content.append("|");
+        if (rule.getNodes() != null) {
+            content.append(rule.getNodes().size());
+        }
+
+        // Simple hash - in production, use proper hashing algorithm like SHA-256
+        return Integer.toHexString(content.toString().hashCode());
     }
 
     private void warmup(CompileResponse compileResponse) {

@@ -82,20 +82,14 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
         log.debug("Compiling {} rules", rules.size());
 
         try {
-            // Build compile request
-            CompileRequest compileRequest = new CompileRequest();
-            compileRequest.setRules(rules);
+            // Note: This method signature doesn't match the new compile API
+            // which requires full rule structure with nodes, tenantId, etc.
+            // This is a legacy method that needs to be deprecated or updated
 
-            // Call validation engine
-            CompileResponse response = validationEngineClient.compile(compileRequest);
-
-            // Convert response
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", response.isSuccess());
-            result.put("compiledRules", response.getCompiledRules());
-            result.put("errors", response.getErrors());
-
-            return result;
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("error", "This method is deprecated. Use RulePublishingService.publishRule() instead.");
+            return errorResult;
 
         } catch (Exception e) {
             log.error("Failed to compile rules", e);

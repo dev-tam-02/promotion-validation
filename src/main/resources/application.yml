@@ -259,6 +259,18 @@ kafka:
 idempotency:
   ttl-minutes: 10080  # 7 days (7 * 24 * 60 = 10080 minutes)
 
+# Integration Configuration
+integration:
+  validation-engine:
+    url: ${VALIDATION_ENGINE_URL:http://localhost:16013}
+    connect-timeout: 5000
+    read-timeout: 30000
+
+# Tenant Configuration
+tenant:
+  default-tenant-id: default
+  compiler-id: validation-service-compiler-v1
+
 # Resilience4j Configuration for Fact Resolvers
 resilience4j:
   circuitbreaker:
