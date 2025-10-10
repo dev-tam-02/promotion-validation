@@ -362,14 +362,47 @@ public class RulePublishingService {
     }
 
     private void warmup(CompileResponse compileResponse) {
-        if (compileResponse.getArtifactBytes() != null) {
+        // Validate artifact bytes are present
+        if (compileResponse.getArtifactBytes() == null) {
+            String errorMsg = String.format(
+                    "Cannot warm up bundle: artifact bytes are missing. BundleHash=%s. " +
+                    "This indicates a storage retrieval failure in the validation engine.",
+                    compileResponse.getBundleHash()
+            );
+            logger.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+
+        try {
             WarmupRequest warmupRequest = new WarmupRequest(
                     compileResponse.getBundleHash(),
                     compileResponse.getArtifactBytes()
             );
 
-            validationEngineClient.warmup(warmupRequest);
-            logger.debug("Bundle warmed up: bundleHash={}", compileResponse.getBundleHash());
+            WarmupResponse warmupResponse = validationEngineClient.warmup(warmupRequest);
+
+            if (warmupResponse == null || !warmupResponse.isOk()) {
+                String errorMsg = String.format(
+                        "Bundle warmup failed: bundleHash=%s, response=%s",
+                        compileResponse.getBundleHash(),
+                        warmupResponse != null ? warmupResponse.toString() : "null"
+                );
+                logger.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
+            }
+
+            logger.info("Bundle warmed up successfully: bundleHash={}, artifactSize={}",
+                    compileResponse.getBundleHash(),
+                    compileResponse.getArtifactBytes().length);
+
+        } catch (Exception e) {
+            String errorMsg = String.format(
+                    "Failed to warm up bundle: bundleHash=%s, error=%s",
+                    compileResponse.getBundleHash(),
+                    e.getMessage()
+            );
+            logger.error(errorMsg, e);
+            throw new IllegalStateException(errorMsg, e);
         }
     }
 
