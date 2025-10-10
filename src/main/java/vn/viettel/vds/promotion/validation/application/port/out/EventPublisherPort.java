@@ -1,7 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.port.out;
 
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 /**
  * Outbound port for publishing domain events
@@ -21,12 +21,12 @@ public interface EventPublisherPort {
     /**
      * Publish rule created event
      */
-    void publishRuleCreated(ValidationRule rule);
+    void publishRuleCreated(Rule rule);
 
     /**
      * Publish rule updated event
      */
-    void publishRuleUpdated(ValidationRule rule);
+    void publishRuleUpdated(Rule rule);
 
     /**
      * Publish rule deleted event

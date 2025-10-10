@@ -9,7 +9,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.ValidationEngine
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.service.ValidationDomainService;
 
 import java.util.Comparator;
@@ -110,13 +110,13 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
                 request.getTransactionId());
 
         // Load all active rules
-        List<ValidationRule> rules = ruleRepository.findActiveRules();
+        List<Rule> rules = ruleRepository.findActiveRules();
 
         // Filter rules applicable to this request
-        List<ValidationRule> applicableRules = filterApplicableRules(rules, request);
+        List<Rule> applicableRules = filterApplicableRules(rules, request);
 
         // Sort by priority
-        applicableRules.sort(Comparator.comparingInt(ValidationRule::getPriority));
+        applicableRules.sort(Comparator.comparingInt(Rule::getPriority));
 
         log.debug("Found {} applicable rules for transaction: {}",
                 applicableRules.size(), request.getTransactionId());
@@ -134,7 +134,7 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
                 ruleSetId, request.getTransactionId());
 
         // Load rules for specific rule set
-        List<ValidationRule> rules = ruleRepository.findByRuleSetId(ruleSetId);
+        List<Rule> rules = ruleRepository.findByRuleSetId(ruleSetId);
 
         if (rules.isEmpty()) {
             log.warn("No rules found for rule set: {}", ruleSetId);
@@ -142,7 +142,7 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         }
 
         // Sort by priority and execute
-        rules.sort(Comparator.comparingInt(ValidationRule::getPriority));
+        rules.sort(Comparator.comparingInt(Rule::getPriority));
         return validationDomainService.validate(request, rules);
     }
 
@@ -176,7 +176,7 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
      */
     private ValidationResult executeStandardValidation(ValidationRequest request) {
         // Load applicable rules
-        List<ValidationRule> rules = loadApplicableRules(request);
+        List<Rule> rules = loadApplicableRules(request);
 
         // Use domain service for validation
         ValidationResult result = validationDomainService.validate(request, rules);
@@ -203,15 +203,15 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
      */
     private ValidationResult executeStrictValidation(ValidationRequest request) {
         // Load all rules including inactive ones for strict validation
-        List<ValidationRule> allRules = ruleRepository.findActiveRules();
+        List<Rule> allRules = ruleRepository.findActiveRules();
 
         // Add high-priority rules for strict validation
-        List<ValidationRule> strictRules =
-                ruleRepository.findByType(ValidationRule.RuleType.BLACKLIST);
+        List<Rule> strictRules =
+                ruleRepository.findByType(Rule.RuleType.BLACKLIST);
         allRules.addAll(strictRules);
 
         // Sort by priority
-        allRules.sort(Comparator.comparingInt(ValidationRule::getPriority));
+        allRules.sort(Comparator.comparingInt(Rule::getPriority));
 
         // Execute validation
         ValidationResult result = validationDomainService.validate(request, allRules);
@@ -241,8 +241,8 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
     /**
      * Load rules applicable to the request
      */
-    private List<ValidationRule> loadApplicableRules(ValidationRequest request) {
-        List<ValidationRule> rules;
+    private List<Rule> loadApplicableRules(ValidationRequest request) {
+        List<Rule> rules;
 
         // If promotion ID is specified, load promotion-specific rules
         if (request.getPromotionId() != null) {
@@ -255,7 +255,7 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         // Filter by customer segment if available
         String segment = request.getCustomerSegment();
         if (segment != null) {
-            List<ValidationRule> segmentRules =
+            List<Rule> segmentRules =
                     ruleRepository.findByTargetSegment(segment);
             rules.addAll(segmentRules);
         }
@@ -263,15 +263,15 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         // Remove duplicates and sort by priority
         return rules.stream()
                 .distinct()
-                .sorted(Comparator.comparingInt(ValidationRule::getPriority))
+                .sorted(Comparator.comparingInt(Rule::getPriority))
                 .collect(Collectors.toList());
     }
 
     /**
      * Filter rules applicable to the request
      */
-    private List<ValidationRule> filterApplicableRules(
-            List<ValidationRule> rules,
+    private List<Rule> filterApplicableRules(
+            List<Rule> rules,
             ValidationRequest request) {
 
         String customerSegment = request.getCustomerSegment();

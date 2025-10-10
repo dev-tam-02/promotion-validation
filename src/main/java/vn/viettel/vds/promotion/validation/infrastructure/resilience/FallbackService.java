@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResponse;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Instant;
 import java.util.List;
@@ -59,13 +59,13 @@ public class FallbackService {
         }
     }
 
-    public ValidationResponse executeCompilationFallback(ValidationRule rule, Exception originalException) {
+    public ValidationResponse executeCompilationFallback(Rule rule, Exception originalException) {
         fallbackExecutions.incrementAndGet();
         String strategyName = "compilation-fallback";
         strategyUsageCount.computeIfAbsent(strategyName, k -> new AtomicLong(0)).incrementAndGet();
 
         logger.warn("Executing compilation fallback for rule: {}, original error: {}",
-                rule.getRuleId(), originalException.getMessage());
+                rule.getId(), originalException.getMessage());
 
         return ValidationResponse.builder()
                 .transactionId("compilation-fallback-" + System.currentTimeMillis())

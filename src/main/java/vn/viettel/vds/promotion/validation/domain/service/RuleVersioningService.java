@@ -267,7 +267,7 @@ public class RuleVersioningService {
 
     private RuleVersionInfo convertToVersionInfo(RuleVersion ruleVersion) {
         return new RuleVersionInfo(
-                ruleVersion.getRuleId(),
+                ruleVersion.getId(),
                 ruleVersion.getRuleVersion(), // Use ruleVersion (Integer) not version (Long)
                 ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT,
                 ruleVersion.getCode(), // Using code as name

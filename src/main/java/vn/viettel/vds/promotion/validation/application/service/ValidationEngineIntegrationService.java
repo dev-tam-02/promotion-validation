@@ -51,10 +51,10 @@ public class ValidationEngineIntegrationService {
             for (AssignmentEntity assignment : activeAssignments) {
                 try {
                     // Get the validation rule
-                    var validationRuleOpt = validationRuleRepository.findById(assignment.getRuleId());
+                    var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
                     if (validationRuleOpt.isEmpty()) {
                         logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
-                                assignment.getRuleId(), assignment.getId());
+                                assignment.getId(), assignment.getId());
                         failureCount++;
                         continue;
                     }
@@ -122,10 +122,10 @@ public class ValidationEngineIntegrationService {
             }
 
             // Get the validation rule
-            var validationRuleOpt = validationRuleRepository.findById(assignment.getRuleId());
+            var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
             if (validationRuleOpt.isEmpty()) {
                 logger.warn("Validation rule not found for assignment: ruleId={}, assignmentId={}",
-                        assignment.getRuleId(), assignmentId);
+                        assignment.getId(), assignmentId);
                 return CompletableFuture.completedFuture(false);
             }
 

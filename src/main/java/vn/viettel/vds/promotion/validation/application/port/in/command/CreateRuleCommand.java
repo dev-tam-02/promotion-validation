@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,7 +36,7 @@ public class CreateRuleCommand {
     private String expression;
 
     @NotNull(message = "Rule type is required")
-    private ValidationRule.RuleType type;
+    private Rule.RuleType type;
 
     @Builder.Default
     private boolean active = true;

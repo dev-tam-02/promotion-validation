@@ -3,15 +3,9 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper;
 import org.mapstruct.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
- * Mapper between Rule entities and ValidationRule domain model
- * Converts MongoDB Rule and JPA RuleJpaEntity to ValidationRule
+ * Mapper between JPA entities and Rule domain model
  */
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
@@ -19,109 +13,24 @@ import java.util.Set;
 public abstract class ValidationRuleMapper {
 
     /**
-     * Convert Rule domain model to ValidationRule domain model
-     */
-    @Mapping(source = "id", target = "ruleId")
-    @Mapping(source = "ruleCode", target = "ruleCode")
-    @Mapping(source = "name", target = "name")
-    @Mapping(source = "description", target = "description")
-    @Mapping(source = "type", target = "type")
-    @Mapping(source = "priority", target = "priority")
-    @Mapping(source = "createdAt", target = "createdAt")
-    @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "targetSegments", target = "targetSegments")
-    @Mapping(source = "expression", target = "expression")
-    @Mapping(source = "effectiveFrom", target = "effectiveFrom")
-    @Mapping(source = "effectiveTo", target = "effectiveTo")
-    @Mapping(target = "configuration", ignore = true)
-    @Mapping(target = "state", expression = "java(rule.getState() != null ? rule.getState().name().toLowerCase() : \"draft\")")
-    public abstract ValidationRule toDomain(Rule rule);
-
-    /**
-     * Convert JPA RuleJpaEntity to ValidationRule domain model
+     * Convert JPA RuleJpaEntity to Rule domain model
      *
      * Note: RuleJpaEntity no longer has notes, type, or priority fields.
      * Only mapping fields that actually exist in the validation_rules table.
      */
-    @Mapping(source = "id", target = "ruleId")
-    @Mapping(source = "code", target = "ruleCode")
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "code", target = "code")
     @Mapping(source = "name", target = "name")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
     @Mapping(source = "targetSegments", target = "targetSegments")
     @Mapping(source = "state", target = "state")
-    @Mapping(target = "description", ignore = true)  // notes field removed from entity
-    @Mapping(target = "type", ignore = true)  // type field removed from entity
-    @Mapping(target = "priority", ignore = true)  // priority field removed from entity
+    @Mapping(target = "description", ignore = true)
+    @Mapping(target = "type", ignore = true)
+    @Mapping(target = "priority", ignore = true)
     @Mapping(target = "expression", ignore = true)
-    @Mapping(target = "configuration", ignore = true)
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
-    public abstract ValidationRule jpaEntityToDomain(RuleJpaEntity entity);
-
-    /**
-     * Convert ValidationRule domain model to Rule domain model
-     */
-    @Mapping(source = "ruleId", target = "id")
-    @Mapping(source = "ruleCode", target = "ruleCode")
-    @Mapping(source = "name", target = "name")
-    @Mapping(source = "description", target = "description")
-    @Mapping(source = "type", target = "type")
-    @Mapping(source = "priority", target = "priority")
-    @Mapping(source = "createdAt", target = "createdAt")
-    @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "targetSegments", target = "targetSegments")
-    @Mapping(source = "effectiveFrom", target = "effectiveFrom")
-    @Mapping(source = "effectiveTo", target = "effectiveTo")
-    @Mapping(source = "expression", target = "expression")
-    @Mapping(source = "limits", target = "limits", qualifiedByName = "validationUsageLimitsToRuleLimits")
-    @Mapping(target = "state", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()) ? vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.PUBLISHED : vn.viettel.vds.promotion.validation.domain.model.Rule.RuleState.DRAFT)")
-    @Mapping(target = "active", expression = "java(\"published\".equalsIgnoreCase(validationRule.getState()))")
-    @Mapping(target = "code", ignore = true)
-    @Mapping(target = "notes", ignore = true)
-    @Mapping(target = "latestVersion", ignore = true)
-    @Mapping(target = "logic", ignore = true)
     @Mapping(target = "dsl", ignore = true)
-    @Mapping(target = "ruleVersion", ignore = true)
-    @Mapping(target = "publishedAt", ignore = true)
-    @Mapping(target = "publishedBy", ignore = true)
-    @Mapping(target = "configuration", ignore = true)
-    @Mapping(target = "ruleSetId", ignore = true)
-    @Mapping(target = "campaignId", ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
-    @Mapping(target = "updatedBy", ignore = true)
-    @Mapping(target = "version", ignore = true)
-    @Mapping(target = "targetSegmentsList", ignore = true)
-    @Mapping(target = "nodes", ignore = true)
-    public abstract Rule toEntity(ValidationRule validationRule);
-
-    /**
-     * Convert ValidationRule.UsageLimits to Rule.UsageLimits
-     */
-    @Named("validationUsageLimitsToRuleLimits")
-    protected Rule.UsageLimits validationUsageLimitsToRuleLimits(ValidationRule.UsageLimits limits) {
-        if (limits == null) {
-            return null;
-        }
-        return Rule.UsageLimits.builder()
-            .perCodeTotal(limits.getPerCodeTotal())
-            .perCustomer(limits.getPerCustomer())
-            .perDay(limits.getPerDay())
-            .build();
-    }
-
-    /**
-     * Convert Rule.UsageLimits to ValidationRule.UsageLimits
-     */
-    @Named("ruleUsageLimitsToValidationLimits")
-    protected ValidationRule.UsageLimits ruleUsageLimitsToValidationLimits(Rule.UsageLimits limits) {
-        if (limits == null) {
-            return null;
-        }
-        return new ValidationRule.UsageLimits(
-            limits.getPerCodeTotal(),
-            limits.getPerCustomer(),
-            limits.getPerDay()
-        );
-    }
+    public abstract Rule jpaEntityToDomain(RuleJpaEntity entity);
 }

@@ -384,7 +384,7 @@ public class RuleController {
         }
 
         // Get the rule
-        Rule rule = ruleService.getRuleById(assignment.get().getRuleId());
+        Rule rule = ruleService.getRuleById(assignment.get().getId());
 
         // Build response with rule and assignment details
         RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
@@ -434,7 +434,7 @@ public class RuleController {
         return assignments.stream()
                 .map(assignment -> {
                     try {
-                        Rule rule = ruleService.getRuleById(assignment.getRuleId());
+                        Rule rule = ruleService.getRuleById(assignment.getId());
 
                         RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
                         response.setRule(ruleMapper.toRuleResponse(rule));
@@ -458,7 +458,7 @@ public class RuleController {
 
                         return response;
                     } catch (Exception e) {
-                        logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
+                        logger.warn("Failed to get rule {}: {}", assignment.getId(), e.getMessage());
                         return null;
                     }
                 })

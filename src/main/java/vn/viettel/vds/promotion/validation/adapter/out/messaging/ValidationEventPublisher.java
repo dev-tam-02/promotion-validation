@@ -10,7 +10,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.Validatio
 import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.ValidationFailedEvent;
 import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -101,13 +101,13 @@ public class ValidationEventPublisher implements EventPublisherPort {
     }
 
     @Override
-    public void publishRuleCreated(ValidationRule rule) {
-        log.debug("Publishing rule created event for: {}", rule.getRuleId());
+    public void publishRuleCreated(Rule rule) {
+        log.debug("Publishing rule created event for: {}", rule.getId());
 
         try {
             RuleCreatedEvent event = RuleCreatedEvent.builder()
                     .eventId(UUID.randomUUID().toString())
-                    .ruleId(rule.getRuleId())
+                    .ruleId(rule.getId())
                     .ruleCode(rule.getRuleCode())
                     .ruleName(rule.getName())
                     .ruleType(rule.getType() != null ? rule.getType().toString() : null)
@@ -117,7 +117,7 @@ public class ValidationEventPublisher implements EventPublisherPort {
                     .eventTimestamp(Instant.now())
                     .build();
 
-            kafkaUtils.send(RULE_EVENTS_TOPIC, rule.getRuleId(), event)
+            kafkaUtils.send(RULE_EVENTS_TOPIC, rule.getId(), event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
                             log.info("Rule created event published: {}", event.getEventId());
@@ -132,14 +132,14 @@ public class ValidationEventPublisher implements EventPublisherPort {
     }
 
     @Override
-    public void publishRuleUpdated(ValidationRule rule) {
-        log.debug("Publishing rule updated event for: {}", rule.getRuleId());
+    public void publishRuleUpdated(Rule rule) {
+        log.debug("Publishing rule updated event for: {}", rule.getId());
 
         try {
             // Using RuleCreatedEvent with different event type
             RuleCreatedEvent event = RuleCreatedEvent.builder()
                     .eventId(UUID.randomUUID().toString())
-                    .ruleId(rule.getRuleId())
+                    .ruleId(rule.getId())
                     .ruleCode(rule.getRuleCode())
                     .ruleName(rule.getName())
                     .ruleType(rule.getType() != null ? rule.getType().toString() : null)
@@ -150,7 +150,7 @@ public class ValidationEventPublisher implements EventPublisherPort {
                     .eventType("RULE_UPDATED")
                     .build();
 
-            kafkaUtils.send(RULE_EVENTS_TOPIC, rule.getRuleId(), event)
+            kafkaUtils.send(RULE_EVENTS_TOPIC, rule.getId(), event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
                             log.info("Rule updated event published: {}", event.getEventId());

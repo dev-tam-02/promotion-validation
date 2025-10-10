@@ -1,6 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.port.out;
 
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,18 +17,18 @@ public interface ValidationRuleRepositoryPort {
      * @param ruleId the rule ID
      * @return optional containing the rule if found
      */
-    Optional<ValidationRule> findById(String ruleId);
+    Optional<Rule> findById(String ruleId);
 
     /**
      * Find all active rules (rules in PUBLISHED state)
      * <p>
-     * Active rules are those with state = "published". The state field determines
-     * whether a rule is active, not a separate active boolean flag.
+     * Active rules are those with state = PUBLISHED. The state field determines
+     * whether a rule is active, along with the active boolean flag.
      * </p>
      *
      * @return list of active (published) validation rules sorted by priority
      */
-    List<ValidationRule> findActiveRules();
+    List<Rule> findActiveRules();
 
     /**
      * Find rules by type
@@ -36,7 +36,7 @@ public interface ValidationRuleRepositoryPort {
      * @param type the rule type
      * @return list of validation rules of specified type
      */
-    List<ValidationRule> findByType(ValidationRule.RuleType type);
+    List<Rule> findByType(Rule.RuleType type);
 
     /**
      * Find rules by rule set ID
@@ -44,7 +44,7 @@ public interface ValidationRuleRepositoryPort {
      * @param ruleSetId the rule set ID
      * @return list of validation rules in the rule set
      */
-    List<ValidationRule> findByRuleSetId(String ruleSetId);
+    List<Rule> findByRuleSetId(String ruleSetId);
 
     /**
      * Find rules applicable to a promotion
@@ -52,7 +52,7 @@ public interface ValidationRuleRepositoryPort {
      * @param promotionId the promotion ID
      * @return list of applicable validation rules
      */
-    List<ValidationRule> findByPromotionId(String promotionId);
+    List<Rule> findByPromotionId(String promotionId);
 
     /**
      * Save or update a validation rule
@@ -60,7 +60,7 @@ public interface ValidationRuleRepositoryPort {
      * @param rule the validation rule
      * @return saved validation rule
      */
-    ValidationRule save(ValidationRule rule);
+    Rule save(Rule rule);
 
     /**
      * Delete a validation rule
@@ -84,7 +84,7 @@ public interface ValidationRuleRepositoryPort {
      * @param maxPriority maximum priority
      * @return list of validation rules within priority range
      */
-    List<ValidationRule> findByPriorityRange(int minPriority, int maxPriority);
+    List<Rule> findByPriorityRange(int minPriority, int maxPriority);
 
     /**
      * Find rules applicable to customer segment
@@ -92,5 +92,5 @@ public interface ValidationRuleRepositoryPort {
      * @param segment the customer segment
      * @return list of validation rules for the segment
      */
-    List<ValidationRule> findByTargetSegment(String segment);
+    List<Rule> findByTargetSegment(String segment);
 }

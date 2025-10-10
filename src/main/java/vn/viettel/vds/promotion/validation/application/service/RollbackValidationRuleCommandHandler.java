@@ -160,7 +160,7 @@ public class RollbackValidationRuleCommandHandler {
     private void rollbackAssignment(AssignmentEntity assignment) {
         try {
             logger.info("Rolling back assignment: assignmentId={}, ruleId={}, campaignId={}",
-                    assignment.getId(), assignment.getRuleId(), assignment.getEntityId());
+                    assignment.getId(), assignment.getId(), assignment.getEntityId());
 
             // Mark assignment as INACTIVE (soft delete)
             assignment.setActive(false);
@@ -202,7 +202,7 @@ public class RollbackValidationRuleCommandHandler {
      */
     private void undeployRuleFromEngine(AssignmentEntity assignment) {
         try {
-            String ruleId = assignment.getRuleId();
+            String ruleId = assignment.getId();
 
             // Get the validation rule details
             var ruleOpt = validationRuleRepository.findById(ruleId);

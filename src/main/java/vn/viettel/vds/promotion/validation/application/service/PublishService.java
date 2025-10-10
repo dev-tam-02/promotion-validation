@@ -193,7 +193,7 @@ public class PublishService {
             logger.info("Executing publish job: id={}", jobId);
 
             PublishJob job = getPublishJob(jobId);
-            Rule rule = ruleService.getRuleById(job.getRuleId());
+            Rule rule = ruleService.getRuleById(job.getId());
 
             // Create rule version snapshot
             RuleVersion ruleVersion = createRuleVersionSnapshot(rule, job);

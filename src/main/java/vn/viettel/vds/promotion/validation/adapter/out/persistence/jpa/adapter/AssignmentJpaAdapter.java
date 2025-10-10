@@ -71,7 +71,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
                 .filter(e -> subjectKeyPattern == null ||
                         (e.getEntityId() != null && e.getEntityId().contains(subjectKeyPattern)))
                 .filter(e -> active == null || e.getActive().equals(active))
-                .filter(e -> ruleId == null || e.getRuleId().equals(ruleId))
+                .filter(e -> ruleId == null || e.getId().equals(ruleId))
                 .collect(Collectors.toList());
         return convertToPage(filtered, pageable);
     }

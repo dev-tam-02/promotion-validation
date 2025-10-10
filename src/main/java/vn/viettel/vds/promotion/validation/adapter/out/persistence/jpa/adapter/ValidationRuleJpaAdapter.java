@@ -8,7 +8,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper.ValidationRuleMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,14 +31,14 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public Optional<ValidationRule> findById(String ruleId) {
+    public Optional<Rule> findById(String ruleId) {
         log.debug("Finding rule by ID: {}", ruleId);
         return jpaRepository.findById(ruleId)
                 .map(mapper::jpaEntityToDomain);
     }
 
     @Override
-    public List<ValidationRule> findActiveRules() {
+    public List<Rule> findActiveRules() {
         log.debug("Finding all active rules (published state)");
         // Get published rules from JPA (PUBLISHED state means active)
         // Note: priority field no longer exists, so no sorting by priority
@@ -48,7 +48,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public List<ValidationRule> findByType(ValidationRule.RuleType type) {
+    public List<Rule> findByType(Rule.RuleType type) {
         log.debug("Finding rules by type: {}", type);
         // Note: type field no longer exists in validation_rules table
         // Returning empty list - this method should be deprecated
@@ -57,7 +57,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public List<ValidationRule> findByRuleSetId(String ruleSetId) {
+    public List<Rule> findByRuleSetId(String ruleSetId) {
         log.debug("Finding rules by rule set ID: {}", ruleSetId);
         // Note: ruleSetId field no longer exists in validation_rules table
         // Returning empty list - this method should be deprecated
@@ -66,7 +66,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public List<ValidationRule> findByPromotionId(String promotionId) {
+    public List<Rule> findByPromotionId(String promotionId) {
         log.debug("Finding rules by promotion ID: {}", promotionId);
         // Note: campaignId field no longer exists in validation_rules table
         // Returning empty list - this method should be deprecated
@@ -75,9 +75,9 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public ValidationRule save(ValidationRule rule) {
-        log.debug("Saving rule: {}", rule.getRuleId());
-        // Note: Converting ValidationRule to JPA entity is not fully supported
+    public Rule save(Rule rule) {
+        log.debug("Saving rule: {}", rule.getId());
+        // Note: Converting Rule to JPA entity is not fully supported
         // This would need additional mapping logic for complete conversion
         throw new UnsupportedOperationException("Save operation not fully supported for JPA adapter");
     }
@@ -94,7 +94,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public List<ValidationRule> findByPriorityRange(int minPriority, int maxPriority) {
+    public List<Rule> findByPriorityRange(int minPriority, int maxPriority) {
         log.debug("Finding rules by priority range: {} - {}", minPriority, maxPriority);
         // Note: priority field no longer exists in validation_rules table
         // Returning empty list - this method should be deprecated
@@ -103,7 +103,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     }
 
     @Override
-    public List<ValidationRule> findByTargetSegment(String segment) {
+    public List<Rule> findByTargetSegment(String segment) {
         log.debug("Finding rules by target segment: {}", segment);
         // JPA doesn't have this query - filter manually
         return jpaRepository.findAll().stream()

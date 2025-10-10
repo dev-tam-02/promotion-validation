@@ -275,8 +275,8 @@ public class AssignmentService {
         }
 
         // Add rule information
-        if (assign.getRuleId() != null) {
-            settings.put("ruleId", assign.getRuleId());
+        if (assign.getId() != null) {
+            settings.put("ruleId", assign.getId());
         }
 
         // Add assignment metadata

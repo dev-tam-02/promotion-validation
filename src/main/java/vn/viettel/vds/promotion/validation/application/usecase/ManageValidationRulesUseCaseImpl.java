@@ -12,7 +12,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.ValidationEngine
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.service.ValidationDomainService;
 
 import java.time.Instant;
@@ -34,7 +34,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     private final ValidationDomainService domainService;
 
     @Override
-    public ValidationRule createRule(CreateRuleCommand command) {
+    public Rule createRule(CreateRuleCommand command) {
         log.info("Creating new rule with code: {}", command.getRuleCode());
 
         // Validate rule syntax
@@ -43,40 +43,40 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         }
 
         // Build domain model
-        ValidationRule rule = ValidationRule.builder()
-                .ruleId(UUID.randomUUID().toString())
+        Rule rule = Rule.builder()
+                .id(UUID.randomUUID().toString())
                 .ruleCode(command.getRuleCode())
                 .name(command.getName())
                 .description(command.getDescription())
                 .expression(command.getExpression())
-                .type(command.getType())
-                .state(command.isActive() ? "published" : "draft")
+                .type(command.getType().name())
+                .state(command.isActive() ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT)
                 .priority(command.getPriority())
-                .configuration(command.getConfiguration())
+                .configuration(convertConfiguration(command.getConfiguration()))
                 .targetSegments(command.getTargetSegments())
                 .effectiveFrom(command.getEffectiveFrom())
-                .effectiveUntil(command.getEffectiveUntil())
+                .effectiveTo(command.getEffectiveUntil())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
         // Save to repository
-        ValidationRule savedRule = ruleRepository.save(rule);
+        Rule savedRule = ruleRepository.save(rule);
 
-        log.info("Rule created successfully: {}", savedRule.getRuleId());
+        log.info("Rule created successfully: {}", savedRule.getId());
         return savedRule;
     }
 
     @Override
-    public ValidationRule updateRule(String ruleId, UpdateRuleCommand command) {
+    public Rule updateRule(String ruleId, UpdateRuleCommand command) {
         log.info("Updating rule: {}", ruleId);
 
         // Get existing rule
-        ValidationRule existingRule = ruleRepository.findById(ruleId)
+        Rule existingRule = ruleRepository.findById(ruleId)
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
         // Update fields if provided
-        ValidationRule.Builder updatedRule = existingRule.toBuilder()
+        Rule.RuleBuilder updatedRule = existingRule.toBuilder()
                 .updatedAt(Instant.now());
 
         if (command.getName() != null) {
@@ -93,16 +93,16 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             updatedRule.expression(command.getExpression());
         }
         if (command.getType() != null) {
-            updatedRule.type(command.getType());
+            updatedRule.type(command.getType().name());
         }
         if (command.getActive() != null) {
-            updatedRule.state(command.getActive() ? "published" : "draft");
+            updatedRule.state(command.getActive() ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT);
         }
         if (command.getPriority() != null) {
             updatedRule.priority(command.getPriority());
         }
         if (command.getConfiguration() != null) {
-            updatedRule.configuration(command.getConfiguration());
+            updatedRule.configuration(convertConfiguration(command.getConfiguration()));
         }
         if (command.getTargetSegments() != null) {
             updatedRule.targetSegments(command.getTargetSegments());
@@ -111,13 +111,13 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             updatedRule.effectiveFrom(command.getEffectiveFrom());
         }
         if (command.getEffectiveUntil() != null) {
-            updatedRule.effectiveUntil(command.getEffectiveUntil());
+            updatedRule.effectiveTo(command.getEffectiveUntil());
         }
 
-        ValidationRule updated = updatedRule.build();
+        Rule updated = updatedRule.build();
 
         // Save updated rule
-        ValidationRule savedRule = ruleRepository.save(updated);
+        Rule savedRule = ruleRepository.save(updated);
 
         log.info("Rule updated successfully: {}", ruleId);
         return savedRule;
@@ -136,32 +136,32 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public Optional<ValidationRule> getRule(String ruleId) {
+    public Optional<Rule> getRule(String ruleId) {
         return ruleRepository.findById(ruleId);
     }
 
     @Override
-    public List<ValidationRule> getAllRules() {
+    public List<Rule> getAllRules() {
         return ruleRepository.findActiveRules();
     }
 
     @Override
-    public List<ValidationRule> getActiveRules() {
+    public List<Rule> getActiveRules() {
         return ruleRepository.findActiveRules()
                 .stream()
-                .filter(ValidationRule::isActive)
+                .filter(Rule::isActive)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public ValidationRule activateRule(String ruleId) {
+    public Rule activateRule(String ruleId) {
         log.info("Activating rule: {}", ruleId);
 
-        ValidationRule rule = ruleRepository.findById(ruleId)
+        Rule rule = ruleRepository.findById(ruleId)
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
-        ValidationRule activated = rule.toBuilder()
-                .state("published")
+        Rule activated = rule.toBuilder()
+                .state(Rule.RuleState.PUBLISHED)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -169,14 +169,14 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public ValidationRule deactivateRule(String ruleId) {
+    public Rule deactivateRule(String ruleId) {
         log.info("Deactivating rule: {}", ruleId);
 
-        ValidationRule rule = ruleRepository.findById(ruleId)
+        Rule rule = ruleRepository.findById(ruleId)
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
-        ValidationRule deactivated = rule.toBuilder()
-                .state("archived")
+        Rule deactivated = rule.toBuilder()
+                .state(Rule.RuleState.ARCHIVED)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -190,7 +190,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
         try {
             // Load rules
-            List<ValidationRule> rules = command.getRuleIds().stream()
+            List<Rule> rules = command.getRuleIds().stream()
                     .map(ruleRepository::findById)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
@@ -203,7 +203,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
             // Build deployment payload
             Map<String, Object> deploymentPayload = new HashMap<>();
-            for (ValidationRule rule : rules) {
+            for (Rule rule : rules) {
                 deploymentPayload.put(rule.getRuleCode(), rule.getExpression());
             }
 
@@ -239,17 +239,17 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public ValidationRule cloneRule(String ruleId, String newRuleCode) {
+    public Rule cloneRule(String ruleId, String newRuleCode) {
         log.info("Cloning rule {} with new code: {}", ruleId, newRuleCode);
 
-        ValidationRule originalRule = ruleRepository.findById(ruleId)
+        Rule originalRule = ruleRepository.findById(ruleId)
                 .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
-        ValidationRule clonedRule = originalRule.toBuilder()
-                .ruleId(UUID.randomUUID().toString())
+        Rule clonedRule = originalRule.toBuilder()
+                .id(UUID.randomUUID().toString())
                 .ruleCode(newRuleCode)
                 .name(originalRule.getName() + " (Copy)")
-                .state("draft") // Start as draft
+                .state(Rule.RuleState.DRAFT) // Start as draft
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -258,14 +258,14 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public List<ValidationRule> getRulesByPromotion(String promotionId) {
+    public List<Rule> getRulesByPromotion(String promotionId) {
         return ruleRepository.findByPromotionId(promotionId);
     }
 
     @Override
-    public List<ValidationRule> getRulesByType(String ruleType) {
+    public List<Rule> getRulesByType(String ruleType) {
         try {
-            ValidationRule.RuleType type = ValidationRule.RuleType.valueOf(ruleType.toUpperCase());
+            Rule.RuleType type = Rule.RuleType.valueOf(ruleType.toUpperCase());
             return ruleRepository.findByType(type);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid rule type: {}", ruleType);
@@ -278,7 +278,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         log.info("Testing rule {} with test data", ruleId);
 
         try {
-            ValidationRule rule = ruleRepository.findById(ruleId)
+            Rule rule = ruleRepository.findById(ruleId)
                     .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
 
             // Create test request
@@ -300,14 +300,14 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public List<ValidationRule> bulkCreateRules(List<CreateRuleCommand> commands) {
+    public List<Rule> bulkCreateRules(List<CreateRuleCommand> commands) {
         log.info("Bulk creating {} rules", commands.size());
 
-        List<ValidationRule> createdRules = new ArrayList<>();
+        List<Rule> createdRules = new ArrayList<>();
 
         for (CreateRuleCommand command : commands) {
             try {
-                ValidationRule rule = createRule(command);
+                Rule rule = createRule(command);
                 createdRules.add(rule);
             } catch (Exception e) {
                 log.error("Failed to create rule: {}", command.getRuleCode(), e);
@@ -320,14 +320,14 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public List<ValidationRule> bulkUpdateRules(Map<String, UpdateRuleCommand> updates) {
+    public List<Rule> bulkUpdateRules(Map<String, UpdateRuleCommand> updates) {
         log.info("Bulk updating {} rules", updates.size());
 
-        List<ValidationRule> updatedRules = new ArrayList<>();
+        List<Rule> updatedRules = new ArrayList<>();
 
         for (Map.Entry<String, UpdateRuleCommand> entry : updates.entrySet()) {
             try {
-                ValidationRule rule = updateRule(entry.getKey(), entry.getValue());
+                Rule rule = updateRule(entry.getKey(), entry.getValue());
                 updatedRules.add(rule);
             } catch (Exception e) {
                 log.error("Failed to update rule: {}", entry.getKey(), e);
@@ -369,10 +369,10 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
     }
 
     @Override
-    public List<ValidationRule> importRules(Map<String, Object> configuration) {
+    public List<Rule> importRules(Map<String, Object> configuration) {
         log.info("Importing rules from configuration");
 
-        List<ValidationRule> importedRules = new ArrayList<>();
+        List<Rule> importedRules = new ArrayList<>();
 
         if (configuration.get("rules") instanceof List) {
             List<Map<String, Object>> rulesConfig = (List<Map<String, Object>>) configuration.get("rules");
@@ -384,14 +384,14 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                             .name((String) ruleConfig.get("name"))
                             .description((String) ruleConfig.get("description"))
                             .expression((String) ruleConfig.get("expression"))
-                            .type(ValidationRule.RuleType.valueOf((String) ruleConfig.get("type")))
+                            .type(Rule.RuleType.valueOf((String) ruleConfig.get("type")))
                             .priority((Integer) ruleConfig.getOrDefault("priority", 100))
                             .configuration((Map<String, Object>) ruleConfig.get("configuration"))
                             .targetSegments((Set<String>) ruleConfig.get("targetSegments"))
                             .active(false) // Start as inactive
                             .build();
 
-                    ValidationRule rule = createRule(command);
+                    Rule rule = createRule(command);
                     importedRules.add(rule);
 
                 } catch (Exception e) {
@@ -403,5 +403,21 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
         log.info("Imported {} rules successfully", importedRules.size());
         return importedRules;
+    }
+
+    /**
+     * Convert Map<String, Object> to Map<String, String>
+     */
+    private Map<String, String> convertConfiguration(Map<String, Object> config) {
+        if (config == null) {
+            return null;
+        }
+        Map<String, String> converted = new HashMap<>();
+        config.forEach((key, value) -> {
+            if (value != null) {
+                converted.put(key, value.toString());
+            }
+        });
+        return converted;
     }
 }

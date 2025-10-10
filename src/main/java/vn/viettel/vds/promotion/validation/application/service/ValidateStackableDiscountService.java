@@ -12,7 +12,7 @@ import vn.viettel.vds.promotion.validation.domain.fact.DiscountFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactPack;
 import vn.viettel.vds.promotion.validation.domain.model.StackingContext;
 import vn.viettel.vds.promotion.validation.domain.model.StackingResult;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.service.StackableDiscountValidationService;
 import vn.viettel.vds.promotion.validation.domain.service.StackableRuleEvaluator;
 import vn.viettel.vds.promotion.schema.redemption.event.ValidateStackableDiscountResultEvent;
@@ -73,7 +73,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
             }
 
             // Step 2: Retrieve applicable validation rules
-            List<ValidationRule> rules = retrieveApplicableRules(command);
+            List<Rule> rules = retrieveApplicableRules(command);
             log.debug("Retrieved {} validation rules", rules.size());
 
             // Step 3: Execute domain validation logic
@@ -162,7 +162,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
     /**
      * Retrieves applicable validation rules for the command.
      */
-    private List<ValidationRule> retrieveApplicableRules(ValidateStackableDiscountCommand command) {
+    private List<Rule> retrieveApplicableRules(ValidateStackableDiscountCommand command) {
         try {
             String customerSegment = command.customerInfo().segment();
             return ruleService.getActiveRulesForStackableDiscount(customerSegment);

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResponse;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -63,9 +63,9 @@ public class ResilienceOrchestrator {
         }
     }
 
-    public ValidationResponse executeCompilationWithResilience(ValidationRule rule,
+    public ValidationResponse executeCompilationWithResilience(Rule rule,
                                                                Supplier<ValidationResponse> compilationSupplier) {
-        String operationName = "compilation-" + rule.getRuleId();
+        String operationName = "compilation-" + rule.getId();
         Instant startTime = Instant.now();
 
         try {
@@ -75,17 +75,17 @@ public class ResilienceOrchestrator {
             }
 
             return executeWithAllPatterns(operationName, () -> {
-                logger.debug("Executing compilation with resilience patterns for rule: {}", rule.getRuleId());
+                logger.debug("Executing compilation with resilience patterns for rule: {}", rule.getId());
                 return compilationSupplier.get();
             });
 
         } catch (Exception e) {
-            logger.error("Compilation execution failed for rule: {}, attempting fallback", rule.getRuleId(), e);
+            logger.error("Compilation execution failed for rule: {}, attempting fallback", rule.getId(), e);
             return fallbackService.executeCompilationFallback(rule, e);
         } finally {
             Duration executionTime = Duration.between(startTime, Instant.now());
             logger.info("Compilation execution completed for rule: {} in {}ms",
-                    rule.getRuleId(), executionTime.toMillis());
+                    rule.getId(), executionTime.toMillis());
         }
     }
 

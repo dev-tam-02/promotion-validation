@@ -45,7 +45,7 @@ public class RuleService {
      * @param customerSegment customer segment (can be null for all segments)
      * @return list of active validation rules
      */
-    public List<vn.viettel.vds.promotion.validation.domain.model.ValidationRule> getActiveRulesForStackableDiscount(String customerSegment) {
+    public List<Rule> getActiveRulesForStackableDiscount(String customerSegment) {
         logger.debug("Retrieving active stackable discount rules for segment: {}", customerSegment);
 
         // For now, return empty list
@@ -347,7 +347,7 @@ public class RuleService {
         }
 
         // Get the rule from assignment
-        String ruleId = assignment.get().getRuleId();
+        String ruleId = assignment.get().getId();
         return getRuleById(ruleId);
     }
 
@@ -371,9 +371,9 @@ public class RuleService {
         return assignments.stream()
                 .map(assignment -> {
                     try {
-                        return getRuleById(assignment.getRuleId());
+                        return getRuleById(assignment.getId());
                     } catch (Exception e) {
-                        logger.warn("Failed to get rule {}: {}", assignment.getRuleId(), e.getMessage());
+                        logger.warn("Failed to get rule {}: {}", assignment.getId(), e.getMessage());
                         return null;
                     }
                 })
