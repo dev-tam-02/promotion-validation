@@ -52,14 +52,14 @@ public class OperatorService {
     /**
      * Create a new operator
      */
-    public Operator createOperator(String tenantId, String name, Integer version, String context,
+    public Operator createOperator(String name, Integer version, String context,
                                    Map<String, Object> jsonSchema, String compilerId) {
-        logger.info("Creating operator: tenant={}, name={}, version={}", tenantId, name, version);
+        logger.info("Creating operator: name={}, version={}", name, version);
 
         // Check if operator with same name and version already exists
-        if (operatorPersistencePort.existsByTenantIdAndNameAndVersion(tenantId, name, version)) {
+        if (operatorPersistencePort.existsByTenantIdAndNameAndVersion(null, name, version)) {
             throw new BusinessException(new ResponseInfo("OPERATOR_EXISTS",
-                    "Operator " + name + "@" + version + " already exists for tenant " + tenantId, 400));
+                    "Operator " + name + "@" + version + " already exists", 400));
         }
 
         // Validate JSON schema
@@ -71,7 +71,6 @@ public class OperatorService {
         Instant now = Instant.now();
         Operator operator = Operator.builder()
                 .id(generateOperatorId(name, version))
-                .tenantId(tenantId)
                 .name(name)
                 .operatorVersion(version)
                 .context(context)
@@ -86,7 +85,7 @@ public class OperatorService {
         Operator saved = operatorPersistencePort.save(operator);
 
         // Log audit event
-        auditService.logOperatorCreated(tenantId, saved.getId(), "system");
+        auditService.logOperatorCreated(null, saved.getId(), "system");
 
         logger.info("Operator created successfully: id={}", saved.getId());
         return saved;

@@ -175,7 +175,6 @@ public class PublishService {
 
         PublishJob job = PublishJob.builder()
                 .id(generateJobId(rule.getId(), targetVersion))
-                .tenantId("default")
                 .ruleId(rule.getId())
                 .targetVersion(targetVersion)
                 .status(PublishJob.JobStatus.RUNNING)
@@ -286,7 +285,6 @@ public class PublishService {
 
         RuleVersion ruleVersion = RuleVersion.builder()
                 .id(generateRuleVersionId(rule.getCode(), job.getTargetVersion()))
-                .tenantId("default")
                 .ruleId(rule.getId())
                 .code(rule.getCode())
                 .ruleVersion(job.getTargetVersion())

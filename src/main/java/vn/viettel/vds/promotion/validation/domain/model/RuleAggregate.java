@@ -1,6 +1,9 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
-import vn.viettel.vds.promotion.validation.domain.valueobject.*;
+import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
+import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
+import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
+import vn.viettel.vds.promotion.validation.domain.valueobject.Version;
 
 import java.time.Instant;
 import java.util.*;
@@ -11,7 +14,6 @@ import java.util.*;
  */
 public class RuleAggregate {
     private final RuleId id;
-    private final TenantId tenantId;
     private final RuleCode code;
     private final Instant createdAt;
     private RuleName name;
@@ -27,9 +29,8 @@ public class RuleAggregate {
     private String publishedBy;
 
     // Constructor for creating new rule
-    public RuleAggregate(TenantId tenantId, RuleCode code, RuleName name, LogicType logicType, String createdBy) {
+    public RuleAggregate(RuleCode code, RuleName name, LogicType logicType, String createdBy) {
         this.id = RuleId.generate();
-        this.tenantId = Objects.requireNonNull(tenantId, "TenantId cannot be null");
         this.code = Objects.requireNonNull(code, "RuleCode cannot be null");
         this.name = Objects.requireNonNull(name, "RuleName cannot be null");
         this.logicType = Objects.requireNonNull(logicType, "LogicType cannot be null");
@@ -45,7 +46,6 @@ public class RuleAggregate {
     // Constructor for reconstituting from persistence
     private RuleAggregate(Builder builder) {
         this.id = builder.id;
-        this.tenantId = builder.tenantId;
         this.code = builder.code;
         this.name = builder.name;
         this.description = builder.description;
@@ -262,7 +262,7 @@ public class RuleAggregate {
      * Clone this rule as a new draft
      */
     public RuleAggregate cloneAsDraft(String clonedBy) {
-        RuleAggregate cloned = new RuleAggregate(tenantId, RuleCode.of(code.getValue() + "_COPY"), name, logicType, clonedBy);
+        RuleAggregate cloned = new RuleAggregate(RuleCode.of(code.getValue() + "_COPY"), name, logicType, clonedBy);
         cloned.description = this.description + " (Copy)";
         cloned.nodes = new ArrayList<>(this.nodes);
         return cloned;
@@ -271,10 +271,6 @@ public class RuleAggregate {
     // Getters
     public RuleId getId() {
         return id;
-    }
-
-    public TenantId getTenantId() {
-        return tenantId;
     }
 
     public RuleCode getCode() {
@@ -331,7 +327,6 @@ public class RuleAggregate {
 
     public static class Builder {
         private RuleId id;
-        private TenantId tenantId;
         private RuleCode code;
         private RuleName name;
         private String description;
@@ -348,11 +343,6 @@ public class RuleAggregate {
 
         public Builder id(RuleId id) {
             this.id = id;
-            return this;
-        }
-
-        public Builder tenantId(TenantId tenantId) {
-            this.tenantId = tenantId;
             return this;
         }
 

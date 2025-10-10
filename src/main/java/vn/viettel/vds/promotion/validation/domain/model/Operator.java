@@ -14,7 +14,6 @@ import java.util.Map;
 @Builder(toBuilder = true)
 public class Operator {
     String id;
-    String tenantId;
     String name;
     Integer operatorVersion;
     String context;

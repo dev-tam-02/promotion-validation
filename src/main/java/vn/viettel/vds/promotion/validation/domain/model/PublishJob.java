@@ -14,7 +14,6 @@ import java.util.List;
 @Builder(toBuilder = true)
 public class PublishJob {
     String id;
-    String tenantId;
     String ruleId;
     Integer targetVersion;
     JobStatus status;

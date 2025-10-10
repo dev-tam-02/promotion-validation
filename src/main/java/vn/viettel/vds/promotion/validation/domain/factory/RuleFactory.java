@@ -5,7 +5,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleAggregate;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
-import vn.viettel.vds.promotion.validation.domain.valueobject.TenantId;
 
 import java.util.List;
 import java.util.Objects;
@@ -19,20 +18,17 @@ public class RuleFactory {
      * Create a new rule with basic information
      */
     public RuleAggregate createRule(
-            String tenantId,
             String code,
             String name,
             LogicType logicType,
             String createdBy
     ) {
-        Objects.requireNonNull(tenantId, "TenantId cannot be null");
         Objects.requireNonNull(code, "Code cannot be null");
         Objects.requireNonNull(name, "Name cannot be null");
         Objects.requireNonNull(logicType, "LogicType cannot be null");
         Objects.requireNonNull(createdBy, "CreatedBy cannot be null");
 
         return new RuleAggregate(
-                TenantId.of(tenantId),
                 RuleCode.of(code),
                 RuleName.of(name),
                 logicType,
@@ -44,7 +40,6 @@ public class RuleFactory {
      * Create a rule with nodes
      */
     public RuleAggregate createRuleWithNodes(
-            String tenantId,
             String code,
             String name,
             String description,
@@ -52,7 +47,7 @@ public class RuleFactory {
             List<RuleNode> nodes,
             String createdBy
     ) {
-        RuleAggregate rule = createRule(tenantId, code, name, logicType, createdBy);
+        RuleAggregate rule = createRule(code, name, logicType, createdBy);
 
         if (description != null) {
             rule.update(rule.getName(), description, logicType, nodes, createdBy);
@@ -67,7 +62,6 @@ public class RuleFactory {
      * Create a simple condition rule (single node)
      */
     public RuleAggregate createSimpleConditionRule(
-            String tenantId,
             String code,
             String name,
             String field,
@@ -83,7 +77,6 @@ public class RuleFactory {
                 .build();
 
         return createRuleWithNodes(
-                tenantId,
                 code,
                 name,
                 "Simple condition rule: " + field + " " + operator + " " + value,
@@ -97,7 +90,6 @@ public class RuleFactory {
      * Create a composite rule with multiple conditions
      */
     public RuleAggregate createCompositeRule(
-            String tenantId,
             String code,
             String name,
             LogicType logicType,
@@ -109,7 +101,6 @@ public class RuleFactory {
                 .toList();
 
         return createRuleWithNodes(
-                tenantId,
                 code,
                 name,
                 "Composite rule with " + conditions.size() + " conditions",
@@ -124,13 +115,11 @@ public class RuleFactory {
      */
     public RuleAggregate createFromTemplate(
             RuleTemplate template,
-            String tenantId,
             String code,
             String name,
             String createdBy
     ) {
         RuleAggregate rule = createRule(
-                tenantId,
                 code,
                 name,
                 template.getLogicType(),

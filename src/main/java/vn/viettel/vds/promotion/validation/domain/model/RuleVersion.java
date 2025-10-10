@@ -15,7 +15,6 @@ import java.util.Map;
 @Builder(toBuilder = true)
 public class RuleVersion {
     String id;
-    String tenantId;
     String ruleId;
     String code;
     Integer ruleVersion;

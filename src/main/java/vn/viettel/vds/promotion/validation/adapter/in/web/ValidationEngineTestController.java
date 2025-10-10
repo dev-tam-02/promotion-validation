@@ -142,7 +142,6 @@ public class ValidationEngineTestController {
 
     private CompileRequest createSampleCompileRequest() {
         CompileRequest request = new CompileRequest();
-        request.setTenantId("DEFAULT");
         request.setRuleId("vip_weekend_rule");
         request.setVersion(1);
         request.setLogic("ALL");

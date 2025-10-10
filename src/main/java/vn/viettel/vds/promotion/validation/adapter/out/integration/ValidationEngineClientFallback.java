@@ -15,8 +15,8 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
 
     @Override
     public CompileResponse compile(CompileRequest request) {
-        logger.error("Fallback: Rule compilation failed for tenantId={}, ruleId={}, version={}",
-                request.getTenantId(), request.getRuleId(), request.getVersion().intValue());
+        logger.error("Fallback: Rule compilation failed for ruleId={}, version={}",
+                request.getRuleId(), request.getVersion().intValue());
 
         CompileResponse fallbackResponse = new CompileResponse();
         fallbackResponse.setOk(false);

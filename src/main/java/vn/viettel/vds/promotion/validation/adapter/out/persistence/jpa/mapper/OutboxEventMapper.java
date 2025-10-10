@@ -20,7 +20,6 @@ public class OutboxEventMapper {
 
         OutboxEventEntity entity = OutboxEventEntity.builder()
                 .id(domain.getId())
-                .tenantId(domain.getTenantId())
                 .aggregateType(domain.getAggregateType())
                 .aggregateId(domain.getAggregateId())
                 .eventType(domain.getEventType())
@@ -52,7 +51,6 @@ public class OutboxEventMapper {
 
         return OutboxEvent.builder()
                 .id(entity.getId())
-                .tenantId(entity.getTenantId())
                 .aggregateType(entity.getAggregateType())
                 .aggregateId(entity.getAggregateId())
                 .eventType(entity.getEventType())

@@ -21,7 +21,6 @@ public interface ReasonCodeEntityMapper {
 
         return ReasonCode.builder()
                 .id(entity.getId())
-                .tenantId(entity.getTenantId())
                 .category(entity.getCategory())
                 .severity(mapSeverity(entity.getSeverity()))
                 .labels(entity.getLabels())  // Already Map<String, Object>
@@ -37,7 +36,6 @@ public interface ReasonCodeEntityMapper {
 
         ReasonCodeEntity entity = new ReasonCodeEntity();
         entity.setId(domain.getId());
-        entity.setTenantId(domain.getTenantId());
         entity.setCategory(domain.getCategory());
         entity.setSeverity(mapSeverity(domain.getSeverity()));
         entity.setLabels(domain.getLabels());

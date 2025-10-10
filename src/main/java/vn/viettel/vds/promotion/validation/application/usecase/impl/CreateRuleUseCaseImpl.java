@@ -14,7 +14,6 @@ import vn.viettel.vds.promotion.validation.domain.model.LogicType;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
-import vn.viettel.vds.promotion.validation.domain.valueobject.TenantId;
 
 import java.util.List;
 import java.util.stream.Collectors;

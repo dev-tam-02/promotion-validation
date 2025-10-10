@@ -14,7 +14,6 @@ import java.util.Map;
 @Builder(toBuilder = true)
 public class AuditLog {
     String id;
-    String tenantId;
     String actor;
     AuditAction action;
     AuditTarget target;

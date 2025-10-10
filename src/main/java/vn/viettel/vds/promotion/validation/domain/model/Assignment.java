@@ -17,7 +17,6 @@ import java.time.Instant;
 @AllArgsConstructor
 public class Assignment {
     private String id;
-    private String tenantId;
     private String ruleId;
     private Integer ruleVersionPinned;
     private Subject subject;

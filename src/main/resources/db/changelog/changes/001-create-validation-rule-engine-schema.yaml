@@ -285,12 +285,6 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: tenant_id
-                  type: varchar(50)
-                  remarks: Tenant identifier
-                  constraints:
-                    nullable: false
-              - column:
                   name: name
                   type: varchar(100)
                   remarks: Operator name
@@ -337,8 +331,6 @@ databaseChangeLog:
             unique: true
             columns:
               - column:
-                  name: tenant_id
-              - column:
                   name: name
               - column:
                   name: operator_version
@@ -347,8 +339,6 @@ databaseChangeLog:
             indexName: idx_operators_context_status
             tableName: operators
             columns:
-              - column:
-                  name: tenant_id
               - column:
                   name: context
               - column:
@@ -369,10 +359,6 @@ databaseChangeLog:
                   constraints:
                     primaryKey: true
                     nullable: false
-              - column:
-                  name: tenant_id
-                  type: varchar(50)
-                  remarks: Tenant identifier
               - column:
                   name: name
                   type: varchar(200)

@@ -11,10 +11,6 @@ import java.util.Map;
 @Schema(description = "Request to create a new operator")
 public class CreateOperatorRequest {
 
-    @Schema(description = "Tenant ID (null for global operators)", example = "t1")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Operator name", example = "order.total.gte", required = true)
     @NotBlank(message = "Operator name is required")
     @JsonProperty("name")
@@ -45,14 +41,6 @@ public class CreateOperatorRequest {
     @JsonProperty("status")
     private String status = "active";
 
-    // Getters and setters
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
 
     public String getName() {
         return name;

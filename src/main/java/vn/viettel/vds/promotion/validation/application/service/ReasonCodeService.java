@@ -44,7 +44,6 @@ public class ReasonCodeService {
         Instant now = Instant.now();
         ReasonCode reasonCode = ReasonCode.builder()
                 .id(id)
-                .tenantId(tenantId)
                 .category(category)
                 .severity(severity)
                 .labels(labels)
@@ -141,12 +140,7 @@ public class ReasonCodeService {
 
         ReasonCode reasonCode = getReasonCode(tenantId, id);
 
-        // Only allow deletion of tenant-specific codes
-        if (reasonCode.getTenantId() == null) {
-            throw new BusinessException(new ResponseInfo("CANNOT_DELETE_GLOBAL",
-                    "Cannot delete global reason code: " + id, 400));
-        }
-
+        // Allow deletion
         reasonCodePersistencePort.delete(reasonCode);
 
         logger.info("Reason code deleted successfully: id={}", id);

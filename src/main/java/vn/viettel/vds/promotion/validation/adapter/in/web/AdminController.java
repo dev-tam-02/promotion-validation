@@ -160,7 +160,7 @@ public class AdminController {
                         "operatorRegistry", true,
                         "temporalPolicies", true,
                         "outboxEvents", true,
-                        "multiTenant", true
+                        "multiTenant", false
                 ),
                 "dependencies", Map.of(
                         "mongodb", "Required for data persistence",

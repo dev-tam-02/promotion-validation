@@ -14,7 +14,6 @@ import java.util.Map;
 @Builder(toBuilder = true)
 public class ReasonCode {
     String id;
-    String tenantId;
     String category;
     Severity severity;
     Map<String, Object> labels;

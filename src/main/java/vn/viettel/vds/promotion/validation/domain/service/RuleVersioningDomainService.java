@@ -38,7 +38,6 @@ public class RuleVersioningDomainService {
         // Create new rule with incremented version
         RuleAggregate newRule = RuleAggregate.builder()
                 .id(RuleId.generate())
-                .tenantId(existingRule.getTenantId())
                 .code(existingRule.getCode()) // Same code, different version
                 .name(existingRule.getName())
                 .description(existingRule.getDescription())

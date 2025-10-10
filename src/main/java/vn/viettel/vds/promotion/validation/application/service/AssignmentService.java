@@ -53,7 +53,6 @@ public class AssignmentService {
 
         Assignment assignment = new Assignment();
         assignment.setId(generateAssignmentId(tenantId, subjectType, subjectKey));
-        assignment.setTenantId(tenantId);
         assignment.setRuleId(ruleId);
         assignment.setRuleVersionPinned(null); // Use latest version by default
 
@@ -94,7 +93,7 @@ public class AssignmentService {
         // Check for overlapping assignments if making this assignment active
         if (Boolean.TRUE.equals(active) && !Boolean.TRUE.equals(assignment.getActive())) {
             checkForOverlappingAssignments(
-                    assignment.getTenantId(),
+                    "default",  // Remove tenant concept
                     assignment.getSubject().getType(),
                     assignment.getSubject().getKey(),
                     validFrom != null ? validFrom : assignment.getValidFrom(),
@@ -134,7 +133,7 @@ public class AssignmentService {
         Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
-        auditService.logAssignmentUpdated(assignment.getTenantId(), saved.getId(), updatedBy,
+        auditService.logAssignmentUpdated("default", saved.getId(), updatedBy,
                 java.util.Map.of("action", "update", "version", saved.getAssignmentVersion()));
 
         logger.info("Assignment updated successfully: id={}, version={}",
@@ -203,7 +202,7 @@ public class AssignmentService {
         Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
-        auditService.logAssignmentUpdated(assignment.getTenantId(), saved.getId(), updatedBy,
+        auditService.logAssignmentUpdated("default", saved.getId(), updatedBy,
                 java.util.Map.of("action", "deactivate"));
 
         logger.info("Assignment deactivated successfully: id={}", saved.getId());

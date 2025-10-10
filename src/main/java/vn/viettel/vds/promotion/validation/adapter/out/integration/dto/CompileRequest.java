@@ -15,11 +15,6 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CompileRequest {
 
-    @Schema(description = "Tenant identifier", example = "tenant1", required = true)
-    @NotBlank(message = "Tenant ID is required")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Rule identifier", example = "rule123", required = true)
     @NotBlank(message = "Rule ID is required")
     @JsonProperty("ruleId")
@@ -54,8 +49,7 @@ public class CompileRequest {
     public CompileRequest() {
     }
 
-    public CompileRequest(String tenantId, String ruleId, Integer version, String logic, List<RuleNodeDto> nodes) {
-        this.tenantId = tenantId;
+    public CompileRequest(String ruleId, Integer version, String logic, List<RuleNodeDto> nodes) {
         this.ruleId = ruleId;
         this.version = version;
         this.logic = logic;
@@ -63,14 +57,6 @@ public class CompileRequest {
     }
 
     // Getters and setters
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
     public String getRuleId() {
         return ruleId;
     }

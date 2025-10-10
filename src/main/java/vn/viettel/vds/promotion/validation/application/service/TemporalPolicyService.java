@@ -62,7 +62,6 @@ public class TemporalPolicyService {
         Instant now = Instant.now();
         TemporalPolicy policy = TemporalPolicy.builder()
                 .id(generatePolicyId(tenantId, name))
-                .tenantId(tenantId)
                 .name(name)
                 .tz(timezone)
                 .rrule(rrule)
@@ -97,7 +96,7 @@ public class TemporalPolicyService {
         if (name != null) {
             // Check if new name conflicts with existing policy
             if (!policy.getName().equals(name) &&
-                    temporalPolicyPersistencePort.existsByTenantIdAndName(policy.getTenantId(), name)) {
+                    temporalPolicyPersistencePort.existsByTenantIdAndName(null, name)) {
                 throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
                         "Temporal policy with name '" + name + "' already exists", 400));
             }

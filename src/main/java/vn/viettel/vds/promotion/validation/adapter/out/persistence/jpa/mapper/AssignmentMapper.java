@@ -15,7 +15,6 @@ public interface AssignmentMapper {
 
     @Mapping(source = "entityType", target = "subject.type")
     @Mapping(source = "entityId", target = "subject.key")
-    @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "ruleVersionPinned", ignore = true)
     @Mapping(target = "assignmentVersion", ignore = true)
     @Mapping(target = "validFrom", ignore = true)

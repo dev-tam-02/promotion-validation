@@ -108,7 +108,6 @@ public class AuditService {
                     .build();
 
             AuditLog auditLog = AuditLog.builder()
-                    .tenantId(tenantId)
                     .actor(actor)
                     .action(action)
                     .target(target)

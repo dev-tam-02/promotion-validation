@@ -2,11 +2,15 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.promix.platform.core.util.IdGenerator;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AuditLogEntity;
 import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +33,6 @@ public interface AuditLogEntityMapper {
     @Mapping(source = "actorId", target = "actor")
     @Mapping(source = "timestamp", target = "at")
     @Mapping(source = "details", target = "diff", qualifiedByName = "jsonStringToMap")
-    @Mapping(target = "tenantId", ignore = true)
     AuditLog toDomain(AuditLogEntity entity);
 
     @Mapping(source = "target.type", target = "entityType")
@@ -66,6 +69,23 @@ public interface AuditLogEntityMapper {
             return OBJECT_MAPPER.writeValueAsString(map);
         } catch (JsonProcessingException e) {
             return null;
+        }
+    }
+
+    /**
+     * After mapping from domain to entity, ensure required fields are set.
+     * Generates ID and sets timestamps if not already present.
+     */
+    @AfterMapping
+    default void setEntityDefaults(@MappingTarget AuditLogEntity entity) {
+        if (entity.getId() == null) {
+            entity.setId(IdGenerator.generateId());
+        }
+        if (entity.getCreatedAt() == null) {
+            entity.setCreatedAt(Instant.now());
+        }
+        if (entity.getUpdatedAt() == null) {
+            entity.setUpdatedAt(Instant.now());
         }
     }
 }

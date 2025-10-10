@@ -9,7 +9,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.PagedResult;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.SortDirection;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.valueobject.TenantId;
 
 import java.util.List;
 import java.util.stream.Collectors;

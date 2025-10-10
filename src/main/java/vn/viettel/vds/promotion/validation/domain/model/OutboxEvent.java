@@ -22,11 +22,6 @@ public class OutboxEvent {
     String id;
 
     /**
-     * Tenant identifier for multi-tenancy support
-     */
-    String tenantId;
-
-    /**
      * Type of the aggregate that generated this event (e.g., "Rule", "Assignment")
      */
     String aggregateType;

@@ -15,7 +15,6 @@ import java.util.Map;
 @Builder(toBuilder = true)
 public class TemporalPolicy {
     String id;
-    String tenantId;
     String name;
     String tz;
     Instant startTs;

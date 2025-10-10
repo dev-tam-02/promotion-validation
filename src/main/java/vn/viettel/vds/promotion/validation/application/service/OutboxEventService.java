@@ -48,12 +48,8 @@ public class OutboxEventService {
         String eventId = UUID.randomUUID().toString();
         Instant now = Instant.now();
 
-        // Extract tenant ID from metadata if available
-        String tenantId = metadata != null ? (String) metadata.get("tenantId") : null;
-
         OutboxEvent event = OutboxEvent.builder()
                 .id(eventId)
-                .tenantId(tenantId)
                 .aggregateType(aggregateType)
                 .aggregateId(aggregateId)
                 .eventType(eventType)

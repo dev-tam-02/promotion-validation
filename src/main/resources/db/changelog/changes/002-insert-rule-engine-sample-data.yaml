@@ -11,9 +11,6 @@ databaseChangeLog:
                   name: id
                   value: 01932b6f-0001-7000-8000-000000000001
               - column:
-                  name: tenant_id
-                  value: default
-              - column:
                   name: name
                   value: order.total.gte
               - column:
@@ -45,9 +42,6 @@ databaseChangeLog:
                   name: id
                   value: 01932b6f-0001-7000-8000-000000000002
               - column:
-                  name: tenant_id
-                  value: default
-              - column:
                   name: name
                   value: customer.in_segment
               - column:
@@ -78,9 +72,6 @@ databaseChangeLog:
               - column:
                   name: id
                   value: 01932b6f-0001-7000-8000-000000000003
-              - column:
-                  name: tenant_id
-                  value: default
               - column:
                   name: name
                   value: time.window.active
@@ -118,9 +109,6 @@ databaseChangeLog:
                   name: id
                   value: 01932b6f-0002-7000-8000-000000000001
               - column:
-                  name: tenant_id
-                  value: default
-              - column:
                   name: name
                   value: Weekend Mornings
               - column:
@@ -145,9 +133,6 @@ databaseChangeLog:
               - column:
                   name: id
                   value: 01932b6f-0002-7000-8000-000000000002
-              - column:
-                  name: tenant_id
-                  value: default
               - column:
                   name: name
                   value: Business Hours

@@ -215,7 +215,6 @@ public class RulePublishingService {
         List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
         CompileRequest compileRequest = new CompileRequest();
-        compileRequest.setTenantId("default"); // Use default tenant since we removed multi-tenancy
         compileRequest.setRuleId(rule.getId());
         compileRequest.setVersion(rule.getLatestVersion());
         compileRequest.setNodes(nodeDtos);
