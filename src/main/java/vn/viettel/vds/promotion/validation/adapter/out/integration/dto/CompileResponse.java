@@ -27,9 +27,17 @@ public class CompileResponse {
     @JsonProperty("artifactSize")
     private Long artifactSize;
 
+    @Schema(description = "Compilation size in bytes", example = "1024")
+    @JsonProperty("size")
+    private Long size;
+
     @Schema(description = "Compilation logs")
     @JsonProperty("logs")
     private List<String> logs;
+
+    @Schema(description = "Engine information")
+    @JsonProperty("engine")
+    private EngineInfo engine;
 
     @Schema(description = "Engine version", example = "drools-10.1.0")
     @JsonProperty("engineVersion")
@@ -98,6 +106,22 @@ public class CompileResponse {
 
     public void setEngineVersion(String engineVersion) {
         this.engineVersion = engineVersion;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    public void setSize(Long size) {
+        this.size = size;
+    }
+
+    public EngineInfo getEngine() {
+        return engine;
+    }
+
+    public void setEngine(EngineInfo engine) {
+        this.engine = engine;
     }
 
     public List<String> getErrors() {
