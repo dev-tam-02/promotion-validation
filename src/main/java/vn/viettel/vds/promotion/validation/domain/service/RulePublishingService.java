@@ -217,10 +217,16 @@ public class RulePublishingService {
     private CompileResponse compileRuleInEngine(Rule rule) {
         List<Map<String, Object>> nodesMaps = convertNodesToMaps(rule.getNodes());
 
+        // Determine version - use latestVersion if available, otherwise use ruleVersion or default to 1
+        Integer version = rule.getLatestVersion();
+        if (version == null) {
+            version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
+        }
+
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(rule.getId());
-        compileRequest.setVersion(rule.getLatestVersion());
+        compileRequest.setVersion(version);
         compileRequest.setNodes(nodesMaps);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
         compileRequest.setCompilerId(tenantProperties.getCompilerId());
@@ -235,7 +241,7 @@ public class RulePublishingService {
 
         // Set source information
         CompileRequest.Source source = new CompileRequest.Source();
-        source.setRuleVersionId(rule.getId() + "-v" + rule.getLatestVersion());
+        source.setRuleVersionId(rule.getId() + "-v" + version);
         source.setSnapshotHash(generateSnapshotHash(rule));
         compileRequest.setSource(source);
 
@@ -329,10 +335,15 @@ public class RulePublishingService {
 
     private String generateSnapshotHash(Rule rule) {
         // Generate a hash based on rule content for versioning
+        Integer version = rule.getLatestVersion();
+        if (version == null) {
+            version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
+        }
+
         StringBuilder content = new StringBuilder();
         content.append(rule.getId());
         content.append("|");
-        content.append(rule.getLatestVersion());
+        content.append(version);
         content.append("|");
         if (rule.getLogic() != null) {
             content.append(rule.getLogic().name());
