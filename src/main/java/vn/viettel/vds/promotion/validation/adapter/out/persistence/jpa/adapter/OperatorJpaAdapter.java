@@ -45,20 +45,19 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public Optional<Operator> findByTenantIdAndNameAndVersion(String tenantId, String name, Integer version) {
-        return repository.findByTenantIdAndNameAndOperatorVersion(tenantId, name, version)
+        return repository.findByNameAndOperatorVersion(name, version)
                 .map(mapper::toDomain);
     }
 
     @Override
     public Optional<Operator> findLatestVersion(String tenantId, String name) {
-        return repository.findLatestVersionByName(tenantId, name)
+        return repository.findLatestVersionByName(name)
                 .map(mapper::toDomain);
     }
 
     @Override
     public List<Operator> findByTenantIdAndContext(String tenantId, String context) {
-        // JPA repository doesn't have direct method, need to implement custom query or filter
-        return repository.findByTenantIdOrderByNameAscOperatorVersionDesc(tenantId)
+        return repository.findByOrderByNameAscOperatorVersionDesc()
                 .stream()
                 .filter(e -> e.getContext() != null && e.getContext().equals(context))
                 .map(mapper::toDomain)
@@ -67,9 +66,9 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public Page<Operator> findByTenantIdAndContextAndStatus(String tenantId, String context,
-                                                             Operator.OperatorStatus status, Pageable pageable) {
-        List<OperatorEntity> entities = repository.findByTenantIdAndContextAndStatus(
-                tenantId, context,
+                                                  Operator.OperatorStatus status, Pageable pageable) {
+        List<OperatorEntity> entities = repository.findByContextAndStatus(
+                context,
                 OperatorEntity.OperatorStatus.valueOf(status.name())
         );
 
@@ -86,15 +85,14 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public List<Operator> findByTenantIdAndStatus(String tenantId, Operator.OperatorStatus status) {
-        return repository.findByTenantIdAndStatus(
-                tenantId,
+        return repository.findByStatus(
                 OperatorEntity.OperatorStatus.valueOf(status.name())
         ).stream().map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
     public List<Operator> findAllVersions(String tenantId, String name) {
-        return repository.findByTenantIdAndNameOrderByOperatorVersionDesc(tenantId, name)
+        return repository.findByNameOrderByOperatorVersionDesc(name)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
@@ -104,7 +102,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
     public Page<Operator> findWithFilters(String tenantId, String contextPattern,
                                           Operator.OperatorStatus status, Pageable pageable) {
         // Simplified implementation - can be enhanced with Specifications
-        List<OperatorEntity> all = repository.findByTenantIdOrderByNameAscOperatorVersionDesc(tenantId);
+        List<OperatorEntity> all = repository.findByOrderByNameAscOperatorVersionDesc();
         List<OperatorEntity> filtered = all.stream()
                 .filter(e -> status == null || e.getStatus().name().equals(status.name()))
                 .filter(e -> contextPattern == null ||
@@ -123,23 +121,19 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public boolean existsByTenantIdAndNameAndVersion(String tenantId, String name, Integer version) {
-        return repository.existsByTenantIdAndNameAndOperatorVersion(tenantId, name, version);
+        return repository.existsByNameAndOperatorVersion(name, version);
     }
 
     @Override
     public List<Operator> findGlobalOperatorsByStatus(Operator.OperatorStatus status) {
-        // Need to add method to repository or use custom query
-        return repository.findAll().stream()
-                .filter(e -> e.getTenantId() == null)
-                .filter(e -> e.getStatus().name().equals(status.name()))
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
+        return repository.findByStatus(
+                OperatorEntity.OperatorStatus.valueOf(status.name())
+        ).stream().map(mapper::toDomain).collect(Collectors.toList());
     }
 
     @Override
     public long countByTenantIdAndStatus(String tenantId, Operator.OperatorStatus status) {
-        return repository.findByTenantIdAndStatus(
-                tenantId,
+        return repository.findByStatus(
                 OperatorEntity.OperatorStatus.valueOf(status.name())
         ).size();
     }
@@ -156,7 +150,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public List<Operator> findAllByTenantId(String tenantId) {
-        return repository.findByTenantIdOrderByNameAscOperatorVersionDesc(tenantId)
+        return repository.findByOrderByNameAscOperatorVersionDesc()
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());

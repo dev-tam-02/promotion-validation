@@ -12,45 +12,36 @@ import java.util.Optional;
 @Repository
 public interface OperatorJpaRepository extends JpaRepository<OperatorEntity, String> {
 
-    Optional<OperatorEntity> findByTenantIdAndNameAndOperatorVersion(
-            String tenantId,
+    Optional<OperatorEntity> findByNameAndOperatorVersion(
             String name,
             Integer operatorVersion
     );
 
-    List<OperatorEntity> findByTenantIdAndContextAndStatus(
-            String tenantId,
+    List<OperatorEntity> findByContextAndStatus(
             String context,
             OperatorEntity.OperatorStatus status
     );
 
-    List<OperatorEntity> findByTenantIdAndNameOrderByOperatorVersionDesc(
-            String tenantId,
+    List<OperatorEntity> findByNameOrderByOperatorVersionDesc(
             String name
     );
 
-    @Query("SELECT o FROM OperatorEntity o WHERE o.tenantId = :tenantId " +
-            "AND o.status = :status ORDER BY o.name ASC, o.operatorVersion DESC")
-    List<OperatorEntity> findByTenantIdAndStatus(
-            @Param("tenantId") String tenantId,
+    @Query("SELECT o FROM OperatorEntity o WHERE o.status = :status ORDER BY o.name ASC, o.operatorVersion DESC")
+    List<OperatorEntity> findByStatus(
             @Param("status") OperatorEntity.OperatorStatus status
     );
 
-    @Query("SELECT o FROM OperatorEntity o WHERE o.tenantId = :tenantId " +
-            "AND o.name = :name ORDER BY o.operatorVersion DESC")
+    @Query("SELECT o FROM OperatorEntity o WHERE o.name = :name ORDER BY o.operatorVersion DESC")
     Optional<OperatorEntity> findLatestVersionByName(
-            @Param("tenantId") String tenantId,
             @Param("name") String name
     );
 
-    @Query("SELECT COALESCE(MAX(o.operatorVersion), 0) FROM OperatorEntity o " +
-            "WHERE o.tenantId = :tenantId AND o.name = :name")
+    @Query("SELECT COALESCE(MAX(o.operatorVersion), 0) FROM OperatorEntity o WHERE o.name = :name")
     Integer findMaxVersionByName(
-            @Param("tenantId") String tenantId,
             @Param("name") String name
     );
 
-    boolean existsByTenantIdAndNameAndOperatorVersion(String tenantId, String name, Integer operatorVersion);
+    boolean existsByNameAndOperatorVersion(String name, Integer operatorVersion);
 
-    List<OperatorEntity> findByTenantIdOrderByNameAscOperatorVersionDesc(String tenantId);
+    List<OperatorEntity> findByOrderByNameAscOperatorVersionDesc();
 }

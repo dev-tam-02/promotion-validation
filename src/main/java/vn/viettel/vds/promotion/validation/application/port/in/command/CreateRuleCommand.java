@@ -18,9 +18,6 @@ import java.util.Set;
 @Builder
 public class CreateRuleCommand {
 
-    @NotBlank(message = "Tenant ID is required")
-    private String tenantId;
-
     @NotBlank(message = "Rule code is required")
     private String code;
 
@@ -66,9 +63,6 @@ public class CreateRuleCommand {
      * Validate the command
      */
     public void validate() {
-        if (tenantId == null || tenantId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tenant ID is required");
-        }
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule code is required");
         }

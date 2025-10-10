@@ -16,14 +16,11 @@ import java.util.Map;
 @Setter
 @Entity
 @Table(name = "rule_versions", indexes = {
-        @Index(name = "idx_rule_versions_desc", columnList = "tenant_id, rule_id, rule_version", unique = true),
-        @Index(name = "idx_rule_versions_bundle_hash", columnList = "tenant_id, bundle_hash"),
-        @Index(name = "idx_rule_versions_code_version", columnList = "tenant_id, code, rule_version")
+        @Index(name = "idx_rule_versions_desc", columnList = "rule_id, rule_version", unique = true),
+        @Index(name = "idx_rule_versions_bundle_hash", columnList = "bundle_hash"),
+        @Index(name = "idx_rule_versions_code_version", columnList = "code, rule_version")
 })
 public class RuleVersionEntity extends BaseEntity {
-
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
 
     @Column(name = "rule_id", nullable = false, length = 100)
     private String ruleId;

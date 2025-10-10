@@ -55,7 +55,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         // JPA repository doesn't have tenantId parameter, but entity has tenantId from BaseEntity
         // Need to find by name then filter by tenantId
         return repository.findByName(name)
-                .filter(entity -> entity.getTenantId().equals(tenantId))
+                .filter(entity -> entity.equals(tenantId))
                 .map(mapper::toDomain);
     }
 
@@ -63,7 +63,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
     public List<TemporalPolicy> findByTenantIdAndTz(String tenantId, String tz) {
         // Find by timezone then filter by tenantId
         return repository.findByTz(tz).stream()
-                .filter(entity -> entity.getTenantId().equals(tenantId))
+                .filter(entity -> entity.equals(tenantId))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
@@ -73,7 +73,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         // JPA doesn't have this query - implement with filters
         List<TemporalPolicyEntity> all = repository.findAll();
         List<TemporalPolicyEntity> filtered = all.stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
+                .filter(e -> e.equals(tenantId))
                 .filter(e -> namePattern == null || e.getName().toLowerCase().contains(namePattern.toLowerCase()))
                 .collect(Collectors.toList());
         return convertToPage(filtered, pageable);
@@ -84,7 +84,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         // Implement filtering manually
         List<TemporalPolicyEntity> all = repository.findAll();
         List<TemporalPolicyEntity> filtered = all.stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
+                .filter(e -> e.equals(tenantId))
                 .filter(e -> tz == null || (e.getTz() != null && e.getTz().equals(tz)))
                 .filter(e -> namePattern == null || e.getName().toLowerCase().contains(namePattern.toLowerCase()))
                 .collect(Collectors.toList());
@@ -95,7 +95,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
     public List<TemporalPolicy> findByTenantIdOrderByNameAsc(String tenantId) {
         // Find all then filter by tenantId and sort by name
         return repository.findAll().stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
+                .filter(e -> e.equals(tenantId))
                 .sorted((e1, e2) -> e1.getName().compareTo(e2.getName()))
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
@@ -104,21 +104,21 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
     @Override
     public boolean existsByTenantIdAndName(String tenantId, String name) {
         return repository.findByName(name)
-                .map(entity -> entity.getTenantId().equals(tenantId))
+                .map(entity -> entity.equals(tenantId))
                 .orElse(false);
     }
 
     @Override
     public long countByTenantId(String tenantId) {
         return repository.findAll().stream()
-                .filter(e -> e.getTenantId().equals(tenantId))
+                .filter(e -> e.equals(tenantId))
                 .count();
     }
 
     @Override
     public Page<TemporalPolicy> findByTenantIdAndTz(String tenantId, String tz, Pageable pageable) {
         List<TemporalPolicyEntity> filtered = repository.findByTz(tz).stream()
-                .filter(entity -> entity.getTenantId().equals(tenantId))
+                .filter(entity -> entity.equals(tenantId))
                 .collect(Collectors.toList());
         return convertToPage(filtered, pageable);
     }

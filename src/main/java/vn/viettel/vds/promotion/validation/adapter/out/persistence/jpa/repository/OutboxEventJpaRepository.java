@@ -40,11 +40,6 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventEntit
     List<OutboxEventEntity> findPendingEvents(Pageable pageable);
 
     /**
-     * Find events by tenant ID and status
-     */
-    List<OutboxEventEntity> findByTenantIdAndStatus(String tenantId, OutboxEventStatus status);
-
-    /**
      * Find events created before a specific timestamp
      */
     List<OutboxEventEntity> findByCreatedAtBefore(Instant timestamp);

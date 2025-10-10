@@ -10,16 +10,9 @@ import java.util.Optional;
 @Repository
 public interface ReasonCodeJpaRepository extends JpaRepository<ReasonCodeEntity, String> {
 
-    List<ReasonCodeEntity> findByTenantId(String tenantId);
+    List<ReasonCodeEntity> findByCategory(String category);
 
-    List<ReasonCodeEntity> findByTenantIdAndCategory(String tenantId, String category);
-
-    List<ReasonCodeEntity> findByTenantIdAndSeverity(
-            String tenantId,
+    List<ReasonCodeEntity> findBySeverity(
             ReasonCodeEntity.Severity severity
     );
-
-    Optional<ReasonCodeEntity> findByTenantIdAndId(String tenantId, String id);
-
-    boolean existsByTenantIdAndId(String tenantId, String id);
 }

@@ -10,9 +10,6 @@ public class PublishRuleCommand {
     @NotBlank(message = "Rule ID is required")
     private final String ruleId;
 
-    @NotBlank(message = "Tenant ID is required")
-    private final String tenantId;
-
     @NotBlank(message = "Published by is required")
     private final String publishedBy;
 
@@ -20,12 +17,10 @@ public class PublishRuleCommand {
 
     public PublishRuleCommand(
             String ruleId,
-            String tenantId,
             String publishedBy,
             String comment
     ) {
         this.ruleId = ruleId;
-        this.tenantId = tenantId;
         this.publishedBy = publishedBy;
         this.comment = comment;
     }
@@ -39,9 +34,6 @@ public class PublishRuleCommand {
         if (ruleId == null || ruleId.trim().isEmpty()) {
             throw new IllegalArgumentException("Rule ID is required");
         }
-        if (tenantId == null || tenantId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tenant ID is required");
-        }
         if (publishedBy == null || publishedBy.trim().isEmpty()) {
             throw new IllegalArgumentException("Published by is required");
         }
@@ -50,10 +42,6 @@ public class PublishRuleCommand {
     // Getters
     public String getRuleId() {
         return ruleId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
     }
 
     public String getPublishedBy() {
@@ -66,17 +54,11 @@ public class PublishRuleCommand {
 
     public static class Builder {
         private String ruleId;
-        private String tenantId;
         private String publishedBy;
         private String comment;
 
         public Builder ruleId(String ruleId) {
             this.ruleId = ruleId;
-            return this;
-        }
-
-        public Builder tenantId(String tenantId) {
-            this.tenantId = tenantId;
             return this;
         }
 
@@ -91,7 +73,7 @@ public class PublishRuleCommand {
         }
 
         public PublishRuleCommand build() {
-            return new PublishRuleCommand(ruleId, tenantId, publishedBy, comment);
+            return new PublishRuleCommand(ruleId, publishedBy, comment);
         }
     }
 }

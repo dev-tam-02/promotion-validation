@@ -13,13 +13,10 @@ import java.util.List;
 @Setter
 @Entity
 @Table(name = "publish_jobs", indexes = {
-        @Index(name = "idx_publish_jobs_rule_ver", columnList = "tenant_id, rule_id, target_version"),
-        @Index(name = "idx_publish_jobs_status_time", columnList = "tenant_id, status, requested_at")
+        @Index(name = "idx_publish_jobs_rule_ver", columnList = "rule_id, target_version"),
+        @Index(name = "idx_publish_jobs_status_time", columnList = "status, requested_at")
 })
 public class PublishJobEntity extends BaseEntity {
-
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
 
     @Column(name = "rule_id", nullable = false, length = 100)
     private String ruleId;

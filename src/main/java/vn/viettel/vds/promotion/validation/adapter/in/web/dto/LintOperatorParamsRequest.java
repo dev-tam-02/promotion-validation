@@ -11,10 +11,6 @@ import java.util.Map;
 @Schema(description = "Request to validate operator parameters")
 public class LintOperatorParamsRequest {
 
-    @Schema(description = "Tenant ID", example = "t1")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Operator name", example = "order.total.gte", required = true)
     @NotBlank(message = "Operator name is required")
     @JsonProperty("name")
@@ -32,14 +28,6 @@ public class LintOperatorParamsRequest {
     private Map<String, Object> params;
 
     // Getters and setters
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
     public String getName() {
         return name;
     }

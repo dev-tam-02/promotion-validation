@@ -18,9 +18,6 @@ import java.util.Map;
 @Table(name = "temporal_policies")
 public class TemporalPolicyEntity extends BaseEntity {
 
-    @Column(name = "tenant_id", length = 50)
-    private String tenantId;
-
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 

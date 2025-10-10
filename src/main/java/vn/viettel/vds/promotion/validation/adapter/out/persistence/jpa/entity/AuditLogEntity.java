@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
-import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +10,7 @@ import java.time.Instant;
  * JPA entity for admin audit logs mapped to admin_audit_logs table.
  *
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml:1003-1079):
- * - id: varchar(36) - Primary key (from BaseEntity)
+ * - id: varchar(36) - Primary key
  * - entity_type: varchar(100) - Entity type (Rule, Operator, Assignment, etc.)
  * - entity_id: varchar(100) - Entity identifier
  * - action: varchar(50) - Action performed
@@ -20,10 +19,9 @@ import java.time.Instant;
  * - snapshot_before: text - Entity state before action
  * - snapshot_after: text - Entity state after action
  * - timestamp: timestamp - When action occurred
- * - created_at: timestamp (from BaseEntity)
- * - updated_at: timestamp (from BaseEntity)
+ * - version: bigint - Optimistic locking version
  *
- * NOTE: Schema does NOT have tenant_id or diff columns
+ * NOTE: Schema does NOT have tenant_id, created_at, updated_at, or diff columns
  */
 @Getter
 @Setter
@@ -33,7 +31,11 @@ import java.time.Instant;
         @Index(name = "idx_audit_logs_timestamp", columnList = "timestamp"),
         @Index(name = "idx_audit_logs_actor", columnList = "actor_id")
 })
-public class AuditLogEntity extends BaseEntity {
+public class AuditLogEntity {
+
+    @Id
+    @Column(name = "id", nullable = false, length = 36)
+    private String id;
 
     @Column(name = "entity_type", nullable = false, length = 100)
     private String entityType;
@@ -58,4 +60,8 @@ public class AuditLogEntity extends BaseEntity {
 
     @Column(name = "timestamp", nullable = false)
     private Instant timestamp;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 }

@@ -14,12 +14,7 @@ import java.util.Map;
 @Schema(description = "Request to create a new rule")
 public class CreateRuleRequest {
 
-    @Schema(description = "Tenant ID", example = "t1", required = true)
-    @NotBlank(message = "Tenant ID is required")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
-    @Schema(description = "Rule code (unique within tenant)", example = "WEEKEND_VIP_500K", required = true)
+    @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K", required = true)
     @NotBlank(message = "Rule code is required")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("code")
@@ -52,14 +47,6 @@ public class CreateRuleRequest {
     private String notes;
 
     // Getters and setters
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
     public String getCode() {
         return code;
     }

@@ -173,10 +173,10 @@ public class OperatorController {
     public ValidationResponse lintOperatorParams(
             @Valid @RequestBody LintOperatorParamsRequest request) {
 
-        logger.info("Linting operator params: operator={}@{}", request.getName(), request.getVersion().intValue());
+        logger.info("Linting operator params: operator={}@{}", request.getName(), request.getVersion());
 
         OperatorService.ValidationResult result = operatorService.validateOperatorParams(
-                request.getTenantId(),
+                null,  // tenantId
                 request.getName(),
                 request.getVersion(),
                 request.getParams()

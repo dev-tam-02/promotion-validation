@@ -30,7 +30,6 @@ import java.util.Map;
 @Table(name = "outbox_events", indexes = {
         @Index(name = "idx_outbox_status", columnList = "status"),
         @Index(name = "idx_outbox_created_at", columnList = "created_at"),
-        @Index(name = "idx_outbox_tenant_id", columnList = "tenant_id"),
         @Index(name = "idx_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
         @Index(name = "idx_outbox_event_type", columnList = "event_type"),
         @Index(name = "idx_outbox_status_attempts", columnList = "status, attempts")
@@ -47,9 +46,6 @@ public class OutboxEventEntity {
     @Id
     @Column(name = "id", length = 36, nullable = false)
     private String id;
-
-    @Column(name = "tenant_id", length = 50)
-    private String tenantId;
 
     @Column(name = "aggregate_type", length = 100, nullable = false)
     private String aggregateType;

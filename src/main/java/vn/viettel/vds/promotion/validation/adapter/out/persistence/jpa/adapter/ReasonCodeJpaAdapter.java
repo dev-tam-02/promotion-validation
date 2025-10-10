@@ -37,40 +37,23 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
 
     @Override
     public Optional<ReasonCode> findByIdAndTenant(String tenantId, String id) {
-        // JPA has findByTenantIdAndId, also need to support global codes (tenantId = null)
-        Optional<ReasonCodeEntity> result = repository.findByTenantIdAndId(tenantId, id);
-        if (result.isPresent()) {
-            return result.map(mapper::toDomain);
-        }
-
-        // Check global codes (tenantId = null)
+        // Note: ReasonCode entities don't have separate tenantId field
+        // This implementation ignores tenantId parameter
         return repository.findById(id)
-                .filter(entity -> entity.getTenantId() == null)
                 .map(mapper::toDomain);
     }
 
     @Override
     public List<ReasonCode> findByTenantAndCategory(String tenantId, String category) {
-        // Include both tenant-specific and global codes
-        List<ReasonCodeEntity> tenantCodes = repository.findByTenantIdAndCategory(tenantId, category);
-        List<ReasonCodeEntity> globalCodes = repository.findAll().stream()
-                .filter(e -> e.getTenantId() == null && category.equals(e.getCategory()))
-                .collect(Collectors.toList());
-
-        tenantCodes.addAll(globalCodes);
-        return tenantCodes.stream()
+        return repository.findByCategory(category).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public Page<ReasonCode> findByTenant(String tenantId, Pageable pageable) {
-        // Include both tenant-specific and global codes
         List<ReasonCodeEntity> all = repository.findAll();
-        List<ReasonCodeEntity> filtered = all.stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) || e.getTenantId() == null)
-                .collect(Collectors.toList());
-        return convertToPage(filtered, pageable);
+        return convertToPage(all, pageable);
     }
 
     @Override
@@ -79,7 +62,6 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
         // Implement filtering manually
         List<ReasonCodeEntity> all = repository.findAll();
         List<ReasonCodeEntity> filtered = all.stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) || e.getTenantId() == null)
                 .filter(e -> categoryPattern == null ||
                         (e.getCategory() != null && e.getCategory().toLowerCase().contains(categoryPattern.toLowerCase())))
                 .filter(e -> severity == null ||
@@ -90,54 +72,34 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
 
     @Override
     public List<ReasonCode> findByTenantIdIsNull() {
-        // Find global codes
         return repository.findAll().stream()
-                .filter(e -> e.getTenantId() == null)
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<ReasonCode> findByTenantId(String tenantId) {
-        return repository.findByTenantId(tenantId).stream()
+        return repository.findAll().stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<ReasonCode> findByTenantAndSeverity(String tenantId, ReasonCode.Severity severity) {
-        // Include both tenant-specific and global codes
         ReasonCodeEntity.Severity entitySeverity = mapper.mapSeverity(severity);
-
-        List<ReasonCodeEntity> tenantCodes = repository.findByTenantIdAndSeverity(tenantId, entitySeverity);
-        List<ReasonCodeEntity> globalCodes = repository.findAll().stream()
-                .filter(e -> e.getTenantId() == null && entitySeverity.equals(e.getSeverity()))
-                .collect(Collectors.toList());
-
-        tenantCodes.addAll(globalCodes);
-        return tenantCodes.stream()
+        return repository.findBySeverity(entitySeverity).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public boolean existsByIdAndTenant(String tenantId, String id) {
-        // Check tenant-specific first
-        if (repository.existsByTenantIdAndId(tenantId, id)) {
-            return true;
-        }
-
-        // Check global codes
-        return repository.findById(id)
-                .map(entity -> entity.getTenantId() == null)
-                .orElse(false);
+        return repository.existsById(id);
     }
 
     @Override
     public long countByTenant(String tenantId) {
-        return repository.findAll().stream()
-                .filter(e -> tenantId.equals(e.getTenantId()) || e.getTenantId() == null)
-                .count();
+        return repository.count();
     }
 
     @Override

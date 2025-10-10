@@ -552,7 +552,7 @@ public class SettingValidationRuleCommandHandler {
     private AssignmentEntity toAssignmentEntity(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment) {
         AssignmentEntity entity = new AssignmentEntity();
         entity.setId(assignment.getId());
-        entity.setRuleId(assignment.getId());
+        entity.setRuleId(assignment.getRuleId());
 
         // Convert Subject to flat fields (entityType/entityId)
         if (assignment.getSubject() != null) {

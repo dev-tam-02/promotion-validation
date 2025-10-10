@@ -74,18 +74,15 @@ public interface AuditLogEntityMapper {
 
     /**
      * After mapping from domain to entity, ensure required fields are set.
-     * Generates ID and sets timestamps if not already present.
+     * Generates ID and sets timestamp if not already present.
      */
     @AfterMapping
     default void setEntityDefaults(@MappingTarget AuditLogEntity entity) {
         if (entity.getId() == null) {
             entity.setId(IdGenerator.generateId());
         }
-        if (entity.getCreatedAt() == null) {
-            entity.setCreatedAt(Instant.now());
-        }
-        if (entity.getUpdatedAt() == null) {
-            entity.setUpdatedAt(Instant.now());
+        if (entity.getTimestamp() == null) {
+            entity.setTimestamp(Instant.now());
         }
     }
 }

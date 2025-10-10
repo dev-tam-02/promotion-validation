@@ -13,10 +13,6 @@ public class OperatorResponse {
     @JsonProperty("operatorId")
     private String operatorId;
 
-    @Schema(description = "Tenant ID", example = "t1")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Operator name", example = "order.total.gte")
     @JsonProperty("name")
     private String name;
@@ -56,14 +52,6 @@ public class OperatorResponse {
 
     public void setOperatorId(String operatorId) {
         this.operatorId = operatorId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     public String getName() {

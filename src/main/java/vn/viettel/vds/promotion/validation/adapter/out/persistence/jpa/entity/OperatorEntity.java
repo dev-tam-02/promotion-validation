@@ -18,7 +18,6 @@ import java.util.Map;
  *
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml:256-334):
  * - id: varchar(36) - Primary key
- * - tenant_id: varchar(50) - Tenant identifier
  * - name: varchar(100) - Operator name
  * - operator_version: int - Operator version
  * - context: varchar(100) - Operator context (order, customer, time, etc.)
@@ -34,17 +33,14 @@ import java.util.Map;
 @Setter
 @Entity
 @Table(name = "operators", indexes = {
-        @Index(name = "idx_operators_name_version", columnList = "tenant_id, name, operator_version", unique = true),
-        @Index(name = "idx_operators_context_status", columnList = "tenant_id, context, status")
+        @Index(name = "idx_operators_name_version", columnList = "name, operator_version", unique = true),
+        @Index(name = "idx_operators_context_status", columnList = "context, status")
 })
 public class OperatorEntity {
 
     @Id
     @Column(name = "id", length = 36)
     private String id;
-
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;

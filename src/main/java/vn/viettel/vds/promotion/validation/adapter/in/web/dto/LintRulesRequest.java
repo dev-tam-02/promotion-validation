@@ -11,11 +11,6 @@ import java.util.List;
 @Schema(description = "Request to lint/validate rule structure")
 public class LintRulesRequest {
 
-    @Schema(description = "Tenant ID", example = "t1", required = true)
-    @NotBlank(message = "Tenant ID is required")
-    @JsonProperty("tenantId")
-    private String tenantId;
-
     @Schema(description = "Rule nodes to validate", required = true)
     @NotEmpty(message = "Nodes list cannot be empty")
     @Valid
@@ -23,14 +18,6 @@ public class LintRulesRequest {
     private List<RuleNodeDto> nodes;
 
     // Getters and setters
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
-
     public List<RuleNodeDto> getNodes() {
         return nodes;
     }

@@ -18,7 +18,7 @@ public interface AuditLogMapper {
      * Update entity from domain model.
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "timestamp", ignore = true)
+    @Mapping(target = "version", ignore = true)
     void updateEntityFromDomain(AuditLog domain, @MappingTarget AuditLogEntity entity);
 }

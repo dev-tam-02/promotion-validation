@@ -318,7 +318,6 @@ public class RulePublishingService {
         // candidate.setCode("TEST"); // Method not available in DTO
 
         ExecutionContextDto context = new ExecutionContextDto();
-        context.setTenantId("default"); // Use default tenant
         // context.setTimestamp(System.currentTimeMillis()); // Method not available in DTO
 
         request.setCustomer(customer);

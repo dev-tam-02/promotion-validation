@@ -12,13 +12,8 @@ import java.util.Map;
 @Getter
 @Setter
 @Entity
-@Table(name = "reason_codes", indexes = {
-        @Index(name = "idx_reason_codes_tenant", columnList = "tenant_id")
-})
+@Table(name = "reason_codes")
 public class ReasonCodeEntity extends BaseEntity {
-
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
 
     @Column(name = "category", length = 100)
     private String category;
