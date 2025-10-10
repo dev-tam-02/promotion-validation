@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
-import java.util.Map;
 
 @Schema(description = "Rule compilation response")
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -27,17 +26,9 @@ public class CompileResponse {
     @JsonProperty("artifactSize")
     private Long artifactSize;
 
-    @Schema(description = "Compilation size in bytes", example = "1024")
-    @JsonProperty("size")
-    private Long size;
-
     @Schema(description = "Compilation logs")
     @JsonProperty("logs")
     private List<String> logs;
-
-    @Schema(description = "Engine information")
-    @JsonProperty("engine")
-    private EngineInfo engine;
 
     @Schema(description = "Engine version", example = "drools-10.1.0")
     @JsonProperty("engineVersion")
@@ -46,10 +37,6 @@ public class CompileResponse {
     @Schema(description = "Compilation errors (if any)")
     @JsonProperty("errors")
     private List<String> errors;
-
-    @Schema(description = "Compiled rules")
-    @JsonProperty("compiledRules")
-    private Map<String, Object> compiledRules;
 
     // Constructors
     public CompileResponse() {
@@ -108,40 +95,11 @@ public class CompileResponse {
         this.engineVersion = engineVersion;
     }
 
-    public Long getSize() {
-        return size;
-    }
-
-    public void setSize(Long size) {
-        this.size = size;
-    }
-
-    public EngineInfo getEngine() {
-        return engine;
-    }
-
-    public void setEngine(EngineInfo engine) {
-        this.engine = engine;
-    }
-
     public List<String> getErrors() {
         return errors;
     }
 
     public void setErrors(List<String> errors) {
         this.errors = errors;
-    }
-
-    public Map<String, Object> getCompiledRules() {
-        return compiledRules;
-    }
-
-    public void setCompiledRules(Map<String, Object> compiledRules) {
-        this.compiledRules = compiledRules;
-    }
-
-    // Alias method for isSuccess()
-    public boolean isSuccess() {
-        return ok;
     }
 }

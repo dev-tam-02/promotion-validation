@@ -10,75 +10,26 @@ import java.util.Map;
 
 @Schema(description = "Customer data for rule execution")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CustomerDto {
+public record CustomerDto(
+        @Schema(description = "Customer identifier", example = "cust123", required = true)
+        @NotBlank(message = "Customer ID is required")
+        @JsonProperty("id")
+        String id,
 
-    @Schema(description = "Customer identifier", example = "cust123", required = true)
-    @NotBlank(message = "Customer ID is required")
-    @JsonProperty("id")
-    private String id;
+        @Schema(description = "Customer segments", example = "[\"VIP\", \"GOLD\"]")
+        @JsonProperty("segments")
+        List<String> segments,
 
-    @Schema(description = "Customer segments", example = "[\"VIP\", \"GOLD\"]")
-    @JsonProperty("segments")
-    private List<String> segments;
+        @Schema(description = "Customer region", example = "HCM")
+        @JsonProperty("region")
+        String region,
 
-    @Schema(description = "Customer region", example = "HCM")
-    @JsonProperty("region")
-    private String region;
+        @Schema(description = "Customer tier", example = "3")
+        @JsonProperty("tier")
+        Integer tier,
 
-    @Schema(description = "Customer tier", example = "3")
-    @JsonProperty("tier")
-    private Integer tier;
-
-    @Schema(description = "Customer metadata")
-    @JsonProperty("metadata")
-    private Map<String, Object> metadata;
-
-    // Constructors
-    public CustomerDto() {
-    }
-
-    public CustomerDto(String id) {
-        this.id = id;
-    }
-
-    // Getters and setters
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public List<String> getSegments() {
-        return segments;
-    }
-
-    public void setSegments(List<String> segments) {
-        this.segments = segments;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public void setRegion(String region) {
-        this.region = region;
-    }
-
-    public Integer getTier() {
-        return tier;
-    }
-
-    public void setTier(Integer tier) {
-        this.tier = tier;
-    }
-
-    public Map<String, Object> getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+        @Schema(description = "Customer metadata")
+        @JsonProperty("metadata")
+        Map<String, Object> metadata
+) {
 }

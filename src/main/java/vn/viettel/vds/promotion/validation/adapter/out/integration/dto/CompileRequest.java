@@ -9,13 +9,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
-import java.util.Map;
 
 @Schema(description = "Rule compilation request")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CompileRequest {
 
-    @Schema(description = "Tenant identifier", example = "default", required = true)
+    @Schema(description = "Tenant identifier", example = "tenant1", required = true)
     @NotBlank(message = "Tenant ID is required")
     @JsonProperty("tenantId")
     private String tenantId;
@@ -31,51 +30,31 @@ public class CompileRequest {
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Rule nodes as map objects", required = true)
+    @Schema(description = "Root logic type", example = "ALL", required = true, allowableValues = {"ALL", "ANY", "NONE"})
+    @NotBlank(message = "Logic is required")
+    @JsonProperty("logic")
+    private String logic;
+
+    @Schema(description = "Rule nodes", required = true)
     @NotNull(message = "Nodes are required")
-    @JsonProperty("nodes")
-    private List<Map<String, Object>> nodes;
-
-    @Schema(description = "Usage limits")
     @Valid
-    @JsonProperty("limits")
-    private Limits limits;
+    @JsonProperty("nodes")
+    private List<RuleNodeDto> nodes;
 
-    @Schema(description = "Time policy links")
-    @JsonProperty("timeLinks")
-    private List<TimeLink> timeLinks;
-
-    @Schema(description = "Operators fingerprint for cache invalidation", example = "abc123", required = true)
-    @NotBlank(message = "Operators fingerprint is required")
+    @Schema(description = "Operators fingerprint for cache invalidation", example = "abc123")
     @JsonProperty("operatorsFingerprint")
     private String operatorsFingerprint;
-
-    @Schema(description = "Compiler identifier", example = "java-compiler-v1", required = true)
-    @NotBlank(message = "Compiler ID is required")
-    @JsonProperty("compilerId")
-    private String compilerId;
-
-    @Schema(description = "Source information")
-    @Valid
-    @JsonProperty("source")
-    private Source source;
 
     // Constructors
     public CompileRequest() {
     }
 
-    public CompileRequest(String tenantId, String ruleId, Integer version, List<Map<String, Object>> nodes,
-                          Limits limits, List<TimeLink> timeLinks, String operatorsFingerprint,
-                          String compilerId, Source source) {
+    public CompileRequest(String tenantId, String ruleId, Integer version, String logic, List<RuleNodeDto> nodes) {
         this.tenantId = tenantId;
         this.ruleId = ruleId;
         this.version = version;
+        this.logic = logic;
         this.nodes = nodes;
-        this.limits = limits;
-        this.timeLinks = timeLinks;
-        this.operatorsFingerprint = operatorsFingerprint;
-        this.compilerId = compilerId;
-        this.source = source;
     }
 
     // Getters and setters
@@ -103,28 +82,20 @@ public class CompileRequest {
         this.version = version;
     }
 
-    public List<Map<String, Object>> getNodes() {
+    public String getLogic() {
+        return logic;
+    }
+
+    public void setLogic(String logic) {
+        this.logic = logic;
+    }
+
+    public List<RuleNodeDto> getNodes() {
         return nodes;
     }
 
-    public void setNodes(List<Map<String, Object>> nodes) {
+    public void setNodes(List<RuleNodeDto> nodes) {
         this.nodes = nodes;
-    }
-
-    public Limits getLimits() {
-        return limits;
-    }
-
-    public void setLimits(Limits limits) {
-        this.limits = limits;
-    }
-
-    public List<TimeLink> getTimeLinks() {
-        return timeLinks;
-    }
-
-    public void setTimeLinks(List<TimeLink> timeLinks) {
-        this.timeLinks = timeLinks;
     }
 
     public String getOperatorsFingerprint() {
@@ -133,134 +104,5 @@ public class CompileRequest {
 
     public void setOperatorsFingerprint(String operatorsFingerprint) {
         this.operatorsFingerprint = operatorsFingerprint;
-    }
-
-    public String getCompilerId() {
-        return compilerId;
-    }
-
-    public void setCompilerId(String compilerId) {
-        this.compilerId = compilerId;
-    }
-
-    public Source getSource() {
-        return source;
-    }
-
-    public void setSource(Source source) {
-        this.source = source;
-    }
-
-    // Nested classes
-    @Schema(description = "Usage limits")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class Limits {
-        @Schema(description = "Per customer limit")
-        @JsonProperty("perCustomer")
-        private Integer perCustomer;
-
-        @Schema(description = "Per day limit")
-        @JsonProperty("perDay")
-        private Integer perDay;
-
-        public Limits() {
-        }
-
-        public Limits(Integer perCustomer, Integer perDay) {
-            this.perCustomer = perCustomer;
-            this.perDay = perDay;
-        }
-
-        public Integer getPerCustomer() {
-            return perCustomer;
-        }
-
-        public void setPerCustomer(Integer perCustomer) {
-            this.perCustomer = perCustomer;
-        }
-
-        public Integer getPerDay() {
-            return perDay;
-        }
-
-        public void setPerDay(Integer perDay) {
-            this.perDay = perDay;
-        }
-    }
-
-    @Schema(description = "Time policy link")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class TimeLink {
-        @Schema(description = "Policy identifier", required = true)
-        @NotBlank
-        @JsonProperty("policyId")
-        private String policyId;
-
-        @Schema(description = "Link mode", required = true)
-        @NotBlank
-        @JsonProperty("mode")
-        private String mode;
-
-        public TimeLink() {
-        }
-
-        public TimeLink(String policyId, String mode) {
-            this.policyId = policyId;
-            this.mode = mode;
-        }
-
-        public String getPolicyId() {
-            return policyId;
-        }
-
-        public void setPolicyId(String policyId) {
-            this.policyId = policyId;
-        }
-
-        public String getMode() {
-            return mode;
-        }
-
-        public void setMode(String mode) {
-            this.mode = mode;
-        }
-    }
-
-    @Schema(description = "Source information")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class Source {
-        @Schema(description = "Rule version identifier", required = true)
-        @NotBlank
-        @JsonProperty("ruleVersionId")
-        private String ruleVersionId;
-
-        @Schema(description = "Snapshot hash", required = true)
-        @NotBlank
-        @JsonProperty("snapshotHash")
-        private String snapshotHash;
-
-        public Source() {
-        }
-
-        public Source(String ruleVersionId, String snapshotHash) {
-            this.ruleVersionId = ruleVersionId;
-            this.snapshotHash = snapshotHash;
-        }
-
-        public String getRuleVersionId() {
-            return ruleVersionId;
-        }
-
-        public void setRuleVersionId(String ruleVersionId) {
-            this.ruleVersionId = ruleVersionId;
-        }
-
-        public String getSnapshotHash() {
-            return snapshotHash;
-        }
-
-        public void setSnapshotHash(String snapshotHash) {
-            this.snapshotHash = snapshotHash;
-        }
     }
 }

@@ -23,6 +23,10 @@ public class ExecutionContextDto {
     @JsonProperty("timezone")
     private String timezone;
 
+    @Schema(description = "Tenant identifier", example = "tenant1")
+    @JsonProperty("tenantId")
+    private String tenantId;
+
     @Schema(description = "Session identifier", example = "session123")
     @JsonProperty("sessionId")
     private String sessionId;
@@ -55,6 +59,14 @@ public class ExecutionContextDto {
 
     public void setTimezone(String timezone) {
         this.timezone = timezone;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getSessionId() {
