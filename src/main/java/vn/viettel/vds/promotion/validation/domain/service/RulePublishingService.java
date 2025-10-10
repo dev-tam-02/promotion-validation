@@ -410,10 +410,10 @@ public class RulePublishingService {
         CandidateDto candidate = new CandidateDto();
         candidate.setId("test-candidate");
         candidate.setType("voucher");
-        // candidate.setCode("TEST"); // Method not available in DTO
 
         ExecutionContextDto context = new ExecutionContextDto();
-        // context.setTimestamp(System.currentTimeMillis()); // Method not available in DTO
+        context.setNow(Instant.now());
+        context.setTimezone("Asia/Bangkok");
 
         request.setCustomer(customer);
         request.setOrder(order);
