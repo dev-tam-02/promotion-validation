@@ -55,8 +55,12 @@ public class RulePublishingService {
             CompileResponse compileResponse = compileRuleInEngine(rule);
 
             if (!compileResponse.isOk()) {
-                logger.error("Rule compilation failed: ruleId={}, errors={}", ruleId, compileResponse.getErrors());
-                return RulePublishResult.failed(ruleId, "Compilation failed: " + String.join(", ", compileResponse.getErrors()));
+                List<String> errors = compileResponse.getErrors();
+                String errorMessage = (errors != null && !errors.isEmpty())
+                        ? String.join(", ", errors)
+                        : "Unknown compilation error";
+                logger.error("Rule compilation failed: ruleId={}, errors={}", ruleId, errorMessage);
+                return RulePublishResult.failed(ruleId, "Compilation failed: " + errorMessage);
             }
 
             // Warm up the compiled bundle
