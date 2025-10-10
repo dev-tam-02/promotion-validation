@@ -174,11 +174,8 @@ public class ValidationEngineTestController {
         request.setNodes(List.of(groupNode, segmentNode, amountNode));
         request.setOperatorsFingerprint("sha256:abc123def456");
 
-        // Set source information
-        CompileRequest.Source source = new CompileRequest.Source();
-        source.setRuleVersionId("vip_weekend_rule-v1");
-        source.setSnapshotHash("test-snapshot-hash");
-        request.setSource(source);
+        // Note: CompileRequest no longer has Source nested class in simplified API
+        // source information is now part of the main request
 
         return request;
     }
@@ -187,22 +184,32 @@ public class ValidationEngineTestController {
         ExecuteRequest request = new ExecuteRequest();
         request.setBundleHash(bundleHash);
 
-        // VIP customer context
-        CustomerDto customer = new CustomerDto();
-        customer.setId("CUST_VIP_001");
-        customer.setSegments(List.of("VIP"));
+        // VIP customer context - using record constructor
+        CustomerDto customer = new CustomerDto(
+                "CUST_VIP_001",
+                List.of("VIP"),
+                null,  // region
+                null,  // tier
+                null   // metadata
+        );
         request.setCustomer(customer);
 
-        // Order with 600K (above 500K minimum)
-        OrderDto order = new OrderDto();
-        order.setTotal(BigDecimal.valueOf(600000));
-        order.setCurrency("VND");
+        // Order with 600K (above 500K minimum) - using record constructor
+        OrderDto order = new OrderDto(
+                "ORDER_001",
+                BigDecimal.valueOf(600000),
+                "VND",
+                null,  // items
+                null   // metadata
+        );
         request.setOrder(order);
 
-        // Candidate for VIP customer test
-        CandidateDto candidate = new CandidateDto();
-        candidate.setId("VIP_WEEKEND_500K");
-        candidate.setType("VOUCHER");
+        // Candidate for VIP customer test - using record constructor
+        CandidateDto candidate = new CandidateDto(
+                "VIP_WEEKEND_500K",
+                "VOUCHER",
+                null  // metadata
+        );
         request.setCandidate(candidate);
 
         ExecutionContextDto context = new ExecutionContextDto();
@@ -217,22 +224,32 @@ public class ValidationEngineTestController {
         ExecuteRequest request = new ExecuteRequest();
         request.setBundleHash(bundleHash);
 
-        // STANDARD customer (not VIP)
-        CustomerDto customer = new CustomerDto();
-        customer.setId("CUST_STANDARD_001");
-        customer.setSegments(List.of("STANDARD"));
+        // STANDARD customer (not VIP) - using record constructor
+        CustomerDto customer = new CustomerDto(
+                "CUST_STANDARD_001",
+                List.of("STANDARD"),
+                null,  // region
+                null,  // tier
+                null   // metadata
+        );
         request.setCustomer(customer);
 
-        // Order with 600K (meets amount but wrong segment)
-        OrderDto order = new OrderDto();
-        order.setTotal(BigDecimal.valueOf(600000));
-        order.setCurrency("VND");
+        // Order with 600K (meets amount but wrong segment) - using record constructor
+        OrderDto order = new OrderDto(
+                "ORDER_002",
+                BigDecimal.valueOf(600000),
+                "VND",
+                null,  // items
+                null   // metadata
+        );
         request.setOrder(order);
 
-        // Candidate for standard customer test
-        CandidateDto candidate = new CandidateDto();
-        candidate.setId("VIP_WEEKEND_500K");
-        candidate.setType("VOUCHER");
+        // Candidate for standard customer test - using record constructor
+        CandidateDto candidate = new CandidateDto(
+                "VIP_WEEKEND_500K",
+                "VOUCHER",
+                null  // metadata
+        );
         request.setCandidate(candidate);
 
         ExecutionContextDto context = new ExecutionContextDto();

@@ -199,27 +199,60 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
      * Build execute request from domain model
      */
     private ExecuteRequest buildExecuteRequest(ValidationRequest request) {
-        ExecuteRequest executeRequest = new ExecuteRequest();
-        executeRequest.setBundleHash(request.getPromotionId());
+        // Prepare customer data
+        String customerId = request.getCustomerId();
+        List<String> segments = new ArrayList<>();
+        Integer tier = null;
+        Map<String, Object> customerMetadata = new HashMap<>();
 
-        // Build customer DTO
-        vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CustomerDto customerDto =
-                new vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CustomerDto();
-        customerDto.setId(request.getCustomerId());
+        if (request.getValidationContext() != null && request.getValidationContext().getCustomer() != null) {
+            if (request.getValidationContext().getCustomer().getSegment() != null) {
+                segments.add(request.getValidationContext().getCustomer().getSegment());
+            }
+            String tierStr = request.getValidationContext().getCustomer().getTier();
+            if (tierStr != null) {
+                try {
+                    tier = Integer.valueOf(tierStr);
+                } catch (NumberFormatException e) {
+                    // Ignore if tier is not a valid integer
+                }
+            }
+        }
 
-        // Build order DTO
-        vn.viettel.vds.promotion.validation.adapter.out.integration.dto.OrderDto orderDto =
-                new vn.viettel.vds.promotion.validation.adapter.out.integration.dto.OrderDto();
-        orderDto.setTotal(request.getOrderValue());
+        // Build customer DTO using record constructor
+        CustomerDto customerDto = new CustomerDto(
+                customerId,
+                segments,
+                null,  // region
+                tier,
+                customerMetadata
+        );
 
-        // Build candidate DTO
-        vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CandidateDto candidateDto =
-                new vn.viettel.vds.promotion.validation.adapter.out.integration.dto.CandidateDto();
-        candidateDto.setId(request.getPromotionId());
+        // Prepare order data
+        Map<String, Object> orderMetadata = new HashMap<>();
+        if (request.getValidationContext() != null && request.getValidationContext().getOrder() != null) {
+            orderMetadata.put("channel", request.getValidationContext().getOrder().getChannel());
+            orderMetadata.put("itemCount", request.getValidationContext().getOrder().getItemCount());
+        }
 
-        // Build execution context
-        vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ExecutionContextDto executionContext =
-                new vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ExecutionContextDto();
+        // Build order DTO using record constructor
+        OrderDto orderDto = new OrderDto(
+                "order-" + customerId,  // order ID
+                request.getOrderValue(),
+                "VND",  // currency
+                null,   // items
+                orderMetadata
+        );
+
+        // Build candidate DTO using record constructor
+        CandidateDto candidateDto = new CandidateDto(
+                request.getPromotionId(),
+                "promotion",  // type
+                null  // metadata
+        );
+
+        // Build execution context (this is a class, not record)
+        ExecutionContextDto executionContext = new ExecutionContextDto();
         executionContext.setNow(request.getTimestamp());
         executionContext.setTimezone("Asia/Bangkok");
         executionContext.setSessionId(request.getSessionId());
@@ -228,35 +261,11 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
         Map<String, Object> variables = new HashMap<>();
         variables.put("customerId", request.getCustomerId());
         variables.put("orderValue", request.getOrderValue());
-
-        // Add validation context if available
-        if (request.getValidationContext() != null) {
-            if (request.getValidationContext().getCustomer() != null) {
-                java.util.List<String> segments = new java.util.ArrayList<>();
-                if (request.getValidationContext().getCustomer().getSegment() != null) {
-                    segments.add(request.getValidationContext().getCustomer().getSegment());
-                }
-                customerDto.setSegments(segments);
-                String tierStr = request.getValidationContext().getCustomer().getTier();
-                if (tierStr != null) {
-                    try {
-                        customerDto.setTier(Integer.valueOf(tierStr));
-                    } catch (NumberFormatException e) {
-                        // Ignore if tier is not a valid integer
-                    }
-                }
-            }
-            if (request.getValidationContext().getOrder() != null) {
-                // Store channel and item count in metadata since OrderDto doesn't have these fields
-                java.util.Map<String, Object> orderMetadata = new java.util.HashMap<>();
-                orderMetadata.put("channel", request.getValidationContext().getOrder().getChannel());
-                orderMetadata.put("itemCount", request.getValidationContext().getOrder().getItemCount());
-                orderDto.setMetadata(orderMetadata);
-            }
-        }
-
         executionContext.setVariables(variables);
 
+        // Build execute request (this is a class, not record)
+        ExecuteRequest executeRequest = new ExecuteRequest();
+        executeRequest.setBundleHash(request.getPromotionId());
         executeRequest.setCustomer(customerDto);
         executeRequest.setOrder(orderDto);
         executeRequest.setCandidate(candidateDto);

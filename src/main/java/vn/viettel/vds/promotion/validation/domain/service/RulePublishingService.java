@@ -9,7 +9,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
