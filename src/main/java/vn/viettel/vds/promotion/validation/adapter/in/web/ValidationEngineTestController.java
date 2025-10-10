@@ -145,37 +145,31 @@ public class ValidationEngineTestController {
         request.setTenantId("default");
         request.setRuleId("vip_weekend_rule");
         request.setVersion(1);
-        request.setCompilerId("test-compiler-v1");
+        request.setLogic("ALL");
 
-        // Create rule nodes as Map objects matching our sample data
-        Map<String, Object> groupNode = Map.of(
-                "id", "n1",
-                "type", "GROUP",
-                "groupLogic", "ALL",
-                "children", List.of("n2", "n3")
-        );
+        // Create rule nodes as RuleNodeDto objects
+        RuleNodeDto groupNode = new RuleNodeDto();
+        groupNode.setId("n1");
+        groupNode.setType("GROUP");
+        groupNode.setGroupLogic("ALL");
+        groupNode.setChildren(List.of("n2", "n3"));
 
-        Map<String, Object> segmentNode = Map.of(
-                "id", "n2",
-                "type", "COND",
-                "operatorName", "customer.segment.in",
-                "params", Map.of("segments", List.of("VIP")),
-                "reasonCode", "CUSTOMER_SEGMENT_VIP"
-        );
+        RuleNodeDto segmentNode = new RuleNodeDto();
+        segmentNode.setId("n2");
+        segmentNode.setType("COND");
+        segmentNode.setOperatorName("customer.segment.in");
+        segmentNode.setParams(Map.of("segments", List.of("VIP")));
+        segmentNode.setReasonCode("CUSTOMER_SEGMENT_VIP");
 
-        Map<String, Object> amountNode = Map.of(
-                "id", "n3",
-                "type", "COND",
-                "operatorName", "order.amount.gte",
-                "params", Map.of("amount", 500000, "currency", "VND"),
-                "reasonCode", "ORDER_AMOUNT_MIN"
-        );
+        RuleNodeDto amountNode = new RuleNodeDto();
+        amountNode.setId("n3");
+        amountNode.setType("COND");
+        amountNode.setOperatorName("order.amount.gte");
+        amountNode.setParams(Map.of("amount", 500000, "currency", "VND"));
+        amountNode.setReasonCode("ORDER_AMOUNT_MIN");
 
         request.setNodes(List.of(groupNode, segmentNode, amountNode));
         request.setOperatorsFingerprint("sha256:abc123def456");
-
-        // Note: CompileRequest no longer has Source nested class in simplified API
-        // source information is now part of the main request
 
         return request;
     }
