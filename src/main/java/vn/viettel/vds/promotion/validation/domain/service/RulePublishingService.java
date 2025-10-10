@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -76,8 +76,8 @@ public class RulePublishingService {
 
             rulePersistencePort.save(rule);
 
-            // Create ValidationRule from published Rule for SettingValidationRuleCommandHandler
-            ValidationRule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
+            // Create Rule from published Rule for SettingValidationRuleCommandHandler
+            Rule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
             validationRuleEntityPersistencePort.save(validationRule);
 
             logger.info("Rule published successfully: ruleId={}, bundleHash={}, validationRuleId={}",
@@ -335,46 +335,38 @@ public class RulePublishingService {
         return false;
     }
 
-    private ValidationRule createValidationRuleFromRule(Rule rule, String bundleHash) {
-        ValidationRule validationRule = new ValidationRule();
-
-        // Use rule ID as ValidationRule ID for SettingValidationRuleCommandHandler lookup
-        validationRule.setId(rule.getId());
-        validationRule.setCode(rule.getCode());
-        validationRule.setName(rule.getName());
-        validationRule.setState("published");
-        validationRule.setVersion(rule.getLatestVersion());
-        validationRule.setLogic(rule.getLogic() != null ? rule.getLogic().name() : null);
-
-        // Convert limits from Rule.UsageLimits to ValidationRule.UsageLimits
-        if (rule.getLimits() != null) {
-            Rule.UsageLimits ruleLimits = rule.getLimits();
-            ValidationRule.UsageLimits limits = new ValidationRule.UsageLimits(
-                    ruleLimits.getPerCodeTotal(),
-                    ruleLimits.getPerCustomer(),
-                    ruleLimits.getPerDay()
-            );
-            validationRule.setLimits(limits);
-        }
-
+    private Rule createValidationRuleFromRule(Rule rule, String bundleHash) {
         // Convert nodes
+        List<RuleNode> validationNodes = null;
         if (rule.getNodes() != null) {
-            List<RuleNode> validationNodes = rule.getNodes().stream()
+            validationNodes = rule.getNodes().stream()
                     .map(this::convertRuleNodeToValidationNode)
                     .collect(Collectors.toList());
-            validationRule.setNodes(validationNodes);
         }
 
         // Set timestamps
         Instant now = Instant.now();
-        validationRule.setPublishedAt(now);
-        validationRule.setPublishedBy("rule-publishing-service");
-        validationRule.setCreatedAt(rule.getCreatedAt());
-        validationRule.setCreatedBy(rule.getCreatedBy());
-        validationRule.setUpdatedAt(now);
-        // Note: updatedBy field is not present in ValidationRule domain model
 
-        logger.info("Created ValidationRule from Rule: ruleId={}, validationRuleId={}",
+        // Build new Rule with published state
+        Rule validationRule = Rule.builder()
+                .id(rule.getId())
+                .code(rule.getCode())
+                .name(rule.getName())
+                .state(Rule.RuleState.PUBLISHED)
+                .ruleVersion(rule.getRuleVersion())
+                .latestVersion(rule.getLatestVersion())
+                .logic(rule.getLogic())
+                .limits(rule.getLimits())
+                .nodes(validationNodes)
+                .publishedAt(now)
+                .publishedBy("rule-publishing-service")
+                .createdAt(rule.getCreatedAt())
+                .createdBy(rule.getCreatedBy())
+                .updatedAt(now)
+                .updatedBy("rule-publishing-service")
+                .build();
+
+        logger.info("Created Rule from Rule: ruleId={}, validationRuleId={}",
                 rule.getId(), validationRule.getId());
 
         return validationRule;

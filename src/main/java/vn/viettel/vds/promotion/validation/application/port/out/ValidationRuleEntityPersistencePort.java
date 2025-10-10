@@ -2,46 +2,46 @@ package vn.viettel.vds.promotion.validation.application.port.out;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Outbound port for ValidationRule entity persistence operations.
- * This port handles persistence of ValidationRule entities (not domain models).
+ * Outbound port for Rule entity persistence operations.
+ * This port handles persistence of Rule domain models.
  */
 public interface ValidationRuleEntityPersistencePort {
 
     /**
-     * Save or update a validation rule entity
+     * Save or update a validation rule
      */
-    ValidationRule save(ValidationRule validationRule);
+    Rule save(Rule rule);
 
     /**
      * Find validation rule by ID
      */
-    Optional<ValidationRule> findById(String id);
+    Optional<Rule> findById(String id);
 
     /**
      * Find rule by code
      */
-    Optional<ValidationRule> findByCode(String code);
+    Optional<Rule> findByCode(String code);
 
     /**
      * Find rules by state
      */
-    List<ValidationRule> findByState(String state);
+    List<Rule> findByState(String state);
 
     /**
      * Find rules by state with pagination
      */
-    Page<ValidationRule> findByState(String state, Pageable pageable);
+    Page<Rule> findByState(String state, Pageable pageable);
 
     /**
      * Find published rules by version
      */
-    List<ValidationRule> findByStateAndVersionGreaterThan(String state, Integer version);
+    List<Rule> findByStateAndVersionGreaterThan(String state, Integer version);
 
     /**
      * Check if rule exists by code
@@ -51,12 +51,12 @@ public interface ValidationRuleEntityPersistencePort {
     /**
      * Find latest version by code
      */
-    Optional<ValidationRule> findTopByCodeOrderByVersionDesc(String code);
+    Optional<Rule> findTopByCodeOrderByVersionDesc(String code);
 
     /**
      * Find rules by state ordered by version
      */
-    List<ValidationRule> findByStateOrderByVersionDesc(String state);
+    List<Rule> findByStateOrderByVersionDesc(String state);
 
     /**
      * Delete rule by ID

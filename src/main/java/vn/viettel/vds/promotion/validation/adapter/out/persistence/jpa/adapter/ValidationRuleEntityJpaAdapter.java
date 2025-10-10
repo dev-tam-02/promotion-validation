@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationRule;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * JPA adapter implementation for ValidationRuleEntityPersistencePort
- * Handles conversion between ValidationRule mongo entity and ValidationRuleEntity JPA
+ * Handles conversion between Rule domain model and ValidationRuleEntity JPA
  */
 @Component
 @ConditionalOnPromixJpa
@@ -30,49 +30,49 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     }
 
     @Override
-    public ValidationRule save(ValidationRule validationRule) {
-        ValidationRuleEntity entity = toJpaEntity(validationRule);
+    public Rule save(Rule rule) {
+        ValidationRuleEntity entity = toJpaEntity(rule);
         ValidationRuleEntity saved = repository.save(entity);
-        return toMongoEntity(saved);
+        return toDomainModel(saved);
     }
 
     @Override
-    public Optional<ValidationRule> findById(String id) {
+    public Optional<Rule> findById(String id) {
         return repository.findById(id)
-                .map(this::toMongoEntity);
+                .map(this::toDomainModel);
     }
 
     @Override
-    public Optional<ValidationRule> findByCode(String code) {
+    public Optional<Rule> findByCode(String code) {
         return repository.findByCode(code)
-                .map(this::toMongoEntity);
+                .map(this::toDomainModel);
     }
 
     @Override
-    public List<ValidationRule> findByState(String state) {
+    public List<Rule> findByState(String state) {
         return repository.findByState(state).stream()
-                .map(this::toMongoEntity)
+                .map(this::toDomainModel)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Page<ValidationRule> findByState(String state, Pageable pageable) {
+    public Page<Rule> findByState(String state, Pageable pageable) {
         List<ValidationRuleEntity> entities = repository.findByState(state);
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), entities.size());
 
-        List<ValidationRule> pageContent = entities.subList(start, end).stream()
-                .map(this::toMongoEntity)
+        List<Rule> pageContent = entities.subList(start, end).stream()
+                .map(this::toDomainModel)
                 .collect(Collectors.toList());
 
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 
     @Override
-    public List<ValidationRule> findByStateAndVersionGreaterThan(String state, Integer version) {
+    public List<Rule> findByStateAndVersionGreaterThan(String state, Integer version) {
         return repository.findByState(state).stream()
                 .filter(e -> e.getRuleVersion() > version)
-                .map(this::toMongoEntity)
+                .map(this::toDomainModel)
                 .collect(Collectors.toList());
     }
 
@@ -82,15 +82,15 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     }
 
     @Override
-    public Optional<ValidationRule> findTopByCodeOrderByVersionDesc(String code) {
+    public Optional<Rule> findTopByCodeOrderByVersionDesc(String code) {
         return repository.findLatestVersionByCode(code)
-                .map(this::toMongoEntity);
+                .map(this::toDomainModel);
     }
 
     @Override
-    public List<ValidationRule> findByStateOrderByVersionDesc(String state) {
+    public List<Rule> findByStateOrderByVersionDesc(String state) {
         return repository.findByStateOrderByVersionDesc(state).stream()
-                .map(this::toMongoEntity)
+                .map(this::toDomainModel)
                 .collect(Collectors.toList());
     }
 
@@ -105,45 +105,42 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     }
 
     /**
-     * Convert ValidationRule mongo entity to JPA entity
+     * Convert Rule domain model to JPA entity
      */
-    private ValidationRuleEntity toJpaEntity(ValidationRule mongoEntity) {
+    private ValidationRuleEntity toJpaEntity(Rule domainModel) {
         ValidationRuleEntity jpaEntity = new ValidationRuleEntity();
-        jpaEntity.setId(mongoEntity.getId());
-        jpaEntity.setCode(mongoEntity.getCode());
-        jpaEntity.setName(mongoEntity.getName());
-        jpaEntity.setState(mongoEntity.getState());
-        jpaEntity.setRuleVersion(mongoEntity.getVersion() != null ? mongoEntity.getVersion().longValue() : 1L);
-        jpaEntity.setLogic(mongoEntity.getLogic());
-        // Note: dsl is optional and not present in ValidationRule domain model
-        jpaEntity.setDsl(null);
-        jpaEntity.setPublishedAt(mongoEntity.getPublishedAt());
-        jpaEntity.setPublishedBy(mongoEntity.getPublishedBy());
-        jpaEntity.setCreatedAt(mongoEntity.getCreatedAt());
-        jpaEntity.setCreatedBy(mongoEntity.getCreatedBy());
-        jpaEntity.setUpdatedAt(mongoEntity.getUpdatedAt());
-        // Note: updatedBy is not present in ValidationRule domain model
+        jpaEntity.setId(domainModel.getId());
+        jpaEntity.setCode(domainModel.getCode());
+        jpaEntity.setName(domainModel.getName());
+        jpaEntity.setState(domainModel.getState() != null ? domainModel.getState().name() : "DRAFT");
+        jpaEntity.setRuleVersion(domainModel.getRuleVersion() != null ? domainModel.getRuleVersion() : 1L);
+        jpaEntity.setLogic(domainModel.getLogic() != null ? domainModel.getLogic().name() : null);
+        jpaEntity.setDsl(domainModel.getDsl());
+        jpaEntity.setPublishedAt(domainModel.getPublishedAt());
+        jpaEntity.setPublishedBy(domainModel.getPublishedBy());
+        jpaEntity.setCreatedAt(domainModel.getCreatedAt());
+        jpaEntity.setCreatedBy(domainModel.getCreatedBy());
+        jpaEntity.setUpdatedAt(domainModel.getUpdatedAt());
         return jpaEntity;
     }
 
     /**
-     * Convert JPA entity to ValidationRule mongo entity
+     * Convert JPA entity to Rule domain model
      */
-    private ValidationRule toMongoEntity(ValidationRuleEntity jpaEntity) {
-        ValidationRule mongoEntity = new ValidationRule();
-        mongoEntity.setId(jpaEntity.getId());
-        mongoEntity.setCode(jpaEntity.getCode());
-        mongoEntity.setName(jpaEntity.getName());
-        mongoEntity.setState(jpaEntity.getState());
-        mongoEntity.setVersion(jpaEntity.getRuleVersion() != null ? jpaEntity.getRuleVersion().intValue() : 1);
-        mongoEntity.setLogic(jpaEntity.getLogic());
-        // Note: dsl is optional and not mapped to ValidationRule domain model
-        mongoEntity.setPublishedAt(jpaEntity.getPublishedAt());
-        mongoEntity.setPublishedBy(jpaEntity.getPublishedBy());
-        mongoEntity.setCreatedAt(jpaEntity.getCreatedAt());
-        mongoEntity.setCreatedBy(jpaEntity.getCreatedBy());
-        mongoEntity.setUpdatedAt(jpaEntity.getUpdatedAt());
-        // Note: updatedBy is not present in ValidationRule domain model
-        return mongoEntity;
+    private Rule toDomainModel(ValidationRuleEntity jpaEntity) {
+        return Rule.builder()
+                .id(jpaEntity.getId())
+                .code(jpaEntity.getCode())
+                .name(jpaEntity.getName())
+                .state(jpaEntity.getState() != null ? Rule.RuleState.valueOf(jpaEntity.getState()) : Rule.RuleState.DRAFT)
+                .ruleVersion(jpaEntity.getRuleVersion())
+                .logic(jpaEntity.getLogic() != null ? Rule.LogicType.valueOf(jpaEntity.getLogic()) : null)
+                .dsl(jpaEntity.getDsl())
+                .publishedAt(jpaEntity.getPublishedAt())
+                .publishedBy(jpaEntity.getPublishedBy())
+                .createdAt(jpaEntity.getCreatedAt())
+                .createdBy(jpaEntity.getCreatedBy())
+                .updatedAt(jpaEntity.getUpdatedAt())
+                .build();
     }
 }
