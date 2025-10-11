@@ -218,7 +218,8 @@ public class RulePublishingService {
     }
 
     private CompileResponse compileRuleInEngine(Rule rule) {
-        List<Map<String, Object>> nodesMaps = convertNodesToMaps(rule.getNodes());
+        // Convert nodes to DTOs using new API
+        List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
         // Determine version - use latestVersion if available, otherwise use ruleVersion or default to 1
         Integer version = rule.getLatestVersion();
@@ -226,30 +227,19 @@ public class RulePublishingService {
             version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
         }
 
+        // Determine root logic - use rule logic if available, default to ALL
+        String logic = rule.getLogic() != null ? rule.getLogic().name() : "ALL";
+
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(rule.getId());
         compileRequest.setVersion(version);
-        compileRequest.setNodes(nodesMaps);
+        compileRequest.setLogic(logic);
+        compileRequest.setNodes(nodeDtos);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
-        compileRequest.setCompilerId(tenantProperties.getCompilerId());
 
-        // Set limits if available
-        if (rule.getLimits() != null) {
-            CompileRequest.Limits limits = new CompileRequest.Limits();
-            limits.setPerCustomer(rule.getLimits().getPerCustomer());
-            limits.setPerDay(rule.getLimits().getPerDay());
-            compileRequest.setLimits(limits);
-        }
-
-        // Set source information
-        CompileRequest.Source source = new CompileRequest.Source();
-        source.setRuleVersionId(rule.getId() + "-v" + version);
-        source.setSnapshotHash(generateSnapshotHash(rule));
-        compileRequest.setSource(source);
-
-        // Time links can be added later if needed
-        compileRequest.setTimeLinks(null);
+        // Note: Removed compilerId, Source, Limits, timeLinks - not part of new simplified API
+        // These are business logic concerns, not compilation concerns
 
         return validationEngineClient.compile(compileRequest);
     }
@@ -258,24 +248,26 @@ public class RulePublishingService {
         List<RuleNodeDto> dtos = new ArrayList<>();
 
         for (RuleNode node : nodes) {
-            RuleNodeDto dto = new RuleNodeDto();
-            dto.setId(node.getId());
-            dto.setType(node.getType().name());
-            dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
-            dto.setOperatorName(node.getOperatorName());
-            // dto.setOperatorVersion(node.getOperatorVersion()); // Not available in current model
-            dto.setParams(node.getParams());
-            dto.setReasonCode(node.getReasonCode());
-
             // Convert children nodes to IDs
-            if (node.getChildren() != null) {
-                List<String> childIds = new ArrayList<>();
+            List<String> childIds = null;
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                childIds = new ArrayList<>();
                 for (RuleNode child : node.getChildren()) {
                     childIds.add(child.getId());
                 }
-                dto.setChildren(childIds);
             }
-            // dto.setOrder(node.getOrder()); // Not available in current model
+
+            // Create RuleNodeDto using setters (it's a class, not a record)
+            RuleNodeDto dto = new RuleNodeDto();
+            dto.setId(node.getId());
+            dto.setType(node.getType() != null ? node.getType().name() : null);
+            dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
+            dto.setOperatorName(node.getOperatorName());
+            dto.setOperatorVersion(null); // Not available in current model
+            dto.setParams(node.getParams());
+            dto.setReasonCode(node.getReasonCode());
+            dto.setChildren(childIds);
+            dto.setOrder(null); // Not available in current model
 
             dtos.add(dto);
         }
@@ -429,19 +421,28 @@ public class RulePublishingService {
         ExecuteRequest request = new ExecuteRequest();
         request.setBundleHash(bundleHash);
 
-        // Create minimal test data
-        CustomerDto customer = new CustomerDto();
-        customer.setId("test-customer");
-        customer.setTier(1); // Using tier level instead of string
+        // Create minimal test data using record constructors
+        CustomerDto customer = new CustomerDto(
+                "test-customer",
+                null,  // segments
+                null,  // region
+                1,     // tier
+                null   // metadata
+        );
 
-        OrderDto order = new OrderDto();
-        order.setId("test-order");
-        order.setTotal(java.math.BigDecimal.valueOf(100000.0));
-        order.setCurrency("VND");
+        OrderDto order = new OrderDto(
+                "test-order",
+                java.math.BigDecimal.valueOf(100000.0),
+                "VND",
+                null,  // items
+                null   // metadata
+        );
 
-        CandidateDto candidate = new CandidateDto();
-        candidate.setId("test-candidate");
-        candidate.setType("voucher");
+        CandidateDto candidate = new CandidateDto(
+                "test-candidate",
+                "voucher",
+                null  // metadata
+        );
 
         ExecutionContextDto context = new ExecutionContextDto();
         context.setNow(Instant.now());
