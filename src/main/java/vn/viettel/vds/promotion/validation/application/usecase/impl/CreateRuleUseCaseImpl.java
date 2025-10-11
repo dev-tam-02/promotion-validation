@@ -7,16 +7,7 @@ import vn.viettel.vds.promotion.validation.application.port.in.command.CreateRul
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.event.RuleCreatedEvent;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
 import vn.viettel.vds.promotion.validation.domain.factory.RuleFactory;
-import vn.viettel.vds.promotion.validation.domain.model.LogicType;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of CreateRuleUseCase

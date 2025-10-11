@@ -2,12 +2,12 @@ package vn.viettel.vds.promotion.validation.domain.common;
 
 /**
  * Standardized error codes for validation module.
- *
+ * <p>
  * Error code format: MODULE_CATEGORY_SPECIFIC_ERROR
  * - MODULE: VAL (Validation)
  * - CATEGORY: Business domain (RULE, CMD, etc.)
  * - SPECIFIC_ERROR: Specific error condition
- *
+ * <p>
  * HTTP Status mapping:
  * - 1xxx: Success (200)
  * - 2xxx: Client errors (400)
@@ -100,6 +100,18 @@ public enum ErrorCode {
         this.httpStatus = httpStatus;
     }
 
+    /**
+     * Find error code by code string
+     */
+    public static ErrorCode fromCode(String code) {
+        for (ErrorCode errorCode : values()) {
+            if (errorCode.code.equals(code)) {
+                return errorCode;
+            }
+        }
+        return UNKNOWN_ERROR;
+    }
+
     public String getCode() {
         return code;
     }
@@ -131,18 +143,6 @@ public enum ErrorCode {
      */
     public boolean isServerError() {
         return httpStatus >= 500;
-    }
-
-    /**
-     * Find error code by code string
-     */
-    public static ErrorCode fromCode(String code) {
-        for (ErrorCode errorCode : values()) {
-            if (errorCode.code.equals(code)) {
-                return errorCode;
-            }
-        }
-        return UNKNOWN_ERROR;
     }
 
     @Override

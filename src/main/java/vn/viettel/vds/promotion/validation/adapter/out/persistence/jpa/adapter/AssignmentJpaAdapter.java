@@ -63,7 +63,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
 
     @Override
     public Page<Assignment> findWithFilters(String tenantId, String subjectType, String subjectKeyPattern,
-                                           Boolean active, String ruleId, Pageable pageable) {
+                                            Boolean active, String ruleId, Pageable pageable) {
         // Simplified filtering - tenantId removed from schema
         List<AssignmentEntity> all = repository.findAll();
         List<AssignmentEntity> filtered = all.stream()

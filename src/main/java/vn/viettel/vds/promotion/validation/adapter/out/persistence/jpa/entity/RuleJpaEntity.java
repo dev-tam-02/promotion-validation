@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * JPA entity for validation rules mapped to validation_rules table.
- *
+ * <p>
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml):
  * - id: varchar(36) - Primary key
  * - code: varchar(100) - Rule code identifier
@@ -31,7 +31,7 @@ import java.util.Map;
  * - updated_at: timestamp - Last update timestamp
  * - created_by: varchar(100) - Creator
  * - updated_by: varchar(100) - Last updater
- *
+ * <p>
  * Related tables (ElementCollection):
  * - rule_configuration: Stores configuration key-value pairs
  * - rule_target_segments: Stores target segments list

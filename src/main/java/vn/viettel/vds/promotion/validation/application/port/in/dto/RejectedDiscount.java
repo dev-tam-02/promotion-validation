@@ -7,10 +7,9 @@ import java.util.List;
 /**
  * Represents a discount that failed validation.
  *
- * @param objectType type of discount object
- * @param objectId discount object identifier
+ * @param objectType       type of discount object
+ * @param objectId         discount object identifier
  * @param rejectionReasons reasons why discount was rejected
- *
  * @author Validation Team
  * @since 1.0.0
  */
@@ -25,8 +24,8 @@ public record RejectedDiscount(
      * Creates a rejected discount.
      *
      * @param objectType discount type
-     * @param objectId discount ID
-     * @param reasons rejection reasons
+     * @param objectId   discount ID
+     * @param reasons    rejection reasons
      * @return rejected discount
      */
     public static RejectedDiscount of(
@@ -41,8 +40,8 @@ public record RejectedDiscount(
      * Creates a rejected discount with single reason.
      *
      * @param objectType discount type
-     * @param objectId discount ID
-     * @param reason rejection reason
+     * @param objectId   discount ID
+     * @param reason     rejection reason
      * @return rejected discount
      */
     public static RejectedDiscount withReason(

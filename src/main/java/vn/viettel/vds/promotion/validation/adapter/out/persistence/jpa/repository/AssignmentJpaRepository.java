@@ -6,9 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface AssignmentJpaRepository extends JpaRepository<AssignmentEntity, String> {

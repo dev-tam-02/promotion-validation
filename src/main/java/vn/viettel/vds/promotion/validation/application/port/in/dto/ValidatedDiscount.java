@@ -8,13 +8,12 @@ import java.util.Map;
 /**
  * Represents a discount that passed validation.
  *
- * @param objectType type of discount object
- * @param objectId discount object identifier
- * @param discountAmount calculated discount amount
- * @param appliedOrder order in which discount should be applied
+ * @param objectType        type of discount object
+ * @param objectId          discount object identifier
+ * @param discountAmount    calculated discount amount
+ * @param appliedOrder      order in which discount should be applied
  * @param calculationMethod method used to calculate discount
- * @param metadata additional metadata about the discount
- *
+ * @param metadata          additional metadata about the discount
  * @author Validation Team
  * @since 1.0.0
  */
@@ -31,10 +30,10 @@ public record ValidatedDiscount(
     /**
      * Creates a validated discount with minimum fields.
      *
-     * @param objectType discount type
-     * @param objectId discount ID
+     * @param objectType     discount type
+     * @param objectId       discount ID
      * @param discountAmount calculated discount
-     * @param appliedOrder application order
+     * @param appliedOrder   application order
      * @return validated discount
      */
     public static ValidatedDiscount of(

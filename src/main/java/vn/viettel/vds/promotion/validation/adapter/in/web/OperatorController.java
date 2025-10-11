@@ -84,7 +84,7 @@ public class OperatorController {
     public OperatorResponse createOperator(
             @Valid @RequestBody CreateOperatorRequest request) {
 
-        logger.info("Creating operator: name={}, version={}", request.getName(), request.getVersion().intValue());
+        logger.info("Creating operator: name={}, version={}", request.getName(), request.getVersion());
 
         Operator operator = operatorService.createOperator(
                 request.getName(),

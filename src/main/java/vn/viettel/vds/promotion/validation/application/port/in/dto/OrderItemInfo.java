@@ -9,11 +9,10 @@ import java.math.BigDecimal;
 /**
  * Order item information for validation.
  *
- * @param sku product SKU
+ * @param sku      product SKU
  * @param quantity item quantity
- * @param price unit price in smallest currency unit
+ * @param price    unit price in smallest currency unit
  * @param category product category
- *
  * @author Validation Team
  * @since 1.0.0
  */
@@ -34,9 +33,9 @@ public record OrderItemInfo(
     /**
      * Creates order item with minimum required fields.
      *
-     * @param sku product SKU
+     * @param sku      product SKU
      * @param quantity item quantity
-     * @param price unit price
+     * @param price    unit price
      * @return order item info
      */
     public static OrderItemInfo of(String sku, int quantity, BigDecimal price) {

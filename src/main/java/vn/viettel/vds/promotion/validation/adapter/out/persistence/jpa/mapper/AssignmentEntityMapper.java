@@ -9,14 +9,14 @@ import java.util.List;
 
 /**
  * Mapper between Assignment domain model and AssignmentEntity.
- *
+ * <p>
  * NOTE: The domain model contains fields that don't exist in the database schema:
  * - tenantId, ruleVersionPinned, subject, assignmentVersion, validFrom, validTo,
- *   trafficPercent, stickyKeyStrategy, createdBy, updatedBy, version
- *
+ * trafficPercent, stickyKeyStrategy, createdBy, updatedBy, version
+ * <p>
  * The database schema only has: id, entity_type, entity_id, rule_id, priority, active,
  * created_at, updated_at
- *
+ * <p>
  * TODO: Either update the database schema to match the domain model OR use a different
  * entity structure that matches the schema.
  */

@@ -2,7 +2,7 @@ package vn.viettel.vds.promotion.validation.domain.constant;
 
 /**
  * Constants for validation rules and rule processing.
- *
+ * <p>
  * Centralized location for all magic strings and default values used in rule processing.
  */
 public final class RuleConstants {
@@ -21,7 +21,8 @@ public final class RuleConstants {
         public static final String CUSTOMER = "customer";
         public static final String SEGMENT = "segment";
 
-        private SubjectType() {}
+        private SubjectType() {
+        }
     }
 
     /**
@@ -31,7 +32,8 @@ public final class RuleConstants {
         public static final String GROUP = "GROUP";
         public static final String CONDITION = "COND";
 
-        private NodeType() {}
+        private NodeType() {
+        }
     }
 
     /**
@@ -65,7 +67,8 @@ public final class RuleConstants {
         public static final String PRODUCT_APPLICABILITY_IN = "product.applicability.in";
         public static final String SEGMENT_IN = "segment.in";
 
-        private Operator() {}
+        private Operator() {
+        }
     }
 
     /**
@@ -82,7 +85,8 @@ public final class RuleConstants {
         public static final String ELIGIBILITY = "ELIGIBILITY";
         public static final String VALIDATION = "VALIDATION";
 
-        private RuleType() {}
+        private RuleType() {
+        }
     }
 
     /**
@@ -94,7 +98,8 @@ public final class RuleConstants {
         public static final String ARCHIVED = "ARCHIVED";
         public static final String DEPRECATED = "DEPRECATED";
 
-        private RuleState() {}
+        private RuleState() {
+        }
     }
 
     /**
@@ -106,7 +111,8 @@ public final class RuleConstants {
         public static final String NONE = "NONE"; // NOT
         public static final String XOR = "XOR";   // Exactly one
 
-        private LogicType() {}
+        private LogicType() {
+        }
     }
 
     /**
@@ -120,7 +126,8 @@ public final class RuleConstants {
         public static final String DEFAULT_LOGIC = LogicType.ALL;
         public static final String DEFAULT_SUBJECT_TYPE = SubjectType.CAMPAIGN;
 
-        private Defaults() {}
+        private Defaults() {
+        }
     }
 
     /**
@@ -132,7 +139,8 @@ public final class RuleConstants {
         public static final String RECURRING = "RECURRING";
         public static final String DATE_RANGE = "DATE_RANGE";
 
-        private TimeFrameMode() {}
+        private TimeFrameMode() {
+        }
     }
 
     /**
@@ -144,7 +152,8 @@ public final class RuleConstants {
         public static final String DEVICE_ID = "DEVICE_ID";
         public static final String IP_ADDRESS = "IP_ADDRESS";
 
-        private StickyKeyStrategy() {}
+        private StickyKeyStrategy() {
+        }
     }
 
     /**
@@ -173,11 +182,13 @@ public final class RuleConstants {
         public static final String CAMPAIGN_ID = "campaign.id";
         public static final String CAMPAIGN_CODE = "campaign.code";
 
-        private Field() {}
+        private Field() {
+        }
     }
 
     /**
      * Error codes (legacy - prefer ErrorCode enum)
+     *
      * @deprecated Use {@link vn.viettel.vds.promotion.validation.domain.common.ErrorCode} instead
      */
     @Deprecated(since = "1.0.0", forRemoval = true)
@@ -189,7 +200,8 @@ public final class RuleConstants {
         public static final String RULE_MISSING_APPLICABILITY_NODE = "RULE_MISSING_APPLICABILITY_NODE";
         public static final String PROCESSING_ERROR = "PROCESSING_ERROR";
 
-        private ErrorCodes() {}
+        private ErrorCodes() {
+        }
     }
 
     /**
@@ -203,7 +215,8 @@ public final class RuleConstants {
         public static final String MAX_NODE_COUNT = "validation.rule.max-nodes";
         public static final String DEPLOYMENT_ENABLED = "validation.deployment.enabled";
 
-        private ConfigKey() {}
+        private ConfigKey() {
+        }
     }
 
     /**
@@ -217,6 +230,7 @@ public final class RuleConstants {
         public static final String DEPLOYMENT_SUCCESS = "validation.deployment.success";
         public static final String DEPLOYMENT_FAILURE = "validation.deployment.failure";
 
-        private Metrics() {}
+        private Metrics() {
+        }
     }
 }

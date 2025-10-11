@@ -5,7 +5,6 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,11 +39,11 @@ public class StackingResult {
     /**
      * Creates a successful stacking result.
      *
-     * @param validationId validation identifier
+     * @param validationId       validation identifier
      * @param validatedDiscounts list of validated discounts
-     * @param totalDiscount total discount amount
-     * @param originalAmount original order amount
-     * @param processingTime processing time in ms
+     * @param totalDiscount      total discount amount
+     * @param originalAmount     original order amount
+     * @param processingTime     processing time in ms
      * @return successful stacking result
      */
     public static StackingResult success(
@@ -73,10 +72,10 @@ public class StackingResult {
     /**
      * Creates a failed stacking result.
      *
-     * @param validationId validation identifier
+     * @param validationId      validation identifier
      * @param rejectedDiscounts list of rejected discounts
-     * @param issues validation issues
-     * @param processingTime processing time in ms
+     * @param issues            validation issues
+     * @param processingTime    processing time in ms
      * @return failed stacking result
      */
     public static StackingResult failure(
@@ -104,13 +103,13 @@ public class StackingResult {
     /**
      * Creates a partial stacking result.
      *
-     * @param validationId validation identifier
+     * @param validationId       validation identifier
      * @param validatedDiscounts list of validated discounts
-     * @param rejectedDiscounts list of rejected discounts
-     * @param totalDiscount total discount from validated discounts
-     * @param originalAmount original order amount
-     * @param issues validation issues
-     * @param processingTime processing time in ms
+     * @param rejectedDiscounts  list of rejected discounts
+     * @param totalDiscount      total discount from validated discounts
+     * @param originalAmount     original order amount
+     * @param issues             validation issues
+     * @param processingTime     processing time in ms
      * @return partial stacking result
      */
     public static StackingResult partial(

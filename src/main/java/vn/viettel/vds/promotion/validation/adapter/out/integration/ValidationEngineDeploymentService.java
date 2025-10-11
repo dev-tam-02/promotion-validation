@@ -71,11 +71,11 @@ public class ValidationEngineDeploymentService {
 
         return String.format("""
                         package vn.viettel.vds.promotion.validation.rules;
-
+                        
                         import vn.viettel.vds.promotion.validation.engine.domain.model.Customer;
                         import vn.viettel.vds.promotion.validation.engine.domain.model.Order;
                         import vn.viettel.vds.promotion.validation.engine.domain.model.ValidationResult;
-
+                        
                         rule "%s_v%s"
                             when
                                 $customer : Customer()

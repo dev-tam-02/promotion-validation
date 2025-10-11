@@ -23,7 +23,7 @@ public interface PublishValidationResultPort {
      * </p>
      *
      * @param event the validation result event containing validation decision and details
-     * @throws IllegalArgumentException if event is null
+     * @throws IllegalArgumentException   if event is null
      * @throws ValidationPublishException if publishing fails
      */
     void publishValidationResult(ValidateStackableDiscountResultEvent event);
@@ -35,8 +35,8 @@ public interface PublishValidationResultPort {
      * message loss and enable debugging and recovery.
      * </p>
      *
-     * @param topic the DLQ topic name
-     * @param message the original message that failed processing
+     * @param topic       the DLQ topic name
+     * @param message     the original message that failed processing
      * @param errorReason the reason for failure
      * @throws IllegalArgumentException if any parameter is null
      */
@@ -47,9 +47,9 @@ public interface PublishValidationResultPort {
      * an unexpected error or exception.
      *
      * @param correlationId the correlation ID for tracking
-     * @param errorCode the error code
-     * @param errorMessage the error message
-     * @param errorDetails additional error details
+     * @param errorCode     the error code
+     * @param errorMessage  the error message
+     * @param errorDetails  additional error details
      */
     void publishValidationError(String correlationId, String errorCode,
                                 String errorMessage, String errorDetails);

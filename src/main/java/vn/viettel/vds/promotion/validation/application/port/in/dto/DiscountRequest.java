@@ -12,12 +12,11 @@ import java.math.BigDecimal;
  * Represents a single discount that should be validated as part of a stackable discount set.
  * </p>
  *
- * @param objectType type of discount object (CASHBACK, CAMPAIGN, VOUCHER, COUPON, etc.)
- * @param objectId unique identifier of the discount object
- * @param priority application priority (lower number = higher priority)
+ * @param objectType       type of discount object (CASHBACK, CAMPAIGN, VOUCHER, COUPON, etc.)
+ * @param objectId         unique identifier of the discount object
+ * @param priority         application priority (lower number = higher priority)
  * @param expectedDiscount expected discount amount
- * @param maxDiscountCap maximum discount cap
- *
+ * @param maxDiscountCap   maximum discount cap
  * @author Validation Team
  * @since 1.0.0
  */
@@ -38,7 +37,7 @@ public record DiscountRequest(
      * Creates a discount request with minimum required fields.
      *
      * @param objectType discount type
-     * @param objectId discount ID
+     * @param objectId   discount ID
      * @return discount request
      */
     public static DiscountRequest of(DiscountObjectType objectType, String objectId) {
@@ -49,8 +48,8 @@ public record DiscountRequest(
      * Creates a discount request with priority.
      *
      * @param objectType discount type
-     * @param objectId discount ID
-     * @param priority application priority
+     * @param objectId   discount ID
+     * @param priority   application priority
      * @return discount request
      */
     public static DiscountRequest withPriority(

@@ -158,8 +158,8 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         // Wrap result in a container to preserve type information
         IdempotencyResult container = new IdempotencyResult(
-            result.getClass().getName(),
-            objectMapper.writeValueAsString(result)
+                result.getClass().getName(),
+                objectMapper.writeValueAsString(result)
         );
 
         return objectMapper.writeValueAsString(container);
@@ -183,5 +183,6 @@ public class RedisIdempotencyService implements IdempotencyService {
     /**
      * Container for storing idempotency result with type information
      */
-    private record IdempotencyResult(String type, String payload) {}
+    private record IdempotencyResult(String type, String payload) {
+    }
 }

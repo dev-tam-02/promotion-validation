@@ -6,13 +6,13 @@ Các slash commands này cho phép bạn chạy **5 Claude Code sessions đồng
 
 ## 📋 Danh sách Commands
 
-| Command | Task | Có thể chạy song song? | Thời gian |
-|---------|------|------------------------|-----------|
-| `/fix-task-01` | Fix Persistence Ports | ✅ Yes | 20 min |
-| `/fix-task-03` | Fix Domain Events | ✅ Yes | 20 min |
-| `/fix-task-04` | Fix DTOs | ✅ Yes | 15 min |
-| `/fix-task-02` | Fix RuleJpaAdapter | ❌ No (needs task-01) | 25 min |
-| `/fix-task-05` | Fix DeploymentService | ✅ Yes | 20 min |
+| Command        | Task                  | Có thể chạy song song? | Thời gian |
+|----------------|-----------------------|------------------------|-----------|
+| `/fix-task-01` | Fix Persistence Ports | ✅ Yes                  | 20 min    |
+| `/fix-task-03` | Fix Domain Events     | ✅ Yes                  | 20 min    |
+| `/fix-task-04` | Fix DTOs              | ✅ Yes                  | 15 min    |
+| `/fix-task-02` | Fix RuleJpaAdapter    | ❌ No (needs task-01)   | 25 min    |
+| `/fix-task-05` | Fix DeploymentService | ✅ Yes                  | 20 min    |
 
 ## 🚀 Cách sử dụng
 
@@ -47,16 +47,19 @@ claude
 ### Bước 3: Chạy slash commands - Phase 1 (Song song)
 
 **Terminal 1**:
+
 ```
 /fix-task-01
 ```
 
 **Terminal 2**:
+
 ```
 /fix-task-03
 ```
 
 **Terminal 3**:
+
 ```
 /fix-task-04
 ```
@@ -72,12 +75,15 @@ Khi cả 3 terminals (1, 2, 3) báo "Task completed successfully", tiếp tục 
 ### Bước 5: Chạy Phase 2 (Song song)
 
 **Terminal 4**:
+
 ```
 /fix-task-02
 ```
+
 (Task này cần task-01 hoàn thành trước)
 
 **Terminal 5**:
+
 ```
 /fix-task-05
 ```
@@ -130,6 +136,7 @@ mvn clean compile -DskipTests
 ## 🔧 Available Commands
 
 ### Available Commands:
+
 - ✅ `/fix-task-01` - Fix Persistence Ports (20 min) - **DONE**
 - ✅ `/fix-task-02` - Fix RuleJpaAdapter (25 min) - needs task-01
 - ✅ `/fix-task-03` - Fix Domain Events (20 min) - **DONE**
@@ -157,6 +164,7 @@ mvn clean compile -DskipTests
 ## 🆘 Troubleshooting
 
 ### Nếu command không hoạt động:
+
 ```bash
 # Check slash commands available
 ls -la .claude/commands/
@@ -168,16 +176,19 @@ ls -la .claude/commands/
 ```
 
 ### Nếu Claude Code không nhìn thấy commands:
+
 1. Restart Claude Code session
 2. Hoặc chạy: `claude --reload`
 
 ### Nếu nhiều sessions conflict:
+
 1. Commit changes sau mỗi task hoàn thành
 2. Hoặc work trên branches riêng
 
 ## 📝 Next Steps
 
 Sau khi 5 tasks này xong, tiếp tục với:
+
 - Task 06: Fix CommandHandler
 - Task 07: Fix Repositories
 - Task 08: Fix PublishService
@@ -186,5 +197,6 @@ Sau khi 5 tasks này xong, tiếp tục với:
 ---
 
 **Tổng thời gian dự kiến**:
+
 - Sequential: ~2 hours
 - Parallel (5 sessions): ~45-60 minutes ⚡

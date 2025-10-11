@@ -233,7 +233,7 @@ public class RuleController {
             @Parameter(description = "Rule ID") @PathVariable String ruleId,
             @Valid @RequestBody SimulateRuleRequest request) {
 
-        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion().intValue());
+        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion());
 
         RuleSimulationService.SimulationResult result = ruleSimulationService.simulateRule(
                 ruleId,

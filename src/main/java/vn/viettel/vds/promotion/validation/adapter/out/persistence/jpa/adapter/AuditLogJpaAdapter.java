@@ -60,7 +60,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
 
     @Override
     public Page<AuditLog> findWithFilters(String tenantId, AuditLog.AuditAction action, String actorPattern,
-                                         Instant from, Instant to, Pageable pageable) {
+                                          Instant from, Instant to, Pageable pageable) {
         // Note: tenantId removed, filtering from all logs
         List<AuditLogEntity> all = repository.findAllByOrderByTimestampDesc();
         List<AuditLogEntity> filtered = all.stream()

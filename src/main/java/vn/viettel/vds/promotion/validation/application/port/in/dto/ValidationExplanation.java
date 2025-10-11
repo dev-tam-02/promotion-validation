@@ -8,10 +8,9 @@ import java.util.List;
 /**
  * Detailed explanation of validation decision.
  *
- * @param summary brief summary of the validation result
- * @param details detailed explanation steps
+ * @param summary         brief summary of the validation result
+ * @param details         detailed explanation steps
  * @param recommendations recommendations for improving validation
- *
  * @author Validation Team
  * @since 1.0.0
  */
@@ -40,7 +39,7 @@ public record ValidationExplanation(
      * Creates a rejected explanation.
      *
      * @param summary summary message
-     * @param issues validation issues that caused rejection
+     * @param issues  validation issues that caused rejection
      * @return validation explanation
      */
     public static ValidationExplanation rejected(String summary, List<ValidationIssue> issues) {
@@ -54,7 +53,7 @@ public record ValidationExplanation(
     /**
      * Creates a partial explanation.
      *
-     * @param summary summary message
+     * @param summary       summary message
      * @param approvedCount number of approved discounts
      * @param rejectedCount number of rejected discounts
      * @return validation explanation

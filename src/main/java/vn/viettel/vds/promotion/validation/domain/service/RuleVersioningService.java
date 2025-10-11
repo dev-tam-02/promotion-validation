@@ -279,6 +279,61 @@ public class RuleVersioningService {
         );
     }
 
+    /**
+     * Convert List<Map<String, Object>> to List<RuleNode>
+     */
+    private List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> convertNodesToRuleNodes(List<java.util.Map<String, Object>> nodeMaps) {
+        if (nodeMaps == null) {
+            return new java.util.ArrayList<>();
+        }
+
+        List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> nodes = new java.util.ArrayList<>();
+        for (java.util.Map<String, Object> nodeMap : nodeMaps) {
+            nodes.add(convertMapToRuleNode(nodeMap));
+        }
+        return nodes;
+    }
+
+    /**
+     * Convert a Map to RuleNode
+     */
+    @SuppressWarnings("unchecked")
+    private vn.viettel.vds.promotion.validation.domain.model.RuleNode convertMapToRuleNode(java.util.Map<String, Object> nodeMap) {
+        vn.viettel.vds.promotion.validation.domain.model.RuleNode.Builder builder = vn.viettel.vds.promotion.validation.domain.model.RuleNode.builder();
+
+        if (nodeMap.containsKey("id")) {
+            builder.nodeId((String) nodeMap.get("id"));
+        }
+        if (nodeMap.containsKey("field")) {
+            builder.field((String) nodeMap.get("field"));
+        }
+        if (nodeMap.containsKey("operator")) {
+            builder.operator((String) nodeMap.get("operator"));
+        }
+        if (nodeMap.containsKey("value")) {
+            builder.value(nodeMap.get("value"));
+        }
+        if (nodeMap.containsKey("type")) {
+            String type = (String) nodeMap.get("type");
+            if ("GROUP".equals(type)) {
+                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.GROUP);
+            } else if ("COND".equals(type)) {
+                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.COND);
+            }
+        }
+        if (nodeMap.containsKey("operatorName")) {
+            builder.operatorName((String) nodeMap.get("operatorName"));
+        }
+        if (nodeMap.containsKey("reasonCode")) {
+            builder.reasonCode((String) nodeMap.get("reasonCode"));
+        }
+        if (nodeMap.containsKey("params")) {
+            builder.params((java.util.Map<String, Object>) nodeMap.get("params"));
+        }
+
+        return builder.build();
+    }
+
     // Result and info classes
     public static class RuleVersionResult {
         private final String ruleId;
@@ -380,60 +435,5 @@ public class RuleVersioningService {
         public java.util.Map<String, Object> getMetadata() {
             return metadata;
         }
-    }
-
-    /**
-     * Convert List<Map<String, Object>> to List<RuleNode>
-     */
-    private List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> convertNodesToRuleNodes(List<java.util.Map<String, Object>> nodeMaps) {
-        if (nodeMaps == null) {
-            return new java.util.ArrayList<>();
-        }
-
-        List<vn.viettel.vds.promotion.validation.domain.model.RuleNode> nodes = new java.util.ArrayList<>();
-        for (java.util.Map<String, Object> nodeMap : nodeMaps) {
-            nodes.add(convertMapToRuleNode(nodeMap));
-        }
-        return nodes;
-    }
-
-    /**
-     * Convert a Map to RuleNode
-     */
-    @SuppressWarnings("unchecked")
-    private vn.viettel.vds.promotion.validation.domain.model.RuleNode convertMapToRuleNode(java.util.Map<String, Object> nodeMap) {
-        vn.viettel.vds.promotion.validation.domain.model.RuleNode.Builder builder = vn.viettel.vds.promotion.validation.domain.model.RuleNode.builder();
-
-        if (nodeMap.containsKey("id")) {
-            builder.nodeId((String) nodeMap.get("id"));
-        }
-        if (nodeMap.containsKey("field")) {
-            builder.field((String) nodeMap.get("field"));
-        }
-        if (nodeMap.containsKey("operator")) {
-            builder.operator((String) nodeMap.get("operator"));
-        }
-        if (nodeMap.containsKey("value")) {
-            builder.value(nodeMap.get("value"));
-        }
-        if (nodeMap.containsKey("type")) {
-            String type = (String) nodeMap.get("type");
-            if ("GROUP".equals(type)) {
-                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.GROUP);
-            } else if ("COND".equals(type)) {
-                builder.type(vn.viettel.vds.promotion.validation.domain.model.RuleNode.NodeType.COND);
-            }
-        }
-        if (nodeMap.containsKey("operatorName")) {
-            builder.operatorName((String) nodeMap.get("operatorName"));
-        }
-        if (nodeMap.containsKey("reasonCode")) {
-            builder.reasonCode((String) nodeMap.get("reasonCode"));
-        }
-        if (nodeMap.containsKey("params")) {
-            builder.params((java.util.Map<String, Object>) nodeMap.get("params"));
-        }
-
-        return builder.build();
     }
 }

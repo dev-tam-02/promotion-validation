@@ -164,7 +164,7 @@ public class StackableDiscountValidationService {
      * </p>
      *
      * @param discounts list of discounts
-     * @param order order information
+     * @param order     order information
      * @return optimized list of discounts
      */
     public List<DiscountFact> optimizeDiscountOrder(
@@ -186,7 +186,7 @@ public class StackableDiscountValidationService {
     /**
      * Checks budget availability for discounts.
      *
-     * @param discounts list of discounts
+     * @param discounts      list of discounts
      * @param requiredAmount required budget amount
      * @return true if budget is available
      */

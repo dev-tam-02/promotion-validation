@@ -35,6 +35,15 @@ public class Assignment {
     private Long version;
 
     /**
+     * Strategy for sticky key in assignment
+     */
+    public enum StickyKeyStrategy {
+        CUSTOMER_ID,
+        ORDER_ID,
+        DEVICE_ID
+    }
+
+    /**
      * Subject embeddable - represents the target of the assignment
      */
     @Data
@@ -43,14 +52,5 @@ public class Assignment {
     public static class Subject {
         private String type;
         private String key;
-    }
-
-    /**
-     * Strategy for sticky key in assignment
-     */
-    public enum StickyKeyStrategy {
-        CUSTOMER_ID,
-        ORDER_ID,
-        DEVICE_ID
     }
 }

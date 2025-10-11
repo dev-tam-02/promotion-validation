@@ -6,11 +6,10 @@ import jakarta.validation.constraints.NotBlank;
 /**
  * Customer information for validation context.
  *
- * @param customerId unique customer identifier
+ * @param customerId   unique customer identifier
  * @param customerType type of customer (REGULAR, VIP, PREMIUM, etc.)
- * @param segment customer segment for targeted validation
- * @param tier customer tier level
- *
+ * @param segment      customer segment for targeted validation
+ * @param tier         customer tier level
  * @author Validation Team
  * @since 1.0.0
  */
@@ -38,7 +37,7 @@ public record CustomerInfo(
      * Creates customer info with customer ID and segment.
      *
      * @param customerId customer identifier
-     * @param segment customer segment
+     * @param segment    customer segment
      * @return customer info
      */
     public static CustomerInfo withSegment(String customerId, String segment) {

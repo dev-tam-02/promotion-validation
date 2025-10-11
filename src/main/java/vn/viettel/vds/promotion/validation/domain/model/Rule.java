@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,9 +14,9 @@ import java.util.Set;
 /**
  * Authoritative domain model for Rule operations.
  * This is the primary model for validation rules in the system.
- *
+ * <p>
  * Use this model for all new development. ValidationRule is deprecated.
- *
+ * <p>
  * Features:
  * - Complete rule lifecycle management
  * - Usage limits and quotas
@@ -83,69 +81,6 @@ public class Rule {
     private Long version;
 
     /**
-     * Rule state lifecycle enum
-     */
-    public enum RuleState {
-        DRAFT,       // Being created/edited
-        PUBLISHED,   // Active and in use
-        ARCHIVED,    // Inactive but retained
-        DEPRECATED   // Superseded by newer version
-    }
-
-    /**
-     * Logic type for combining conditions
-     */
-    public enum LogicType {
-        ALL,   // AND - all conditions must be true
-        ANY,   // OR - at least one condition must be true
-        NONE,  // NOT - all conditions must be false
-        XOR    // Exactly one condition must be true
-    }
-
-    /**
-     * Rule type classification
-     */
-    public enum RuleType {
-        REQUIRED,
-        FORMAT,
-        RANGE,
-        PATTERN,
-        CUSTOM,
-        BUSINESS_RULE,
-        BLACKLIST,
-        ELIGIBILITY,
-        VALIDATION
-    }
-
-    /**
-     * Usage limits for rule application
-     */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UsageLimits {
-        private Integer perCodeTotal;     // Total uses across all customers
-        private Integer perCustomer;      // Uses per individual customer
-        private Integer perDay;           // Daily usage limit
-        private Integer perTransaction;   // Per transaction limit
-        private Integer remaining;        // Remaining uses
-
-        public boolean hasReachedLimit() {
-            if (perCodeTotal != null && remaining != null) {
-                return remaining <= 0;
-            }
-            return false;
-        }
-
-        public void decrementRemaining() {
-            if (remaining != null && remaining > 0) {
-                remaining--;
-            }
-        }
-    }
-
-    /**
      * Check if the rule is currently active
      */
     public boolean isActive() {
@@ -190,7 +125,7 @@ public class Rule {
     public boolean appliesTo(String segment) {
         // If no segments specified, applies to all
         if ((targetSegments == null || targetSegments.isEmpty()) &&
-            (targetSegmentsList == null || targetSegmentsList.isEmpty())) {
+                (targetSegmentsList == null || targetSegmentsList.isEmpty())) {
             return true;
         }
 
@@ -284,6 +219,69 @@ public class Rule {
     public Object evaluate(Object context) {
         // This is a placeholder - actual evaluation should be done by RuleEvaluationService
         throw new UnsupportedOperationException("Use RuleEvaluationService for rule evaluation");
+    }
+
+    /**
+     * Rule state lifecycle enum
+     */
+    public enum RuleState {
+        DRAFT,       // Being created/edited
+        PUBLISHED,   // Active and in use
+        ARCHIVED,    // Inactive but retained
+        DEPRECATED   // Superseded by newer version
+    }
+
+    /**
+     * Logic type for combining conditions
+     */
+    public enum LogicType {
+        ALL,   // AND - all conditions must be true
+        ANY,   // OR - at least one condition must be true
+        NONE,  // NOT - all conditions must be false
+        XOR    // Exactly one condition must be true
+    }
+
+    /**
+     * Rule type classification
+     */
+    public enum RuleType {
+        REQUIRED,
+        FORMAT,
+        RANGE,
+        PATTERN,
+        CUSTOM,
+        BUSINESS_RULE,
+        BLACKLIST,
+        ELIGIBILITY,
+        VALIDATION
+    }
+
+    /**
+     * Usage limits for rule application
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UsageLimits {
+        private Integer perCodeTotal;     // Total uses across all customers
+        private Integer perCustomer;      // Uses per individual customer
+        private Integer perDay;           // Daily usage limit
+        private Integer perTransaction;   // Per transaction limit
+        private Integer remaining;        // Remaining uses
+
+        public boolean hasReachedLimit() {
+            if (perCodeTotal != null && remaining != null) {
+                return remaining <= 0;
+            }
+            return false;
+        }
+
+        public void decrementRemaining() {
+            if (remaining != null && remaining > 0) {
+                remaining--;
+            }
+        }
     }
 
 }

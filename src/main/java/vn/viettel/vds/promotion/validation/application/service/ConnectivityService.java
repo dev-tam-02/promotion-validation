@@ -68,6 +68,10 @@ public class ConnectivityService {
             logger.debug("{} health check: {}", serviceName, healthy ? "OK" : "FAIL");
             return healthy;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.debug("{} health check interrupted: {}", serviceName, e.getMessage());
+            return false;
         } catch (Exception e) {
             logger.debug("{} health check failed: {}", serviceName, e.getMessage());
             return false;

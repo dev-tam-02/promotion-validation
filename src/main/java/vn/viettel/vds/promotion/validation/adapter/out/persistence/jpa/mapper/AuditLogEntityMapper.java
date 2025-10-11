@@ -16,10 +16,10 @@ import java.util.Map;
 
 /**
  * Mapper between JPA AuditLogEntity and domain AuditLog.
- *
+ * <p>
  * NOTE: The domain model contains fields that don't exist in the database schema:
  * - tenantId, diff (replaced by details, snapshotBefore, snapshotAfter)
- *
+ * <p>
  * The database schema has: entity_type, entity_id, actor_id, action, details,
  * snapshot_before, snapshot_after, timestamp
  */

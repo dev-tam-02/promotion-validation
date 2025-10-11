@@ -14,14 +14,13 @@ import java.util.List;
 /**
  * Order information for validation context.
  *
- * @param orderId unique order identifier
+ * @param orderId    unique order identifier
  * @param orderValue total order value in smallest currency unit
- * @param currency currency code (VND, USD, etc.)
- * @param orderDate order creation timestamp
- * @param channel order channel (ONLINE, OFFLINE, APP, etc.)
- * @param location order location or store ID
- * @param items list of order items
- *
+ * @param currency   currency code (VND, USD, etc.)
+ * @param orderDate  order creation timestamp
+ * @param channel    order channel (ONLINE, OFFLINE, APP, etc.)
+ * @param location   order location or store ID
+ * @param items      list of order items
  * @author Validation Team
  * @since 1.0.0
  */
@@ -50,9 +49,9 @@ public record OrderInfo(
     /**
      * Creates order info with minimum required fields.
      *
-     * @param orderId order identifier
+     * @param orderId    order identifier
      * @param orderValue order total value
-     * @param currency currency code
+     * @param currency   currency code
      * @return order info
      */
     public static OrderInfo of(String orderId, BigDecimal orderValue, String currency) {

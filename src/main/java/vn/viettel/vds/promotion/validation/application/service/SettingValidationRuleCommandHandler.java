@@ -5,8 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
-import vn.viettel.vds.promotion.validation.domain.common.Result;
 import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommandPayload;
@@ -19,6 +17,8 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Va
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
+import vn.viettel.vds.promotion.validation.domain.common.Result;
 
 import java.time.Instant;
 import java.util.List;
@@ -115,8 +115,8 @@ public class SettingValidationRuleCommandHandler {
             Result<ComponentsData> componentsResult = validateCommandComponents(command, payload);
             if (componentsResult.isFailure()) {
                 return CommandProcessingResult.failure(
-                    componentsResult.getFirstErrorCode().orElse(ErrorCode.COMMAND_VALIDATION_ERROR).name(),
-                    componentsResult.getFirstErrorMessage().orElse("Command validation failed")
+                        componentsResult.getFirstErrorCode().orElse(ErrorCode.COMMAND_VALIDATION_ERROR).name(),
+                        componentsResult.getFirstErrorMessage().orElse("Command validation failed")
                 );
             }
 
@@ -125,21 +125,21 @@ public class SettingValidationRuleCommandHandler {
             // ✅ ENHANCED: Auto-create product.applicability.in node if applicableTo provided
             if (components.applicableToData() != null) {
                 boolean hasNode = validateRuleHasProductApplicabilityNode(
-                    components.ruleId(),
-                    components.applicableToData()
+                        components.ruleId(),
+                        components.applicableToData()
                 );
                 if (!hasNode) {
                     logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}",
                             components.ruleId());
                     // Auto-create the node instead of failing
                     boolean created = createProductApplicabilityNode(
-                        components.ruleId(),
-                        components.applicableToData()
+                            components.ruleId(),
+                            components.applicableToData()
                     );
                     if (!created) {
                         return CommandProcessingResult.failure(
-                            ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
-                            "Failed to create product.applicability.in node for rule"
+                                ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
+                                "Failed to create product.applicability.in node for rule"
                         );
                     }
                 }
@@ -148,10 +148,10 @@ public class SettingValidationRuleCommandHandler {
             // ✅ FIXED: Create rule assignment with campaign ID
             vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
                     createRuleAssignment(
-                        components.assignRuleData(),
-                        components.campaignId(),
-                        components.priority(),
-                        components.notes()
+                            components.assignRuleData(),
+                            components.campaignId(),
+                            components.priority(),
+                            components.notes()
                     );
 
             // Convert to JPA entity and save
@@ -218,13 +218,13 @@ public class SettingValidationRuleCommandHandler {
 
         // Return validated components
         return Result.success(new ComponentsData(
-            assignRuleData,
-            applicableToData,
-            timeframeData,
-            priority,
-            notes,
-            campaignId,
-            ruleId
+                assignRuleData,
+                applicableToData,
+                timeframeData,
+                priority,
+                notes,
+                campaignId,
+                ruleId
         ));
     }
 
@@ -579,14 +579,15 @@ public class SettingValidationRuleCommandHandler {
      * Record to hold validated command components
      */
     private record ComponentsData(
-        vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
-        ApplicabilityScope applicableToData,
-        TimeFrame timeframeData,
-        Integer priority,
-        String notes,
-        String campaignId,
-        String ruleId
-    ) {}
+            vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
+            ApplicabilityScope applicableToData,
+            TimeFrame timeframeData,
+            Integer priority,
+            String notes,
+            String campaignId,
+            String ruleId
+    ) {
+    }
 
     /**
      * Result wrapper for command processing

@@ -73,6 +73,10 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
                 log.warn("Customer service returned status {} for customerId: {}", response.statusCode(), request.customerId());
                 return getPartialResult(request);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while resolving customer facts for {}: {}", request.customerId(), e.getMessage());
+            throw new RuntimeException("Failed to resolve customer facts", e);
         } catch (Exception e) {
             log.warn("Failed to resolve customer facts for {}: {}", request.customerId(), e.getMessage());
             throw new RuntimeException("Failed to resolve customer facts", e);

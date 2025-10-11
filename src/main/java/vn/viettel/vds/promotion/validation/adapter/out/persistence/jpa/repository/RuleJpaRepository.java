@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /**
  * JPA repository for validation rules.
- *
+ * <p>
  * Note: This repository only includes queries for fields that exist in the validation_rules table.
  * Removed methods that referenced non-existent fields:
  * - findByRuleCode (ruleCode field doesn't exist)
@@ -20,7 +20,7 @@ import java.util.Optional;
  * - findByCampaignId (campaignId field doesn't exist)
  * - findByRuleSetId (ruleSetId field doesn't exist)
  * - findByPriorityBetween (priority field doesn't exist)
- *
+ * <p>
  * Use the 'code' field instead of 'ruleCode' for code-based queries.
  */
 @ConditionalOnPromixJpa

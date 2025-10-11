@@ -72,6 +72,10 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
                 log.warn("Catalog service returned status {} for candidateKey: {}", response.statusCode(), request.candidate().key());
                 return getPartialResult(request);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while resolving candidate facts for {}: {}", request.candidate().key(), e.getMessage());
+            throw new RuntimeException("Failed to resolve candidate facts", e);
         } catch (Exception e) {
             log.warn("Failed to resolve candidate facts for {}: {}", request.candidate().key(), e.getMessage());
             throw new RuntimeException("Failed to resolve candidate facts", e);

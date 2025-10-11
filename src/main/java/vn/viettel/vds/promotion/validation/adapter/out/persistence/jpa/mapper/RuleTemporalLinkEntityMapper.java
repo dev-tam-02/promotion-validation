@@ -28,7 +28,8 @@ public interface RuleTemporalLinkEntityMapper {
      * ignored here and should be populated by the repository layer from the entity relationships.
      */
     @Mapping(target = "validationRuleId", ignore = true)  // Populated from entity.getValidationRule().getId()
-    @Mapping(target = "temporalPolicyId", ignore = true)  // Populated from entity.getTemporalPolicy().getId()
+    @Mapping(target = "temporalPolicyId", ignore = true)
+    // Populated from entity.getTemporalPolicy().getId()
     RuleTemporalLink toDomain(RuleTemporalLinkEntity entity);
 
     /**
@@ -36,7 +37,8 @@ public interface RuleTemporalLinkEntityMapper {
      * ignored here and should be set by the repository layer by loading the referenced entities.
      */
     @Mapping(target = "validationRule", ignore = true)  // Set by repository after loading ValidationRuleEntity
-    @Mapping(target = "temporalPolicy", ignore = true)  // Set by repository after loading TemporalPolicyEntity
+    @Mapping(target = "temporalPolicy", ignore = true)
+    // Set by repository after loading TemporalPolicyEntity
     RuleTemporalLinkEntity toEntity(RuleTemporalLink domain);
 
     List<RuleTemporalLink> toDomainList(List<RuleTemporalLinkEntity> entities);

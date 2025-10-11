@@ -78,9 +78,9 @@ public class StackingContext {
      */
     public boolean isValid() {
         return validationId != null &&
-               hasCustomer() &&
-               hasOrder() &&
-               hasDiscounts();
+                hasCustomer() &&
+                hasOrder() &&
+                hasDiscounts();
     }
 
     /**

@@ -108,9 +108,9 @@ public class RollbackValidationRuleCommandHandler {
     /**
      * Execute the actual rollback logic
      *
-     * @param campaignId The campaign ID to rollback assignments for
+     * @param campaignId       The campaign ID to rollback assignments for
      * @param validationRuleId Specific assignment ID to rollback (optional)
-     * @param rollbackAll If true, rollback all assignments for the campaign
+     * @param rollbackAll      If true, rollback all assignments for the campaign
      * @return true if successful, false otherwise
      */
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {

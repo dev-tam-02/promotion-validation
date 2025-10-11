@@ -7,12 +7,6 @@ import vn.viettel.vds.promotion.validation.application.port.in.command.PublishRu
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.event.RulePublishedEvent;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
-import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
 
 /**
  * Implementation of PublishRuleUseCase

@@ -21,7 +21,7 @@ public interface RulePersistencePort {
     Page<Rule> findByState(Rule.RuleState state, Pageable pageable);
 
     Page<Rule> findWithFilters(Rule.RuleState state,
-                                String codePattern, String namePattern, Pageable pageable);
+                               String codePattern, String namePattern, Pageable pageable);
 
     List<Rule> findAllOrderByUpdatedAtDesc();
 

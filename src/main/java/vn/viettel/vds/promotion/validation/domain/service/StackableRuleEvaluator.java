@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactPack;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.ArrayList;
@@ -36,7 +35,7 @@ public class StackableRuleEvaluator {
      * </p>
      *
      * @param factPack facts needed for rule evaluation
-     * @param rules list of validation rules to evaluate
+     * @param rules    list of validation rules to evaluate
      * @return evaluation result with all rule outcomes
      */
     public EvaluationResult evaluateStackingRules(
@@ -109,7 +108,7 @@ public class StackableRuleEvaluator {
     /**
      * Evaluates a single validation rule.
      *
-     * @param rule validation rule to evaluate
+     * @param rule     validation rule to evaluate
      * @param factPack facts for evaluation
      * @return rule evaluation result
      */
@@ -180,6 +179,16 @@ public class StackableRuleEvaluator {
         } else {
             return String.format("%d rule(s) passed, %d failed", passed, failed);
         }
+    }
+
+    /**
+     * Rule evaluation status.
+     */
+    public enum RuleStatus {
+        PASSED,
+        FAILED,
+        SKIPPED,
+        ERROR
     }
 
     /**
@@ -359,15 +368,5 @@ public class StackableRuleEvaluator {
         public boolean isSkipped() {
             return status == RuleStatus.SKIPPED;
         }
-    }
-
-    /**
-     * Rule evaluation status.
-     */
-    public enum RuleStatus {
-        PASSED,
-        FAILED,
-        SKIPPED,
-        ERROR
     }
 }

@@ -1,11 +1,7 @@
 package vn.viettel.vds.promotion.validation.config;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -13,9 +9,9 @@ import java.time.Duration;
 
 /**
  * Configuration properties for the Validation module.
- *
+ * <p>
  * Binds configuration from application.yml with validation.
- *
+ * <p>
  * Usage in application.yml:
  * <pre>
  * validation:

@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.application.port.out.PublishValidationResultPort;
 import vn.viettel.vds.promotion.schema.redemption.event.ValidateStackableDiscountResultEvent;
+import vn.viettel.vds.promotion.validation.application.port.out.PublishValidationResultPort;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -98,8 +98,8 @@ public class KafkaValidationResultPublisher implements PublishValidationResultPo
      * - Message format is invalid
      * </p>
      *
-     * @param topic DLQ topic name
-     * @param message original message that failed
+     * @param topic       DLQ topic name
+     * @param message     original message that failed
      * @param errorReason failure reason
      */
     @Override
@@ -148,9 +148,9 @@ public class KafkaValidationResultPublisher implements PublishValidationResultPo
      * </p>
      *
      * @param correlationId correlation ID for tracking
-     * @param errorCode error code
-     * @param errorMessage error description
-     * @param errorDetails additional error details
+     * @param errorCode     error code
+     * @param errorMessage  error description
+     * @param errorDetails  additional error details
      */
     @Override
     public void publishValidationError(String correlationId, String errorCode,
@@ -198,18 +198,6 @@ public class KafkaValidationResultPublisher implements PublishValidationResultPo
     }
 
     /**
-     * Simple error event DTO.
-     * TODO: Replace with proper Avro schema when available.
-     */
-    private record ValidationErrorEvent(
-            String correlationId,
-            String errorCode,
-            String errorMessage,
-            String errorDetails,
-            long timestamp
-    ) {}
-
-    /**
      * Extracts message key from various message types.
      *
      * @param message the message object
@@ -222,5 +210,18 @@ public class KafkaValidationResultPublisher implements PublishValidationResultPo
             return command.getPayload().getIdempotencyKey();
         }
         return "unknown-" + System.currentTimeMillis();
+    }
+
+    /**
+     * Simple error event DTO.
+     * TODO: Replace with proper Avro schema when available.
+     */
+    private record ValidationErrorEvent(
+            String correlationId,
+            String errorCode,
+            String errorMessage,
+            String errorDetails,
+            long timestamp
+    ) {
     }
 }

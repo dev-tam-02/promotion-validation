@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.in.ValidateDataUseCase;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.service.ValidationDomainService;
 
 import java.util.Comparator;

@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web.mapper;
 
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleNodeDto;
@@ -8,7 +7,6 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 

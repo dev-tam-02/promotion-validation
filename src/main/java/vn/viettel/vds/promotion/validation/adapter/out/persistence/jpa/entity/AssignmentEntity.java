@@ -10,10 +10,10 @@ import java.time.Instant;
 
 /**
  * JPA entity for assignments mapped to assignments table.
- *
+ * <p>
  * IMPORTANT: This entity does NOT extend BaseEntity because the schema does NOT have
  * created_by, updated_by, or version columns that BaseEntity provides.
- *
+ * <p>
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml:1215-1257):
  * - id: varchar(36) - Primary key
  * - entity_type: varchar(100) - Entity type
@@ -23,7 +23,7 @@ import java.time.Instant;
  * - active: boolean - Whether assignment is active
  * - created_at: timestamp - Creation timestamp
  * - updated_at: timestamp - Last update timestamp
- *
+ * <p>
  * NOTE: Schema does NOT have tenant_id, subject_type, subject_key, assignment_version,
  * valid_from, valid_to, traffic_percent, or sticky_key_strategy columns
  */

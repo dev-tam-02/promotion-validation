@@ -4,7 +4,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import vn.viettel.vds.promotion.validation.application.port.in.dto.*;
+import vn.viettel.vds.promotion.validation.application.port.in.dto.CustomerInfo;
+import vn.viettel.vds.promotion.validation.application.port.in.dto.DiscountRequest;
+import vn.viettel.vds.promotion.validation.application.port.in.dto.OrderInfo;
+import vn.viettel.vds.promotion.validation.application.port.in.dto.ValidationOptions;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,14 +23,13 @@ import java.util.List;
  * immutability guarantees.
  * </p>
  *
- * @param idempotencyKey unique key to ensure idempotent validation processing
- * @param customerInfo customer information for validation context
- * @param orderInfo order information including items and total value
- * @param discountRequests list of discounts to validate for stacking
+ * @param idempotencyKey    unique key to ensure idempotent validation processing
+ * @param customerInfo      customer information for validation context
+ * @param orderInfo         order information including items and total value
+ * @param discountRequests  list of discounts to validate for stacking
  * @param validationOptions options controlling validation behavior
- * @param correlationId correlation ID for distributed tracing
- * @param requestedAt timestamp when validation was requested
- *
+ * @param correlationId     correlation ID for distributed tracing
+ * @param requestedAt       timestamp when validation was requested
  * @author Validation Team
  * @since 1.0.0
  */
@@ -61,11 +63,11 @@ public record ValidateStackableDiscountCommand(
     /**
      * Creates a command with default validation options.
      *
-     * @param idempotencyKey unique key for idempotency
-     * @param customerInfo customer information
-     * @param orderInfo order information
+     * @param idempotencyKey   unique key for idempotency
+     * @param customerInfo     customer information
+     * @param orderInfo        order information
      * @param discountRequests list of discount requests
-     * @param correlationId correlation ID
+     * @param correlationId    correlation ID
      * @return command with default options
      */
     public static ValidateStackableDiscountCommand withDefaults(

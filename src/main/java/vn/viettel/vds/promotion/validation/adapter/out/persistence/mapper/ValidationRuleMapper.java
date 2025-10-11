@@ -1,6 +1,9 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
@@ -14,7 +17,7 @@ public abstract class ValidationRuleMapper {
 
     /**
      * Convert JPA RuleJpaEntity to Rule domain model
-     *
+     * <p>
      * Note: RuleJpaEntity no longer has notes, type, or priority fields.
      * Only mapping fields that actually exist in the validation_rules table.
      */

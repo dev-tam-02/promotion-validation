@@ -107,7 +107,7 @@ public class ValidationRuleCompatibilityController {
      * Check if rule is compatible with the given campaign type
      * This can be extended with more sophisticated logic as needed
      *
-     * @param rule The validation rule entity
+     * @param rule         The validation rule entity
      * @param campaignType The type of campaign (e.g., "CASHBACK", "DISCOUNT", "VOUCHER")
      * @return true if compatible, false otherwise
      */

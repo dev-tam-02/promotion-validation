@@ -2,9 +2,9 @@ package vn.viettel.vds.promotion.validation.domain.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -53,7 +53,8 @@ public class ValidationDomainService {
         List<String> explanations = new ArrayList<>();
 
         for (Rule rule : rules) {
-            if (!evaluateRule(rule, request)) {
+            boolean ruleResult = evaluateRule(rule, request);
+            if (!ruleResult) {
                 failedRules.add(rule.getRuleCode());
                 explanations.add(rule.getDescription());
             }
@@ -120,6 +121,11 @@ public class ValidationDomainService {
 
     /**
      * Evaluate a single rule against the request
+     *
+     * Note: This is a simplified implementation. In production, this would delegate to
+     * a RuleEvaluationService that performs actual rule evaluation against ValidationContext.
+     * For now, we skip evaluation for applicable rules as the actual validation logic
+     * is handled by the validation-engine module with Drools.
      */
     private boolean evaluateRule(
             Rule rule,
@@ -135,9 +141,9 @@ public class ValidationDomainService {
             return true; // Rule doesn't apply to this segment
         }
 
-        // For now, perform simplified evaluation
-        // In a full implementation, this would use RuleEvaluationService with proper ValidationContext
-        // Active and applicable rules pass by default
+        // TODO: Implement actual rule evaluation with RuleEvaluationService
+        // For now, skip evaluation as this is handled by validation-engine module
+        // Active and applicable rules pass by default until integration is complete
         return true;
     }
 

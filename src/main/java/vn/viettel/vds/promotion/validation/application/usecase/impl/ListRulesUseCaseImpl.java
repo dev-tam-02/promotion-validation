@@ -3,15 +3,8 @@ package vn.viettel.vds.promotion.validation.application.usecase.impl;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.application.port.in.ListRulesUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.PagedRulesResponse;
-import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.query.ListRulesQuery;
-import vn.viettel.vds.promotion.validation.application.port.out.PagedResult;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.SortDirection;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of ListRulesUseCase

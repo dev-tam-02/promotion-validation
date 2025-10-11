@@ -7,11 +7,10 @@ import jakarta.validation.constraints.NotNull;
  * Options controlling validation behavior.
  *
  * @param checkBudgetAvailability whether to check budget availability
- * @param optimizeOrder whether to optimize discount stacking order
- * @param explainLevel level of explanation detail
- * @param includeAlternatives whether to include alternative stacking options
- * @param dryRun whether this is a dry run validation
- *
+ * @param optimizeOrder           whether to optimize discount stacking order
+ * @param explainLevel            level of explanation detail
+ * @param includeAlternatives     whether to include alternative stacking options
+ * @param dryRun                  whether this is a dry run validation
  * @author Validation Team
  * @since 1.0.0
  */

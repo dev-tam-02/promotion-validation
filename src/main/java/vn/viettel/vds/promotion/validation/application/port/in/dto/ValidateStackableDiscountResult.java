@@ -14,18 +14,17 @@ import java.util.List;
  * any validation issues found, and explanations for the decision.
  * </p>
  *
- * @param validationId unique identifier for this validation
- * @param decision validation decision (APPROVED, REJECTED, PARTIAL)
- * @param validatedDiscounts list of discounts that passed validation
- * @param rejectedDiscounts list of discounts that failed validation
+ * @param validationId        unique identifier for this validation
+ * @param decision            validation decision (APPROVED, REJECTED, PARTIAL)
+ * @param validatedDiscounts  list of discounts that passed validation
+ * @param rejectedDiscounts   list of discounts that failed validation
  * @param totalDiscountAmount total discount amount from all valid discounts
  * @param originalOrderAmount original order amount before discounts
- * @param finalOrderAmount final order amount after discounts applied
- * @param issues list of validation issues found
- * @param explanation detailed explanation of validation decision
- * @param validatedAt timestamp when validation completed
- * @param processingTimeMs time taken to process validation in milliseconds
- *
+ * @param finalOrderAmount    final order amount after discounts applied
+ * @param issues              list of validation issues found
+ * @param explanation         detailed explanation of validation decision
+ * @param validatedAt         timestamp when validation completed
+ * @param processingTimeMs    time taken to process validation in milliseconds
  * @author Validation Team
  * @since 1.0.0
  */
@@ -47,11 +46,11 @@ public record ValidateStackableDiscountResult(
     /**
      * Creates a successful validation result.
      *
-     * @param validationId validation identifier
+     * @param validationId       validation identifier
      * @param validatedDiscounts list of validated discounts
-     * @param totalDiscount total discount amount
-     * @param originalAmount original order amount
-     * @param processingTime processing time in ms
+     * @param totalDiscount      total discount amount
+     * @param originalAmount     original order amount
+     * @param processingTime     processing time in ms
      * @return approved validation result
      */
     public static ValidateStackableDiscountResult approved(
@@ -81,10 +80,10 @@ public record ValidateStackableDiscountResult(
     /**
      * Creates a rejected validation result.
      *
-     * @param validationId validation identifier
+     * @param validationId      validation identifier
      * @param rejectedDiscounts list of rejected discounts
-     * @param issues validation issues
-     * @param processingTime processing time in ms
+     * @param issues            validation issues
+     * @param processingTime    processing time in ms
      * @return rejected validation result
      */
     public static ValidateStackableDiscountResult rejected(
@@ -111,13 +110,13 @@ public record ValidateStackableDiscountResult(
     /**
      * Creates a partial validation result (some discounts approved, some rejected).
      *
-     * @param validationId validation identifier
+     * @param validationId       validation identifier
      * @param validatedDiscounts list of validated discounts
-     * @param rejectedDiscounts list of rejected discounts
-     * @param totalDiscount total discount from validated discounts
-     * @param originalAmount original order amount
-     * @param issues validation issues
-     * @param processingTime processing time in ms
+     * @param rejectedDiscounts  list of rejected discounts
+     * @param totalDiscount      total discount from validated discounts
+     * @param originalAmount     original order amount
+     * @param issues             validation issues
+     * @param processingTime     processing time in ms
      * @return partial validation result
      */
     public static ValidateStackableDiscountResult partial(
@@ -149,8 +148,8 @@ public record ValidateStackableDiscountResult(
     /**
      * Creates an error validation result for system failures.
      *
-     * @param validationId validation identifier
-     * @param errorMessage error message
+     * @param validationId   validation identifier
+     * @param errorMessage   error message
      * @param processingTime processing time in ms
      * @return error validation result
      */

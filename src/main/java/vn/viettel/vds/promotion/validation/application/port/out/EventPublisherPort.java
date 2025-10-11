@@ -1,7 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.port.out;
 
-import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 
 /**
  * Outbound port for publishing domain events

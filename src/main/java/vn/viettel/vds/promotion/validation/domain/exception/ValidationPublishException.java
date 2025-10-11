@@ -21,7 +21,7 @@ public class ValidationPublishException extends RuntimeException {
      * Constructs a new validation publish exception with the specified detail message and cause.
      *
      * @param message the detail message
-     * @param cause the cause
+     * @param cause   the cause
      */
     public ValidationPublishException(String message, Throwable cause) {
         super(message, cause);

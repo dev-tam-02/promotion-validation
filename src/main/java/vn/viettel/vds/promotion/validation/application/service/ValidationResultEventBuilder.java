@@ -2,9 +2,12 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.schema.redemption.event.StackingAnalysis;
+import vn.viettel.vds.promotion.schema.redemption.event.ValidateStackableDiscountResultEvent;
+import vn.viettel.vds.promotion.schema.redemption.event.ValidateStackableDiscountResultPayload;
+import vn.viettel.vds.promotion.schema.redemption.event.ValidationSummary;
 import vn.viettel.vds.promotion.validation.application.port.in.command.ValidateStackableDiscountCommand;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.ValidateStackableDiscountResult;
-import vn.viettel.vds.promotion.schema.redemption.event.*;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -30,7 +33,7 @@ public class ValidationResultEventBuilder {
      * Builds validation result event from command and result.
      *
      * @param command original validation command
-     * @param result validation result
+     * @param result  validation result
      * @return Avro result event
      */
     public ValidateStackableDiscountResultEvent buildResultEvent(

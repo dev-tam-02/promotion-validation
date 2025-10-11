@@ -217,9 +217,15 @@ public class OperatorService {
             }
 
             // Generate SHA-256 hash
-            return "sha256:" + java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(fingerprintData.toString().getBytes())
-                    .toString();
+            byte[] hashBytes = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(fingerprintData.toString().getBytes());
+
+            // Convert bytes to hex string
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return "sha256:" + hexString.toString();
 
         } catch (Exception e) {
             logger.error("Error calculating operators fingerprint", e);

@@ -12,7 +12,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersi
 import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
@@ -279,8 +278,8 @@ public class PublishService {
         // Convert RuleNode objects to Map representation for storage
         List<Map<String, Object>> nodesMaps = rule.getNodes() != null
                 ? rule.getNodes().stream()
-                        .map(this::convertRuleNodeToMap)
-                        .toList()
+                .map(this::convertRuleNodeToMap)
+                .toList()
                 : List.of();
 
         RuleVersion ruleVersion = RuleVersion.builder()
@@ -373,6 +372,10 @@ public class PublishService {
 
             return true;
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Compilation simulation interrupted", e);
+            return false;
         } catch (Exception e) {
             logger.error("Compilation simulation failed", e);
             return false;

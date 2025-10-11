@@ -26,9 +26,10 @@ public class TemporalPolicyService {
     private static final Logger logger = LoggerFactory.getLogger(TemporalPolicyService.class);
 
     // Basic RRULE validation pattern
+    // Using atomic grouping (?>...) to prevent catastrophic backtracking
     private static final Pattern RRULE_PATTERN = Pattern.compile(
             "^FREQ=(YEARLY|MONTHLY|WEEKLY|DAILY|HOURLY|MINUTELY|SECONDLY)" +
-                    "(;[A-Z]+=[^;]+)*$"
+                    "(?:;[A-Z]+=[^;]+)*+$"
     );
 
     private final TemporalPolicyPersistencePort temporalPolicyPersistencePort;

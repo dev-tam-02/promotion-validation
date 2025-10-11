@@ -77,6 +77,10 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
                 log.warn("Order service returned status {} for orderId: {}", response.statusCode(), request.orderId());
                 return getPartialResult(request);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while resolving order facts for {}: {}", request.orderId(), e.getMessage());
+            throw new RuntimeException("Failed to resolve order facts", e);
         } catch (Exception e) {
             log.warn("Failed to resolve order facts for {}: {}", request.orderId(), e.getMessage());
             throw new RuntimeException("Failed to resolve order facts", e);

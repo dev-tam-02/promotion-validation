@@ -7,10 +7,10 @@ import jakarta.validation.constraints.NotBlank;
  * Used by campaign service to validate rule before starting saga
  */
 public record ValidateCompatibilityRequest(
-    @NotBlank(message = "Rule ID is required")
-    String ruleId,
+        @NotBlank(message = "Rule ID is required")
+        String ruleId,
 
-    @NotBlank(message = "Campaign type is required")
-    String campaignType
+        @NotBlank(message = "Campaign type is required")
+        String campaignType
 ) {
 }

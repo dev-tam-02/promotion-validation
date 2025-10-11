@@ -2,9 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper.ValidationRuleMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;

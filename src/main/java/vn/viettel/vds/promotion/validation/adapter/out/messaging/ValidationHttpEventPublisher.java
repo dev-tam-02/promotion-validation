@@ -47,7 +47,7 @@ public class ValidationHttpEventPublisher implements EventPublisher {
     public boolean supports(String destination) {
         // Support HTTP-based destinations
         return destination != null &&
-               (destination.startsWith("http:") || destination.startsWith("https:"));
+                (destination.startsWith("http:") || destination.startsWith("https:"));
     }
 
     @Override
@@ -175,6 +175,10 @@ public class ValidationHttpEventPublisher implements EventPublisher {
                 return false;
             }
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Interrupted while sending HTTP event to {}: {}", serviceName, endpoint, e);
+            return false;
         } catch (Exception e) {
             logger.error("Error sending HTTP event to {}: {}", serviceName, endpoint, e);
             return false;

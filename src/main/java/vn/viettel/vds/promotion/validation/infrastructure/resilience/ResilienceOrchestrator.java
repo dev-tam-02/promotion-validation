@@ -3,9 +3,9 @@ package vn.viettel.vds.promotion.validation.infrastructure.resilience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResponse;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.time.Duration;
 import java.time.Instant;

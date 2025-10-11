@@ -251,8 +251,14 @@ public class ObjectValidityService {
 
             if ("CAMPAIGN".equals(objectType)) {
                 // For campaigns, we might check campaign service
-                boolean isActive = checkCampaignStatus(objectId);
-                if (!isActive) {
+                Boolean isActive = checkCampaignStatus(objectId);
+
+                // TODO: Implement actual campaign status check with campaign service
+                // Currently returns null for unknown status, true for active, false for inactive
+
+                // Only fail validation if we definitively know the campaign is inactive
+                // If status is unknown (null) or active (true), we allow validation to pass
+                if (isActive != null && !isActive) {
                     return ValidationResult.failure(
                             "OBJECT_INACTIVE",
                             String.format("Campaign %s is not in active status", objectId)
@@ -271,10 +277,14 @@ public class ObjectValidityService {
         }
     }
 
-    private boolean checkCampaignStatus(String campaignId) {
+    private Boolean checkCampaignStatus(String campaignId) {
         // Placeholder for campaign status check
         // In real implementation, this would call campaign service
-        // For now, assume all campaigns are active if they exist
-        return true;
+        // Returns: true if active, false if inactive, null if unknown/pending implementation
+        //
+        // Note: This method currently returns null to indicate the campaign status check
+        // is not yet implemented. When integrated with campaign service, this should return
+        // the actual status. Until then, validateObjectStatus treats null as "unknown/allow".
+        return null;
     }
 }

@@ -10,7 +10,7 @@ import java.time.Duration;
 
 /**
  * Validates configuration on application startup.
- *
+ * <p>
  * Ensures that configuration values are sensible and compatible with each other.
  * Throws IllegalStateException if configuration is invalid, preventing application startup.
  */
@@ -50,7 +50,7 @@ public class ConfigurationValidator {
         String strategy = db.getStrategy();
         if (!"JPA".equalsIgnoreCase(strategy) && !"MONGODB".equalsIgnoreCase(strategy)) {
             throw new IllegalStateException(
-                "Invalid database strategy: " + strategy + ". Must be JPA or MONGODB"
+                    "Invalid database strategy: " + strategy + ". Must be JPA or MONGODB"
             );
         }
 
@@ -67,27 +67,27 @@ public class ConfigurationValidator {
 
         if (outbox.getChunkSize() <= 0) {
             throw new IllegalStateException(
-                "Outbox chunk size must be positive, got: " + outbox.getChunkSize()
+                    "Outbox chunk size must be positive, got: " + outbox.getChunkSize()
             );
         }
 
         if (outbox.getMaxRetryAttempts() < 1 || outbox.getMaxRetryAttempts() > 10) {
             throw new IllegalStateException(
-                "Outbox max retry attempts must be between 1 and 10, got: " + outbox.getMaxRetryAttempts()
+                    "Outbox max retry attempts must be between 1 and 10, got: " + outbox.getMaxRetryAttempts()
             );
         }
 
         Duration interval = outbox.getInterval();
         if (interval == null || interval.isNegative() || interval.isZero()) {
             throw new IllegalStateException(
-                "Outbox interval must be positive duration, got: " + interval
+                    "Outbox interval must be positive duration, got: " + interval
             );
         }
 
         Duration retention = outbox.getRetentionPeriod();
         if (retention == null || retention.isNegative()) {
             throw new IllegalStateException(
-                "Outbox retention period must be non-negative duration, got: " + retention
+                    "Outbox retention period must be non-negative duration, got: " + retention
             );
         }
 
@@ -96,7 +96,7 @@ public class ConfigurationValidator {
         }
 
         logger.info("Outbox configuration valid - Chunk size: {}, Interval: {}, Retention: {}",
-            outbox.getChunkSize(), interval, retention);
+                outbox.getChunkSize(), interval, retention);
     }
 
     private void validateCacheConfig() {
@@ -114,19 +114,19 @@ public class ConfigurationValidator {
         Duration defaultTtl = cache.getDefaultTtl();
         if (defaultTtl == null || defaultTtl.isNegative() || defaultTtl.isZero()) {
             throw new IllegalStateException(
-                "Cache default TTL must be positive duration, got: " + defaultTtl
+                    "Cache default TTL must be positive duration, got: " + defaultTtl
             );
         }
 
         Duration ruleTtl = cache.getRuleTtl();
         if (ruleTtl == null || ruleTtl.isNegative() || ruleTtl.isZero()) {
             throw new IllegalStateException(
-                "Cache rule TTL must be positive duration, got: " + ruleTtl
+                    "Cache rule TTL must be positive duration, got: " + ruleTtl
             );
         }
 
         logger.info("Cache configuration valid - Prefix: {}, Default TTL: {}, Rule TTL: {}",
-            cache.getPrefix(), defaultTtl, ruleTtl);
+                cache.getPrefix(), defaultTtl, ruleTtl);
     }
 
     private void validateIntegrationConfig() {
@@ -162,20 +162,20 @@ public class ConfigurationValidator {
 
         if (rule.getMaxDepth() < 1 || rule.getMaxDepth() > 20) {
             throw new IllegalStateException(
-                "Rule max depth must be between 1 and 20, got: " + rule.getMaxDepth()
+                    "Rule max depth must be between 1 and 20, got: " + rule.getMaxDepth()
             );
         }
 
         if (rule.getMaxNodes() < 1 || rule.getMaxNodes() > 1000) {
             throw new IllegalStateException(
-                "Rule max nodes must be between 1 and 1000, got: " + rule.getMaxNodes()
+                    "Rule max nodes must be between 1 and 1000, got: " + rule.getMaxNodes()
             );
         }
 
         Duration evalTimeout = rule.getEvaluationTimeout();
         if (evalTimeout == null || evalTimeout.isNegative() || evalTimeout.isZero()) {
             throw new IllegalStateException(
-                "Rule evaluation timeout must be positive duration, got: " + evalTimeout
+                    "Rule evaluation timeout must be positive duration, got: " + evalTimeout
             );
         }
 
@@ -184,19 +184,19 @@ public class ConfigurationValidator {
         }
 
         logger.info("Rule configuration valid - Max depth: {}, Max nodes: {}, Eval timeout: {}",
-            rule.getMaxDepth(), rule.getMaxNodes(), evalTimeout);
+                rule.getMaxDepth(), rule.getMaxNodes(), evalTimeout);
     }
 
     private void validateServiceEndpoint(String serviceName, String baseUrl) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new IllegalStateException(
-                serviceName + " base URL cannot be empty"
+                    serviceName + " base URL cannot be empty"
             );
         }
 
         if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
             throw new IllegalStateException(
-                serviceName + " base URL must start with http:// or https://, got: " + baseUrl
+                    serviceName + " base URL must start with http:// or https://, got: " + baseUrl
             );
         }
     }
@@ -204,7 +204,7 @@ public class ConfigurationValidator {
     private void validateTimeout(String name, Duration timeout) {
         if (timeout == null || timeout.isNegative() || timeout.isZero()) {
             throw new IllegalStateException(
-                name + " timeout must be positive duration, got: " + timeout
+                    name + " timeout must be positive duration, got: " + timeout
             );
         }
 

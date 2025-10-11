@@ -5,11 +5,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * Represents a validation issue found during validation.
  *
- * @param code issue code
- * @param title short title of the issue
- * @param message detailed message
+ * @param code     issue code
+ * @param title    short title of the issue
+ * @param message  detailed message
  * @param severity issue severity level
- *
  * @author Validation Team
  * @since 1.0.0
  */
@@ -24,7 +23,7 @@ public record ValidationIssue(
     /**
      * Creates an error-level issue.
      *
-     * @param code issue code
+     * @param code    issue code
      * @param message issue message
      * @return validation issue
      */
@@ -35,7 +34,7 @@ public record ValidationIssue(
     /**
      * Creates a warning-level issue.
      *
-     * @param code issue code
+     * @param code    issue code
      * @param message issue message
      * @return validation issue
      */
@@ -46,7 +45,7 @@ public record ValidationIssue(
     /**
      * Creates an info-level issue.
      *
-     * @param code issue code
+     * @param code    issue code
      * @param message issue message
      * @return validation issue
      */

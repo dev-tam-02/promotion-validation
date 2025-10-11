@@ -10,10 +10,12 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface PublishJobEntityMapper {
 
-    @Mapping(target = "compile", ignore = true) // Handle manually due to different types
+    @Mapping(target = "compile", ignore = true)
+        // Handle manually due to different types
     PublishJob toDomain(PublishJobEntity entity);
 
-    @Mapping(target = "compile", ignore = true) // Handle manually
+    @Mapping(target = "compile", ignore = true)
+        // Handle manually
     PublishJobEntity toEntity(PublishJob domain);
 
     List<PublishJob> toDomainList(List<PublishJobEntity> entities);

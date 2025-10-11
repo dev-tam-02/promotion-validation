@@ -8,15 +8,11 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.SegmentsFact;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Fact resolver for customer segment information.
- *
+ * <p>
  * Resolves customer segment data with:
  * - Circuit breaker protection
  * - Automatic retry with exponential backoff
@@ -62,11 +58,11 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
             List<String> segmentIdsList = new ArrayList<>(segmentIds);
 
             return SegmentsFact.builder()
-                .segmentIds(segmentIdsList)
-                .segments(null) // Segment details can be populated later if needed
-                .evaluatedAt(java.time.Instant.now())
-                .evaluationContext("SegmentsFact resolution for customer: " + customerId)
-                .build();
+                    .segmentIds(segmentIdsList)
+                    .segments(null) // Segment details can be populated later if needed
+                    .evaluatedAt(java.time.Instant.now())
+                    .evaluationContext("SegmentsFact resolution for customer: " + customerId)
+                    .build();
 
         } catch (Exception e) {
             log.error("Error resolving segments for customer {}: {}", customerId, e.getMessage(), e);
@@ -101,11 +97,11 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
             log.debug("Resolved segments from embedded payload for customer {}: {}", customerId, segmentIdsList);
 
             return SegmentsFact.builder()
-                .segmentIds(segmentIdsList)
-                .segments(null) // Segment details can be populated later if needed
-                .evaluatedAt(java.time.Instant.now())
-                .evaluationContext("SegmentsFact resolution from embedded payload for customer: " + customerId)
-                .build();
+                    .segmentIds(segmentIdsList)
+                    .segments(null) // Segment details can be populated later if needed
+                    .evaluatedAt(java.time.Instant.now())
+                    .evaluationContext("SegmentsFact resolution from embedded payload for customer: " + customerId)
+                    .build();
 
         } catch (Exception e) {
             log.error("Error resolving segments from embedded payload: {}", e.getMessage(), e);
@@ -118,11 +114,11 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
         log.warn("Returning fallback empty segments for customer: {}", request.customerId());
 
         return SegmentsFact.builder()
-            .segmentIds(new ArrayList<>())
-            .segments(null)
-            .evaluatedAt(java.time.Instant.now())
-            .evaluationContext("Fallback empty segments for customer: " + request.customerId())
-            .build();
+                .segmentIds(new ArrayList<>())
+                .segments(null)
+                .evaluatedAt(java.time.Instant.now())
+                .evaluationContext("Fallback empty segments for customer: " + request.customerId())
+                .build();
     }
 
     @Override

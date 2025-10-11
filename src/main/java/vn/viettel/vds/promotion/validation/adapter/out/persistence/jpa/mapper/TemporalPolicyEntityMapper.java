@@ -30,7 +30,8 @@ public interface TemporalPolicyEntityMapper {
      * as they are managed separately.
      */
     @Mapping(target = "ruleLinks", ignore = true)       // Managed by RuleTemporalLinkEntity
-    @Mapping(target = "timeExceptions", ignore = true)  // Managed by TimeExceptionEntity
+    @Mapping(target = "timeExceptions", ignore = true)
+    // Managed by TimeExceptionEntity
     TemporalPolicyEntity toEntity(TemporalPolicy domain);
 
     TemporalPolicy toDomain(TemporalPolicyEntity entity);
@@ -54,7 +55,8 @@ public interface TemporalPolicyEntityMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "temporalPolicy", ignore = true)  // Set by repository when persisting
+    @Mapping(target = "temporalPolicy", ignore = true)
+    // Set by repository when persisting
     TemporalPolicyWindowEntity windowToEntity(TimeOfDayWindow domain);
 
     List<TimeOfDayWindow> windowsToDomain(List<TemporalPolicyWindowEntity> entities);

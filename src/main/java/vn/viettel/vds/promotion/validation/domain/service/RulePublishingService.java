@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
@@ -357,7 +357,7 @@ public class RulePublishingService {
         if (compileResponse.getArtifactBytes() == null) {
             String errorMsg = String.format(
                     "Cannot warm up bundle: artifact bytes are missing. BundleHash=%s. " +
-                    "This indicates a storage retrieval failure in the validation engine.",
+                            "This indicates a storage retrieval failure in the validation engine.",
                     compileResponse.getBundleHash()
             );
             logger.error(errorMsg);

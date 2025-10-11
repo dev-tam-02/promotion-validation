@@ -1,7 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;

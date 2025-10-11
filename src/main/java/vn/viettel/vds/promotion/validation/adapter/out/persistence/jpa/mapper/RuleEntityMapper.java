@@ -34,36 +34,6 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface RuleEntityMapper {
 
-    @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
-    @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
-    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
-    @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
-    @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
-    @Mapping(target = "ruleCode", ignore = true)     // No longer exists in entity
-    @Mapping(target = "description", ignore = true)  // No longer exists in entity
-    @Mapping(target = "notes", ignore = true)        // No longer exists in entity
-    @Mapping(target = "active", ignore = true)       // No longer exists in entity
-    @Mapping(target = "latestVersion", ignore = true) // No longer exists in entity
-    @Mapping(target = "type", ignore = true)         // No longer exists in entity
-    @Mapping(target = "expression", ignore = true)   // No longer exists in entity
-    @Mapping(target = "priority", ignore = true)     // No longer exists in entity
-    @Mapping(target = "effectiveFrom", ignore = true) // No longer exists in entity
-    @Mapping(target = "effectiveTo", ignore = true)  // No longer exists in entity
-    @Mapping(target = "targetSegmentsList", ignore = true) // Duplicate of targetSegments
-    @Mapping(target = "campaignId", ignore = true)   // No longer exists in entity
-    @Mapping(target = "ruleSetId", ignore = true)    // No longer exists in entity
-    @Mapping(target = "version", ignore = true)      // No longer exists in entity
-    Rule toDomain(RuleJpaEntity entity);
-
-    @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
-    @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
-    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "objectMapToString")
-    RuleJpaEntity toEntity(Rule domain);
-
-    List<Rule> toDomainList(List<RuleJpaEntity> entities);
-
-    List<RuleJpaEntity> toEntityList(List<Rule> domains);
-
     /**
      * Convert JSON string (from database TEXT field) to Map<String, Object>
      * Used when loading DSL from database into domain model
@@ -76,7 +46,8 @@ public interface RuleEntityMapper {
         // Parse JSON string to Map
         try {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return objectMapper.readValue(dslJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(dslJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             // If parsing fails, return empty map
             return new HashMap<>();
@@ -157,4 +128,35 @@ public interface RuleEntityMapper {
     static String logicTypeToString(Rule.LogicType logic) {
         return logic != null ? logic.name() : null;
     }
+
+    @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
+    @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
+    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
+    @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
+    @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
+    @Mapping(target = "ruleCode", ignore = true)     // No longer exists in entity
+    @Mapping(target = "description", ignore = true)  // No longer exists in entity
+    @Mapping(target = "notes", ignore = true)        // No longer exists in entity
+    @Mapping(target = "active", ignore = true)       // No longer exists in entity
+    @Mapping(target = "latestVersion", ignore = true) // No longer exists in entity
+    @Mapping(target = "type", ignore = true)         // No longer exists in entity
+    @Mapping(target = "expression", ignore = true)   // No longer exists in entity
+    @Mapping(target = "priority", ignore = true)     // No longer exists in entity
+    @Mapping(target = "effectiveFrom", ignore = true) // No longer exists in entity
+    @Mapping(target = "effectiveTo", ignore = true)  // No longer exists in entity
+    @Mapping(target = "targetSegmentsList", ignore = true) // Duplicate of targetSegments
+    @Mapping(target = "campaignId", ignore = true)   // No longer exists in entity
+    @Mapping(target = "ruleSetId", ignore = true)    // No longer exists in entity
+    @Mapping(target = "version", ignore = true)
+        // No longer exists in entity
+    Rule toDomain(RuleJpaEntity entity);
+
+    @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
+    @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
+    @Mapping(target = "dsl", source = "dsl", qualifiedByName = "objectMapToString")
+    RuleJpaEntity toEntity(Rule domain);
+
+    List<Rule> toDomainList(List<RuleJpaEntity> entities);
+
+    List<RuleJpaEntity> toEntityList(List<Rule> domains);
 }

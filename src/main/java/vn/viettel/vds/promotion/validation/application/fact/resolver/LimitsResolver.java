@@ -78,6 +78,10 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
                 log.warn("Redemption service returned status {} for customerId: {}", response.statusCode(), request.customerId());
                 return getPartialResult(request);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while resolving limits facts for {}: {}", request.customerId(), e.getMessage());
+            throw new RuntimeException("Failed to resolve limits facts", e);
         } catch (Exception e) {
             log.warn("Failed to resolve limits facts for {}: {}", request.customerId(), e.getMessage());
             throw new RuntimeException("Failed to resolve limits facts", e);

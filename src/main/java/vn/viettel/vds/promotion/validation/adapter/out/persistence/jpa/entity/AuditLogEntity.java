@@ -8,7 +8,7 @@ import java.time.Instant;
 
 /**
  * JPA entity for admin audit logs mapped to admin_audit_logs table.
- *
+ * <p>
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml:1003-1079):
  * - id: varchar(36) - Primary key
  * - entity_type: varchar(100) - Entity type (Rule, Operator, Assignment, etc.)
@@ -20,7 +20,7 @@ import java.time.Instant;
  * - snapshot_after: text - Entity state after action
  * - timestamp: timestamp - When action occurred
  * - version: bigint - Optimistic locking version
- *
+ * <p>
  * NOTE: Schema does NOT have tenant_id, created_at, updated_at, or diff columns
  */
 @Getter

@@ -8,10 +8,10 @@ import java.util.function.Function;
 
 /**
  * Generic Result type for operation outcomes.
- *
+ * <p>
  * Provides a type-safe way to handle success and failure cases without exceptions.
  * Inspired by functional programming Result/Either types.
- *
+ * <p>
  * Usage:
  * <pre>
  * // Success case
@@ -278,10 +278,6 @@ public class Result<T> {
             this.errors = errors;
         }
 
-        public List<Error> getErrors() {
-            return new ArrayList<>(errors);
-        }
-
         private static String formatErrors(List<Error> errors) {
             if (errors.isEmpty()) {
                 return "Operation failed with no error details";
@@ -295,6 +291,10 @@ public class Result<T> {
                 sb.append("  - ").append(error.getCode()).append(": ").append(error.getMessage()).append("\n");
             }
             return sb.toString();
+        }
+
+        public List<Error> getErrors() {
+            return new ArrayList<>(errors);
         }
     }
 }

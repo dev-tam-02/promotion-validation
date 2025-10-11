@@ -11,11 +11,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
-import vn.viettel.vds.promotion.schema.validation.event.ApplicabilityResult;
-import vn.viettel.vds.promotion.schema.validation.event.AssignmentResult;
-import vn.viettel.vds.promotion.schema.validation.event.SettingValidationRuleEvent;
-import vn.viettel.vds.promotion.schema.validation.event.SettingValidationRuleEventPayload;
-import vn.viettel.vds.promotion.schema.validation.event.TimeframeResult;
+import vn.viettel.vds.promotion.schema.validation.event.*;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
@@ -107,7 +103,7 @@ public class SettingValidationRuleEventPublisher {
 
         Assignment assignment = result.getAssignment();
         CommandMappingService.ApplicabilityStats stats =
-            mappingService.calculateApplicabilityStats(result.getApplicabilityData());
+                mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
         // Build Assignment Result
         AssignmentResult assignmentResult = AssignmentResult.newBuilder()

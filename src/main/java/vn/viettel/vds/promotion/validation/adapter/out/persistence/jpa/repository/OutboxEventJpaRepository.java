@@ -35,8 +35,8 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventEntit
      * Includes PENDING events and FAILED events that haven't exceeded max attempts
      */
     @Query("SELECT e FROM OutboxEventEntity e WHERE " +
-           "(e.status = 'PENDING' OR (e.status = 'FAILED' AND e.attempts < e.maxAttempts)) " +
-           "ORDER BY e.createdAt ASC")
+            "(e.status = 'PENDING' OR (e.status = 'FAILED' AND e.attempts < e.maxAttempts)) " +
+            "ORDER BY e.createdAt ASC")
     List<OutboxEventEntity> findPendingEvents(Pageable pageable);
 
     /**
@@ -76,7 +76,7 @@ public interface OutboxEventJpaRepository extends JpaRepository<OutboxEventEntit
      * Count pending events (PENDING + retryable FAILED)
      */
     @Query("SELECT COUNT(e) FROM OutboxEventEntity e WHERE " +
-           "e.status = 'PENDING' OR (e.status = 'FAILED' AND e.attempts < e.maxAttempts)")
+            "e.status = 'PENDING' OR (e.status = 'FAILED' AND e.attempts < e.maxAttempts)")
     long countPendingEvents();
 
     /**

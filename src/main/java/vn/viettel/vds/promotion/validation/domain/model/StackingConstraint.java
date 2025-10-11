@@ -123,8 +123,8 @@ public class StackingConstraint {
         /**
          * Creates an incompatible pair.
          *
-         * @param type1 first discount type
-         * @param type2 second discount type
+         * @param type1  first discount type
+         * @param type2  second discount type
          * @param reason reason for incompatibility
          * @return incompatible pair
          */
@@ -145,7 +145,7 @@ public class StackingConstraint {
          */
         public boolean matches(String discountType1, String discountType2) {
             return (type1.equals(discountType1) && type2.equals(discountType2)) ||
-                   (type1.equals(discountType2) && type2.equals(discountType1));
+                    (type1.equals(discountType2) && type2.equals(discountType1));
         }
     }
 }

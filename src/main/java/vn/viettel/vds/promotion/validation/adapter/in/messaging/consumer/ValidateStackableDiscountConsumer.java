@@ -53,10 +53,10 @@ public class ValidateStackableDiscountConsumer {
      * - Idempotency key logging
      * </p>
      *
-     * @param avroCommand Avro command payload
-     * @param messageKey Kafka message key
-     * @param partition Kafka partition
-     * @param offset Kafka offset
+     * @param avroCommand    Avro command payload
+     * @param messageKey     Kafka message key
+     * @param partition      Kafka partition
+     * @param offset         Kafka offset
      * @param acknowledgment Manual acknowledgment
      */
     @KafkaListener(

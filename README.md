@@ -218,7 +218,9 @@ db.rule_bundles.findOne(
 ---
 
 # 5)
-`metadata_schemas` (manager in metadata-schemas-service, this service store key-value pairs and references to metadata schemas)
+
+`metadata_schemas` (manager in metadata-schemas-service, this service store key-value pairs and references to metadata
+schemas)
 
 **Purpose (EN):** Declares JSON Schemas for custom metadata spaces used in rules (e.g., customer/order/item).
 

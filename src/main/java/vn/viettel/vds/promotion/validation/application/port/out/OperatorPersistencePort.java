@@ -42,7 +42,7 @@ public interface OperatorPersistencePort {
      * Find operators by tenant, context and status with pagination
      */
     Page<Operator> findByTenantIdAndContextAndStatus(String tenantId, String context,
-                                                      Operator.OperatorStatus status, Pageable pageable);
+                                                     Operator.OperatorStatus status, Pageable pageable);
 
     /**
      * Find active operators by tenant

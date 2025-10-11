@@ -66,7 +66,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
     @Override
     public Page<Operator> findByTenantIdAndContextAndStatus(String tenantId, String context,
-                                                  Operator.OperatorStatus status, Pageable pageable) {
+                                                            Operator.OperatorStatus status, Pageable pageable) {
         List<OperatorEntity> entities = repository.findByContextAndStatus(
                 context,
                 OperatorEntity.OperatorStatus.valueOf(status.name())

@@ -1,6 +1,9 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AuditLogEntity;
 import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 

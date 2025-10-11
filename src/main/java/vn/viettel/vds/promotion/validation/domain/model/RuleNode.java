@@ -26,11 +26,6 @@ public class RuleNode {
     private final Rule.LogicType groupLogic;
     private final java.util.Map<String, Object> params;
 
-    public enum NodeType {
-        GROUP,
-        COND
-    }
-
     private RuleNode(Builder builder) {
         this.nodeId = builder.nodeId;
         this.field = builder.field;
@@ -107,8 +102,8 @@ public class RuleNode {
         // Allow null expected value only for null-checking operators
         if (value == null && !isNullCheckOperator(operator)) {
             throw new RuleEvaluationException(
-                "Expected value is null for non-null-check operator: " + operator,
-                nodeId, field, operator
+                    "Expected value is null for non-null-check operator: " + operator,
+                    nodeId, field, operator
             );
         }
 
@@ -123,9 +118,9 @@ public class RuleNode {
             return false;
         }
         return operator.equals("IS_NULL") ||
-               operator.equals("IS_NOT_NULL") ||
-               operator.equals("is_null") ||
-               operator.equals("is_not_null");
+                operator.equals("IS_NOT_NULL") ||
+                operator.equals("is_null") ||
+                operator.equals("is_not_null");
     }
 
     private boolean evaluateParentNode(ValidationContext context) {
@@ -201,6 +196,11 @@ public class RuleNode {
 
     public java.util.Map<String, Object> getParams() {
         return params;
+    }
+
+    public enum NodeType {
+        GROUP,
+        COND
     }
 
     public static class Builder {

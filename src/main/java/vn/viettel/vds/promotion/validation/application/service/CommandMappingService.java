@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Service for mapping and analyzing command data.
- *
+ * <p>
  * Note: This service previously contained deprecated methods for creating Assignment.Subject
  * from applicableTo data. Those methods have been removed. Use
  * SettingValidationRuleCommandHandler.getCampaignIdFromCommand() instead for proper
@@ -23,7 +23,7 @@ public class CommandMappingService {
 
     /**
      * Calculate applicability statistics for event reporting.
-     *
+     * <p>
      * This method analyzes the applicability scope and returns statistics about
      * included/excluded items. Note that this is for reporting purposes only.
      * The actual rule applicability is determined by the product.applicability.in
@@ -43,9 +43,9 @@ public class CommandMappingService {
             int excludedCount = excluded != null ? excluded.size() : 0;
 
             return new ApplicabilityStats(
-                includedCount,
-                excludedCount,
-                includedAll != null ? includedAll : false
+                    includedCount,
+                    excludedCount,
+                    includedAll != null ? includedAll : false
             );
 
         } catch (Exception e) {
@@ -84,7 +84,7 @@ public class CommandMappingService {
         @Override
         public String toString() {
             return String.format("ApplicabilityStats{included=%d, excluded=%d, includedAll=%b}",
-                includedItemsCount, excludedItemsCount, includedAll);
+                    includedItemsCount, excludedItemsCount, includedAll);
         }
     }
 }

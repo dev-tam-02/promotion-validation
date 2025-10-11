@@ -5,9 +5,6 @@ import vn.viettel.vds.promotion.validation.application.port.in.GetRuleByIdUseCas
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.query.GetRuleByIdQuery;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
 
 /**
  * Implementation of GetRuleByIdUseCase

@@ -12,10 +12,10 @@ import java.util.Map;
 
 /**
  * JPA entity for operators mapped to operators table.
- *
+ * <p>
  * IMPORTANT: This entity does NOT extend BaseEntity because the schema does NOT have
  * created_by, updated_by, or version columns that BaseEntity provides.
- *
+ * <p>
  * Schema columns (from 001-create-validation-rule-engine-schema.yaml:256-334):
  * - id: varchar(36) - Primary key
  * - name: varchar(100) - Operator name
@@ -26,7 +26,7 @@ import java.util.Map;
  * - status: varchar(20) - Operator status (ACTIVE, DEPRECATED)
  * - created_at: timestamp - Creation timestamp
  * - updated_at: timestamp - Last update timestamp
- *
+ * <p>
  * NOTE: Schema does NOT have created_by, updated_by, or version columns
  */
 @Getter

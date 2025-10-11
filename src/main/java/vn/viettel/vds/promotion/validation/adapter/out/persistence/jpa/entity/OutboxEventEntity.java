@@ -3,19 +3,8 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 
 import java.time.Instant;
@@ -99,7 +88,8 @@ public class OutboxEventEntity {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize payload", e);
         }
@@ -128,7 +118,8 @@ public class OutboxEventEntity {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {});
+            return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
+            });
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize metadata", e);
         }

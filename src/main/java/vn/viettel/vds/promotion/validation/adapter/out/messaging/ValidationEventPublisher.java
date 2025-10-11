@@ -9,8 +9,8 @@ import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.RuleDeplo
 import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.ValidationCompletedEvent;
 import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.ValidationFailedEvent;
 import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
-import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 
 import java.time.Instant;
 import java.util.UUID;

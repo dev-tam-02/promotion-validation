@@ -5,12 +5,12 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.dto;
  * Indicates whether a rule is compatible with the requested campaign type
  */
 public record ValidateCompatibilityResponse(
-    boolean isValid,
-    String errorCode,
-    String errorMessage,
-    String ruleId,
-    String ruleName,
-    String ruleStatus
+        boolean isValid,
+        String errorCode,
+        String errorMessage,
+        String ruleId,
+        String ruleName,
+        String ruleStatus
 ) {
     /**
      * Create a successful validation response

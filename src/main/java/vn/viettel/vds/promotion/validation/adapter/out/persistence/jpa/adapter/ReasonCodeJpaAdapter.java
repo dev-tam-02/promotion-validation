@@ -58,7 +58,7 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
 
     @Override
     public Page<ReasonCode> findWithFilters(String tenantId, String categoryPattern,
-                                           ReasonCode.Severity severity, Pageable pageable) {
+                                            ReasonCode.Severity severity, Pageable pageable) {
         // Implement filtering manually
         List<ReasonCodeEntity> all = repository.findAll();
         List<ReasonCodeEntity> filtered = all.stream()

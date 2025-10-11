@@ -20,7 +20,7 @@ public interface IdempotencyService {
      * Mark a command as processed and store the result.
      *
      * @param idempotencyKey Unique identifier for the command
-     * @param result Processing result to store (can be serialized to JSON)
+     * @param result         Processing result to store (can be serialized to JSON)
      */
     void markAsProcessed(String idempotencyKey, Object result);
 
@@ -28,7 +28,7 @@ public interface IdempotencyService {
      * Retrieve the result of a previously processed command.
      *
      * @param idempotencyKey Unique identifier for the command
-     * @param <T> Type of the result
+     * @param <T>            Type of the result
      * @return Optional containing the result if found, empty otherwise
      */
     <T> Optional<T> getProcessedResult(String idempotencyKey);

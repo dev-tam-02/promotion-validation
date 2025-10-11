@@ -1,12 +1,15 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 /**
  * MapStruct mapper for converting between Assignment domain model and AssignmentEntity.
- *
+ * <p>
  * NOTE: The domain model contains fields that don't exist in the database schema.
  * This mapper provides best-effort mapping between the two structures.
  */

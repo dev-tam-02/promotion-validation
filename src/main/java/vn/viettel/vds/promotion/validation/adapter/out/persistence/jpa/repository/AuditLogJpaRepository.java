@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * JPA Repository for AuditLogEntity.
- *
+ * <p>
  * NOTE: The schema does NOT have tenant_id or target embeddable.
  * It has entity_type, entity_id, actor_id, action, timestamp instead.
  */

@@ -35,7 +35,7 @@ public class RuleNodeEntityMapper {
             // Children will be set later after loading from repository
         } else if ("COND".equalsIgnoreCase(entity.getType())) {
             builder.operatorName(entity.getOperatorName())
-                   .reasonCode(entity.getReasonCode());
+                    .reasonCode(entity.getReasonCode());
         }
 
         return builder.build();
@@ -97,7 +97,7 @@ public class RuleNodeEntityMapper {
             builder.groupLogic(parseLogicType(entity.getGroupLogic()));
         } else if ("COND".equalsIgnoreCase(entity.getType())) {
             builder.operatorName(entity.getOperatorName())
-                   .reasonCode(entity.getReasonCode());
+                    .reasonCode(entity.getReasonCode());
         }
 
         return builder;
