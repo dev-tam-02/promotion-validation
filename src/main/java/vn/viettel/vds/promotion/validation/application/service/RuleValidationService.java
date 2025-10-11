@@ -77,7 +77,7 @@ public class RuleValidationService {
         LintResult lintResult = lintRule(rule.getNodes());
         issues.addAll(lintResult.getIssues().stream()
                 .map(lint -> new ValidationIssue(lint.getPath(), lint.getMessage(), "LINT_ERROR"))
-                .collect(Collectors.toList()));
+                .toList());
 
         // Validate that all operators exist and are active
         Set<String> operatorNames = extractOperatorNames(rule.getNodes());
@@ -330,7 +330,7 @@ public class RuleValidationService {
         List<String> rootNodes = nodes.stream()
                 .map(RuleNode::getId)
                 .filter(id -> id != null && !referencedNodes.contains(id))
-                .collect(Collectors.toList());
+                .toList();
 
         for (String rootId : rootNodes) {
             int depth = calculateDepthRecursive(rootId, nodeMap, new HashSet<>());

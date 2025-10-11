@@ -10,8 +10,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePort {
@@ -41,14 +39,14 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
     public List<RuleTemporalLink> findByRuleId(String ruleId) {
         return repository.findByValidationRule_Id(ruleId).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<RuleTemporalLink> findByPolicyId(String policyId) {
         return repository.findByTemporalPolicy_Id(policyId).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

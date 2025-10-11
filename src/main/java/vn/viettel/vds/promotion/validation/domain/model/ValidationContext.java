@@ -117,6 +117,9 @@ public class ValidationContext {
                     return customer.getTotalPurchaseAmount();
                 case "transactionCount":
                     return customer.getTransactionCount();
+                default:
+                    // Field not found in customer context, continue searching
+                    break;
             }
         }
 
@@ -131,6 +134,9 @@ public class ValidationContext {
                     return order.getItemCount();
                 case "channel":
                     return order.getChannel();
+                default:
+                    // Field not found in order context, continue searching
+                    break;
             }
         }
 

@@ -16,8 +16,6 @@ import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * JPA adapter implementation for OutboxEventPersistencePort.
  * Provides JPA-based persistence for outbox events.
@@ -49,7 +47,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public List<OutboxEvent> findByStatus(OutboxEventStatus status) {
         return repository.findByStatus(status).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -65,7 +63,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
         Pageable pageable = PageRequest.of(0, limit);
         return repository.findPendingEvents(pageable).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -75,7 +73,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
         // This implementation ignores tenantId and returns all events with the given status
         return repository.findByStatus(status).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -83,7 +81,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public List<OutboxEvent> findEventsCreatedBefore(Instant timestamp) {
         return repository.findByCreatedAtBefore(timestamp).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -91,7 +89,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public List<OutboxEvent> findPublishedEventsOlderThan(Instant timestamp) {
         return repository.findPublishedEventsOlderThan(timestamp).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -115,7 +113,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public void deleteAll(List<OutboxEvent> events) {
         List<OutboxEventEntity> entities = events.stream()
                 .map(mapper::toEntity)
-                .collect(Collectors.toList());
+                .toList();
         repository.deleteAll(entities);
     }
 
@@ -135,7 +133,7 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public List<OutboxEvent> findByAggregateTypeAndAggregateId(String aggregateType, String aggregateId) {
         return repository.findByAggregateTypeAndAggregateId(aggregateType, aggregateId).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -143,6 +141,6 @@ public class OutboxEventJpaAdapter implements OutboxEventPersistencePort {
     public List<OutboxEvent> findByEventType(String eventType) {
         return repository.findByEventType(eventType).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

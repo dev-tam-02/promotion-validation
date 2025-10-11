@@ -13,8 +13,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
@@ -50,7 +48,7 @@ public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
     public List<RuleVersion> findByRuleIdOrderByVersionDesc(String ruleId) {
         return repository.findByRuleIdOrderByRuleVersionDesc(ruleId).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -78,7 +76,7 @@ public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
                 .filter(e -> e.getCode().equals(code))
                 .sorted((e1, e2) -> e2.getRuleVersion().compareTo(e1.getRuleVersion()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -92,7 +90,7 @@ public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
         return repository.findAll().stream()
                 .filter(e -> operatorsFingerprint.equals(e.getOperatorsFingerprint()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -126,7 +124,7 @@ public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {
         List<RuleVersion> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

@@ -64,7 +64,7 @@ public class RuleNodeEntityMapper {
                         .map(builderMap::get)
                         .filter(b -> b != null)
                         .map(RuleNode.Builder::build)
-                        .collect(Collectors.toList());
+                        .toList();
                 parentBuilder.children(children);
             }
         }
@@ -80,7 +80,7 @@ public class RuleNodeEntityMapper {
         // Fallback: return all nodes as flat list
         return builderMap.values().stream()
                 .map(RuleNode.Builder::build)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -161,7 +161,7 @@ public class RuleNodeEntityMapper {
             if (node.getChildren() != null && !node.getChildren().isEmpty()) {
                 List<String> childrenIds = node.getChildren().stream()
                         .map(RuleNode::getNodeId)
-                        .collect(Collectors.toList());
+                        .toList();
                 entity.setChildrenIds(childrenIds);
             }
         } else if (node.getType() == RuleNode.NodeType.COND) {

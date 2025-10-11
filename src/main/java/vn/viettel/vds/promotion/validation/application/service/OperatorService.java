@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-
 @Service
 @Transactional
 public class OperatorService {
@@ -185,7 +183,7 @@ public class OperatorService {
             } else {
                 List<ValidationIssue> issues = errors.stream()
                         .map(error -> new ValidationIssue(error.getInstanceLocation().toString(), error.getMessage(), operatorName))
-                        .collect(Collectors.toList());
+                        .toList();
                 return ValidationResult.invalid(issues);
             }
 

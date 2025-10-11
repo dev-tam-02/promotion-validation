@@ -369,6 +369,7 @@ public class RuleDeploymentPipelineService {
 
         // Constructors and getters/setters
         public TestScenario() {
+            // Default constructor for JSON deserialization and builder pattern
         }
 
         public String getName() {

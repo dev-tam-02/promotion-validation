@@ -41,7 +41,7 @@ public final class RuleConstants {
      */
     public static final class Operator {
         // Comparison operators
-        public static final String EQUALS = "equals";
+        public static final String EQUALS_OP = "equals";
         public static final String NOT_EQUALS = "not_equals";
         public static final String GREATER_THAN = "greater_than";
         public static final String GREATER_THAN_OR_EQUAL = "greater_than_or_equal";

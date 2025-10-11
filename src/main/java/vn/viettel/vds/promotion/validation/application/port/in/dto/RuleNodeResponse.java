@@ -4,8 +4,6 @@ import vn.viettel.vds.promotion.validation.domain.model.LogicType;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Response DTO for a rule node
  */
@@ -33,7 +31,7 @@ public class RuleNodeResponse {
         List<RuleNodeResponse> childResponses = node.getChildren() != null ?
                 node.getChildren().stream()
                         .map(RuleNodeResponse::from)
-                        .collect(Collectors.toList()) :
+                        .toList() :
                 List.of();
 
         return builder()

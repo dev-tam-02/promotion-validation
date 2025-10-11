@@ -16,8 +16,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * Use case implementation for data validation
  * Orchestrates validation flow using domain services and ports
@@ -264,7 +262,7 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         return rules.stream()
                 .distinct()
                 .sorted(Comparator.comparingInt(Rule::getPriority))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -279,6 +277,6 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         return rules.stream()
                 .filter(rule -> rule.isEffective(request.getTimestamp()))
                 .filter(rule -> rule.appliesTo(customerSegment))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

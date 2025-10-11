@@ -21,8 +21,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Application service implementing the validate stackable discount use case.
  * <p>
@@ -132,7 +130,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
         // Build discount facts from requests
         List<DiscountFact> discountFacts = command.discountRequests().stream()
                 .map(this::buildDiscountFact)
-                .collect(Collectors.toList());
+                .toList();
 
         return StackingContext.builder()
                 .validationId(command.idempotencyKey())
@@ -236,7 +234,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
                         d.getDiscountAmount(),
                         d.getApplicationOrder()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         List<RejectedDiscount> rejectedDiscounts = domainResult.getRejectedDiscounts().stream()
                 .map(d -> RejectedDiscount.of(
@@ -244,11 +242,11 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
                         d.getDiscountId(),
                         d.getRejectionReasons()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         List<ValidationIssue> issues = domainResult.getIssues().stream()
                 .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
-                .collect(Collectors.toList());
+                .toList();
 
         ValidationDecision decision = domainResult.isApproved()
                 ? ValidationDecision.APPROVED
@@ -284,15 +282,15 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
                         d.objectId(),
                         combineRejectionReasons(domainResult, ruleEvaluation)
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         List<ValidationIssue> issues = new ArrayList<>();
         issues.addAll(domainResult.getIssues().stream()
                 .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
-                .collect(Collectors.toList()));
+                .toList());
         issues.addAll(ruleEvaluation.getFailureReasons().stream()
                 .map(reason -> ValidationIssue.error("RULE_FAILED", reason))
-                .collect(Collectors.toList()));
+                .toList());
 
         return new ValidateStackableDiscountResult(
                 command.idempotencyKey(),
@@ -342,7 +340,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
                     domainResult.getSummary(),
                     domainResult.getIssues().stream()
                             .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
-                            .collect(Collectors.toList())
+                            .toList()
             );
         }
     }

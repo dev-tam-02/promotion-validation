@@ -17,8 +17,6 @@ import vn.viettel.vds.promotion.validation.domain.service.ValidationDomainServic
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
-
 /**
  * Implementation of ManageValidationRulesUseCase
  * Handles rule management operations
@@ -150,7 +148,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         return ruleRepository.findActiveRules()
                 .stream()
                 .filter(Rule::isActive)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -194,7 +192,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                     .map(ruleRepository::findById)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (rules.isEmpty()) {
                 log.warn("No rules found to deploy");

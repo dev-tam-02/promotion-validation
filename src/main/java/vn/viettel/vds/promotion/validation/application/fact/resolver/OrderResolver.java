@@ -20,8 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 @Component
 public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
@@ -163,7 +161,7 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
             List<Map<String, Object>> itemsData = (List<Map<String, Object>>) data.get("items");
             List<OrderItemFact> items = itemsData.stream()
                     .map(this::mapToOrderItemFact)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.items(items);
 
             // Calculate derived fields
@@ -189,7 +187,7 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
             List<Map<String, Object>> discountsData = (List<Map<String, Object>>) data.get("appliedDiscounts");
             List<DiscountFact> discounts = discountsData.stream()
                     .map(this::mapToDiscountFact)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.appliedDiscounts(discounts);
         }
         if (data.get("metadata") != null) {

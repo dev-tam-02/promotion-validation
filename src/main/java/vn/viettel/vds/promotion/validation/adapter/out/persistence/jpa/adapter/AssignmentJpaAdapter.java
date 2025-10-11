@@ -14,8 +14,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class AssignmentJpaAdapter implements AssignmentPersistencePort {
@@ -51,14 +49,14 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
     public List<Assignment> findActiveByTenantIdAndSubject(String tenantId, String subjectType, String subjectKey) {
         // Note: tenantId removed from schema, using entityType/entityId and active flag
         List<AssignmentEntity> entities = repository.findByEntityTypeAndEntityIdAndActive(subjectType, subjectKey, true);
-        return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
+        return entities.stream().map(mapper::toDomain).toList();
     }
 
     @Override
     public List<Assignment> findByTenantIdAndRuleId(String tenantId, String ruleId) {
         // Note: tenantId removed, only filtering by ruleId
         List<AssignmentEntity> entities = repository.findByRuleIdOrderByCreatedAtDesc(ruleId);
-        return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
+        return entities.stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -72,7 +70,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
                         (e.getEntityId() != null && e.getEntityId().contains(subjectKeyPattern)))
                 .filter(e -> active == null || e.getActive().equals(active))
                 .filter(e -> ruleId == null || e.getId().equals(ruleId))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -80,7 +78,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
     public List<Assignment> findActiveAtTime(String tenantId, Instant time) {
         // Note: validFrom/validTo removed from schema, only checking active flag
         List<AssignmentEntity> entities = repository.findByActive(true);
-        return entities.stream().map(mapper::toDomain).collect(Collectors.toList());
+        return entities.stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -90,7 +88,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
         List<AssignmentEntity> active = repository.findByEntityTypeAndEntityIdAndActive(subjectType, subjectKey, true);
         return active.stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -144,7 +142,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
                 .filter(e -> subjectType.equals(e.getEntityType()) &&
                         subjectKey.equals(e.getEntityId()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -163,7 +161,7 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
         List<Assignment> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

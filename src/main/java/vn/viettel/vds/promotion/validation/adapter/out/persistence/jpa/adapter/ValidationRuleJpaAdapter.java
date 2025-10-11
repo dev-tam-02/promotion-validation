@@ -10,8 +10,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * JPA adapter implementation for ValidationRuleRepositoryPort
  */
@@ -42,7 +40,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
         // Note: priority field no longer exists, so no sorting by priority
         return jpaRepository.findByState("PUBLISHED").stream()
                 .map(mapper::jpaEntityToDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -107,6 +105,6 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
         return jpaRepository.findAll().stream()
                 .filter(e -> e.getTargetSegments() != null && e.getTargetSegments().contains(segment))
                 .map(mapper::jpaEntityToDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

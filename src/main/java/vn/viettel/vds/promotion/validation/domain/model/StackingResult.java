@@ -7,8 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Domain model representing the result of stackable discount validation.
  * <p>
@@ -194,7 +192,7 @@ public class StackingResult {
         }
         return validatedDiscounts.stream()
                 .map(ValidatedDiscountInfo::getDiscountId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

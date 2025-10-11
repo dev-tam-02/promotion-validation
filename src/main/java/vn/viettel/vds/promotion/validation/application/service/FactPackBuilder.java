@@ -12,8 +12,6 @@ import vn.viettel.vds.promotion.validation.domain.fact.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * Builder for constructing FactPack from validation commands.
  * <p>
@@ -83,7 +81,7 @@ public class FactPackBuilder {
         if (orderInfo.items() != null && !orderInfo.items().isEmpty()) {
             orderItems = orderInfo.items().stream()
                     .map(this::buildOrderItemFact)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         Map<String, Object> metadata = new HashMap<>();

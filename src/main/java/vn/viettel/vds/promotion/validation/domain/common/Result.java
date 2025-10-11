@@ -271,7 +271,8 @@ public class Result<T> {
      * Exception thrown when calling orElseThrow() on a failed Result
      */
     public static class ResultException extends RuntimeException {
-        private final List<Error> errors;
+        private static final long serialVersionUID = 1L;
+        private final transient List<Error> errors;
 
         public ResultException(List<Error> errors) {
             super(formatErrors(errors));

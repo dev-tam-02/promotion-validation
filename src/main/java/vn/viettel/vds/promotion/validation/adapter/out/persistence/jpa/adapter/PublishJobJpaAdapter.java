@@ -14,8 +14,6 @@ import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class PublishJobJpaAdapter implements PublishJobPersistencePort {
@@ -51,7 +49,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
     public List<PublishJob> findByRuleIdOrderByTargetVersionDesc(String ruleId) {
         return repository.findByRuleIdOrderByTargetVersionDesc(ruleId).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -72,7 +70,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
                         e.getRequestedAt() != null &&
                         e.getRequestedAt().isBefore(cutoffTime))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -92,7 +90,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
                         (e.getStatus() != null && e.getStatus().name().equals(status.name())))
                 .filter(e -> e.getRequestedAt() == null ||
                         (e.getRequestedAt().isAfter(from) && e.getRequestedAt().isBefore(to)))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -112,7 +110,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
                         e.getCompletedAt() != null &&
                         e.getCompletedAt().isBefore(cutoffTime))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -120,7 +118,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
         // Manual filtering and sorting
         List<PublishJobEntity> all = repository.findAll().stream()
                 .sorted((e1, e2) -> e2.getRequestedAt().compareTo(e1.getRequestedAt()))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(all, pageable);
     }
 
@@ -145,7 +143,7 @@ public class PublishJobJpaAdapter implements PublishJobPersistencePort {
         List<PublishJob> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

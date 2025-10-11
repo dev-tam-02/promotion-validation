@@ -17,8 +17,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class RuleJpaAdapter implements RulePersistencePort {
@@ -86,7 +84,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
                         (e.getCode() != null && e.getCode().toLowerCase().contains(codePattern.toLowerCase())))
                 .filter(e -> namePattern == null ||
                         (e.getName() != null && e.getName().toLowerCase().contains(namePattern.toLowerCase())))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(all, pageable);
     }
 
@@ -95,7 +93,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
         return repository.findAll().stream()
                 .sorted((e1, e2) -> e2.getUpdatedAt().compareTo(e1.getUpdatedAt()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -113,7 +111,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
         return repository.findAll().stream()
                 .filter(e -> !state.name().equals(e.getState()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -150,7 +148,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
         return repository.findAll().stream()
                 .filter(e -> e.getTargetSegments() != null && e.getTargetSegments().contains(segment))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -180,7 +178,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
         List<Rule> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

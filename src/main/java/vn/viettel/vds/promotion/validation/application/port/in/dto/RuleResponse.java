@@ -6,8 +6,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Response DTO for a validation rule
  */
@@ -54,7 +52,7 @@ public class RuleResponse {
                 .logicType(rule.getLogic() != null ? LogicType.valueOf(rule.getLogic().name()) : null)
                 .nodes(rule.getNodes() != null ? rule.getNodes().stream()
                         .map(RuleNodeResponse::from)
-                        .collect(Collectors.toList()) : List.of())
+                        .toList() : List.of())
                 .status(rule.getState() != null ? RuleStatus.valueOf(rule.getState().name()) : null)
                 .version(rule.getVersion() != null ? rule.getVersion().toString() : null)
                 .createdAt(rule.getCreatedAt())

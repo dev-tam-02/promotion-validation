@@ -117,7 +117,7 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             List<Map<String, Object>> globalLimitsData = (List<Map<String, Object>>) data.get("globalLimits");
             List<LimitsFact.LimitInfo> globalLimits = globalLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.globalLimits(globalLimits);
         }
 
@@ -125,7 +125,7 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             List<Map<String, Object>> customerLimitsData = (List<Map<String, Object>>) data.get("customerLimits");
             List<LimitsFact.LimitInfo> customerLimits = customerLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.customerLimits(customerLimits);
         }
 
@@ -133,7 +133,7 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             List<Map<String, Object>> campaignLimitsData = (List<Map<String, Object>>) data.get("campaignLimits");
             List<LimitsFact.LimitInfo> campaignLimits = campaignLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.campaignLimits(campaignLimits);
         }
 

@@ -13,8 +13,6 @@ import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * JPA adapter implementation for AuditLog persistence.
  */
@@ -69,7 +67,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
                         (e.getActorId() != null && e.getActorId().contains(actorPattern)))
                 .filter(e -> from == null || e.getTimestamp().isAfter(from) || e.getTimestamp().equals(from))
                 .filter(e -> to == null || e.getTimestamp().isBefore(to) || e.getTimestamp().equals(to))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -79,7 +77,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
         List<AuditLogEntity> entities = repository.findByEntity(targetType, targetId);
         return entities.stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -95,7 +93,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
         return repository.findAll().stream()
                 .filter(e -> e.getTimestamp().isBefore(cutoffTime))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -114,7 +112,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
     public void deleteLogsOlderThan(Instant cutoffTime) {
         List<AuditLogEntity> oldLogs = repository.findAll().stream()
                 .filter(e -> e.getTimestamp().isBefore(cutoffTime))
-                .collect(Collectors.toList());
+                .toList();
         repository.deleteAll(oldLogs);
     }
 
@@ -124,7 +122,7 @@ public class AuditLogJpaAdapter implements AuditLogPersistencePort {
         List<AuditLog> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

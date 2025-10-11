@@ -16,8 +16,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Domain service for stackable discount validation.
  * <p>
@@ -180,7 +178,7 @@ public class StackableDiscountValidationService {
                         // Then by amount (higher discounts first)
                         .thenComparing(d -> getDiscountValue(d, order), Comparator.reverseOrder())
                 )
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

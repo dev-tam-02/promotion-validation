@@ -13,8 +13,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * JPA adapter implementation for Operator persistence.
  * Active when promix.jpa.enabled=true
@@ -61,7 +59,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
                 .stream()
                 .filter(e -> e.getContext() != null && e.getContext().equals(context))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -78,7 +76,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
         List<Operator> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
@@ -87,7 +85,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
     public List<Operator> findByTenantIdAndStatus(String tenantId, Operator.OperatorStatus status) {
         return repository.findByStatus(
                 OperatorEntity.OperatorStatus.valueOf(status.name())
-        ).stream().map(mapper::toDomain).collect(Collectors.toList());
+        ).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -95,7 +93,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
         return repository.findByNameOrderByOperatorVersionDesc(name)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -107,14 +105,14 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
                 .filter(e -> status == null || e.getStatus().name().equals(status.name()))
                 .filter(e -> contextPattern == null ||
                         (e.getContext() != null && e.getContext().contains(contextPattern)))
-                .collect(Collectors.toList());
+                .toList();
 
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), filtered.size());
         List<Operator> pageContent = filtered.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PageImpl<>(pageContent, pageable, filtered.size());
     }
@@ -128,7 +126,7 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
     public List<Operator> findGlobalOperatorsByStatus(Operator.OperatorStatus status) {
         return repository.findByStatus(
                 OperatorEntity.OperatorStatus.valueOf(status.name())
-        ).stream().map(mapper::toDomain).collect(Collectors.toList());
+        ).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -153,6 +151,6 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
         return repository.findByOrderByNameAscOperatorVersionDesc()
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

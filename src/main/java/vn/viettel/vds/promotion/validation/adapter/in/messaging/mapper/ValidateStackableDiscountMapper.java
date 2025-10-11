@@ -7,8 +7,6 @@ import vn.viettel.vds.promotion.validation.application.port.in.dto.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Mapper for converting Avro ValidateStackableDiscountCommand to domain command.
  * <p>
@@ -71,7 +69,7 @@ public class ValidateStackableDiscountMapper {
         if (avroOrderInfo.getItems() != null) {
             items = avroOrderInfo.getItems().stream()
                     .map(this::mapOrderItem)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Extract currency and amount from Money object
@@ -116,7 +114,7 @@ public class ValidateStackableDiscountMapper {
     ) {
         return avroRequests.stream()
                 .map(this::mapDiscountRequest)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

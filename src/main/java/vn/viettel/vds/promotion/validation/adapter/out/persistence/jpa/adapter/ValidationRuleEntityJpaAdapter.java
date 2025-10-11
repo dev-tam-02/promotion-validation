@@ -12,8 +12,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 /**
  * JPA adapter implementation for ValidationRuleEntityPersistencePort
  * Handles conversion between Rule domain model and ValidationRuleEntity JPA
@@ -51,7 +49,7 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     public List<Rule> findByState(String state) {
         return repository.findByState(state).stream()
                 .map(this::toDomainModel)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -62,7 +60,7 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
 
         List<Rule> pageContent = entities.subList(start, end).stream()
                 .map(this::toDomainModel)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
@@ -72,7 +70,7 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
         return repository.findByState(state).stream()
                 .filter(e -> e.getRuleVersion() > version)
                 .map(this::toDomainModel)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -90,7 +88,7 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     public List<Rule> findByStateOrderByVersionDesc(String state) {
         return repository.findByStateOrderByVersionDesc(state).stream()
                 .map(this::toDomainModel)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

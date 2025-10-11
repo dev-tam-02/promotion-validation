@@ -19,8 +19,6 @@ import vn.viettel.vds.promotion.validation.domain.service.RulePublishingService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping("/v1/rules/publishing")
 @ResponseWrapper
@@ -104,7 +102,7 @@ public class RulePublishingController {
                         response.setErrorMessage(result.getErrorMessage());
                         return response;
                     })
-                    .collect(Collectors.toList());
+                    .toList();
 
             long successCount = responses.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum();
             logger.info("Batch publishing completed: total={}, successful={}, failed={}",

@@ -8,8 +8,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-
 /**
  * Domain service responsible for evaluating rules
  * Contains complex business logic for rule evaluation
@@ -78,11 +76,11 @@ public class RuleEvaluationService {
                         () -> evaluateRule(rule, context),
                         executorService
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         return futures.stream()
                 .map(CompletableFuture::join)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

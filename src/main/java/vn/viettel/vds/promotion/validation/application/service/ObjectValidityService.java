@@ -280,11 +280,12 @@ public class ObjectValidityService {
     private Boolean checkCampaignStatus(String campaignId) {
         // Placeholder for campaign status check
         // In real implementation, this would call campaign service
-        // Returns: true if active, false if inactive, null if unknown/pending implementation
+        // Returns: true if active, false if inactive
         //
-        // Note: This method currently returns null to indicate the campaign status check
-        // is not yet implemented. When integrated with campaign service, this should return
-        // the actual status. Until then, validateObjectStatus treats null as "unknown/allow".
-        return null;
+        // Note: This method currently returns true to indicate unknown campaign status
+        // is treated as "active/allow" until campaign service integration is complete.
+        // When integrated with campaign service, this should return the actual status.
+        log.debug("Campaign status check not yet implemented for campaignId: {}, assuming active", campaignId);
+        return Boolean.TRUE;
     }
 }

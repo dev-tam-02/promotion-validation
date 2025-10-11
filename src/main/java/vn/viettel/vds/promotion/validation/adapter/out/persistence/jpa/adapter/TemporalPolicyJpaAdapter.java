@@ -15,8 +15,6 @@ import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
@@ -64,7 +62,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         // Ignoring tenantId parameter
         return repository.findByTz(tz).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -74,7 +72,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         List<TemporalPolicyEntity> all = repository.findAll();
         List<TemporalPolicyEntity> filtered = all.stream()
                 .filter(e -> namePattern == null || e.getName().toLowerCase().contains(namePattern.toLowerCase()))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -86,7 +84,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         List<TemporalPolicyEntity> filtered = all.stream()
                 .filter(e -> tz == null || (e.getTz() != null && e.getTz().equals(tz)))
                 .filter(e -> namePattern == null || e.getName().toLowerCase().contains(namePattern.toLowerCase()))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -96,7 +94,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         return repository.findAll().stream()
                 .sorted((e1, e2) -> e1.getName().compareTo(e2.getName()))
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -122,14 +120,14 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
     public List<TemporalPolicy> findActivePoliciesAt(Instant checkTime) {
         return repository.findActivePoliciesAt(checkTime).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<TemporalPolicy> findByRruleIsNotNull() {
         return repository.findByRruleIsNotNull().stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -148,7 +146,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
         List<TemporalPolicy> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

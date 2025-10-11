@@ -13,8 +13,6 @@ import vn.viettel.vds.promotion.validation.domain.model.ReasonCode;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 @Component
 @ConditionalOnPromixJpa
 public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
@@ -47,7 +45,7 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
     public List<ReasonCode> findByTenantAndCategory(String tenantId, String category) {
         return repository.findByCategory(category).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -66,7 +64,7 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
                         (e.getCategory() != null && e.getCategory().toLowerCase().contains(categoryPattern.toLowerCase())))
                 .filter(e -> severity == null ||
                         (e.getSeverity() != null && e.getSeverity().name().equals(severity.name())))
-                .collect(Collectors.toList());
+                .toList();
         return convertToPage(filtered, pageable);
     }
 
@@ -74,14 +72,14 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
     public List<ReasonCode> findByTenantIdIsNull() {
         return repository.findAll().stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<ReasonCode> findByTenantId(String tenantId) {
         return repository.findAll().stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -89,7 +87,7 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
         ReasonCodeEntity.Severity entitySeverity = mapper.mapSeverity(severity);
         return repository.findBySeverity(entitySeverity).stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -118,7 +116,7 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
         List<ReasonCode> pageContent = entities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
-                .collect(Collectors.toList());
+                .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
     }
 }

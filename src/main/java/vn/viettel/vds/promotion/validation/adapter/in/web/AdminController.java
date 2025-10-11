@@ -173,52 +173,46 @@ public class AdminController {
     }
 
     /**
-     * Perform garbage collection (use with caution)
+     * Get current memory statistics
+     * Note: Explicit garbage collection removed - JVM manages memory automatically
      */
     @PostMapping("/gc")
-    public Map<String, Object> triggerGarbageCollection() {
+    public Map<String, Object> getMemoryStatistics() {
         Runtime runtime = Runtime.getRuntime();
-        long beforeGC = runtime.totalMemory() - runtime.freeMemory();
-
-        System.gc(); // Suggest GC
-
-        long afterGC = runtime.totalMemory() - runtime.freeMemory();
-        long freedMemory = beforeGC - afterGC;
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
 
         return Map.of(
-                "message", "Garbage collection suggested",
-                "memoryBeforeGC_MB", beforeGC / (1024 * 1024),
-                "memoryAfterGC_MB", afterGC / (1024 * 1024),
-                "freedMemory_MB", freedMemory / (1024 * 1024),
+                "message", "Memory statistics retrieved",
+                "currentUsedMemory_MB", usedMemory / (1024 * 1024),
+                "totalMemory_MB", runtime.totalMemory() / (1024 * 1024),
+                "freeMemory_MB", runtime.freeMemory() / (1024 * 1024),
                 "timestamp", Instant.now(),
-                "note", "GC is only suggested, actual collection is JVM-dependent"
+                "note", "JVM automatically manages garbage collection for optimal performance"
         );
     }
 
     /**
-     * Get thread dump (basic thread information)
+     * Get thread information using modern ThreadMXBean
      */
     @GetMapping("/threads")
     public Map<String, Object> getThreadInfo() {
-        ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
-        while (rootGroup.getParent() != null) {
-            rootGroup = rootGroup.getParent();
-        }
+        java.lang.management.ThreadMXBean threadMXBean =
+                java.lang.management.ManagementFactory.getThreadMXBean();
 
-        int threadCount = rootGroup.activeCount();
-        Thread[] threads = new Thread[threadCount * 2]; // Buffer for safety
-        int actualCount = rootGroup.enumerate(threads, true);
-
+        long[] threadIds = threadMXBean.getAllThreadIds();
         Map<String, Integer> threadStates = new HashMap<>();
-        for (int i = 0; i < actualCount; i++) {
-            if (threads[i] != null) {
-                String state = threads[i].getState().name();
+
+        for (long threadId : threadIds) {
+            java.lang.management.ThreadInfo threadInfo =
+                    threadMXBean.getThreadInfo(threadId);
+            if (threadInfo != null) {
+                String state = threadInfo.getThreadState().name();
                 threadStates.merge(state, 1, Integer::sum);
             }
         }
 
         return Map.of(
-                "totalThreads", actualCount,
+                "totalThreads", threadIds.length,
                 "threadStates", threadStates,
                 "timestamp", Instant.now()
         );

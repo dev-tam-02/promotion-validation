@@ -8,8 +8,6 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * Manual mapper for converting between Rule domain model and RuleResponse DTOs.
  *
@@ -126,7 +124,7 @@ public class RuleResponseMapper {
         if (dtos == null) return null;
         return dtos.stream()
                 .map(this::toRuleNode)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -213,7 +211,7 @@ public class RuleResponseMapper {
         if (nodes == null) return null;
         return nodes.stream()
                 .map(this::toRuleNodeDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -224,7 +222,7 @@ public class RuleResponseMapper {
         if (nodes == null) return null;
         return nodes.stream()
                 .map(RuleNode::getId)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -244,6 +242,6 @@ public class RuleResponseMapper {
                 .map(id -> RuleNode.builder()
                         .nodeId(id)
                         .build())
-                .collect(Collectors.toList());
+                .toList();
     }
 }

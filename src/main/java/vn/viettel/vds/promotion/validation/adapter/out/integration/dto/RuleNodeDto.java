@@ -53,6 +53,7 @@ public class RuleNodeDto {
 
     // Constructors
     public RuleNodeDto() {
+        // Default constructor for JSON deserialization
     }
 
     // Getters and setters

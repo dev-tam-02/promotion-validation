@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 @Component
 public class FactResolverOrchestrator {
 
@@ -26,11 +24,11 @@ public class FactResolverOrchestrator {
         this.resolvers = resolvers.stream()
                 .filter(FactResolver::isEnabled)
                 .sorted((a, b) -> Integer.compare(a.getPriority(), b.getPriority()))
-                .collect(Collectors.toList());
+                .toList();
 
         log.info("Initialized FactResolverOrchestrator with {} enabled resolvers: {}",
                 this.resolvers.size(),
-                this.resolvers.stream().map(FactResolver::getContextName).collect(Collectors.toList()));
+                this.resolvers.stream().map(FactResolver::getContextName).toList());
     }
 
     public CompletableFuture<Map<String, Object>> resolveAll(FactRequest request, ProvenanceInfo.FetchPolicy fetchPolicy) {
@@ -40,7 +38,7 @@ public class FactResolverOrchestrator {
         // Create all resolution tasks using virtual threads
         List<CompletableFuture<Void>> resolutionTasks = resolvers.stream()
                 .map(resolver -> resolveWithTimeout(resolver, request, fetchPolicy, results, sources))
-                .collect(Collectors.toList());
+                .toList();
 
         // Wait for all tasks to complete (or timeout)
         CompletableFuture<Void> allTasks = CompletableFuture.allOf(
@@ -51,13 +49,13 @@ public class FactResolverOrchestrator {
                 .orTimeout(10, TimeUnit.SECONDS) // Global timeout for all resolvers
                 .thenApply(ignored -> {
                     // Add sources to results
-                    results.put("_sources", sources.values().stream().collect(Collectors.toList()));
+                    results.put("_sources", sources.values().stream().toList());
                     return results;
                 })
                 .exceptionally(throwable -> {
                     log.warn("Some resolvers timed out or failed, proceeding with partial results: {}",
                             throwable.getMessage());
-                    results.put("_sources", sources.values().stream().collect(Collectors.toList()));
+                    results.put("_sources", sources.values().stream().toList());
                     return results;
                 });
     }

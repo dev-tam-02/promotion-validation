@@ -16,8 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 @Service
 @Transactional
 public class RulePublishingService {
@@ -468,7 +466,7 @@ public class RulePublishingService {
         if (rule.getNodes() != null) {
             validationNodes = rule.getNodes().stream()
                     .map(this::convertRuleNodeToValidationNode)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Set timestamps
@@ -505,7 +503,7 @@ public class RulePublishingService {
         if (ruleNode.getChildren() != null) {
             convertedChildren = ruleNode.getChildren().stream()
                     .map(this::convertRuleNodeToValidationNode)
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         return RuleNode.builder()

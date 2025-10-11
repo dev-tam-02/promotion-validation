@@ -135,21 +135,21 @@ public class RuleSimulationService {
         List<String> rootNodeIds = nodes.stream()
                 .map(RuleNode::getId)
                 .filter(id -> !referencedNodes.contains(id))
-                .collect(Collectors.toList());
+                .toList();
 
         // Execute root logic
         EvaluationContext evalContext = new EvaluationContext(context, explainLevel);
 
         List<NodeResult> rootResults = rootNodeIds.stream()
                 .map(id -> evaluateNode(id, nodeMap, evalContext))
-                .collect(Collectors.toList());
+                .toList();
 
         // Apply root logic
         Decision finalDecision = applyLogic(rootLogic, rootResults);
         List<String> reasonCodes = rootResults.stream()
                 .flatMap(result -> result.getReasonCodes().stream())
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         List<String> explain = explainLevel != ExplainLevel.NONE ? evalContext.getExplanations() : List.of();
 
@@ -184,13 +184,13 @@ public class RuleSimulationService {
 
         List<NodeResult> childResults = node.getChildren().stream()
                 .map(child -> evaluateNode(child.getId(), nodeMap, context))
-                .collect(Collectors.toList());
+                .toList();
 
         Decision groupDecision = applyLogic(node.getGroupLogic(), childResults);
         List<String> reasonCodes = childResults.stream()
                 .flatMap(result -> result.getReasonCodes().stream())
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
 
         context.addExplanation("Group " + node.getId() + " (" + node.getGroupLogic() + ") result: " + groupDecision);
 

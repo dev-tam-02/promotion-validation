@@ -65,6 +65,7 @@ public class PublishRuleRequest {
 
         // Constructors
         public PublishOptions() {
+            // Default constructor for JSON deserialization
         }
 
         // Getters and setters
