@@ -1,173 +1,197 @@
 # Validation Service Configuration
+# Database Strategy: JPA/MariaDB ONLY (MongoDB disabled)
+
 spring:
   application:
     name: validation
 
-  # MongoDB Configuration
-  data:
-    mongodb:
-      uri: mongodb://root:123123a%40@mongodb:27017/validation?authSource=admin&retryWrites=false
+  # MariaDB Secondary Database (for validation rules/metadata)
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://promotion-mariadb:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
+    username: root
+    password: ${DB_PASSWORD:123123a@}
+    driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
-# Mongock Configuration
-mongock:
-  migration-scan-package:
-    - vn.viettel.vds.promotion.validation.infrastructure.migration
-  throw-exception-if-cannot-obtain-lock: false
-  track-ignored: false
-  enabled: true
-  transaction-enabled: false  # Disable transaction for standalone MongoDB
+  jpa:
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        jdbc:
+          batch_size: 500
+        order_inserts: true
+        order_updates: true
 
-  # Messages Configuration for Error Message Fallbacks
-  messages:
-    basename: messages
-    encoding: UTF-8
-    fallback-to-system-locale: false
-    cache-duration: PT10M  # Cache for 10 minutes
+  # Liquibase Configuration
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    drop-first: false
 
-  # MVC Configuration
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
-  servlet:
-    multipart:
+  # Spring Batch Configuration
+  batch:
+    job:
+      enabled: false  # Disable auto-start of jobs (we'll use scheduling)
+    jdbc:
+      initialize-schema: always  # Create Spring Batch tables if not exist
+
+# Server Configuration
+server:
+  port: 16014
+
+# Eureka Configuration
+eureka:
+  client:
+    enabled: true
+    healthcheck:
       enabled: true
-      max-file-size: 10MB
-      max-request-size: 100MB
+    fetch-registry: true
+    register-with-eureka: true
+    instance-info-replication-interval-seconds: 10
+    registry-fetch-interval-seconds: 10
+    service-url:
+      defaultZone: http://service-registry:8761/eureka
+  instance:
+    appname: ${spring.application.name}
+    instanceId: ${spring.application.name}:${spring.application.instance-id:${random.value}}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+    status-page-url-path: ${management.endpoints.web.base-path}/info
+    health-check-url-path: ${management.endpoints.web.base-path}/health
+    virtual-host-name: ${spring.application.name}
 
-# Validation Engine Integration Configuration
-validation:
-  engine:
-    base-url: ${VALIDATION_ENGINE_BASE_URL:http://validation:8094}
-    timeout:
-      connect: 5s
-      read: 30s
-
-# Fact Aggregation Configuration
-fact:
-  aggregation:
-    cache:
+# Management Configuration
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  health:
+    mongo:
+      enabled: false  # Disable MongoDB health check - using JPA/MariaDB only
+  tracing:
+    sampling:
+      probability: 1.0
+    brave:
       enabled: true
-      default-ttl-seconds: 60
-      max-size: 1000
-
-    resolvers:
-      customer:
-        base-url: ${CUSTOMER_SERVICE_URL:http://customer-service:8080}
-        timeout-ms: 3000
-        enabled: true
-        priority: 10
-
-      order:
-        base-url: ${ORDER_SERVICE_URL:http://order-service:8080}
-        timeout-ms: 4000
-        enabled: true
-        priority: 20
-
-      catalog:
-        base-url: ${CATALOG_SERVICE_URL:http://catalog-service:8080}
-        timeout-ms: 3000
-        enabled: true
-        priority: 15
-
-      redemption:
-        base-url: ${REDEMPTION_SERVICE_URL:http://redemption-service:8080}
-        timeout-ms: 2000
-        enabled: true
-        priority: 30
-
-    policy:
-      default-timeout-ms: 10000
-      allow-partial-results: true
-      enable-fallback: true
+    propagation:
+      type: b3
+  zipkin:
+    tracing:
+      endpoint: ""
 
 # Promix Platform Configuration
 promix:
-  # Web Starter Configuration
-  web:
-    response-template-enabled: true
-    request-trimming-enabled: true
-    exception-handling-enabled: true
-    response-template:
-      include-metadata: false
-      include-tracing: false
+  # MongoDB Configuration - DISABLED (using JPA as primary database)
+  mongo:
+    enabled: false
 
-  # Error Starter Configuration
-  error:
-    mode: ${ERROR_MODE:hybrid}  # api, bundle, hybrid (updated default to hybrid)
-    fallback-to-bundle: ${ERROR_FALLBACK_BUNDLE:true}
+  # JPA/MariaDB Configuration - Toggle ON/OFF
+  # Set to false to disable JPA/MariaDB completely
+  jpa:
+    enabled: true  # Primary database for validation documents and metadata
 
-    # Dynamic refresh configuration (updated structure)
-    refresh:
-      rate: ${ERROR_REFRESH_RATE:3600000}  # Refresh rate in milliseconds (1 hour)
-
-    # API-based message source configuration (updated structure)
-    api:
-      enabled: ${ERROR_API_ENABLED:true}  # Changed default to true for hybrid mode
-      base-url: ${ERROR_API_URL:http://error}  # Updated default base URL
-      fetch-path: ${ERROR_API_FETCH_PATH:/api/v1/message-source/fetch}  # Updated default path
-      connect-timeout-ms: ${ERROR_API_CONNECT_TIMEOUT:2000}
-      read-timeout-ms: ${ERROR_API_READ_TIMEOUT:3000}
-
-  # Validation Starter Configuration
-  validation:
-    enabled: true
-    fail-fast: false
-    groups-enabled: true
-    locale-enabled: true
-
-  # Data MongoDB Starter Configuration
-  data:
-    mongodb:
-      enabled: true
-      repository-scan-enabled: true
-      audit:
-        enabled: true
-        date-time-provider: system
-      field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
-      auto-index-creation: true
-
-  # Resilience Starter Configuration
-  resilience:
-    enabled: true
-    circuit-breaker:
-      enabled: true
-      default-config:
-        failure-rate-threshold: 50
-        slow-call-rate-threshold: 100
-        slow-call-duration-threshold: 60000
-        permitted-number-of-calls-in-half-open-state: 3
-        minimum-number-of-calls: 10
-        sliding-window-type: COUNT_BASED
-        sliding-window-size: 10
-        wait-duration-in-open-state: 60000
-        automatic-transition-from-open-to-half-open-enabled: true
+  # Outbox Pattern Configuration (Custom Spring Batch implementation)
+  outbox:
+    batch:
+      enabled: true                        # Enable batch processing
+      chunk-size: 100                      # Events per processing batch
+      page-size: 1000                      # Events per database read
+      interval-ms: 60000                   # Processing interval in milliseconds (60000ms = 1 minute)
+    cleanup:
+      enabled: true                        # Enable automatic cleanup
+      retention-period: 7d                 # Keep processed events for 7 days
+      interval-ms: 21600000                # Cleanup interval in milliseconds (21600000ms = 6 hours)
     retry:
-      enabled: true
-      default-config:
-        max-attempts: 3
-        wait-duration: 500
-        retry-exceptions:
-          - java.io.IOException
-          - java.util.concurrent.TimeoutException
+      max-attempts: 3                      # Maximum retry attempts
 
-  # Messaging Starter Configuration
+  # Kafka Configuration
   messaging:
     enabled: true
+    avro:
+      enabled: true  # Enable Avro support in promix-messaging
+      producer:
+        enabled: true  # Enable Avro producer factory
+      consumer:
+        enabled: true  # Enable Avro consumer factory
+      schema-registry:
+        url: embedded
     kafka:
       bootstrap-servers:
         - kafka-1:9092
         - kafka-2:9093
         - kafka-3:9094
-      client-id: ${spring.application.name}
+      client-id: validation
+      enable-avro: true
+
+      # Producer Configuration
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroSerializer
+        acks: all
+        retries: 5
+        batch-size: 16384
+        linger: 10
+        compression-type: lz4
+        buffer-memory: 33554432
+        enable-idempotence: true
+        max-in-flight: 5
+        request-timeout: 30000
+        delivery-timeout: 120000
+        retry-backoff: 100
+        use-avro: true
+
+      # Consumer Configuration
       consumer:
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroDeserializer
         group-id: validation-group
-        concurrency: 1
+        auto-offset-reset: earliest
+        enable-auto-commit: false
+        max-poll: 500
+        max-poll-interval: 300000
+        fetch-min-bytes: 1
+        fetch-max-bytes: 52428800
+        fetch-max-wait: 500
+        isolation-level: read_committed
+        concurrency: 3
+        batch-listener: true
+        ack-mode: MANUAL_IMMEDIATE
+        session-timeout: 30000
+        heartbeat-interval: 10000
+        use-avro: true
+        specific-avro-reader: true
+
+        # Retry Configuration
         retry:
+          enabled: true
+          initial-interval: 1000
           max-attempts: 3
+          multiplier: 1.5
+          max-interval: 5000
+
+        # Error Handling
+        error-handling:
+          enable-dlq: true
+          dlq-topic-suffix: _dlq
+          dlq-partitioning-enabled: false
+          max-failures: 3
+          include-headers: true
+
+    # Messaging Topics (for Spring property injection)
     topics:
-      setting-validation-rule-commands: setting-validation-rule-commands
-      setting-validation-rule-events: setting-validation-rule-events
-      setting-validation-rule-commands-dlq: setting-validation-rule-commands-dlq
+      setting-validation-rule-events: promotion_validation_events
 
   # Cache Configuration
   cache:
@@ -208,153 +232,85 @@ promix:
         max-redirections: 3
         scan-interval: 1000
 
-# Server Configuration
-server:
-  port: ${SERVER_PORT:6012}
-  servlet:
-    encoding:
-      charset: UTF-8
-      force: true
-  compression:
-    enabled: true
-    mime-types:
-      - text/html
-      - text/plain
-      - text/css
-      - application/json
-      - application/xml
-    min-response-size: 1024
-  error:
-    include-stacktrace: never
-    include-message: always
-    include-binding-errors: always
+# Kafka Topics Configuration
+kafka:
+  topics:
+    # Standardized Topic Naming Convention
+    # All commands (create, update, delete, rollback) go to single command topic
+    # All results/events go to single events topic
 
-# Integration Services Configuration
+    # Inbound Topics (Commands to consume)
+    validation-command: promotion_validation_command
+
+    # Outbound Topics (Events to publish)
+    validation-events: promotion_validation_events
+
+    # Dead Letter Queue Topics
+    validation-command-dlq: promotion_validation_command_dlq
+    validation-events-dlq: promotion_validation_events_dlq
+
+  consumer:
+    group-id: validation-group
+
+  producer:
+    client-id: validation-producer
+
+# Idempotency Configuration
+idempotency:
+  ttl-minutes: 10080  # 7 days (7 * 24 * 60 = 10080 minutes)
+
+# Integration Configuration
 integration:
   validation-engine:
-    url: ${VALIDATION_ENGINE_URL:http://validation-engine:8082}
-    timeout: PT30S
-    retry-attempts: 3
-    circuit-breaker:
-      failure-rate-threshold: 50
-      wait-duration-in-open-state: PT60S
-      sliding-window-size: 10
-      minimum-number-of-calls: 10
+    url: ${VALIDATION_ENGINE_URL:http://localhost:16013}
+    connect-timeout: 5000
+    read-timeout: 30000
 
-  artifact-service:
-    url: ${ARTIFACT_SERVICE_URL:http://artifact-service:8080}
-    timeout-seconds: 30
-    retry-attempts: 3
+# Tenant Configuration
+tenant:
+  default-tenant-id: default
+  compiler-id: validation-service-compiler-v1
 
-  redemption-service:
-    url: ${REDEMPTION_SERVICE_URL:http://redemption-service:8080}
-    timeout-seconds: 30
-    retry-attempts: 3
+# Resilience4j Configuration for Fact Resolvers
+resilience4j:
+  circuitbreaker:
+    instances:
+      segmentsCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        recordExceptions:
+          - java.lang.Exception
+  retry:
+    instances:
+      segmentsRetry:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.lang.Exception
+  ratelimiter:
+    instances:
+      segmentsRateLimiter:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 500ms
 
-  event-bus:
-    url: ${EVENT_BUS_URL:http://event-bus:8080}
-    timeout-seconds: 10
-    retry-attempts: 2
-
-# External Services Configuration
-external:
-  customer-service:
-    url: ${CUSTOMER_SERVICE_URL:http://customer-service:8080}
-    timeout-seconds: 10
-    retry-attempts: 3
-
-  order-service:
-    url: ${ORDER_SERVICE_URL:http://order-service:8080}
-    timeout-seconds: 10
-    retry-attempts: 3
-
-  catalog-service:
-    url: ${CATALOG_SERVICE_URL:http://catalog-service:8080}
-    timeout-seconds: 10
-    retry-attempts: 3
-
-# Security Configuration
-security:
-  jwt:
-    enabled: true
-    secret: ${JWT_SECRET:validation-service-secret-key-2024}
-    expiration-hours: ${JWT_EXPIRATION_HOURS:24}
-    issuer: ${JWT_ISSUER:validation-service}
-
-  cors:
-    enabled: true
-    allowed-origins:
-      - "http://localhost:3000"
-      - "http://localhost:8080"
-      - "https://*.promix.vn"
-    allowed-methods:
-      - GET
-      - POST
-      - PUT
-      - DELETE
-      - OPTIONS
-    allowed-headers:
-      - "*"
-    allow-credentials: true
-    max-age: 3600
-
-# Outbox Event Processing Configuration
-outbox:
-  processor:
-    enabled: true
-    batch-size: 50
-    processing-interval-seconds: 30
-    retry-interval-seconds: 60
-    cleanup-interval-hours: 6
-    retention-days: 7
-
-# Actuator Configuration
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,env,loggers,threaddump,heapdump,prometheus
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: when-authorized
-      show-components: always
-    info:
-      enabled: true
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-  health:
-    diskspace:
-      enabled: true
-    db:
-      enabled: true
-    mongo:
-      enabled: true
-  metrics:
-    tags:
-      application: ${spring.application.name}
-      service: validation
-    export:
-      prometheus:
-        enabled: true
-
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
-  file:
-    name: logs/validation-service.log
-    max-size: 100MB
-    max-history: 30
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://service-registry:8761/eureka
-    register-with-eureka: true
-    fetch-registry: true
-    registry-fetch-interval-seconds: 300
-  instance:
-    leaseRenewalIntervalInSeconds: 300
-    leaseExpirationDurationInSeconds: 600
-    hostname: ${spring.application.name}
-    prefer-ip-address: true
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    # Enable DEBUG for Liquibase to see migration logs
+    liquibase: INFO
+    liquibase.changelog: DEBUG
+    liquibase.executor: DEBUG
+    # Enable DEBUG for Outbox Scheduler to see batch job execution logs
+    com.promix.platform.outbox.autoconfigure.OutboxSchedulerConfiguration: DEBUG
+    # Enable DEBUG for Spring Batch to see job execution details
+    org.springframework.batch.core: DEBUG
+    # Application logging
+    vn.viettel.vds.promotion.validation: INFO
