@@ -27,6 +27,14 @@ public class SettingValidationRuleEventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleEventPublisher.class);
 
+    // String literal constants
+    private static final String CORRELATION_ID_KEY = "correlationId";
+    private static final String SERVICE_NAME_KEY = "serviceName";
+    private static final String SERVICE_VERSION_KEY = "serviceVersion";
+    private static final String SERVICE_VERSION = "1.0.0";
+    private static final String AGGREGATE_VALIDATION = "Validation";
+    private static final String EVENT_TYPE_SETTING_VALIDATION_RULE = "SettingValidationRuleEvent";
+
     private final KafkaUtils kafkaUtils;
     private final CommandMappingService mappingService;
     private final String eventTopic;
@@ -57,8 +65,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, result.getAssignment().getId());
 
         } catch (Exception e) {
-            logger.error("Failed to publish success event: commandId={}", commandId, e);
-            throw new RuntimeException("Failed to publish success event", e);
+            throw new RuntimeException("Failed to publish success event for commandId: " + commandId, e);
         }
     }
 
@@ -74,8 +81,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, errorCode);
 
         } catch (Exception e) {
-            logger.error("Failed to publish error event: commandId={}", commandId, e);
-            throw new RuntimeException("Failed to publish error event", e);
+            throw new RuntimeException("Failed to publish error event for commandId: " + commandId, e);
         }
     }
 
@@ -168,15 +174,15 @@ public class SettingValidationRuleEventPublisher {
 
         // Build Metadata
         Map<String, String> metadata = new HashMap<>();
-        metadata.put("correlationId", commandId);
-        metadata.put("serviceName", serviceName);
-        metadata.put("serviceVersion", "1.0.0");
+        metadata.put(CORRELATION_ID_KEY, commandId);
+        metadata.put(SERVICE_NAME_KEY, serviceName);
+        metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
         return SettingValidationRuleEvent.newBuilder()
                 .setId(IdGenerator.generateId())
-                .setAggregate("Validation")
-                .setType("SettingValidationRuleEvent")
+                .setAggregate(AGGREGATE_VALIDATION)
+                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
                 .setSource(serviceName)
                 .setSubject(assignment.getId())
                 .setOccurredAt(Instant.now())
@@ -205,15 +211,15 @@ public class SettingValidationRuleEventPublisher {
 
         // Build Metadata
         Map<String, String> metadata = new HashMap<>();
-        metadata.put("correlationId", commandId);
-        metadata.put("serviceName", serviceName);
-        metadata.put("serviceVersion", "1.0.0");
+        metadata.put(CORRELATION_ID_KEY, commandId);
+        metadata.put(SERVICE_NAME_KEY, serviceName);
+        metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
         return SettingValidationRuleEvent.newBuilder()
                 .setId(IdGenerator.generateId())
-                .setAggregate("Validation")
-                .setType("SettingValidationRuleEvent")
+                .setAggregate(AGGREGATE_VALIDATION)
+                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
                 .setSource(serviceName)
                 .setSubject(commandId)
                 .setOccurredAt(Instant.now())
@@ -284,9 +290,9 @@ public class SettingValidationRuleEventPublisher {
 
             // Build Metadata
             Map<String, String> metadata = new HashMap<>();
-            metadata.put("correlationId", commandId);
-            metadata.put("serviceName", serviceName);
-            metadata.put("serviceVersion", "1.0.0");
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
             metadata.put("eventType", "ROLLBACK_SUCCESS");
             metadata.put("campaignId", campaignId);
             if (validationRuleId != null) {
@@ -296,7 +302,7 @@ public class SettingValidationRuleEventPublisher {
             // Build Complete Event
             SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
                     .setId(IdGenerator.generateId())
-                    .setAggregate("Validation")
+                    .setAggregate(AGGREGATE_VALIDATION)
                     .setType("ValidationRollbackSuccessEvent")
                     .setSource(serviceName)
                     .setSubject(campaignId)
@@ -312,8 +318,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, campaignId, validationRuleId);
 
         } catch (Exception e) {
-            logger.error("Failed to publish rollback success event: commandId={}", commandId, e);
-            throw new RuntimeException("Failed to publish rollback success event", e);
+            throw new RuntimeException("Failed to publish rollback success event for commandId: " + commandId, e);
         }
     }
 
@@ -337,15 +342,15 @@ public class SettingValidationRuleEventPublisher {
 
             // Build Metadata
             Map<String, String> metadata = new HashMap<>();
-            metadata.put("correlationId", commandId);
-            metadata.put("serviceName", serviceName);
-            metadata.put("serviceVersion", "1.0.0");
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
             metadata.put("eventType", "ROLLBACK_ERROR");
 
             // Build Complete Event
             SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
                     .setId(IdGenerator.generateId())
-                    .setAggregate("Validation")
+                    .setAggregate(AGGREGATE_VALIDATION)
                     .setType("ValidationRollbackErrorEvent")
                     .setSource(serviceName)
                     .setSubject(commandId)
@@ -361,8 +366,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, errorCode, errorMessage);
 
         } catch (Exception e) {
-            logger.error("Failed to publish rollback error event: commandId={}", commandId, e);
-            throw new RuntimeException("Failed to publish rollback error event", e);
+            throw new RuntimeException("Failed to publish rollback error event for commandId: " + commandId, e);
         }
     }
 
@@ -406,8 +410,7 @@ public class SettingValidationRuleEventPublisher {
                     });
 
         } catch (Exception e) {
-            logger.error("Failed to publish Avro event to Kafka: topic={}, key={}", eventTopic, key, e);
-            throw new RuntimeException("Failed to publish event to Kafka", e);
+            throw new RuntimeException("Failed to publish Avro event to Kafka - topic: " + eventTopic + ", key: " + key, e);
         }
     }
 

@@ -17,6 +17,14 @@ import java.util.Map;
 @RequestMapping("/v1/admin")
 public class AdminController {
 
+    // String literal constants
+    private static final String TIMESTAMP_KEY = "timestamp";
+    private static final String ARTIFACT_SERVICE_KEY = "artifactService";
+    private static final String REDEMPTION_SERVICE_KEY = "redemptionService";
+    private static final String EVENT_BUS_KEY = "eventBus";
+    private static final String REACHABLE_KEY = "reachable";
+    private static final String STATUS_KEY = "status";
+
     private final OutboxEventService outboxEventService;
     private final ConnectivityService connectivityService;
 
@@ -63,14 +71,14 @@ public class AdminController {
                 connectivityService.testConnectivity();
 
         Map<String, Object> externalServices = Map.of(
-                "artifactService", serviceStatus.isArtifactServiceReachable(),
-                "redemptionService", serviceStatus.isRedemptionServiceReachable(),
-                "eventBus", serviceStatus.isEventBusReachable(),
+                ARTIFACT_SERVICE_KEY, serviceStatus.isArtifactServiceReachable(),
+                REDEMPTION_SERVICE_KEY, serviceStatus.isRedemptionServiceReachable(),
+                EVENT_BUS_KEY, serviceStatus.isEventBusReachable(),
                 "reachableCount", serviceStatus.getReachableCount(),
                 "totalCount", 3
         );
 
-        metrics.put("timestamp", Instant.now());
+        metrics.put(TIMESTAMP_KEY, Instant.now());
         metrics.put("service", "validation-service");
         metrics.put("version", "1.0.0");
         metrics.put("jvm", jvmMetrics);
@@ -93,7 +101,7 @@ public class AdminController {
                 "failedEvents", stats.getFailedCount(),
                 "deadLetterEvents", stats.getDeadLetterCount(),
                 "totalEvents", stats.getTotalCount(),
-                "timestamp", Instant.now()
+                TIMESTAMP_KEY, Instant.now()
         );
     }
 
@@ -106,7 +114,7 @@ public class AdminController {
         return Map.of(
                 "message", "Outbox processing is handled automatically by Spring Batch",
                 "note", "Events are processed in batches based on configuration at regular intervals",
-                "timestamp", Instant.now()
+                TIMESTAMP_KEY, Instant.now()
         );
     }
 
@@ -119,19 +127,19 @@ public class AdminController {
                 connectivityService.testConnectivity();
 
         return Map.of(
-                "timestamp", Instant.now(),
+                TIMESTAMP_KEY, Instant.now(),
                 "services", Map.of(
-                        "artifactService", Map.of(
-                                "reachable", status.isArtifactServiceReachable(),
-                                "status", status.isArtifactServiceReachable() ? "UP" : "DOWN"
+                        ARTIFACT_SERVICE_KEY, Map.of(
+                                REACHABLE_KEY, status.isArtifactServiceReachable(),
+                                STATUS_KEY, status.isArtifactServiceReachable() ? "UP" : "DOWN"
                         ),
-                        "redemptionService", Map.of(
-                                "reachable", status.isRedemptionServiceReachable(),
-                                "status", status.isRedemptionServiceReachable() ? "UP" : "DOWN"
+                        REDEMPTION_SERVICE_KEY, Map.of(
+                                REACHABLE_KEY, status.isRedemptionServiceReachable(),
+                                STATUS_KEY, status.isRedemptionServiceReachable() ? "UP" : "DOWN"
                         ),
-                        "eventBus", Map.of(
-                                "reachable", status.isEventBusReachable(),
-                                "status", status.isEventBusReachable() ? "UP" : "DOWN"
+                        EVENT_BUS_KEY, Map.of(
+                                REACHABLE_KEY, status.isEventBusReachable(),
+                                STATUS_KEY, status.isEventBusReachable() ? "UP" : "DOWN"
                         )
                 ),
                 "summary", Map.of(
@@ -168,7 +176,7 @@ public class AdminController {
                         "redemptionService", "Optional for event publishing",
                         "eventBus", "Optional for event streaming"
                 ),
-                "timestamp", Instant.now()
+                TIMESTAMP_KEY, Instant.now()
         );
     }
 
@@ -186,7 +194,7 @@ public class AdminController {
                 "currentUsedMemory_MB", usedMemory / (1024 * 1024),
                 "totalMemory_MB", runtime.totalMemory() / (1024 * 1024),
                 "freeMemory_MB", runtime.freeMemory() / (1024 * 1024),
-                "timestamp", Instant.now(),
+                TIMESTAMP_KEY, Instant.now(),
                 "note", "JVM automatically manages garbage collection for optimal performance"
         );
     }
@@ -214,7 +222,7 @@ public class AdminController {
         return Map.of(
                 "totalThreads", threadIds.length,
                 "threadStates", threadStates,
-                "timestamp", Instant.now()
+                TIMESTAMP_KEY, Instant.now()
         );
     }
 }

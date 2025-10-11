@@ -80,11 +80,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.warn("Interrupted while resolving limits facts for {}: {}", request.customerId(), e.getMessage());
-            throw new RuntimeException("Failed to resolve limits facts", e);
+            throw new RuntimeException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         } catch (Exception e) {
-            log.warn("Failed to resolve limits facts for {}: {}", request.customerId(), e.getMessage());
-            throw new RuntimeException("Failed to resolve limits facts", e);
+            throw new RuntimeException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         }
     }
 
