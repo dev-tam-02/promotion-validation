@@ -2,6 +2,10 @@
 # Database Strategy: JPA/MariaDB ONLY (MongoDB disabled)
 
 spring:
+  # Exclude Zipkin auto-configuration to prevent connection attempts
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
   application:
     name: validation
 
@@ -81,17 +85,12 @@ management:
     mongo:
       enabled: false  # Disable MongoDB health check - using JPA/MariaDB only
   tracing:
+    enabled: true
     sampling:
       probability: 1.0
-    brave:
-      enabled: true
-    propagation:
-      type: b3
   zipkin:
     tracing:
-      endpoint: ""
-      export:
-        enabled: false
+      enabled: false  # Completely disable Zipkin
 
 # Promix Platform Configuration
 promix:
