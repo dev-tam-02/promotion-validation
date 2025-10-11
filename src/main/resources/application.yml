@@ -90,6 +90,8 @@ management:
   zipkin:
     tracing:
       endpoint: ""
+      export:
+        enabled: false
 
 # Promix Platform Configuration
 promix:
