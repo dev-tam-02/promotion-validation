@@ -93,6 +93,13 @@ management:
 
 # Promix Platform Configuration
 promix:
+  # Observer Configuration (Tracing, Logging, Metrics)
+  observer:
+    enabled: true
+    tracing:
+      enabled: true
+      service-name: ${spring.application.name}
+
   # MongoDB Configuration - DISABLED (using JPA as primary database)
   mongo:
     enabled: false
