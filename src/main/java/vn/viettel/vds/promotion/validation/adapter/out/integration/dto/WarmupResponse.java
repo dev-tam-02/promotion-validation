@@ -63,7 +63,7 @@ public class WarmupResponse {
     }
 
     public java.util.List<String> getErrors() {
-        return null;
+        return java.util.Collections.emptyList();
     }
 
     public void setErrors(java.util.List<String> errors) { /* Ignored */ }

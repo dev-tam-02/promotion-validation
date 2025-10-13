@@ -115,7 +115,7 @@ public class SettingValidationRuleEventPublisher {
         AssignmentResult assignmentResult = AssignmentResult.newBuilder()
                 .setAssignmentId(assignment.getId())
                 .setRuleId(assignment.getId())
-                .setActive(assignment.getActive() != null ? assignment.getActive() : false)
+                .setActive(Boolean.TRUE.equals(assignment.getActive()))
                 .setTrafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
                 .setPriority(0) // Priority field can be added to assignment entity when needed
                 .build();

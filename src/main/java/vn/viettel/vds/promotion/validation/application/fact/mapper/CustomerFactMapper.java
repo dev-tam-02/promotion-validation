@@ -120,7 +120,7 @@ public class CustomerFactMapper {
         if (value instanceof List) {
             return (List<String>) value;
         }
-        return null;
+        return java.util.Collections.emptyList();
     }
 
     private Map<String, Object> sanitizeAttributes(Map<String, Object> data, String key) {
@@ -128,6 +128,6 @@ public class CustomerFactMapper {
         if (value instanceof Map) {
             return (Map<String, Object>) value;
         }
-        return null;
+        return java.util.Collections.emptyMap();
     }
 }

@@ -307,7 +307,7 @@ public class OperatorService {
     public boolean isOperatorSupportedByEngine(String operatorName, Integer version) {
         try {
             Boolean supported = validationEngineClient.isOperatorSupported(operatorName, version);
-            return supported != null ? supported : false;
+            return Boolean.TRUE.equals(supported);
         } catch (Exception e) {
             logger.error("Error checking operator support: {}", e.getMessage(), e);
             return false; // Conservative approach

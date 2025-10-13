@@ -54,12 +54,10 @@ public class RetryService {
                         org.springframework.web.client.HttpClientErrorException.class)
                 .build();
 
-        RetryRegistry registry = RetryRegistry.of(defaultConfig);
-
         // Event listeners for monitoring are disabled to avoid API compatibility issues
         // Metrics are exposed via getRetryStatus() method instead
 
-        return registry;
+        return RetryRegistry.of(defaultConfig);
     }
 
     public Retry getRetry(String name) {

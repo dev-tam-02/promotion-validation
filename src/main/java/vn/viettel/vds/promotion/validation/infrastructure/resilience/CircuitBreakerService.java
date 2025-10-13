@@ -50,12 +50,10 @@ public class CircuitBreakerService {
                 )
                 .build();
 
-        CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(defaultConfig);
-
         // Event listeners for monitoring are disabled to avoid API compatibility issues
         // Metrics are exposed via getCircuitBreakerStatus() method instead
 
-        return registry;
+        return CircuitBreakerRegistry.of(defaultConfig);
     }
 
     public CircuitBreaker getCircuitBreaker(String name) {

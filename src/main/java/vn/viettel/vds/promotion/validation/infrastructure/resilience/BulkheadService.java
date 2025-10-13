@@ -33,12 +33,10 @@ public class BulkheadService {
                 .maxWaitDuration(Duration.ofMillis(config.getBulkhead().getMaxWaitDuration()))
                 .build();
 
-        BulkheadRegistry registry = BulkheadRegistry.of(defaultConfig);
-
         // Event listeners for monitoring are disabled to avoid API compatibility issues
         // Metrics are exposed via getBulkheadStatus() method instead
 
-        return registry;
+        return BulkheadRegistry.of(defaultConfig);
     }
 
     public Bulkhead getBulkhead(String name) {

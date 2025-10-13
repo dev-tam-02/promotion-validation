@@ -161,10 +161,7 @@ public class ValidationDomainService {
     private boolean evaluateBasicConditions(Rule rule) {
         // Placeholder for basic condition evaluation
         // Complex rule evaluation handled by validation-engine
-        if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-            return false; // No conditions to evaluate, so it doesn't pass
-        }
-        return true;
+        return rule.getNodes() != null && !rule.getNodes().isEmpty();
     }
 
     /**

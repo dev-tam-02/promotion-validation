@@ -151,17 +151,13 @@ public class FallbackService {
         }
 
         private boolean performBasicValidation(ValidationRequest request) {
-            // Basic validation logic
+            // Basic validation logic - customer ID is required
             if (request.getCustomerId() == null || request.getCustomerId().trim().isEmpty()) {
                 return false;
             }
 
-            if (request.getOrderValue() != null && request.getOrderValue().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                return false;
-            }
-
-            // Add more basic validations as needed
-            return true;
+            // Order value must be positive if present
+            return request.getOrderValue() == null || request.getOrderValue().compareTo(java.math.BigDecimal.ZERO) > 0;
         }
     }
 

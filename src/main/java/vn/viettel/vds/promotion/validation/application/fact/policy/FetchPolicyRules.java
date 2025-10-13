@@ -99,11 +99,7 @@ public class FetchPolicyRules {
             return true;
         }
 
-        // For promotion-related requests, need candidate key
-        if (request.candidate() != null && request.candidate().key() != null) {
-            return true;
-        }
-
+        // For promotion-related requests, candidate key is preferred
         // Just customer ID is sufficient for basic fact resolution
         return true;
     }
