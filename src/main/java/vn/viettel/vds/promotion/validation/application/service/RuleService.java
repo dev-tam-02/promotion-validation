@@ -210,7 +210,7 @@ public class RuleService {
     @Transactional(readOnly = true)
     public Rule getRuleById(String ruleId) {
         return rulePersistencePort.findById(ruleId)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**

@@ -33,7 +33,6 @@ public class ResourceEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "headers", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> headers;
 
     @Column(name = "field_key", length = 100)

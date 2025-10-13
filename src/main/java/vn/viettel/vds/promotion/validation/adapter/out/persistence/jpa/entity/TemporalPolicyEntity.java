@@ -46,7 +46,6 @@ public class TemporalPolicyEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "metadata", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> metadata;
 
     // One-to-many relationship with time of day windows

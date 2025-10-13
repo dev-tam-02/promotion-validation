@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 
@@ -38,7 +39,6 @@ public class PublishJobEntity extends BaseEntity {
     private Instant completedAt;
 
     @Embedded
-    @Transient
     private CompileJobInfoEmbeddable compile;
 
     @Convert(converter = ListStringConverter.class)
@@ -52,7 +52,7 @@ public class PublishJobEntity extends BaseEntity {
     @Embeddable
     @Getter
     @Setter
-    public static class CompileJobInfoEmbeddable {
+    public static class CompileJobInfoEmbeddable implements Serializable {
         @Column(name = "compiler_id", length = 100)
         private String compilerId;
 

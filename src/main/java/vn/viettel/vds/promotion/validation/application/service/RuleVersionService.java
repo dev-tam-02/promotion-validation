@@ -26,7 +26,7 @@ public class RuleVersionService {
      */
     public RuleVersion getRuleVersion(String ruleId, Integer version) {
         return ruleVersionPersistencePort.findByRuleIdAndVersion(ruleId, version)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**

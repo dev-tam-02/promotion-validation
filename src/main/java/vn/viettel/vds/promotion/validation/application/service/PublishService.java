@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -157,7 +158,7 @@ public class PublishService {
         List<String> operatorNames = rule.getNodes().stream()
                 .filter(node -> node.getType() == RuleNode.NodeType.COND)
                 .map(RuleNode::getOperatorName)
-                .filter(name -> name != null)
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList();
 

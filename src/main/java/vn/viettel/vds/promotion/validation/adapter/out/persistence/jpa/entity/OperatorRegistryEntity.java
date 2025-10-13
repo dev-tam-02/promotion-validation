@@ -23,7 +23,6 @@ public class OperatorRegistryEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "json_schema", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> jsonSchema;
 
     @Column(name = "compiler_id", length = 100)

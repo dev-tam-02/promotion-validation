@@ -145,7 +145,7 @@ public class TemporalPolicyService {
     @Transactional(readOnly = true)
     public TemporalPolicy getTemporalPolicyById(String policyId) {
         return temporalPolicyPersistencePort.findById(policyId)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**
@@ -154,7 +154,7 @@ public class TemporalPolicyService {
     @Transactional(readOnly = true)
     public TemporalPolicy getTemporalPolicyByName(String tenantId, String name) {
         return temporalPolicyPersistencePort.findByTenantIdAndName(tenantId, name)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**

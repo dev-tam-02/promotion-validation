@@ -33,7 +33,7 @@ public class LimitsFactMapper {
             java.util.List<Map<String, Object>> globalLimitsData = (java.util.List<Map<String, Object>>) data.get("globalLimits");
             java.util.List<LimitsFact.LimitInfo> globalLimits = globalLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
             builder.globalLimits(globalLimits);
         }
 
@@ -41,7 +41,7 @@ public class LimitsFactMapper {
             java.util.List<Map<String, Object>> customerLimitsData = (java.util.List<Map<String, Object>>) data.get("customerLimits");
             java.util.List<LimitsFact.LimitInfo> customerLimits = customerLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
             builder.customerLimits(customerLimits);
         }
 
@@ -49,7 +49,7 @@ public class LimitsFactMapper {
             java.util.List<Map<String, Object>> campaignLimitsData = (java.util.List<Map<String, Object>>) data.get("campaignLimits");
             java.util.List<LimitsFact.LimitInfo> campaignLimits = campaignLimitsData.stream()
                     .map(this::mapToLimitInfo)
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
             builder.campaignLimits(campaignLimits);
         }
 

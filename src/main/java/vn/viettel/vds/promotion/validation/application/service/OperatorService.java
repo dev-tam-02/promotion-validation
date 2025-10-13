@@ -111,7 +111,7 @@ public class OperatorService {
     @Transactional(readOnly = true)
     public Operator getOperator(String tenantId, String name, Integer version) {
         return operatorPersistencePort.findByTenantIdAndNameAndVersion(tenantId, name, version)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**

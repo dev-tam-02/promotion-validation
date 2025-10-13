@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,12 +38,10 @@ public class RuleVersionEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "limits", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> limits;
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "nodes", columnDefinition = "TEXT")
-    @Transient
     private List<Map<String, Object>> nodes;
 
     @Column(name = "operators_fingerprint", length = 200)
@@ -53,7 +52,6 @@ public class RuleVersionEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "dsl", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> dsl;
 
     @Column(name = "published_at")
@@ -63,7 +61,6 @@ public class RuleVersionEntity extends BaseEntity {
     private String publishedBy;
 
     @Embedded
-    @Transient
     private CompileInfoEmbeddable compile;
 
     public enum LogicType {
@@ -73,7 +70,7 @@ public class RuleVersionEntity extends BaseEntity {
     @Embeddable
     @Getter
     @Setter
-    public static class CompileInfoEmbeddable {
+    public static class CompileInfoEmbeddable implements Serializable {
         @Enumerated(EnumType.STRING)
         @Column(name = "compile_status", length = 20)
         private CompileStatus status;

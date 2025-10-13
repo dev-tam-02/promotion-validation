@@ -37,7 +37,6 @@ public class ValidationRuleEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "dsl", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> dsl; // optional raw DSL snapshot for audit
 
     @Column(name = "published_at")

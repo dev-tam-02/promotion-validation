@@ -204,7 +204,7 @@ public class RuleVersioningDomainService {
         return allRules.stream()
                 .filter(rule -> rule.getCode().equals(code))
                 .sorted(Comparator.comparing(RuleAggregate::getVersion).reversed())
-                .collect(java.util.stream.Collectors.toList());
+                .toList();
     }
 
     /**

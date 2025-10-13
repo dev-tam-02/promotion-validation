@@ -42,7 +42,6 @@ public class RuleNodeEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "params", columnDefinition = "TEXT")
-    @Transient
     private Map<String, Object> params; // (for COND type)
 
     @Column(name = "reason_code", length = 100)
