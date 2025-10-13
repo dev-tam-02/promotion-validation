@@ -96,16 +96,16 @@ public class CircuitBreakerService {
     public CircuitBreakerStatus getCircuitBreakerStatus(String name) {
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(name);
 
-        return new CircuitBreakerStatus(
-                name,
-                circuitBreaker.getState(),
-                circuitBreaker.getMetrics().getFailureRate(),
-                circuitBreaker.getMetrics().getSlowCallRate(),
-                circuitBreaker.getMetrics().getNumberOfFailedCalls(),
-                circuitBreaker.getMetrics().getNumberOfSuccessfulCalls(),
-                circuitBreaker.getMetrics().getNumberOfSlowCalls(),
-                circuitBreaker.getMetrics().getNumberOfNotPermittedCalls()
-        );
+        return CircuitBreakerStatus.builder()
+                .name(name)
+                .state(circuitBreaker.getState())
+                .failureRate(circuitBreaker.getMetrics().getFailureRate())
+                .slowCallRate(circuitBreaker.getMetrics().getSlowCallRate())
+                .numberOfFailedCalls(circuitBreaker.getMetrics().getNumberOfFailedCalls())
+                .numberOfSuccessfulCalls(circuitBreaker.getMetrics().getNumberOfSuccessfulCalls())
+                .numberOfSlowCalls(circuitBreaker.getMetrics().getNumberOfSlowCalls())
+                .numberOfNotPermittedCalls(circuitBreaker.getMetrics().getNumberOfNotPermittedCalls())
+                .build();
     }
 
     public void resetCircuitBreaker(String name) {
@@ -151,17 +151,19 @@ public class CircuitBreakerService {
         private final long numberOfSlowCalls;
         private final long numberOfNotPermittedCalls;
 
-        private CircuitBreakerStatus(String name, CircuitBreaker.State state, float failureRate,
-                                     float slowCallRate, long numberOfFailedCalls, long numberOfSuccessfulCalls,
-                                     long numberOfSlowCalls, long numberOfNotPermittedCalls) {
-            this.name = name;
-            this.state = state;
-            this.failureRate = failureRate;
-            this.slowCallRate = slowCallRate;
-            this.numberOfFailedCalls = numberOfFailedCalls;
-            this.numberOfSuccessfulCalls = numberOfSuccessfulCalls;
-            this.numberOfSlowCalls = numberOfSlowCalls;
-            this.numberOfNotPermittedCalls = numberOfNotPermittedCalls;
+        private CircuitBreakerStatus(Builder builder) {
+            this.name = builder.name;
+            this.state = builder.state;
+            this.failureRate = builder.failureRate;
+            this.slowCallRate = builder.slowCallRate;
+            this.numberOfFailedCalls = builder.numberOfFailedCalls;
+            this.numberOfSuccessfulCalls = builder.numberOfSuccessfulCalls;
+            this.numberOfSlowCalls = builder.numberOfSlowCalls;
+            this.numberOfNotPermittedCalls = builder.numberOfNotPermittedCalls;
+        }
+
+        public static Builder builder() {
+            return new Builder();
         }
 
         // Getters
@@ -203,6 +205,61 @@ public class CircuitBreakerService {
 
         public boolean isHealthy() {
             return state == CircuitBreaker.State.CLOSED;
+        }
+
+        public static class Builder {
+            private String name;
+            private CircuitBreaker.State state;
+            private float failureRate;
+            private float slowCallRate;
+            private long numberOfFailedCalls;
+            private long numberOfSuccessfulCalls;
+            private long numberOfSlowCalls;
+            private long numberOfNotPermittedCalls;
+
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            public Builder state(CircuitBreaker.State state) {
+                this.state = state;
+                return this;
+            }
+
+            public Builder failureRate(float failureRate) {
+                this.failureRate = failureRate;
+                return this;
+            }
+
+            public Builder slowCallRate(float slowCallRate) {
+                this.slowCallRate = slowCallRate;
+                return this;
+            }
+
+            public Builder numberOfFailedCalls(long numberOfFailedCalls) {
+                this.numberOfFailedCalls = numberOfFailedCalls;
+                return this;
+            }
+
+            public Builder numberOfSuccessfulCalls(long numberOfSuccessfulCalls) {
+                this.numberOfSuccessfulCalls = numberOfSuccessfulCalls;
+                return this;
+            }
+
+            public Builder numberOfSlowCalls(long numberOfSlowCalls) {
+                this.numberOfSlowCalls = numberOfSlowCalls;
+                return this;
+            }
+
+            public Builder numberOfNotPermittedCalls(long numberOfNotPermittedCalls) {
+                this.numberOfNotPermittedCalls = numberOfNotPermittedCalls;
+                return this;
+            }
+
+            public CircuitBreakerStatus build() {
+                return new CircuitBreakerStatus(this);
+            }
         }
     }
 }

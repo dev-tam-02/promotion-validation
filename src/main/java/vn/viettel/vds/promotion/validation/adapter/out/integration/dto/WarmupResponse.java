@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Warmup response")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class WarmupResponse {
+public class WarmupResponse implements OperationResponse {
 
     @Schema(description = "Warmup success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("success")
@@ -54,19 +54,44 @@ public class WarmupResponse {
         this.durationMs = durationMs;
     }
 
+    /**
+     * Alias for isSuccess() - checks if warmup was successful.
+     * Provided for backward compatibility and semantic clarity.
+     *
+     * @return true if warmup succeeded
+     */
     public boolean isOk() {
-        return success;
+        return isSuccess();
     }
 
+    /**
+     * Alias setter for setSuccess().
+     * Provided for backward compatibility.
+     *
+     * @param ok the success status
+     */
     public void setOk(boolean ok) {
-        this.success = ok;
+        setSuccess(ok);
     }
 
+    /**
+     * Returns empty list as warmup response doesn't track errors.
+     * Errors are indicated by the success flag and message field.
+     *
+     * @return empty list
+     */
     public java.util.List<String> getErrors() {
         return java.util.Collections.emptyList();
     }
 
+    /**
+     * No-op setter as warmup response doesn't track errors.
+     * Errors should be set via the message field.
+     *
+     * @param errors ignored parameter
+     */
     public void setErrors(java.util.List<String> errors) {
-        // Ignored - warmup doesn't have errors field
+        // Intentionally empty - warmup doesn't have errors field
+        // Errors should be set via the message field instead
     }
 }

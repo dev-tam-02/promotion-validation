@@ -17,6 +17,8 @@ public class ValidationResponse {
     public ValidationResponse() {
     }
 
+    // Private constructor used exclusively by Builder pattern to ensure immutability
+    @SuppressWarnings("java:S107") // Constructor parameters are managed via Builder pattern
     private ValidationResponse(String transactionId, boolean valid, String message, String errorCode,
                                Instant timestamp, Long executionTimeMs, List<String> rulesFired,
                                Map<String, Object> metadata) {

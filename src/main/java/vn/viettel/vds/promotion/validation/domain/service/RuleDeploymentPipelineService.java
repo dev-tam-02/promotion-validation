@@ -369,7 +369,9 @@ public class RuleDeploymentPipelineService {
         private Map<String, Object> inputData;
         private Map<String, Object> expectedOutput;
 
+        // Default constructor required for JSON deserialization and framework instantiation
         public TestScenario() {
+            // Intentionally empty - fields are set via setters or deserialization
         }
 
         public String getName() {

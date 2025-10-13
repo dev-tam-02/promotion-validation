@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Deploy response")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DeployResponse {
+public class DeployResponse implements OperationResponse {
 
     @Schema(description = "Deployment success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("success")
@@ -66,7 +66,13 @@ public class DeployResponse {
         this.version = version;
     }
 
+    /**
+     * Alias for isSuccess() - checks if deployment was successful.
+     * Provided for backward compatibility and semantic clarity.
+     *
+     * @return true if deployment succeeded
+     */
     public boolean isDeployed() {
-        return success;
+        return isSuccess();
     }
 }

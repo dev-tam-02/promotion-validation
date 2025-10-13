@@ -248,23 +248,24 @@ public class ValidationSettingsService {
         return ruleType.matches("^[A-Z_]+$");
     }
 
-    private static final Pattern ISO_8601_DURATION_PATTERN = Pattern.compile(
-        "^P" +
-        "(?:\\d+Y)?" +
-        "(?:\\d+M)?" +
-        "(?:\\d+D)?" +
-        "(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?)?" +
-        "$"
-    );
-
     private boolean isValidDuration(String duration) {
-        // Validate ISO 8601 duration format (e.g., PT8H, P1D)
-        return ISO_8601_DURATION_PATTERN.matcher(duration).matches();
+        // Validate ISO 8601 duration format (e.g., PT8H, P1D, P1Y2M3DT4H5M6S)
+        // Simple validation: starts with P, optionally contains date parts (Y/M/D),
+        // optionally contains T followed by time parts (H/M/S), must not be empty
+        if (duration == null || duration.length() < 2 || !duration.startsWith("P")) {
+            return false;
+        }
+
+        // Must contain at least one duration component (digit followed by Y/M/D/H/M/S)
+        // Using possessive quantifiers (++) to prevent catastrophic backtracking
+        return duration.matches("P(?>\\d+[YMD])+") ||
+               duration.matches("PT(?>\\d+[HMS])+") ||
+               duration.matches("P(?>\\d+[YMD])+T(?>\\d+[HMS])+");
     }
 
     private boolean isValidInterval(String interval) {
-        // Validate ISO 8601 duration format for intervals
-        return ISO_8601_DURATION_PATTERN.matcher(interval).matches();
+        // Validate ISO 8601 duration format for intervals (same logic as duration)
+        return isValidDuration(interval);
     }
 
     private boolean isValidTimeFormat(String time) {

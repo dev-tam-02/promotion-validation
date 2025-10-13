@@ -20,6 +20,8 @@ public class ValidationRequest {
     public ValidationRequest() {
     }
 
+    // Private constructor used exclusively by Builder pattern to ensure immutability
+    @SuppressWarnings("java:S107") // Constructor parameters are managed via Builder pattern
     private ValidationRequest(String transactionId, String promotionId, String customerId, String sessionId,
                               Map<String, Object> context, List<String> rules, Instant timestamp, BigDecimal orderValue,
                               ValidationContext validationContext) {

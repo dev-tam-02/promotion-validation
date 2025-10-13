@@ -385,6 +385,8 @@ public class RuleVersioningService {
         private final Instant publishedAt;
         private final java.util.Map<String, Object> metadata;
 
+        // Private constructor used exclusively by Builder pattern to ensure immutability
+        @SuppressWarnings("java:S107") // Constructor parameters are managed via Builder pattern
         private RuleVersionInfo(String ruleId, Integer version, Rule.RuleState status, String name,
                                 String description, String bundleHash, Instant createdAt,
                                 Instant publishedAt, java.util.Map<String, Object> metadata) {
