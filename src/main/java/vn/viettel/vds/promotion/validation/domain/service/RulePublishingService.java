@@ -403,7 +403,7 @@ public class RulePublishingService {
     private boolean verifyRuleExecution(Rule rule, String bundleHash) {
         try {
             // Create a simple test execution to verify the rule works
-            ExecuteRequest testRequest = createTestExecuteRequest(rule, bundleHash);
+            ExecuteRequest testRequest = createTestExecuteRequest(bundleHash);
             ExecuteResponse response = validationEngineClient.execute(testRequest);
 
             boolean isValid = isValidResponse(response);
@@ -424,7 +424,7 @@ public class RulePublishingService {
                 (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
     }
 
-    private ExecuteRequest createTestExecuteRequest(Rule rule, String bundleHash) {
+    private ExecuteRequest createTestExecuteRequest(String bundleHash) {
         ExecuteRequest request = new ExecuteRequest();
         request.setBundleHash(bundleHash);
 
@@ -463,12 +463,14 @@ public class RulePublishingService {
         return request;
     }
 
+    @SuppressWarnings("java:S1172") // ruleId parameter reserved for future critical rule determination logic
     private boolean isCriticalRule(String ruleId) {
         // Implement logic to determine if a rule is critical
         // For now, assume all rules are non-critical
         return false;
     }
 
+    @SuppressWarnings("java:S1172") // bundleHash parameter reserved for future validation rule enhancement
     private Rule createValidationRuleFromRule(Rule rule, String bundleHash) {
         // Convert nodes
         List<RuleNode> validationNodes = convertRuleNodes(rule);
