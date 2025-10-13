@@ -189,7 +189,7 @@ public class RuleAggregate {
     /**
      * Reject the rule back to draft
      */
-    public void reject(String rejectedBy, String reason) {
+    public void reject(String rejectedBy) {
         if (status != RuleStatus.PENDING_REVIEW) {
             throw new IllegalStateException("Only rules pending review can be rejected");
         }
@@ -197,7 +197,6 @@ public class RuleAggregate {
         this.status = RuleStatus.DRAFT;
         this.updatedAt = Instant.now();
         this.updatedBy = rejectedBy;
-        // Could store rejection reason in audit log
     }
 
     /**

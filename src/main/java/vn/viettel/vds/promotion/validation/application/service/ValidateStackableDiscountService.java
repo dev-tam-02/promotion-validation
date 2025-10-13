@@ -69,7 +69,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
             // Validate context
             if (!context.isValid()) {
                 log.warn("Invalid stacking context: validationId={}", command.idempotencyKey());
-                return handleInvalidContext(command, context, startTime);
+                return handleInvalidContext(command, startTime);
             }
 
             // Step 2: Retrieve applicable validation rules
@@ -363,7 +363,6 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
      */
     private ValidateStackableDiscountResult handleInvalidContext(
             ValidateStackableDiscountCommand command,
-            StackingContext context,
             long startTime
     ) {
         long processingTime = System.currentTimeMillis() - startTime;

@@ -45,7 +45,7 @@ public class FactMapper {
         CandidateFact candidate = candidateMapper.map(rawFacts.get("candidate"));
         SegmentsFact segments = segmentsMapper.map(rawFacts.get("segments"));
         LimitsFact limits = limitsMapper.map(rawFacts.get("limits"));
-        MetadataFact metadata = metadataMapper.map(request, rawFacts);
+        MetadataFact metadata = metadataMapper.map(request);
         GeoFact geo = geoMapper.map(rawFacts.get("geo"));
 
         Map<String, Object> derived = derivedCalculator.calculate(customer, order, candidate);

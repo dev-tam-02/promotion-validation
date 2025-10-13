@@ -11,7 +11,7 @@ import java.util.UUID;
 @Component
 public class MetadataFactMapper {
 
-    public MetadataFact map(FactRequest request, Map<String, Object> rawFacts) {
+    public MetadataFact map(FactRequest request) {
         if (request == null) {
             return null;
         }

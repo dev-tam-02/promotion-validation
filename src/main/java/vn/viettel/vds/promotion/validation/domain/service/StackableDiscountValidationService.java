@@ -176,7 +176,7 @@ public class StackableDiscountValidationService {
                         // First by type (percentage before fixed)
                         .comparing(this::getDiscountTypePriority)
                         // Then by amount (higher discounts first)
-                        .thenComparing(d -> getDiscountValue(d, order), Comparator.reverseOrder())
+                        .thenComparing(this::getDiscountValue, Comparator.reverseOrder())
                 )
                 .toList();
     }
@@ -298,7 +298,7 @@ public class StackableDiscountValidationService {
     /**
      * Gets discount value for comparison.
      */
-    private BigDecimal getDiscountValue(DiscountFact discount, OrderFact order) {
+    private BigDecimal getDiscountValue(DiscountFact discount) {
         if (discount.percentage() != null) {
             return discount.percentage();
         } else if (discount.amount() != null) {
