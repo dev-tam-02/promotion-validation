@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.application.port.in.GetRuleByIdUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.query.GetRuleByIdQuery;
-import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 
 /**
  * Implementation of GetRuleByIdUseCase

@@ -5,9 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.in.CreateRuleUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.command.CreateRuleCommand;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
-import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
-import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.factory.RuleFactory;
 
 /**
  * Implementation of CreateRuleUseCase

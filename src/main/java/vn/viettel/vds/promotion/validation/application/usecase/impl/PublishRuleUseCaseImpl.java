@@ -5,8 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.in.PublishRuleUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.command.PublishRuleCommand;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.RuleResponse;
-import vn.viettel.vds.promotion.validation.application.port.out.EventPublisherPort;
-import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 
 /**
  * Implementation of PublishRuleUseCase

@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.application.port.in.ListRulesUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.dto.PagedRulesResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.query.ListRulesQuery;
-import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 
 /**
  * Implementation of ListRulesUseCase

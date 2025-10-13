@@ -1,7 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorEntity;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
