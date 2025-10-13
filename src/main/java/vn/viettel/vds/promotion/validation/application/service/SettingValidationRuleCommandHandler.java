@@ -37,6 +37,7 @@ public class SettingValidationRuleCommandHandler {
     private final RuleTimeFrameJpaRepository ruleTimeFrameRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
+    @SuppressWarnings("unused") // Reserved for future use
     private final ValidationEngineDeploymentService validationEngineClient;
     private final IdempotencyService idempotencyService;
 
@@ -532,7 +533,7 @@ public class SettingValidationRuleCommandHandler {
                 logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
                 return;
             }
-
+            // Assignment result handled via publishSuccessEvent
             var rule = validationRule.get();
 
             // Only deploy if assignment is active

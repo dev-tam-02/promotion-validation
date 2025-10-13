@@ -5,7 +5,6 @@ import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.MetadataFact;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.UUID;
 
 @Component

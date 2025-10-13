@@ -260,8 +260,8 @@ public class RuleVersioningService {
     private Integer getIntegerFromMap(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) return null;
-        if (value instanceof Integer) return (Integer) value;
-        if (value instanceof Number) return ((Number) value).intValue();
+        if (value instanceof Integer integer) return integer;
+        if (value instanceof Number number) return number.intValue();
         return null;
     }
 

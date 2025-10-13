@@ -24,7 +24,7 @@ public class ReasonCodeEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "labels", columnDefinition = "TEXT")
-    private Map<String, Object> labels;
+    private transient Map<String, Object> labels;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

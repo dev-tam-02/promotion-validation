@@ -28,6 +28,7 @@ public class RollbackValidationRuleCommandHandler {
 
     private final AssignmentJpaRepository assignmentRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
+    @SuppressWarnings("unused") // Reserved for future use
     private final ValidationEngineDeploymentService validationEngineClient;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -210,7 +211,7 @@ public class RollbackValidationRuleCommandHandler {
                 handleMissingRule(ruleId);
                 return;
             }
-
+            // Rule validation handled within undeployRuleFromEngine
             ValidationRuleEntity rule = ruleOpt.get();
             removeRuleFromEngine(ruleId, assignment);
 

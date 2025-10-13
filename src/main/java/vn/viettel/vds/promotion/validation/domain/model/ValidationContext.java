@@ -72,15 +72,15 @@ public class ValidationContext {
         if (value == null) {
             return null;
         }
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
+        if (value instanceof BigDecimal bigdecimal) {
+            return bigdecimal;
         }
-        if (value instanceof Number) {
-            return BigDecimal.valueOf(((Number) value).doubleValue());
+        if (value instanceof Number number) {
+            return BigDecimal.valueOf(number.doubleValue());
         }
-        if (value instanceof String) {
+        if (value instanceof String string) {
             try {
-                return new BigDecimal((String) value);
+                return new BigDecimal(string);
             } catch (NumberFormatException e) {
                 return null;
             }

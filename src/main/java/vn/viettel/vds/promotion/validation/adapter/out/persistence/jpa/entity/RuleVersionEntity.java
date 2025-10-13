@@ -38,11 +38,11 @@ public class RuleVersionEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "limits", columnDefinition = "TEXT")
-    private Map<String, Object> limits;
+    private transient Map<String, Object> limits;
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "nodes", columnDefinition = "TEXT")
-    private List<Map<String, Object>> nodes;
+    private transient List<Map<String, Object>> nodes;
 
     @Column(name = "operators_fingerprint", length = 200)
     private String operatorsFingerprint;
@@ -52,7 +52,7 @@ public class RuleVersionEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "dsl", columnDefinition = "TEXT")
-    private Map<String, Object> dsl;
+    private transient Map<String, Object> dsl;
 
     @Column(name = "published_at")
     private Instant publishedAt;

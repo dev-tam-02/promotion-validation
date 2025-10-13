@@ -19,77 +19,27 @@ public class OperatorEvaluator {
             throw new IllegalArgumentException("Operator cannot be null");
         }
 
-        switch (operator.toUpperCase()) {
-            case "EQUALS":
-            case "EQ":
-            case "==":
-                return evaluateEquals(fieldValue, expectedValue);
-
-            case "NOT_EQUALS":
-            case "NEQ":
-            case "!=":
-                return !evaluateEquals(fieldValue, expectedValue);
-
-            case "GREATER_THAN":
-            case "GT":
-            case ">":
-                return evaluateGreaterThan(fieldValue, expectedValue);
-
-            case "GREATER_THAN_OR_EQUALS":
-            case "GTE":
-            case ">=":
-                return evaluateGreaterThanOrEquals(fieldValue, expectedValue);
-
-            case "LESS_THAN":
-            case "LT":
-            case "<":
-                return evaluateLessThan(fieldValue, expectedValue);
-
-            case "LESS_THAN_OR_EQUALS":
-            case "LTE":
-            case "<=":
-                return evaluateLessThanOrEquals(fieldValue, expectedValue);
-
-            case "IN":
-                return evaluateIn(fieldValue, expectedValue);
-
-            case "NOT_IN":
-                return !evaluateIn(fieldValue, expectedValue);
-
-            case "CONTAINS":
-                return evaluateContains(fieldValue, expectedValue);
-
-            case "NOT_CONTAINS":
-                return !evaluateContains(fieldValue, expectedValue);
-
-            case "STARTS_WITH":
-                return evaluateStartsWith(fieldValue, expectedValue);
-
-            case "ENDS_WITH":
-                return evaluateEndsWith(fieldValue, expectedValue);
-
-            case "MATCHES":
-            case "REGEX":
-                return evaluateRegex(fieldValue, expectedValue);
-
-            case "IS_NULL":
-                return fieldValue == null;
-
-            case "IS_NOT_NULL":
-                return fieldValue != null;
-
-            case "IS_EMPTY":
-                return evaluateIsEmpty(fieldValue);
-
-            case "IS_NOT_EMPTY":
-                return !evaluateIsEmpty(fieldValue);
-
-            case "BETWEEN":
-                return evaluateBetween(fieldValue, expectedValue);
-
-            default:
-                throw new UnsupportedOperationException("Operator not supported: " + operator);
-        }
+        return switch (operator.toUpperCase()) {
+            case "EQUALS", "EQ", "==" -> evaluateEquals(fieldValue, expectedValue);
+            case "NOT_EQUALS", "NEQ", "!=" -> !evaluateEquals(fieldValue, expectedValue);
+            case "GREATER_THAN", "GT", ">" -> evaluateGreaterThan(fieldValue, expectedValue);
+            case "GREATER_THAN_OR_EQUALS", "GTE", ">=" -> evaluateGreaterThanOrEquals(fieldValue, expectedValue);
+            case "LESS_THAN", "LT", "<" -> evaluateLessThan(fieldValue, expectedValue);
+            case "LESS_THAN_OR_EQUALS", "LTE", "<=" -> evaluateLessThanOrEquals(fieldValue, expectedValue);
+            case "IN" -> evaluateIn(fieldValue, expectedValue);
+            case "NOT_IN" -> !evaluateIn(fieldValue, expectedValue);
+            case "CONTAINS" -> evaluateContains(fieldValue, expectedValue);
+            case "NOT_CONTAINS" -> !evaluateContains(fieldValue, expectedValue);
+            case "STARTS_WITH" -> evaluateStartsWith(fieldValue, expectedValue);
+            case "ENDS_WITH" -> evaluateEndsWith(fieldValue, expectedValue);
+            case "MATCHES", "REGEX" -> evaluateRegex(fieldValue, expectedValue);
+            case "IS_NULL" -> fieldValue == null;
+            case "IS_NOT_NULL" -> fieldValue != null;
+            case "IS_EMPTY" -> evaluateIsEmpty(fieldValue);
+            case "IS_NOT_EMPTY" -> !evaluateIsEmpty(fieldValue);
+            case "BETWEEN" -> evaluateBetween(fieldValue, expectedValue);
+            default -> throw new UnsupportedOperationException("Operator not supported: " + operator);
+        };
     }
 
     private static boolean evaluateEquals(Object fieldValue, Object expectedValue) {
@@ -209,12 +159,12 @@ public class OperatorEvaluator {
             return true;
         }
 
-        if (fieldValue instanceof String) {
-            return ((String) fieldValue).isEmpty();
+        if (fieldValue instanceof String string) {
+            return string.isEmpty();
         }
 
-        if (fieldValue instanceof Collection) {
-            return ((Collection<?>) fieldValue).isEmpty();
+        if (fieldValue instanceof Collection<?> collection) {
+            return collection.isEmpty();
         }
 
         if (fieldValue.getClass().isArray()) {
@@ -229,8 +179,7 @@ public class OperatorEvaluator {
             return false;
         }
 
-        if (expectedValue instanceof Object[]) {
-            Object[] range = (Object[]) expectedValue;
+        if (expectedValue instanceof Object[] range) {
             if (range.length != 2) {
                 throw new IllegalArgumentException("BETWEEN operator requires exactly 2 values");
             }
@@ -243,7 +192,7 @@ public class OperatorEvaluator {
 
     private static boolean isNumeric(Object value) {
         return value instanceof Number ||
-                (value instanceof String && isNumericString((String) value));
+                (value instanceof String string && isNumericString(string));
     }
 
     private static boolean isNumericString(String str) {
@@ -256,8 +205,8 @@ public class OperatorEvaluator {
     }
 
     private static BigDecimal toBigDecimal(Object value) {
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
+        if (value instanceof BigDecimal bigdecimal) {
+            return bigdecimal;
         }
         if (value instanceof Number) {
             return new BigDecimal(value.toString());
