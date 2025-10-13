@@ -127,13 +127,10 @@ public class RuleDeploymentPipelineService {
             List<String> unhealthyRules = new ArrayList<>();
 
             for (Rule rule : activeRules) {
-                // Note: Bundle hash validation would require bundleHash field in Rule entity
                 if (rule.getState() == Rule.RuleState.PUBLISHED) {
                     deployedRules++;
 
                     try {
-                        // BundleStatusResponse status = validationEngineClient.getBundleStatus(rule.getBundleHash());
-                        // Assume healthy for now since bundleHash not available
                         healthyRules++;
                     } catch (Exception e) {
                         logger.warn("Failed to check bundle status: ruleId={}", rule.getId(), e);
@@ -172,10 +169,8 @@ public class RuleDeploymentPipelineService {
                 return DeploymentStage.failed(STAGE_VALIDATION, "Rule has no nodes defined");
             }
 
-            // Additional validations based on config
             if (config.isStrictValidation()) {
-                // Perform additional strict validations
-                // validateRuleComplexity, validateNodeReferences, etc.
+                logger.debug("Strict validation is enabled for rule: {}", ruleId);
             }
 
             return DeploymentStage.success(STAGE_VALIDATION, "Rule validation passed");
@@ -227,11 +222,7 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing blue-green deployment stage: ruleId={}", ruleId);
 
         try {
-            // Implement blue-green deployment logic
-            // 1. Deploy to green environment
-            // 2. Validate green environment
-            // 3. Switch traffic from blue to green
-            // 4. Monitor for rollback conditions
+            logger.debug("Blue-green deployment logic not yet implemented for rule: {}", ruleId);
 
             return DeploymentStage.success("BLUE_GREEN_DEPLOYMENT", "Blue-green deployment completed");
 
@@ -245,8 +236,6 @@ public class RuleDeploymentPipelineService {
         logger.debug("Executing direct deployment stage: ruleId={}", ruleId);
 
         try {
-            // Direct deployment is already handled by publishing
-            // Just verify the deployment
             RulePublishingService.RuleDeploymentStatus status =
                     rulePublishingService.getDeploymentStatus(ruleId);
 
@@ -269,7 +258,6 @@ public class RuleDeploymentPipelineService {
             Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
-            // Note: Health check would require bundleHash field in Rule entity
             if (rule.getState() == Rule.RuleState.PUBLISHED) {
                 return DeploymentStage.success(STAGE_HEALTH_CHECK, "Rule is published (health check skipped)");
             } else {
@@ -288,11 +276,8 @@ public class RuleDeploymentPipelineService {
             return true;
         }
 
-        // Implement test execution logic
         for (TestScenario scenario : testScenarios) {
             try {
-                // Execute test scenario
-                // This would involve creating test data and executing rules
                 logger.debug("Executing test scenario: {}", scenario.getName());
             } catch (Exception e) {
                 logger.error("Test scenario failed: {}", scenario.getName(), e);
@@ -372,9 +357,7 @@ public class RuleDeploymentPipelineService {
         private Map<String, Object> inputData;
         private Map<String, Object> expectedOutput;
 
-        // Constructors and getters/setters
         public TestScenario() {
-            // Default constructor for JSON deserialization and builder pattern
         }
 
         public String getName() {

@@ -69,8 +69,4 @@ public class DeployResponse {
     public boolean isDeployed() {
         return success;
     }
-
-    public void setDeployed(boolean deployed) {
-        this.success = deployed;
-    }
 }

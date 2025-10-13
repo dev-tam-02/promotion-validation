@@ -101,12 +101,12 @@ public class TimeoutService {
 
     public TimeoutStatus getTimeoutStatus(String name) {
         TimeLimiter timeLimiter = timeLimiterRegistry.timeLimiter(name);
-        TimeLimiterConfig config = timeLimiter.getTimeLimiterConfig();
+        TimeLimiterConfig limiterConfig = timeLimiter.getTimeLimiterConfig();
 
         return new TimeoutStatus(
                 name,
-                config.getTimeoutDuration(),
-                config.shouldCancelRunningFuture(),
+                limiterConfig.getTimeoutDuration(),
+                limiterConfig.shouldCancelRunningFuture(),
                 0L, // metrics not available in this version
                 0L, // metrics not available in this version
                 0L  // metrics not available in this version

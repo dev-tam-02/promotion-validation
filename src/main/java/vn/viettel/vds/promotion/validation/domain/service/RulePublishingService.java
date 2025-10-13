@@ -325,7 +325,8 @@ public class RulePublishingService {
                         .append(";");
             }
         }
-        return fingerprint.toString().isEmpty() ? "default-fingerprint" : fingerprint.toString();
+        String result = fingerprint.toString();
+        return result.isEmpty() ? "default-fingerprint" : result;
     }
 
     private void warmup(CompileResponse compileResponse) {

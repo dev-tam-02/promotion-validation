@@ -4,5 +4,13 @@ import vn.viettel.vds.promotion.validation.domain.object_value.ConditionId;
 
 public class Condition {
 
-    public ConditionId id;
+    private ConditionId id;
+
+    public ConditionId getId() {
+        return id;
+    }
+
+    public void setId(ConditionId id) {
+        this.id = id;
+    }
 }

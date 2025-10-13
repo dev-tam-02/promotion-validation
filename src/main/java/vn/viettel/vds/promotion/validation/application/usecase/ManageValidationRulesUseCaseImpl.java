@@ -357,7 +357,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 ruleExport.put("name", rule.getName());
                 ruleExport.put("description", rule.getDescription());
                 ruleExport.put("expression", rule.getExpression());
-                ruleExport.put("type", rule.getType().toString());
+                ruleExport.put("type", rule.getType());
                 ruleExport.put("priority", rule.getPriority());
                 ruleExport.put("configuration", rule.getConfiguration());
                 ruleExport.put("targetSegments", rule.getTargetSegments());

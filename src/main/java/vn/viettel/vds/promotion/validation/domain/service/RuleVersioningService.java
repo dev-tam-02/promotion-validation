@@ -212,7 +212,7 @@ public class RuleVersioningService {
         // Also check current rule version
         Optional<Rule> currentRule = rulePersistencePort.findByCode(ruleId);
         int maxVersion = versions.stream()
-                .mapToInt(ruleVersion -> ruleVersion.getRuleVersion() != null ? ruleVersion.getRuleVersion() : 0)
+                .mapToInt(ruleVersion -> ruleVersion.getVersion() != null ? ruleVersion.getVersion() : 0)
                 .max()
                 .orElse(0);
 
@@ -268,7 +268,7 @@ public class RuleVersioningService {
     private RuleVersionInfo convertToVersionInfo(RuleVersion ruleVersion) {
         return RuleVersionInfo.builder()
                 .ruleId(ruleVersion.getId())
-                .version(ruleVersion.getRuleVersion()) // Use ruleVersion (Integer) not version (Long)
+                .version(ruleVersion.getVersion()) // Use ruleVersion (Integer) not version (Long)
                 .status(ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT)
                 .name(ruleVersion.getCode()) // Using code as name
                 .description(null) // description not available in RuleVersion

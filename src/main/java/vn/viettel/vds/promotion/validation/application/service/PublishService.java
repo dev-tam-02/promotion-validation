@@ -147,7 +147,7 @@ public class PublishService {
 
     private Integer getNextVersionNumber(String ruleId) {
         return ruleVersionPersistencePort.findFirstByRuleIdOrderByVersionDesc(ruleId)
-                .map(rv -> rv.getRuleVersion() + 1)
+                .map(rv -> rv.getVersion() + 1)
                 .orElse(1);
     }
 
@@ -284,7 +284,7 @@ public class PublishService {
                 .id(generateRuleVersionId(rule.getCode(), job.getTargetVersion()))
                 .ruleId(rule.getId())
                 .code(rule.getCode())
-                .ruleVersion(job.getTargetVersion())
+                .version(job.getTargetVersion())
                 .logic(rule.getLogic() != null ? RuleVersion.LogicType.valueOf(rule.getLogic().name()) : null)
                 .limits(convertUsageLimitsToMap(rule.getLimits()))
                 .nodes(nodesMaps)

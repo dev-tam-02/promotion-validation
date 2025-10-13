@@ -8,6 +8,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Service for validating validation settings.
@@ -247,14 +248,23 @@ public class ValidationSettingsService {
         return ruleType.matches("^[A-Z_]+$");
     }
 
+    private static final Pattern ISO_8601_DURATION_PATTERN = Pattern.compile(
+        "^P" +
+        "(?:\\d+Y)?" +
+        "(?:\\d+M)?" +
+        "(?:\\d+D)?" +
+        "(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?)?" +
+        "$"
+    );
+
     private boolean isValidDuration(String duration) {
         // Validate ISO 8601 duration format (e.g., PT8H, P1D)
-        return duration.matches("^P(\\d+Y)?(\\d+M)?(\\d+D)?(T(\\d+H)?(\\d+M)?(\\d+S)?)?$");
+        return ISO_8601_DURATION_PATTERN.matcher(duration).matches();
     }
 
     private boolean isValidInterval(String interval) {
         // Validate ISO 8601 duration format for intervals
-        return interval.matches("^P(\\d+Y)?(\\d+M)?(\\d+D)?(T(\\d+H)?(\\d+M)?(\\d+S)?)?$");
+        return ISO_8601_DURATION_PATTERN.matcher(interval).matches();
     }
 
     private boolean isValidTimeFormat(String time) {

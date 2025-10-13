@@ -81,7 +81,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     public DeployResponse deployRuleSet(String ruleSetId, Map<String, Object> compiledRules) {
         logger.error("Fallback: Rule deployment failed for ruleSetId={}", ruleSetId);
         DeployResponse fallbackResponse = new DeployResponse();
-        fallbackResponse.setDeployed(false);
+        fallbackResponse.setSuccess(false);
         fallbackResponse.setMessage(SERVICE_UNAVAILABLE_MESSAGE);
         return fallbackResponse;
     }

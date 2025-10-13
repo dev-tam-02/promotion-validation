@@ -17,7 +17,7 @@ public class RuleVersion {
     String id;
     String ruleId;
     String code;
-    Integer ruleVersion;
+    Integer version;
     LogicType logic;
     Map<String, Object> limits;
     List<Map<String, Object>> nodes;

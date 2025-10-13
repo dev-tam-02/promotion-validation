@@ -66,16 +66,12 @@ public class RuleDeploymentStatusResponse {
         this.status = status;
     }
 
-    public Boolean getDeployed() {
+    public Boolean isDeployed() {
         return deployed;
     }
 
     public void setDeployed(Boolean deployed) {
         this.deployed = deployed;
-    }
-
-    public Boolean isDeployed() {
-        return deployed != null && deployed;
     }
 
     public String getBundleHash() {
