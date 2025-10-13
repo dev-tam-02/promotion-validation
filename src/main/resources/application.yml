@@ -316,9 +316,9 @@ logging:
     liquibase: INFO
     liquibase.changelog: DEBUG
     liquibase.executor: DEBUG
-    # Enable DEBUG for Outbox Scheduler to see batch job execution logs
-    com.promix.platform.outbox.autoconfigure.OutboxSchedulerConfiguration: DEBUG
-    # Enable DEBUG for Spring Batch to see job execution details
-    org.springframework.batch.core: DEBUG
+    # Outbox Scheduler logging - set to INFO to reduce noise
+    com.promix.platform.outbox.autoconfigure.OutboxSchedulerConfiguration: INFO
+    # Spring Batch logging - set to WARN to suppress verbose job execution logs
+    org.springframework.batch.core: WARN
     # Application logging
     vn.viettel.vds.promotion.validation: INFO
