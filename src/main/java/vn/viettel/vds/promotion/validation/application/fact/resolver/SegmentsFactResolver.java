@@ -152,8 +152,6 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
      */
     private Set<String> fetchSegmentsFromService(String customerId) {
 
-
-
         // Mock implementation
         if (log.isDebugEnabled()) {
             log.debug("Fetching segments for customer {} (mock implementation)", customerId);

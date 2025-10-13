@@ -16,7 +16,10 @@ import java.util.stream.Collectors;
 @Component
 public class RuleNodeEntityMapper {
 
-    private static final String NODE_TYPE_GROUP = "GROUP";
+    private static final String GROUP_TYPE = "GROUP";
+
+
+    private static final String NODE_TYPE_GROUP = GROUP_TYPE;
 
     /**
      * Convert entity to domain model
@@ -147,8 +150,6 @@ public class RuleNodeEntityMapper {
 
         // Set validation rule ID
         // Note: validationRule entity reference should be set by caller
-
-
         // Set parent if provided
         if (parent != null) {
             entity.setParent(parent);

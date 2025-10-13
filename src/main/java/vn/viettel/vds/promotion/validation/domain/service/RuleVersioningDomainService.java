@@ -38,7 +38,7 @@ public class RuleVersioningDomainService {
         Version newVersion = calculateNewVersion(existingRule.getVersion(), versionType);
 
         // Create new rule with incremented version
-        RuleAggregate newRule = RuleAggregate.builder()
+        return RuleAggregate.builder()
                 .id(RuleId.generate())
                 .code(existingRule.getCode()) // Same code, different version
                 .name(existingRule.getName())
@@ -52,8 +52,6 @@ public class RuleVersioningDomainService {
                 .createdBy(createdBy)
                 .updatedBy(createdBy)
                 .build();
-
-        return newRule;
     }
 
     /**

@@ -1,6 +1,4 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
-
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.application.service.ValidationEngineIntegrationService;

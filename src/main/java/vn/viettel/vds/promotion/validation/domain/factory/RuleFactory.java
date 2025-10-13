@@ -151,8 +151,7 @@ public class RuleFactory {
     private RuleNode createNodeFromTemplate(NodeTemplate template, java.util.Map<String, Object> parameters) {
         // Replace placeholders with actual values
         Object value = template.getValue();
-        if (value instanceof String) {
-            String strValue = (String) value;
+        if (value instanceof String strValue) {
             for (java.util.Map.Entry<String, Object> param : parameters.entrySet()) {
                 strValue = strValue.replace("${" + param.getKey() + "}", param.getValue().toString());
             }

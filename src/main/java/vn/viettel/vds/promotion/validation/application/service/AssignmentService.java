@@ -19,19 +19,13 @@ import java.util.Optional;
 import vn.viettel.vds.promotion.validation.application.service.dto.CreateAssignmentRequest;
 import vn.viettel.vds.promotion.validation.application.service.dto.UpdateAssignmentRequest;
 
-
-
 @Service
 
 @Transactional
 
 public class AssignmentService {
 
-
-
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
-
-
 
     private static final String DEFAULT_TENANT = "default";
 
@@ -43,15 +37,11 @@ public class AssignmentService {
 
     private static final String ERROR_CODE_ASSIGNMENT_OVERLAP = "ASSIGNMENT_OVERLAP";
 
-
-
     private final AssignmentPersistencePort assignmentPersistencePort;
 
     private final RuleService ruleService;
 
     private final AuditService auditService;
-
-
 
     public AssignmentService(AssignmentPersistencePort assignmentPersistencePort,
 
@@ -65,8 +55,6 @@ public class AssignmentService {
 
     }
 
-
-
     /**
 
      * Create a new assignment
@@ -79,13 +67,9 @@ public class AssignmentService {
 
                 request.getTenantId(), request.getRuleId(), request.getSubjectType(), request.getSubjectKey());
 
-
-
         // Verify rule exists
 
         ruleService.getRuleById(request.getRuleId());
-
-
 
         // Check for overlapping assignments if this assignment is active
 
@@ -95,8 +79,6 @@ public class AssignmentService {
 
         }
 
-
-
         Assignment assignment = new Assignment();
 
         assignment.setId(generateAssignmentId(request.getTenantId(), request.getSubjectType(), request.getSubjectKey()));
@@ -105,8 +87,6 @@ public class AssignmentService {
 
         assignment.setRuleVersionPinned(null); // Use latest version by default
 
-
-
         Assignment.Subject subject = new Assignment.Subject();
 
         subject.setType(request.getSubjectType());
@@ -114,8 +94,6 @@ public class AssignmentService {
         subject.setKey(request.getSubjectKey());
 
         assignment.setSubject(subject);
-
-
 
         assignment.setAssignmentVersion(1);
 
@@ -133,19 +111,13 @@ public class AssignmentService {
 
         assignment.setUpdatedAt(Instant.now());
 
-
-
         Assignment saved = assignmentPersistencePort.save(assignment);
-
-
 
         // Log audit event
 
         auditService.logAssignmentUpdated(request.getTenantId(), saved.getId(), request.getCreatedBy(),
 
                 java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.CREATE.getAction()));
-
-
 
         logger.info("Assignment created successfully: id={}", saved.getId());
 

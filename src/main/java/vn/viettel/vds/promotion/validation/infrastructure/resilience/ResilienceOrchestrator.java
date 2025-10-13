@@ -15,8 +15,9 @@ import java.util.function.Supplier;
 public class ResilienceOrchestrator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResilienceOrchestrator.class);
+    private static final String DEFAULT_STRATEGY = "default";
     
-    private static final String DEFAULT_RESILIENCE_NAME = "default";
+    private static final String DEFAULT_RESILIENCE_NAME = DEFAULT_STRATEGY;
 
     private final CircuitBreakerService circuitBreakerService;
     private final RetryService retryService;

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Redis-based implementation of IdempotencyService.
@@ -79,7 +78,7 @@ public class RedisIdempotencyService implements IdempotencyService {
             String resultJson = serializeResult(result);
 
             RBucket<String> bucket = redissonClient.getBucket(redisKey);
-            bucket.set(resultJson, ttl.toSeconds(), TimeUnit.SECONDS);
+            bucket.set(resultJson, ttl);
 
             logger.info("Marked command as processed: key={}, ttl={}", idempotencyKey, ttl);
             logger.debug("Stored result: key={}, result={}", idempotencyKey, resultJson);

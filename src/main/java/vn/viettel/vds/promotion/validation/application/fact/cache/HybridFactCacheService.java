@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class HybridFactCacheService implements FactCacheService {
@@ -91,7 +90,7 @@ public class HybridFactCacheService implements FactCacheService {
             try {
                 String serializedValue = serializeValue(value);
                 RBucket<String> bucket = redissonClient.getBucket(versionedKey);
-                bucket.set(serializedValue, ttlSeconds, TimeUnit.SECONDS);
+                bucket.set(serializedValue, Duration.ofSeconds(ttlSeconds));
                 log.debug("Stored in cache with TTL {}s: {}", ttlSeconds, versionedKey);
             } catch (Exception e) {
                 log.warn("Failed to store in Redisson cache for key {}: {}", versionedKey, e.getMessage());
@@ -127,10 +126,7 @@ public class HybridFactCacheService implements FactCacheService {
         return CompletableFuture.runAsync(() -> {
             try {
                 RKeys keys = redissonClient.getKeys();
-                Iterable<String> matchingKeys = keys.getKeysByPattern(CACHE_VERSION + ":*");
-                for (String key : matchingKeys) {
-                    redissonClient.getBucket(key).delete();
-                }
+                keys.deleteByPattern(CACHE_VERSION + ":*");
                 log.info("Cleared all cache entries");
             } catch (Exception e) {
                 log.warn("Failed to clear Redisson cache: {}", e.getMessage());

@@ -23,6 +23,7 @@ import java.util.Optional;
 public class RuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleService.class);
+    private static final String INVALID_RULE_STRUCTURE_CODE = "INVALID_RULE_STRUCTURE";
 
     private final RulePersistencePort rulePersistencePort;
     private final AuditService auditService;
@@ -265,7 +266,7 @@ public class RuleService {
 
     private void validateRuleNodes(List<RuleNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
-            throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Rule must have at least one node", 400));
+            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Rule must have at least one node", 400));
         }
 
         // Validate each node
@@ -276,33 +277,33 @@ public class RuleService {
         // Check for node ID uniqueness
         long uniqueIds = nodes.stream().map(RuleNode::getId).distinct().count();
         if (uniqueIds != nodes.size()) {
-            throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Rule node IDs must be unique", 400));
+            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Rule node IDs must be unique", 400));
         }
     }
 
     private void validateRuleNode(RuleNode node) {
         if (node.getId() == null || node.getId().trim().isEmpty()) {
-            throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Node ID is required", 400));
+            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Node ID is required", 400));
         }
 
         if (node.getType() == null) {
-            throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE", "Node type is required", 400));
+            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Node type is required", 400));
         }
 
         switch (node.getType()) {
             case GROUP:
                 if (node.getGroupLogic() == null) {
-                    throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
+                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
                             "Group logic is required for GROUP nodes", 400));
                 }
                 break;
             case COND:
                 if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
-                    throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
+                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
                             "Operator name is required for COND nodes", 400));
                 }
                 if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
-                    throw new BusinessException(new ResponseInfo("INVALID_RULE_STRUCTURE",
+                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
                             "Reason code is required for COND nodes", 400));
                 }
                 break;

@@ -18,7 +18,8 @@ import java.util.Map;
 public class AuditService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditService.class);
-    private static final String DEFAULT_TENANT_ID = "default";
+    private static final String DEFAULT_CONTEXT = "default";
+    private static final String DEFAULT_TENANT_ID = DEFAULT_CONTEXT;
 
     private final AuditLogPersistencePort auditLogPersistencePort;
 

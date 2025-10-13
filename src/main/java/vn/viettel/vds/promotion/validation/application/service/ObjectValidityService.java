@@ -19,8 +19,6 @@ import java.util.Optional;
 @Slf4j
 public class ObjectValidityService {
 
-
-
     private final AssignmentService assignmentService;
 
     /**
@@ -159,8 +157,6 @@ public class ObjectValidityService {
         }
     }
 
-
-
     private ValidationResult validateObjectStatus(String objectType, String objectId) {
         try {
             // Check if object is in active status
@@ -169,8 +165,6 @@ public class ObjectValidityService {
             if ("CAMPAIGN".equals(objectType)) {
                 // For campaigns, we might check campaign service
                 Boolean isActive = checkCampaignStatus(objectId);
-
-
                 // Currently returns null for unknown status, true for active, false for inactive
 
                 // Only fail validation if we definitively know the campaign is inactive

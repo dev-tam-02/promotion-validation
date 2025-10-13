@@ -359,8 +359,6 @@ public class RulePublishingService {
         return fingerprint.toString().isEmpty() ? "default-fingerprint" : fingerprint.toString();
     }
 
-
-
     private void warmup(CompileResponse compileResponse) {
         // Validate artifact bytes are present
         if (compileResponse.getArtifactBytes() == null) {

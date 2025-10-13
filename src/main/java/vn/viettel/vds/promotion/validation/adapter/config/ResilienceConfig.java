@@ -8,12 +8,13 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-
 @Configuration
 public class ResilienceConfig {
 
-    private static final String FACT_RESOLVER = "factResolver";
+    private static final String FACT_RESOLVER_NAME = "factResolver";
+
+
+    private static final String FACT_RESOLVER = FACT_RESOLVER_NAME;
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
