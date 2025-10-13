@@ -20,8 +20,10 @@ public class PolicyEngine {
     }
 
     public CompletableFuture<ProvenanceInfo.FetchPolicy> determineFetchPolicy(FactRequest request) {
-        log.debug("Determining fetch policy for request: customerId={}, orderId={}",
-                request.customerId(), request.orderId());
+        if (log.isDebugEnabled()) {
+            log.debug("Determining fetch policy for request: customerId={}, orderId={}",
+                    request.customerId(), request.orderId());
+        }
 
         return CompletableFuture.supplyAsync(() -> {
             ProvenanceInfo.FetchPolicy policy = fetchPolicyRules.evaluate(request);

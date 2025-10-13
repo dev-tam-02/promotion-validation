@@ -129,7 +129,9 @@ public class SettingValidationRuleCommandHandler {
                         components.ruleId()
                 );
                 if (!hasNode) {
-                    logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}", components.ruleId());
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}", components.ruleId());
+                    }
                     // Auto-create the node instead of failing
                     boolean created = createProductApplicabilityNode(
                             components.ruleId(),
@@ -156,7 +158,9 @@ public class SettingValidationRuleCommandHandler {
             assignmentEntity = assignmentRepository.save(assignmentEntity);
             assignment.setId(assignmentEntity.getId());
 
-            logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}", components.campaignId(), components.ruleId(), assignment.getId());
+            if (logger.isInfoEnabled()) {
+                logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}", components.campaignId(), components.ruleId(), assignment.getId());
+            }
 
             // Process timeframe if provided
             String timeFrameId = null;

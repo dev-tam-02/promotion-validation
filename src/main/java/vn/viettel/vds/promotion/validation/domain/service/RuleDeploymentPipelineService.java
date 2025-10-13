@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
@@ -31,18 +30,12 @@ public class RuleDeploymentPipelineService {
     private static final String STAGE_DIRECT_DEPLOYMENT = "DIRECT_DEPLOYMENT";
 
     private final RulePublishingService rulePublishingService;
-    private final RuleVersioningService ruleVersioningService;
-    private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
     private final Executor deploymentExecutor;
 
     public RuleDeploymentPipelineService(RulePublishingService rulePublishingService,
-                                         RuleVersioningService ruleVersioningService,
-                                         ValidationEngineClient validationEngineClient,
                                          RulePersistencePort rulePersistencePort) {
         this.rulePublishingService = rulePublishingService;
-        this.ruleVersioningService = ruleVersioningService;
-        this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.deploymentExecutor = Executors.newVirtualThreadPerTaskExecutor();
     }

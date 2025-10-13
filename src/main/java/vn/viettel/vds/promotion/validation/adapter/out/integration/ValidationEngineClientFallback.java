@@ -27,8 +27,10 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
 
     @Override
     public ExecuteResponse execute(ExecuteRequest request) {
-        logger.error("Fallback: Rule execution failed for bundleHash={}, customerId={}",
-                request.getBundleHash(), request.getCustomer().id());
+        if (logger.isErrorEnabled()) {
+            logger.error("Fallback: Rule execution failed for bundleHash={}, customerId={}",
+                    request.getBundleHash(), request.getCustomer().id());
+        }
 
         ExecuteResponse fallbackResponse = new ExecuteResponse();
         fallbackResponse.setOk(false);

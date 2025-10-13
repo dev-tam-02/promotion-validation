@@ -1,8 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
 import com.promix.platform.core.exception.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,8 +14,6 @@ import java.util.Optional;
 @Service
 @Transactional(readOnly = true)
 public class RuleVersionService {
-
-    private static final Logger logger = LoggerFactory.getLogger(RuleVersionService.class);
 
     private final RuleVersionPersistencePort ruleVersionPersistencePort;
 

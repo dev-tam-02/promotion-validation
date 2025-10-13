@@ -27,18 +27,10 @@ public class RuleSimulationService {
 
     private final RuleService ruleService;
     private final RuleVersionService ruleVersionService;
-    private final OperatorService operatorService;
-    private final TemporalPolicyService temporalPolicyService;
-    private final ReasonCodeService reasonCodeService;
 
-    public RuleSimulationService(RuleService ruleService, RuleVersionService ruleVersionService,
-                                 OperatorService operatorService, TemporalPolicyService temporalPolicyService,
-                                 ReasonCodeService reasonCodeService) {
+    public RuleSimulationService(RuleService ruleService, RuleVersionService ruleVersionService) {
         this.ruleService = ruleService;
         this.ruleVersionService = ruleVersionService;
-        this.operatorService = operatorService;
-        this.temporalPolicyService = temporalPolicyService;
-        this.reasonCodeService = reasonCodeService;
     }
 
     /**

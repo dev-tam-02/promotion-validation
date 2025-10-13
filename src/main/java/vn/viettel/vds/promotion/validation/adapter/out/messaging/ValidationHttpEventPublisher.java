@@ -169,8 +169,10 @@ public class ValidationHttpEventPublisher implements EventPublisher {
                 logger.debug("Successfully published event to {}: status={}", serviceName, response.statusCode());
                 return true;
             } else {
-                logger.warn("Failed to publish event to {}: status={}, body={}",
-                        serviceName, response.statusCode(), response.body());
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Failed to publish event to {}: status={}, body={}",
+                            serviceName, response.statusCode(), response.body());
+                }
                 return false;
             }
 
