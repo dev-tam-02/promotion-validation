@@ -368,7 +368,7 @@ public class RulePublishingService {
             boolean isValid = isValidResponse(response);
 
             logger.debug("Rule verification completed: ruleId={}, valid={}, decision={}",
-                    rule.getId(), isValid, response.getDecision());
+                    rule.getId(), isValid, response != null ? response.getDecision() : null);
 
             return isValid;
 
