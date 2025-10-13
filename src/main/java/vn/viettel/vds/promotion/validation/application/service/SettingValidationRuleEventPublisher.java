@@ -228,7 +228,7 @@ public class SettingValidationRuleEventPublisher {
         metadata.put(CORRELATION_ID_KEY, commandId);
         metadata.put(SERVICE_NAME_KEY, serviceName);
         metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-        metadata.put("originalCommandId", originalCommand.getId().toString());
+        metadata.put("originalCommandId", originalCommand.getId());
 
         // Build Complete Event
         return SettingValidationRuleEvent.newBuilder()

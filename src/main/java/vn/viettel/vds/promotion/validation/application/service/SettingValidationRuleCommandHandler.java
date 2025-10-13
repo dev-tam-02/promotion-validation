@@ -59,7 +59,7 @@ public class SettingValidationRuleCommandHandler {
      * Handle SettingValidationRuleCommand
      */
     public boolean handleCommand(SettingValidationRuleCommand command) {
-        String commandId = command.getId().toString();
+        String commandId = command.getId();
 
         try {
             logger.info("Processing SettingValidationRuleCommand: commandId={}", commandId);
@@ -193,7 +193,7 @@ public class SettingValidationRuleCommandHandler {
         ApplicabilityScope applicableToData = payload.getApplicableTo();
         TimeFrame timeframeData = payload.getTimeframe();
         Integer priority = payload.getPriority();
-        String notes = payload.getNotes() != null ? payload.getNotes().toString() : null;
+        String notes = payload.getNotes();
 
         // Validate assignRule
         if (assignRuleData == null) {
@@ -207,7 +207,7 @@ public class SettingValidationRuleCommandHandler {
         }
 
         // Validate rule exists
-        String ruleId = assignRuleData.getRuleId().toString();
+        String ruleId = assignRuleData.getRuleId();
         if (ruleId == null || !validationRuleRepository.existsById(ruleId)) {
             return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
         }
@@ -233,7 +233,7 @@ public class SettingValidationRuleCommandHandler {
             return null;
         }
 
-        String subject = command.getSubject().toString();
+        String subject = command.getSubject();
 
         if (subject == null || subject.trim().isEmpty()) {
             logger.error("Campaign ID (command.subject) is null or empty");
@@ -422,9 +422,8 @@ public class SettingValidationRuleCommandHandler {
             vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
             String campaignId) {  // ✅ Changed from ApplicabilityScope to campaignId
 
-        String ruleId = assignRuleData.getRuleId().toString();
-        String assignmentId = assignRuleData.getAssignmentId() != null ?
-                assignRuleData.getAssignmentId().toString() : null;
+        String ruleId = assignRuleData.getRuleId();
+        String assignmentId = assignRuleData.getAssignmentId();
         Boolean active = assignRuleData.getActive();
         Integer trafficPercent = assignRuleData.getTrafficPercent();
 
@@ -561,7 +560,7 @@ public class SettingValidationRuleCommandHandler {
      * Handle dead letter commands (for monitoring/alerting)
      */
     public void handleDeadLetterCommand(SettingValidationRuleCommand command) {
-        String commandId = command.getId().toString();
+        String commandId = command.getId();
         logger.error("Processing dead letter command: commandId={}", commandId);
 
         // Could implement:
