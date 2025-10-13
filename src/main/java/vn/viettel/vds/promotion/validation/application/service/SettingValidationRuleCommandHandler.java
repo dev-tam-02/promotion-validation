@@ -467,8 +467,7 @@ public class SettingValidationRuleCommandHandler {
     private String processTimeframe(String ruleId, TimeFrame timeframeData) {
         try {
             // Extract timeframe components
-            String timeFrameId = timeframeData.getTimeFrameId() != null ?
-                    timeframeData.getTimeFrameId().toString() : null;
+            String timeFrameId = timeframeData.getTimeFrameId();
             String mode = timeframeData.getMode().toString();
 
             // Generate timeFrame ID if not provided
@@ -534,7 +533,6 @@ public class SettingValidationRuleCommandHandler {
                 return;
             }
             // Assignment result handled via publishSuccessEvent
-            var rule = validationRule.get();
 
             // Only deploy if assignment is active
             if (assignment.getActive() != null && assignment.getActive()) {

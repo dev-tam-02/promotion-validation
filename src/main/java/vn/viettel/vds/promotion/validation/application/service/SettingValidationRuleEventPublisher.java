@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
@@ -367,8 +366,6 @@ public class SettingValidationRuleEventPublisher {
                 messageBuilder.setHeader("saga-id", sagaId);
             }
 
-            Message<SettingValidationRuleEvent> message = messageBuilder.build();
-
             // Use KafkaUtils to send with Avro serialization
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
@@ -409,7 +406,7 @@ public class SettingValidationRuleEventPublisher {
                 validTo = expirationDate != null ? expirationDate.toEpochMilli() : null;
             }
             mode = timeframeData.getMode().toString();
-            timezone = timeframeData.getTimezone().toString();
+            timezone = timeframeData.getTimezone();
         }
 
         return TimeframeResult.newBuilder()

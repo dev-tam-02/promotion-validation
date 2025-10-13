@@ -185,6 +185,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
+    @SuppressWarnings("unused") // config reserved for future use
     private DeploymentStage executeCompilationStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing compilation stage: ruleId={}", ruleId);
 
@@ -221,6 +222,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
+    @SuppressWarnings("unused") // config reserved for future use
     private DeploymentStage executeBlueGreenStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing blue-green deployment stage: ruleId={}", ruleId);
 
@@ -238,6 +240,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
+    @SuppressWarnings("unused") // config reserved for future use
     private DeploymentStage executeDirectDeploymentStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing direct deployment stage: ruleId={}", ruleId);
 
@@ -258,6 +261,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
+    @SuppressWarnings("unused") // config reserved for future use
     private DeploymentStage executeHealthCheckStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing health check stage: ruleId={}", ruleId);
 
@@ -277,6 +281,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
+    @SuppressWarnings("unused") // ruleId reserved for future use
     private boolean runRuleTests(String ruleId, List<TestScenario> testScenarios) {
         if (testScenarios == null || testScenarios.isEmpty()) {
             logger.debug("No test scenarios provided, skipping tests");

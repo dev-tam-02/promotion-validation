@@ -8,7 +8,6 @@ import vn.viettel.vds.promotion.schema.validation.command.RollbackValidationRule
 import vn.viettel.vds.promotion.schema.validation.command.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 
@@ -212,7 +211,6 @@ public class RollbackValidationRuleCommandHandler {
                 return;
             }
             // Rule validation handled within undeployRuleFromEngine
-            ValidationRuleEntity rule = ruleOpt.get();
             removeRuleFromEngine(ruleId, assignment);
 
         } catch (Exception e) {
