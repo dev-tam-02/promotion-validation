@@ -57,7 +57,7 @@ public class RetryService {
         RetryRegistry registry = RetryRegistry.of(defaultConfig);
 
         // Event listeners for monitoring are disabled to avoid API compatibility issues
-        // TODO: Implement with correct Resilience4j event API
+        // Metrics are exposed via getRetryStatus() method instead
 
         return registry;
     }

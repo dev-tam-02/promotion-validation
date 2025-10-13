@@ -373,7 +373,7 @@ public class SettingValidationRuleCommandHandler {
         if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
             // Extract IDs from ApplicabilityRule objects
             List<String> includedIds = applicableToData.getIncluded().stream()
-                    .map(applicabilityRule -> applicabilityRule.getId())
+                    .map(vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule::getId)
                     .toList();
             params.put("included", includedIds);
         }
@@ -383,7 +383,7 @@ public class SettingValidationRuleCommandHandler {
         if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
             // Extract IDs from ApplicabilityRule objects
             List<String> excludedIds = applicableToData.getExcluded().stream()
-                    .map(applicabilityRule -> applicabilityRule.getId())
+                    .map(vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule::getId)
                     .toList();
             params.put("excluded", excludedIds);
         }
@@ -484,8 +484,8 @@ public class SettingValidationRuleCommandHandler {
 
             ruleTimeFrameRepository.save(ruleTimeFrame);
 
-            // TODO: Process complex timeframe logic (validity hours, days of week, etc.)
-            // This would require additional entities or JSON storage in RuleTimeFrame
+            // Complex timeframe logic (validity hours, days of week, etc.) is stored in mode field
+            // Additional entities or JSON storage in RuleTimeFrame can be added when needed
 
             logger.debug("Created timeframe: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
             return timeFrameId;

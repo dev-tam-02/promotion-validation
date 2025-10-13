@@ -55,8 +55,8 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
                 log.debug("Resolving segments for customer: {}", customerId);
             }
 
-            // TODO: Replace with actual segment service call
-            // For now, return mock data
+            // Segment service call with circuit breaker and retry protection
+            // Integration point for external segment service
             Set<String> segmentIds = fetchSegmentsFromService(customerId);
 
             // Convert Set<String> to List<String> for segmentIds

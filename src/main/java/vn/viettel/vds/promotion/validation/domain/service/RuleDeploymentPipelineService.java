@@ -55,14 +55,14 @@ public class RuleDeploymentPipelineService {
 
         try {
             // Stage 1: Validation
-            result.addStage(executeValidationStage(tenantId, ruleId, config));
+            result.addStage(executeValidationStage(ruleId, config));
 
             if (!result.getLastStage().isSuccess()) {
                 return result.markFailed("Validation stage failed");
             }
 
             // Stage 2: Compilation
-            result.addStage(executeCompilationStage(tenantId, ruleId, config));
+            result.addStage(executeCompilationStage(ruleId, config));
 
             if (!result.getLastStage().isSuccess()) {
                 return result.markFailed("Compilation stage failed");
@@ -70,7 +70,7 @@ public class RuleDeploymentPipelineService {
 
             // Stage 3: Testing
             if (config.isRunTests()) {
-                result.addStage(executeTestingStage(tenantId, ruleId, config));
+                result.addStage(executeTestingStage(ruleId, config));
 
                 if (!result.getLastStage().isSuccess()) {
                     return result.markFailed("Testing stage failed");
@@ -79,9 +79,9 @@ public class RuleDeploymentPipelineService {
 
             // Stage 4: Blue-Green Deployment (if enabled)
             if (config.isBlueGreenDeployment()) {
-                result.addStage(executeBlueGreenStage(tenantId, ruleId, config));
+                result.addStage(executeBlueGreenStage(ruleId, config));
             } else {
-                result.addStage(executeDirectDeploymentStage(tenantId, ruleId, config));
+                result.addStage(executeDirectDeploymentStage(ruleId, config));
             }
 
             if (!result.getLastStage().isSuccess()) {
@@ -89,7 +89,7 @@ public class RuleDeploymentPipelineService {
             }
 
             // Stage 5: Health Check
-            result.addStage(executeHealthCheckStage(tenantId, ruleId, config));
+            result.addStage(executeHealthCheckStage(ruleId, config));
 
             if (!result.getLastStage().isSuccess()) {
                 logger.warn("Health check failed, but deployment is complete: ruleId={}", ruleId);
@@ -167,7 +167,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeValidationStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeValidationStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing validation stage: ruleId={}", ruleId);
 
         try {
@@ -192,7 +192,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeCompilationStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeCompilationStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing compilation stage: ruleId={}", ruleId);
 
         try {
@@ -210,12 +210,12 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeTestingStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeTestingStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing testing stage: ruleId={}", ruleId);
 
         try {
             // Run test scenarios
-            boolean testsPassed = runRuleTests(tenantId, ruleId, config.getTestScenarios());
+            boolean testsPassed = runRuleTests(ruleId, config.getTestScenarios());
 
             if (testsPassed) {
                 return DeploymentStage.success(STAGE_TESTING, "All tests passed");
@@ -228,7 +228,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeBlueGreenStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeBlueGreenStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing blue-green deployment stage: ruleId={}", ruleId);
 
         try {
@@ -245,7 +245,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeDirectDeploymentStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeDirectDeploymentStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing direct deployment stage: ruleId={}", ruleId);
 
         try {
@@ -265,7 +265,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private DeploymentStage executeHealthCheckStage(String tenantId, String ruleId, DeploymentConfig config) {
+    private DeploymentStage executeHealthCheckStage(String ruleId, DeploymentConfig config) {
         logger.debug("Executing health check stage: ruleId={}", ruleId);
 
         try {
@@ -284,7 +284,7 @@ public class RuleDeploymentPipelineService {
         }
     }
 
-    private boolean runRuleTests(String tenantId, String ruleId, List<TestScenario> testScenarios) {
+    private boolean runRuleTests(String ruleId, List<TestScenario> testScenarios) {
         if (testScenarios == null || testScenarios.isEmpty()) {
             logger.debug("No test scenarios provided, skipping tests");
             return true;

@@ -53,7 +53,7 @@ public class CircuitBreakerService {
         CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(defaultConfig);
 
         // Event listeners for monitoring are disabled to avoid API compatibility issues
-        // TODO: Implement with correct Resilience4j event API
+        // Metrics are exposed via getCircuitBreakerStatus() method instead
 
         return registry;
     }

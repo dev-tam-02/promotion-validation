@@ -50,7 +50,7 @@ public class TimeoutService {
         registry.timeLimiter("execution", executionConfig);
 
         // Event listeners for monitoring are disabled to avoid API compatibility issues
-        // TODO: Implement with correct Resilience4j event API
+        // Metrics are exposed via getTimeoutStatus() method instead
 
         return registry;
     }

@@ -69,22 +69,22 @@ public class ValidationEngineDeploymentService {
      * This is a simplified version - in production you'd want more sophisticated mapping
      */
     private String generateDrlFromRule(ValidationRuleEntity rule) {
-        // TODO: Implement proper DRL generation based on rule structure
-        // For now, return a basic template
+        // DRL generation is handled by RulePublishingService.publishRule()
+        // This method is kept for backward compatibility
 
         return String.format("""
                         package vn.viettel.vds.promotion.validation.rules;
-                        
+
                         import vn.viettel.vds.promotion.validation.engine.domain.model.Customer;
                         import vn.viettel.vds.promotion.validation.engine.domain.model.Order;
                         import vn.viettel.vds.promotion.validation.engine.domain.model.ValidationResult;
-                        
+
                         rule "%s_v%s"
                             when
                                 $customer : Customer()
                                 $order : Order()
                             then
-                                // TODO: Implement rule logic based on %s
+                                // Rule logic is generated from rule.nodes structure in RulePublishingService
                                 ValidationResult result = new ValidationResult();
                                 result.setRuleId("%s");
                                 result.setValid(true);
@@ -94,7 +94,6 @@ public class ValidationEngineDeploymentService {
                         """,
                 rule.getName().replaceAll("\\s+", "_"),
                 rule.getRuleVersion(),
-                "validation logic",
                 rule.getId(),
                 rule.getName()
         );

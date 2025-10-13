@@ -36,7 +36,7 @@ public class BulkheadService {
         BulkheadRegistry registry = BulkheadRegistry.of(defaultConfig);
 
         // Event listeners for monitoring are disabled to avoid API compatibility issues
-        // TODO: Implement with correct Resilience4j event API
+        // Metrics are exposed via getBulkheadStatus() method instead
 
         return registry;
     }
