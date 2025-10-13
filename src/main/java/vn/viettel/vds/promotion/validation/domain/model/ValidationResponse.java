@@ -17,9 +17,9 @@ public class ValidationResponse {
     public ValidationResponse() {
     }
 
-    public ValidationResponse(String transactionId, boolean valid, String message, String errorCode,
-                              Instant timestamp, Long executionTimeMs, List<String> rulesFired,
-                              Map<String, Object> metadata) {
+    private ValidationResponse(String transactionId, boolean valid, String message, String errorCode,
+                               Instant timestamp, Long executionTimeMs, List<String> rulesFired,
+                               Map<String, Object> metadata) {
         this.transactionId = transactionId;
         this.valid = valid;
         this.message = message;

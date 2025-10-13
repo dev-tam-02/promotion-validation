@@ -174,8 +174,9 @@ public class RuleNode {
     }
 
     // Getters for additional fields
+    // Alias for getNodeId() - provided for backward compatibility and convenience
     public String getId() {
-        return nodeId;
+        return getNodeId();
     }
 
     public NodeType getType() {

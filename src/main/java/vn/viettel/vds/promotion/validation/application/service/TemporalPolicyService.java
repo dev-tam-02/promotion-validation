@@ -41,35 +41,33 @@ public class TemporalPolicyService {
     /**
      * Create a new temporal policy
      */
-    public TemporalPolicy createTemporalPolicy(String tenantId, String name, String timezone,
-                                               String rrule, List<String> rdate, String exrule,
-                                               List<String> exdate, List<TimeOfDayWindow> timeWindows) {
-        logger.info("Creating temporal policy: tenant={}, name={}", tenantId, name);
+    public TemporalPolicy createTemporalPolicy(String tenantId, TemporalPolicyRequest request) {
+        logger.info("Creating temporal policy: tenant={}, name={}", tenantId, request.name());
 
         // Check if policy with same name already exists
-        if (temporalPolicyPersistencePort.existsByTenantIdAndName(tenantId, name)) {
+        if (temporalPolicyPersistencePort.existsByTenantIdAndName(tenantId, request.name())) {
             throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
-                    "Temporal policy with name '" + name + "' already exists for tenant " + tenantId, 400));
+                    "Temporal policy with name '" + request.name() + "' already exists for tenant " + tenantId, 400));
         }
 
         // Validate timezone
-        validateTimezone(timezone);
+        validateTimezone(request.timezone());
 
         // Validate RRULE
-        if (rrule != null) {
-            validateRRule(rrule);
+        if (request.rrule() != null) {
+            validateRRule(request.rrule());
         }
 
         Instant now = Instant.now();
         TemporalPolicy policy = TemporalPolicy.builder()
-                .id(generatePolicyId(tenantId, name))
-                .name(name)
-                .tz(timezone)
-                .rrule(rrule)
-                .rdate(rdate)
-                .exrule(exrule)
-                .exdate(exdate)
-                .timeOfDayWindows(timeWindows)
+                .id(generatePolicyId(tenantId, request.name()))
+                .name(request.name())
+                .tz(request.timezone())
+                .rrule(request.rrule())
+                .rdate(request.rdate())
+                .exrule(request.exrule())
+                .exdate(request.exdate())
+                .timeOfDayWindows(request.timeWindows())
                 .createdAt(now)
                 .updatedAt(now)
                 .version(0L)
@@ -84,9 +82,7 @@ public class TemporalPolicyService {
     /**
      * Update an existing temporal policy
      */
-    public TemporalPolicy updateTemporalPolicy(String policyId, String name, String timezone,
-                                               String rrule, List<String> rdate, String exrule,
-                                               List<String> exdate, List<TimeOfDayWindow> timeWindows) {
+    public TemporalPolicy updateTemporalPolicy(String policyId, TemporalPolicyRequest request) {
         logger.info("Updating temporal policy: id={}", policyId);
 
         TemporalPolicy policy = getTemporalPolicyById(policyId);
@@ -94,40 +90,40 @@ public class TemporalPolicyService {
         // Use toBuilder() to create a mutable copy
         TemporalPolicy.TemporalPolicyBuilder builder = policy.toBuilder();
 
-        if (name != null) {
+        if (request.name() != null) {
             // Check if new name conflicts with existing policy
-            if (!policy.getName().equals(name) &&
-                    temporalPolicyPersistencePort.existsByTenantIdAndName(null, name)) {
+            if (!policy.getName().equals(request.name()) &&
+                    temporalPolicyPersistencePort.existsByTenantIdAndName(null, request.name())) {
                 throw new BusinessException(new ResponseInfo("TEMPORAL_POLICY_EXISTS",
-                        "Temporal policy with name '" + name + "' already exists", 400));
+                        "Temporal policy with name '" + request.name() + "' already exists", 400));
             }
-            builder.name(name);
+            builder.name(request.name());
         }
 
-        if (timezone != null) {
-            validateTimezone(timezone);
-            builder.tz(timezone);
+        if (request.timezone() != null) {
+            validateTimezone(request.timezone());
+            builder.tz(request.timezone());
         }
 
-        if (rrule != null) {
-            validateRRule(rrule);
-            builder.rrule(rrule);
+        if (request.rrule() != null) {
+            validateRRule(request.rrule());
+            builder.rrule(request.rrule());
         }
 
-        if (rdate != null) {
-            builder.rdate(rdate);
+        if (request.rdate() != null) {
+            builder.rdate(request.rdate());
         }
 
-        if (exrule != null) {
-            builder.exrule(exrule);
+        if (request.exrule() != null) {
+            builder.exrule(request.exrule());
         }
 
-        if (exdate != null) {
-            builder.exdate(exdate);
+        if (request.exdate() != null) {
+            builder.exdate(request.exdate());
         }
 
-        if (timeWindows != null) {
-            builder.timeOfDayWindows(timeWindows);
+        if (request.timeWindows() != null) {
+            builder.timeOfDayWindows(request.timeWindows());
         }
 
         builder.updatedAt(Instant.now());

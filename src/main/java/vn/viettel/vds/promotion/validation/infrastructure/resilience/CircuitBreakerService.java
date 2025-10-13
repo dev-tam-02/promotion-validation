@@ -151,9 +151,9 @@ public class CircuitBreakerService {
         private final long numberOfSlowCalls;
         private final long numberOfNotPermittedCalls;
 
-        public CircuitBreakerStatus(String name, CircuitBreaker.State state, float failureRate,
-                                    float slowCallRate, long numberOfFailedCalls, long numberOfSuccessfulCalls,
-                                    long numberOfSlowCalls, long numberOfNotPermittedCalls) {
+        private CircuitBreakerStatus(String name, CircuitBreaker.State state, float failureRate,
+                                     float slowCallRate, long numberOfFailedCalls, long numberOfSuccessfulCalls,
+                                     long numberOfSlowCalls, long numberOfNotPermittedCalls) {
             this.name = name;
             this.state = state;
             this.failureRate = failureRate;

@@ -20,9 +20,9 @@ public class ValidationRequest {
     public ValidationRequest() {
     }
 
-    public ValidationRequest(String transactionId, String promotionId, String customerId, String sessionId,
-                             Map<String, Object> context, List<String> rules, Instant timestamp, BigDecimal orderValue,
-                             ValidationContext validationContext) {
+    private ValidationRequest(String transactionId, String promotionId, String customerId, String sessionId,
+                              Map<String, Object> context, List<String> rules, Instant timestamp, BigDecimal orderValue,
+                              ValidationContext validationContext) {
         this.transactionId = transactionId;
         this.promotionId = promotionId;
         this.customerId = customerId;
@@ -38,8 +38,9 @@ public class ValidationRequest {
         return new Builder();
     }
 
+    // Alias for getTransactionId() - provided for backward compatibility
     public String getRequestId() {
-        return transactionId;
+        return getTransactionId();
     }
 
     public String getTransactionId() {

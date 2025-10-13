@@ -266,17 +266,17 @@ public class RuleVersioningService {
     }
 
     private RuleVersionInfo convertToVersionInfo(RuleVersion ruleVersion) {
-        return new RuleVersionInfo(
-                ruleVersion.getId(),
-                ruleVersion.getRuleVersion(), // Use ruleVersion (Integer) not version (Long)
-                ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT,
-                ruleVersion.getCode(), // Using code as name
-                null, // description not available in RuleVersion
-                ruleVersion.getCompile() != null ? ruleVersion.getCompile().getBundleHash() : null,
-                null, // createdAt not available in RuleVersion
-                ruleVersion.getPublishedAt(),
-                ruleVersion.getDsl()
-        );
+        return RuleVersionInfo.builder()
+                .ruleId(ruleVersion.getId())
+                .version(ruleVersion.getRuleVersion()) // Use ruleVersion (Integer) not version (Long)
+                .status(ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT)
+                .name(ruleVersion.getCode()) // Using code as name
+                .description(null) // description not available in RuleVersion
+                .bundleHash(ruleVersion.getCompile() != null ? ruleVersion.getCompile().getBundleHash() : null)
+                .createdAt(null) // createdAt not available in RuleVersion
+                .publishedAt(ruleVersion.getPublishedAt())
+                .metadata(ruleVersion.getDsl())
+                .build();
     }
 
     /**
@@ -385,9 +385,9 @@ public class RuleVersioningService {
         private final Instant publishedAt;
         private final java.util.Map<String, Object> metadata;
 
-        public RuleVersionInfo(String ruleId, Integer version, Rule.RuleState status, String name,
-                               String description, String bundleHash, Instant createdAt,
-                               Instant publishedAt, java.util.Map<String, Object> metadata) {
+        private RuleVersionInfo(String ruleId, Integer version, Rule.RuleState status, String name,
+                                String description, String bundleHash, Instant createdAt,
+                                Instant publishedAt, java.util.Map<String, Object> metadata) {
             this.ruleId = ruleId;
             this.version = version;
             this.status = status;
@@ -397,6 +397,10 @@ public class RuleVersioningService {
             this.createdAt = createdAt;
             this.publishedAt = publishedAt;
             this.metadata = metadata;
+        }
+
+        public static Builder builder() {
+            return new Builder();
         }
 
         // Getters
@@ -434,6 +438,67 @@ public class RuleVersioningService {
 
         public java.util.Map<String, Object> getMetadata() {
             return metadata;
+        }
+
+        public static class Builder {
+            private String ruleId;
+            private Integer version;
+            private Rule.RuleState status;
+            private String name;
+            private String description;
+            private String bundleHash;
+            private Instant createdAt;
+            private Instant publishedAt;
+            private java.util.Map<String, Object> metadata;
+
+            public Builder ruleId(String ruleId) {
+                this.ruleId = ruleId;
+                return this;
+            }
+
+            public Builder version(Integer version) {
+                this.version = version;
+                return this;
+            }
+
+            public Builder status(Rule.RuleState status) {
+                this.status = status;
+                return this;
+            }
+
+            public Builder name(String name) {
+                this.name = name;
+                return this;
+            }
+
+            public Builder description(String description) {
+                this.description = description;
+                return this;
+            }
+
+            public Builder bundleHash(String bundleHash) {
+                this.bundleHash = bundleHash;
+                return this;
+            }
+
+            public Builder createdAt(Instant createdAt) {
+                this.createdAt = createdAt;
+                return this;
+            }
+
+            public Builder publishedAt(Instant publishedAt) {
+                this.publishedAt = publishedAt;
+                return this;
+            }
+
+            public Builder metadata(java.util.Map<String, Object> metadata) {
+                this.metadata = metadata;
+                return this;
+            }
+
+            public RuleVersionInfo build() {
+                return new RuleVersionInfo(ruleId, version, status, name, description, bundleHash, createdAt, publishedAt, metadata);
+            }
         }
     }
 }
