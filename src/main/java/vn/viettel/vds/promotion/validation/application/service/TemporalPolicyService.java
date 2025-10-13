@@ -42,7 +42,9 @@ public class TemporalPolicyService {
      * Create a new temporal policy
      */
     public TemporalPolicy createTemporalPolicy(String tenantId, TemporalPolicyRequest request) {
-        logger.info("Creating temporal policy: tenant={}, name={}", tenantId, request.name());
+        if (logger.isInfoEnabled()) {
+            logger.info("Creating temporal policy: tenant={}, name={}", tenantId, request.name());
+        }
 
         // Check if policy with same name already exists
         if (temporalPolicyPersistencePort.existsByTenantIdAndName(tenantId, request.name())) {

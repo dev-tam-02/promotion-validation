@@ -226,11 +226,5 @@ public class FallbackService {
                     .map(Map.Entry::getKey)
                     .orElse("none");
         }
-
-        public double getFallbackRate() {
-            // This would need to be calculated based on total requests
-            // For now, return the fallback execution count
-            return totalFallbackExecutions;
-        }
     }
 }

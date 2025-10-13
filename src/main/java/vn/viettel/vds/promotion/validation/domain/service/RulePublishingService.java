@@ -115,12 +115,6 @@ public class RulePublishingService {
                 RulePublishResult result = publishRule(ruleId);
                 results.add(result);
 
-                // If critical rule fails, consider stopping batch
-                if (!result.isSuccess() && isCriticalRule(ruleId)) {
-                    logger.warn("Critical rule failed in batch, stopping: ruleId={}", ruleId);
-                    break;
-                }
-
             } catch (Exception e) {
                 logger.error("Failed to publish rule in batch: ruleId={}", ruleId, e);
                 results.add(RulePublishResult.failed(ruleId, "Batch publish failed: " + e.getMessage()));
@@ -148,8 +142,6 @@ public class RulePublishingService {
 
             // Update rule status
             rule.setState(Rule.RuleState.DRAFT);
-            // Note: bundleHash not available in current entity
-            // rule.setBundleHash(null);
             rule.setUpdatedAt(Instant.now());
 
             rulePersistencePort.save(rule);
@@ -202,25 +194,40 @@ public class RulePublishingService {
     }
 
     private void validateNodeStructure(List<RuleNode> nodes) {
+        Map<String, RuleNode> nodeMap = buildNodeMap(nodes);
+        validateNodeReferences(nodes, nodeMap);
+    }
+
+    private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
         Map<String, RuleNode> nodeMap = new HashMap<>();
         for (RuleNode node : nodes) {
-            if (node.getId() == null || node.getId().isBlank()) {
-                throw new IllegalArgumentException("Node must have an ID");
-            }
-            if (node.getType() == null) {
-                throw new IllegalArgumentException("Node must have a type");
-            }
+            validateNode(node);
             nodeMap.put(node.getId(), node);
         }
+        return nodeMap;
+    }
 
-        // Validate references
+    private void validateNode(RuleNode node) {
+        if (node.getId() == null || node.getId().isBlank()) {
+            throw new IllegalArgumentException("Node must have an ID");
+        }
+        if (node.getType() == null) {
+            throw new IllegalArgumentException("Node must have a type");
+        }
+    }
+
+    private void validateNodeReferences(List<RuleNode> nodes, Map<String, RuleNode> nodeMap) {
         for (RuleNode node : nodes) {
             if (RuleNode.NodeType.GROUP.equals(node.getType()) && node.getChildren() != null) {
-                for (RuleNode childNode : node.getChildren()) {
-                    if (!nodeMap.containsKey(childNode.getId())) {
-                        throw new IllegalArgumentException("Node references non-existent child: " + childNode.getId());
-                    }
-                }
+                validateChildren(node, nodeMap);
+            }
+        }
+    }
+
+    private void validateChildren(RuleNode node, Map<String, RuleNode> nodeMap) {
+        for (RuleNode childNode : node.getChildren()) {
+            if (!nodeMap.containsKey(childNode.getId())) {
+                throw new IllegalArgumentException("Node references non-existent child: " + childNode.getId());
             }
         }
     }
@@ -305,44 +312,6 @@ public class RulePublishingService {
         dto.setChildren(childIds);
         dto.setOrder(null); // Not available in current model
         return dto;
-    }
-
-    private List<Map<String, Object>> convertNodesToMaps(List<RuleNode> nodes) {
-        return nodes.stream()
-                .map(this::convertRuleNodeToMap)
-                .toList();
-    }
-
-    private Map<String, Object> convertRuleNodeToMap(RuleNode node) {
-        Map<String, Object> nodeMap = new HashMap<>();
-        nodeMap.put("id", node.getId());
-        nodeMap.put("type", node.getType() != null ? node.getType().name() : null);
-
-        if (node.getGroupLogic() != null) {
-            nodeMap.put("groupLogic", node.getGroupLogic().name());
-        }
-
-        if (node.getOperatorName() != null) {
-            nodeMap.put("operatorName", node.getOperatorName());
-        }
-
-        if (node.getParams() != null) {
-            nodeMap.put("params", node.getParams());
-        }
-
-        if (node.getReasonCode() != null) {
-            nodeMap.put("reasonCode", node.getReasonCode());
-        }
-
-        // Convert children to IDs
-        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-            List<String> childIds = new ArrayList<>();
-            for (RuleNode child : node.getChildren()) {
-                childIds.add(child.getId());
-            }
-            nodeMap.put("children", childIds);
-        }
-        return nodeMap;
     }
 
     private String generateOperatorFingerprint(List<RuleNode> nodes) {
@@ -459,13 +428,6 @@ public class RulePublishingService {
         request.setExecutionContext(context);
 
         return request;
-    }
-
-    @SuppressWarnings("java:S1172") // ruleId parameter reserved for future critical rule determination logic
-    private boolean isCriticalRule(String ruleId) {
-        // Implement logic to determine if a rule is critical
-        // For now, assume all rules are non-critical
-        return false;
     }
 
     @SuppressWarnings("java:S1172") // bundleHash parameter reserved for future validation rule enhancement

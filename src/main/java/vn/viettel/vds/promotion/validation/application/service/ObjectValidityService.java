@@ -169,7 +169,7 @@ public class ObjectValidityService {
 
                 // Only fail validation if we definitively know the campaign is inactive
                 // If status is unknown (null) or active (true), we allow validation to pass
-                if (!isActive) {
+                if (Boolean.FALSE.equals(isActive)) {
                     return ValidationResult.failure(
                             "OBJECT_INACTIVE",
                             String.format("Campaign %s is not in active status", objectId)

@@ -95,16 +95,16 @@ public class RuleVersioningService {
 
             // Add rollback metadata using notes field
             String rollbackInfo = String.format("Rolled back from version %d to %d at %s",
-                    currentRule.getLatestVersion(), targetRuleVersion.getVersion(), Instant.now());
+                    currentRule.getLatestVersion(), targetRuleVersion.getEntityVersion(), Instant.now());
             rolledBackRule.setNotes(rollbackInfo);
 
             Rule savedRule = rulePersistencePort.save(rolledBackRule);
 
             logger.info("Rule rolled back successfully: ruleId={}, newVersion={}, rolledBackToVersion={}",
-                    ruleId, savedRule.getLatestVersion(), targetRuleVersion.getVersion().intValue());
+                    ruleId, savedRule.getLatestVersion(), targetRuleVersion.getEntityVersion().intValue());
 
             return RuleVersionResult.success(savedRule.getId(), savedRule.getLatestVersion(),
-                    "Rolled back to version " + targetRuleVersion.getVersion().intValue());
+                    "Rolled back to version " + targetRuleVersion.getEntityVersion().intValue());
 
         } catch (Exception e) {
             logger.error("Failed to rollback rule: ruleId={}, targetVersion={}",
@@ -123,7 +123,7 @@ public class RuleVersioningService {
 
             return versions.stream()
                     .map(this::convertToVersionInfo)
-                    .sorted((v1, v2) -> Integer.compare(v2.getVersion(), v1.getVersion().intValue())) // Descending order
+                    .sorted((v1, v2) -> Integer.compare(v2.getEntityVersion(), v1.getEntityVersion().intValue())) // Descending order
                     .toList();
 
         } catch (Exception e) {
@@ -201,7 +201,7 @@ public class RuleVersioningService {
         // Convert List<Map<String, Object>> to List<RuleNode>
         rule.setNodes(convertNodesToRuleNodes(source.getNodes()));
         rule.setLimits(convertMapToUsageLimits(source.getLimits()));
-        rule.setNotes("Restored from version " + source.getVersion().intValue());
+        rule.setNotes("Restored from version " + source.getEntityVersion().intValue());
 
         return rule;
     }
@@ -224,7 +224,7 @@ public class RuleVersioningService {
     }
 
     private void validateRollback(Rule currentRule, RuleVersion targetRuleVersion) {
-        if (currentRule.getLatestVersion().equals(targetRuleVersion.getVersion().intValue())) {
+        if (currentRule.getLatestVersion().equals(targetRuleVersion.getEntityVersion().intValue())) {
             throw new IllegalArgumentException("Cannot rollback to the same version");
         }
 
@@ -361,7 +361,7 @@ public class RuleVersioningService {
             return ruleId;
         }
 
-        public Integer getVersion() {
+        public Integer getEntityVersion() {
             return version;
         }
 
@@ -408,7 +408,7 @@ public class RuleVersioningService {
             return ruleId;
         }
 
-        public Integer getVersion() {
+        public Integer getEntityVersion() {
             return version;
         }
 

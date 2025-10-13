@@ -292,7 +292,7 @@ public class PublishService {
                 .publishedAt(now)
                 .publishedBy(job.getRequestedBy())
                 .createdAt(now)
-                .version(0L)
+                .entityVersion(0L)
                 .build();
 
         return ruleVersionPersistencePort.save(ruleVersion);

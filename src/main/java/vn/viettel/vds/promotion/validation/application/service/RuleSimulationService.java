@@ -121,7 +121,7 @@ public class RuleSimulationService {
                 .filter(node -> node.getChildren() != null)
                 .flatMap(node -> node.getChildren().stream()
                         .map(RuleNode::getId)
-                        .filter(id -> id != null))
+                        .filter(java.util.Objects::nonNull))
                 .collect(Collectors.toSet());
 
         List<String> rootNodeIds = nodes.stream()
@@ -270,6 +270,7 @@ public class RuleSimulationService {
         return customerSegments.stream().anyMatch(requiredSegments::contains) ? Decision.ALLOW : Decision.DENY;
     }
 
+    @SuppressWarnings("java:S1172") // params parameter reserved for future time window configuration
     private Decision simulateTimeWindowActive(Map<String, Object> params, SimulationContext context) {
         // Simplified time window check
         Instant now = context.getNow() != null ? context.getNow() : Instant.now();

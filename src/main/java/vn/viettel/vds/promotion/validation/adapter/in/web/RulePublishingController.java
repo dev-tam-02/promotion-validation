@@ -105,7 +105,7 @@ public class RulePublishingController {
                     })
                     .toList();
 
-            long successCount = responses.stream().mapToLong(r -> r.isSuccess() ? 1L : 0L).sum();
+            long successCount = responses.stream().mapToLong(r -> Boolean.TRUE.equals(r.isSuccess()) ? 1L : 0L).sum();
             logger.info("Batch publishing completed: total={}, successful={}, failed={}",
                     responses.size(), successCount, responses.size() - successCount);
 

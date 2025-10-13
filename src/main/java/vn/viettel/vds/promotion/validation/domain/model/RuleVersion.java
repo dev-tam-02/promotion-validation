@@ -32,7 +32,7 @@ public class RuleVersion {
     String createdBy;
     Instant updatedAt;
     String updatedBy;
-    Long version;
+    Long entityVersion;
 
     public enum LogicType {
         ALL, ANY, NONE

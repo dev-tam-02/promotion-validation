@@ -97,7 +97,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             updatedRule.type(command.getType().name());
         }
         if (command.getActive() != null) {
-            updatedRule.state(command.getActive() ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT);
+            updatedRule.state(Boolean.TRUE.equals(command.getActive()) ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT);
         }
         if (command.getPriority() != null) {
             updatedRule.priority(command.getPriority());

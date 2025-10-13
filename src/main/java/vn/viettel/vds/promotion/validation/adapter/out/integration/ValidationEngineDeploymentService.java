@@ -22,36 +22,6 @@ public class ValidationEngineDeploymentService {
     }
 
     /**
-     * This method is deprecated - use RulePublishingService instead for rule compilation
-     * @deprecated As of release 1.0, replaced by {@link vn.viettel.vds.promotion.validation.domain.service.RulePublishingService}
-     */
-    @Deprecated(since = "1.0", forRemoval = true)
-    public boolean deployRule(ValidationRuleEntity rule) {
-        logger.warn("deployRule is deprecated - use RulePublishingService.publishRule instead");
-        return true;
-    }
-
-    /**
-     * This method is deprecated - bundle management is now handled automatically by compile/warmup
-     * @deprecated As of release 1.0, bundle management is now automatic
-     */
-    @Deprecated(since = "1.0", forRemoval = true)
-    public boolean removeRule(String ruleId) {
-        logger.warn("removeRule is deprecated - bundle management is now automatic");
-        return true;
-    }
-
-    /**
-     * This method is deprecated - bundle management is now handled automatically by compile/warmup
-     * @deprecated As of release 1.0, bundle management is now automatic
-     */
-    @Deprecated(since = "1.0", forRemoval = true)
-    public boolean reloadRules() {
-        logger.warn("reloadRules is deprecated - bundle management is now automatic");
-        return true;
-    }
-
-    /**
      * Check if validation-engine is healthy
      */
     public boolean isHealthy() {
@@ -62,40 +32,5 @@ public class ValidationEngineDeploymentService {
             logger.warn("Validation-engine health check failed", e);
             return false;
         }
-    }
-
-    /**
-     * Generate DRL (Drools Rule Language) content from ValidationRuleEntity
-     * This is a simplified version - in production you'd want more sophisticated mapping
-     */
-    private String generateDrlFromRule(ValidationRuleEntity rule) {
-        // DRL generation is handled by RulePublishingService.publishRule()
-        // This method is kept for backward compatibility
-
-        return String.format("""
-                        package vn.viettel.vds.promotion.validation.rules;
-
-                        import vn.viettel.vds.promotion.validation.engine.domain.model.Customer;
-                        import vn.viettel.vds.promotion.validation.engine.domain.model.Order;
-                        import vn.viettel.vds.promotion.validation.engine.domain.model.ValidationResult;
-
-                        rule "%s_v%s"
-                            when
-                                $customer : Customer()
-                                $order : Order()
-                            then
-                                // Rule logic is generated from rule.nodes structure in RulePublishingService
-                                ValidationResult result = new ValidationResult();
-                                result.setRuleId("%s");
-                                result.setValid(true);
-                                result.setMessage("Rule %s executed successfully");
-                                insert(result);
-                        end
-                        """,
-                rule.getName().replaceAll("\\s+", "_"),
-                rule.getRuleVersion(),
-                rule.getId(),
-                rule.getName()
-        );
     }
 }

@@ -66,5 +66,7 @@ public class WarmupResponse {
         return java.util.Collections.emptyList();
     }
 
-    public void setErrors(java.util.List<String> errors) { /* Ignored */ }
+    public void setErrors(java.util.List<String> errors) {
+        // Ignored - warmup doesn't have errors field
+    }
 }

@@ -10,10 +10,10 @@ import java.util.List;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE, unmappedSourcePolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface RuleVersionEntityMapper {
 
-    @Mapping(source = "ruleVersion", target = "version")
+    @Mapping(source = "version", target = "entityVersion")
     RuleVersion toDomain(RuleVersionEntity entity);
 
-    @Mapping(source = "version", target = "ruleVersion")
+    @Mapping(source = "entityVersion", target = "version")
     RuleVersionEntity toEntity(RuleVersion domain);
 
     List<RuleVersion> toDomainList(List<RuleVersionEntity> entities);

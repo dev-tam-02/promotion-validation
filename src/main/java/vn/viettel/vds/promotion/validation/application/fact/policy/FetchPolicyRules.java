@@ -94,13 +94,9 @@ public class FetchPolicyRules {
             return false;
         }
 
-        // For order-related requests, need order ID
-        if (request.orderId() != null && !request.orderId().trim().isEmpty()) {
-            return true;
-        }
-
+        // For order-related requests, need order ID OR just customer ID is sufficient
         // For promotion-related requests, candidate key is preferred
         // Just customer ID is sufficient for basic fact resolution
-        return true;
+        return request.orderId() == null || !request.orderId().trim().isEmpty();
     }
 }

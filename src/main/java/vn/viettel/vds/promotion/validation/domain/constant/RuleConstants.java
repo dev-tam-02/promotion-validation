@@ -187,24 +187,6 @@ public final class RuleConstants {
     }
 
     /**
-     * Error codes (legacy - prefer ErrorCode enum)
-     *
-     * @deprecated Use {@link vn.viettel.vds.promotion.validation.domain.common.ErrorCode} instead
-     */
-    @Deprecated(since = "1.0.0", forRemoval = true)
-    public static final class ErrorCodes {
-        public static final String INVALID_PAYLOAD = "INVALID_PAYLOAD";
-        public static final String MISSING_ASSIGN_RULE = "MISSING_ASSIGN_RULE";
-        public static final String MISSING_CAMPAIGN_ID = "MISSING_CAMPAIGN_ID";
-        public static final String RULE_NOT_FOUND = "RULE_NOT_FOUND";
-        public static final String RULE_MISSING_APPLICABILITY_NODE = "RULE_MISSING_APPLICABILITY_NODE";
-        public static final String PROCESSING_ERROR = "PROCESSING_ERROR";
-
-        private ErrorCodes() {
-        }
-    }
-
-    /**
      * Configuration keys
      */
     public static final class ConfigKey {

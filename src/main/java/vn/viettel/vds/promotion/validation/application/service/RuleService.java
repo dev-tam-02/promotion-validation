@@ -290,23 +290,20 @@ public class RuleService {
             throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Node type is required", 400));
         }
 
-        switch (node.getType()) {
-            case GROUP:
-                if (node.getGroupLogic() == null) {
-                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                            "Group logic is required for GROUP nodes", 400));
-                }
-                break;
-            case COND:
-                if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
-                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                            "Operator name is required for COND nodes", 400));
-                }
-                if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
-                    throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                            "Reason code is required for COND nodes", 400));
-                }
-                break;
+        if (node.getType() == RuleNode.NodeType.GROUP) {
+            if (node.getGroupLogic() == null) {
+                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
+                        "Group logic is required for GROUP nodes", 400));
+            }
+        } else if (node.getType() == RuleNode.NodeType.COND) {
+            if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
+                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
+                        "Operator name is required for COND nodes", 400));
+            }
+            if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
+                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
+                        "Reason code is required for COND nodes", 400));
+            }
         }
     }
 
@@ -378,7 +375,7 @@ public class RuleService {
                         return null;
                     }
                 })
-                .filter(rule -> rule != null)
+                .filter(java.util.Objects::nonNull)
                 .toList();
     }
 }
