@@ -147,13 +147,10 @@ public class RuleValidationService {
             }
 
             // Type-specific validation
-            switch (node.getType()) {
-                case GROUP:
-                    validateGroupNode(node, path, issues);
-                    break;
-                case COND:
-                    validateConditionNode(node, path, issues);
-                    break;
+            if (node.getType() == RuleNode.NodeType.GROUP) {
+                validateGroupNode(node, path, issues);
+            } else if (node.getType() == RuleNode.NodeType.COND) {
+                validateConditionNode(node, path, issues);
             }
         }
     }
@@ -170,7 +167,7 @@ public class RuleValidationService {
 
     private void validateConditionNode(RuleNode node, String path, List<LintIssue> issues) {
         if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
-            issues.add(new LintIssue(path + ".operatorName", "Operator name is required for COND nodes", null));
+            issues.add(new LintIssue(path + OPERATOR_NAME_SUFFIX, "Operator name is required for COND nodes", null));
         }
 
         if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
@@ -268,7 +265,7 @@ public class RuleValidationService {
         for (int i = 0; i < nodes.size(); i++) {
             RuleNode node = nodes.get(i);
             if (node.getType() == RuleNode.NodeType.COND && node.getReasonCode() != null) {
-                String path = "nodes[" + i + "].reasonCode";
+                String path = NODES_PREFIX + i + "].reasonCode";
 
                 try {
                     if (!reasonCodeService.existsReasonCode(tenantId, node.getReasonCode())) {
@@ -292,12 +289,11 @@ public class RuleValidationService {
         Set<String> recursionStack = new HashSet<>();
 
         for (RuleNode node : nodes) {
-            if (node.getId() != null && !visited.contains(node.getId())) {
-                if (hasCircularReference(node.getId(), nodeMap, visited, recursionStack)) {
-                    issues.add(new LintIssue(NODES_FIELD,
-                            "Circular reference detected starting from node: " + node.getId(), null));
-                    break;
-                }
+            if (node.getId() != null && !visited.contains(node.getId())
+                    && hasCircularReference(node.getId(), nodeMap, visited, recursionStack)) {
+                issues.add(new LintIssue(NODES_FIELD,
+                        "Circular reference detected starting from node: " + node.getId(), null));
+                break;
             }
         }
     }
@@ -312,11 +308,8 @@ public class RuleValidationService {
             for (RuleNode child : node.getChildren()) {
                 String childId = child.getId();
                 if (childId == null) continue;
-                if (!visited.contains(childId)) {
-                    if (hasCircularReference(childId, nodeMap, visited, recursionStack)) {
-                        return true;
-                    }
-                } else if (recursionStack.contains(childId)) {
+                if ((!visited.contains(childId) && hasCircularReference(childId, nodeMap, visited, recursionStack))
+                        || recursionStack.contains(childId)) {
                     return true;
                 }
             }
@@ -334,7 +327,7 @@ public class RuleValidationService {
                 .filter(node -> node.getChildren() != null)
                 .flatMap(node -> node.getChildren().stream()
                         .map(RuleNode::getId)
-                        .filter(id -> id != null))
+                        .filter(Objects::nonNull))
                 .collect(Collectors.toSet());
 
         List<String> rootNodes = nodes.stream()
@@ -377,10 +370,14 @@ public class RuleValidationService {
 
     private Set<String> extractOperatorNames(List<RuleNode> nodes) {
         return nodes.stream()
-                .filter(node -> node.getType() == RuleNode.NodeType.COND)
+                .filter(this::isConditionNode)
                 .map(RuleNode::getOperatorName)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+    }
+
+    private boolean isConditionNode(RuleNode node) {
+        return node.getType() == RuleNode.NodeType.COND;
     }
 
     // Result classes

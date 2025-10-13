@@ -69,7 +69,7 @@ public class RuleVersionService {
      */
     public Integer getNextVersionNumber(String ruleId) {
         Optional<RuleVersion> latest = ruleVersionPersistencePort.findFirstByRuleIdOrderByVersionDesc(ruleId);
-        return latest.map(rv -> rv.getRuleVersion() != null ? rv.getRuleVersion() + 1 : 1).orElse(1);
+        return latest.map(rv -> rv.getVersion() != null ? rv.getVersion() + 1 : 1).orElse(1);
     }
 
     /**

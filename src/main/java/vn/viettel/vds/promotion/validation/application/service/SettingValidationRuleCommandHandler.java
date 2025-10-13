@@ -628,27 +628,84 @@ public class SettingValidationRuleCommandHandler {
         private final String timeFrameId;
         private final TimeFrame timeframeData;
 
-        private CommandProcessingResult(boolean success, String errorCode, String errorMessage,
-                                        vn.viettel.vds.promotion.validation.domain.model.Assignment assignment, ApplicabilityScope applicabilityData,
-                                        String timeFrameId, TimeFrame timeframeData) {
-            this.success = success;
-            this.errorCode = errorCode;
-            this.errorMessage = errorMessage;
-            this.assignment = assignment;
-            this.applicabilityData = applicabilityData;
-            this.timeFrameId = timeFrameId;
-            this.timeframeData = timeframeData;
+        private CommandProcessingResult(Builder builder) {
+            this.success = builder.success;
+            this.errorCode = builder.errorCode;
+            this.errorMessage = builder.errorMessage;
+            this.assignment = builder.assignment;
+            this.applicabilityData = builder.applicabilityData;
+            this.timeFrameId = builder.timeFrameId;
+            this.timeframeData = builder.timeframeData;
         }
 
         public static CommandProcessingResult success(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment,
                                                       ApplicabilityScope applicabilityData,
                                                       String timeFrameId,
                                                       TimeFrame timeframeData) {
-            return new CommandProcessingResult(true, null, null, assignment, applicabilityData, timeFrameId, timeframeData);
+            return new Builder()
+                    .success(true)
+                    .assignment(assignment)
+                    .applicabilityData(applicabilityData)
+                    .timeFrameId(timeFrameId)
+                    .timeframeData(timeframeData)
+                    .build();
         }
 
         public static CommandProcessingResult failure(String errorCode, String errorMessage) {
-            return new CommandProcessingResult(false, errorCode, errorMessage, null, null, null, null);
+            return new Builder()
+                    .success(false)
+                    .errorCode(errorCode)
+                    .errorMessage(errorMessage)
+                    .build();
+        }
+
+        static class Builder {
+            private boolean success;
+            private String errorCode;
+            private String errorMessage;
+            private vn.viettel.vds.promotion.validation.domain.model.Assignment assignment;
+            private ApplicabilityScope applicabilityData;
+            private String timeFrameId;
+            private TimeFrame timeframeData;
+
+            Builder success(boolean success) {
+                this.success = success;
+                return this;
+            }
+
+            Builder errorCode(String errorCode) {
+                this.errorCode = errorCode;
+                return this;
+            }
+
+            Builder errorMessage(String errorMessage) {
+                this.errorMessage = errorMessage;
+                return this;
+            }
+
+            Builder assignment(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment) {
+                this.assignment = assignment;
+                return this;
+            }
+
+            Builder applicabilityData(ApplicabilityScope applicabilityData) {
+                this.applicabilityData = applicabilityData;
+                return this;
+            }
+
+            Builder timeFrameId(String timeFrameId) {
+                this.timeFrameId = timeFrameId;
+                return this;
+            }
+
+            Builder timeframeData(TimeFrame timeframeData) {
+                this.timeframeData = timeframeData;
+                return this;
+            }
+
+            CommandProcessingResult build() {
+                return new CommandProcessingResult(this);
+            }
         }
 
         // Getters

@@ -129,31 +129,33 @@ public class RuleDeploymentPipelineService {
             for (Rule rule : activeRules) {
                 if (rule.getState() == Rule.RuleState.PUBLISHED) {
                     deployedRules++;
-
-                    try {
-                        healthyRules++;
-                    } catch (Exception e) {
-                        logger.warn("Failed to check bundle status: ruleId={}", rule.getId(), e);
-                        unhealthyRules.add(rule.getId());
-                    }
+                    healthyRules += checkRuleHealth(rule, unhealthyRules);
                 }
             }
 
             String overallHealth = determineOverallHealth(totalRules, healthyRules);
 
-            return new EnvironmentHealthStatus(
-                    tenantId,
-                    overallHealth,
-                    totalRules,
-                    deployedRules,
-                    healthyRules,
-                    unhealthyRules,
-                    System.currentTimeMillis()
-            );
+            return new EnvironmentHealthStatus.Builder()
+                    .tenantId(tenantId)
+                    .overallHealth(overallHealth)
+                    .totalRules(totalRules)
+                    .deployedRules(deployedRules)
+                    .healthyRules(healthyRules)
+                    .unhealthyRules(unhealthyRules)
+                    .timestamp(System.currentTimeMillis())
+                    .build();
 
         } catch (Exception e) {
             logger.error("Failed to check environment health: tenantId={}", tenantId, e);
-            return new EnvironmentHealthStatus(tenantId, "ERROR", 0, 0, 0, List.of(), System.currentTimeMillis());
+            return new EnvironmentHealthStatus.Builder()
+                    .tenantId(tenantId)
+                    .overallHealth("ERROR")
+                    .totalRules(0)
+                    .deployedRules(0)
+                    .healthyRules(0)
+                    .unhealthyRules(List.of())
+                    .timestamp(System.currentTimeMillis())
+                    .build();
         }
     }
 
@@ -286,6 +288,16 @@ public class RuleDeploymentPipelineService {
         }
 
         return true;
+    }
+
+    private int checkRuleHealth(Rule rule, List<String> unhealthyRules) {
+        try {
+            return 1;
+        } catch (Exception e) {
+            logger.warn("Failed to check bundle status: ruleId={}", rule.getId(), e);
+            unhealthyRules.add(rule.getId());
+            return 0;
+        }
     }
 
     private String determineOverallHealth(int total, int healthy) {
@@ -513,16 +525,63 @@ public class RuleDeploymentPipelineService {
         private final List<String> unhealthyRules;
         private final long timestamp;
 
-        public EnvironmentHealthStatus(String tenantId, String overallHealth, int totalRules,
-                                       int deployedRules, int healthyRules, List<String> unhealthyRules,
-                                       long timestamp) {
-            this.tenantId = tenantId;
-            this.overallHealth = overallHealth;
-            this.totalRules = totalRules;
-            this.deployedRules = deployedRules;
-            this.healthyRules = healthyRules;
-            this.unhealthyRules = unhealthyRules;
-            this.timestamp = timestamp;
+        private EnvironmentHealthStatus(Builder builder) {
+            this.tenantId = builder.tenantId;
+            this.overallHealth = builder.overallHealth;
+            this.totalRules = builder.totalRules;
+            this.deployedRules = builder.deployedRules;
+            this.healthyRules = builder.healthyRules;
+            this.unhealthyRules = builder.unhealthyRules;
+            this.timestamp = builder.timestamp;
+        }
+
+        public static class Builder {
+            private String tenantId;
+            private String overallHealth;
+            private int totalRules;
+            private int deployedRules;
+            private int healthyRules;
+            private List<String> unhealthyRules;
+            private long timestamp;
+
+            public Builder tenantId(String tenantId) {
+                this.tenantId = tenantId;
+                return this;
+            }
+
+            public Builder overallHealth(String overallHealth) {
+                this.overallHealth = overallHealth;
+                return this;
+            }
+
+            public Builder totalRules(int totalRules) {
+                this.totalRules = totalRules;
+                return this;
+            }
+
+            public Builder deployedRules(int deployedRules) {
+                this.deployedRules = deployedRules;
+                return this;
+            }
+
+            public Builder healthyRules(int healthyRules) {
+                this.healthyRules = healthyRules;
+                return this;
+            }
+
+            public Builder unhealthyRules(List<String> unhealthyRules) {
+                this.unhealthyRules = unhealthyRules;
+                return this;
+            }
+
+            public Builder timestamp(long timestamp) {
+                this.timestamp = timestamp;
+                return this;
+            }
+
+            public EnvironmentHealthStatus build() {
+                return new EnvironmentHealthStatus(this);
+            }
         }
 
         // Getters

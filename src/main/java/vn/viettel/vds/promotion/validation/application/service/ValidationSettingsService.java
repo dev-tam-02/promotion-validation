@@ -94,7 +94,7 @@ public class ValidationSettingsService {
             }
 
             // Validate rule type compatibility
-            if (ruleType != null && !isRuleTypeCompatible(validationRuleId, ruleType)) {
+            if (ruleType != null && !isRuleTypeCompatible(ruleType)) {
                 return ValidationResult.failure(
                         "VALIDATION_RULE_INVALID_TYPE",
                         "Rule type mismatch for rule: " + validationRuleId + ", expected: " + ruleType
@@ -243,7 +243,7 @@ public class ValidationSettingsService {
         return ValidationResult.success();
     }
 
-    private boolean isRuleTypeCompatible(String ruleId, String ruleType) {
+    private boolean isRuleTypeCompatible(String ruleType) {
         // Basic rule type validation - could be enhanced with actual rule metadata lookup
         return ruleType.matches("^[A-Z_]+$");
     }
