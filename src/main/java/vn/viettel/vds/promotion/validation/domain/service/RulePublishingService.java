@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleEntityPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -25,16 +24,13 @@ public class RulePublishingService {
 
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
-    private final ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
-                                 ValidationRuleEntityPersistencePort validationRuleEntityPersistencePort,
                                  vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
-        this.validationRuleEntityPersistencePort = validationRuleEntityPersistencePort;
         this.tenantProperties = tenantProperties;
     }
 
@@ -82,23 +78,18 @@ public class RulePublishingService {
             throw new IllegalStateException("Rule verification failed: " + rule.getId());
         }
 
-        updateRuleToPublishedState(rule);
-        saveRuleAndValidationRule(rule, compileResponse);
+        updateRuleToPublishedState(rule, compileResponse);
     }
 
-    private void updateRuleToPublishedState(Rule rule) {
+    private void updateRuleToPublishedState(Rule rule, CompileResponse compileResponse) {
         rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setPublishedAt(Instant.now());
+        rule.setPublishedBy("rule-publishing-service");
         rule.setUpdatedAt(Instant.now());
         rulePersistencePort.save(rule);
-    }
 
-    private void saveRuleAndValidationRule(Rule rule, CompileResponse compileResponse) {
-        // Create Rule from published Rule for SettingValidationRuleCommandHandler
-        Rule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
-        validationRuleEntityPersistencePort.save(validationRule);
-
-        logger.info("Rule published successfully: ruleId={}, bundleHash={}, validationRuleId={}",
-                rule.getId(), compileResponse.getBundleHash(), validationRule.getId());
+        logger.info("Rule published successfully: ruleId={}, bundleHash={}, artifactSize={}",
+                rule.getId(), compileResponse.getBundleHash(), compileResponse.getArtifactSize());
     }
 
     private RulePublishResult createSuccessfulPublishResult(String ruleId, CompileResponse compileResponse) {
@@ -388,8 +379,12 @@ public class RulePublishingService {
     }
 
     private boolean isValidResponse(ExecuteResponse response) {
-        return response.isOk() &&
-                (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
+        // The 'ok' field represents the business decision (ALLOW=true, DENY=false), not execution success
+        // Verification passes if we get a valid decision (ALLOW or DENY) and engine info is present
+        return response != null &&
+                response.getDecision() != null &&
+                (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY")) &&
+                response.getEngine() != null;
     }
 
     private ExecuteRequest createTestExecuteRequest(String bundleHash) {
@@ -429,74 +424,6 @@ public class RulePublishingService {
         request.setExecutionContext(context);
 
         return request;
-    }
-
-    @SuppressWarnings("java:S1172") // bundleHash parameter reserved for future validation rule enhancement
-    private Rule createValidationRuleFromRule(Rule rule, String bundleHash) {
-        // Convert nodes
-        List<RuleNode> validationNodes = convertRuleNodes(rule);
-
-        // Set timestamps
-        Instant now = Instant.now();
-
-        // Build new Rule with published state
-        Rule validationRule = Rule.builder()
-                .id(rule.getId())
-                .code(rule.getCode())
-                .name(rule.getName())
-                .state(Rule.RuleState.PUBLISHED)
-                .ruleVersion(rule.getRuleVersion())
-                .latestVersion(rule.getLatestVersion())
-                .logic(rule.getLogic())
-                .limits(rule.getLimits())
-                .nodes(validationNodes)
-                .publishedAt(now)
-                .publishedBy("rule-publishing-service")
-                .createdAt(rule.getCreatedAt())
-                .createdBy(rule.getCreatedBy())
-                .updatedAt(now)
-                .updatedBy("rule-publishing-service")
-                .build();
-
-        logger.info("Created Rule from Rule: ruleId={}, validationRuleId={}",
-                rule.getId(), validationRule.getId());
-
-        return validationRule;
-    }
-
-    private List<RuleNode> convertRuleNodes(Rule rule) {
-        List<RuleNode> validationNodes = null;
-        if (rule.getNodes() != null) {
-            validationNodes = rule.getNodes().stream()
-                    .map(this::convertRuleNodeToValidationNode)
-                    .toList();
-        }
-        return validationNodes;
-    }
-
-    private RuleNode convertRuleNodeToValidationNode(RuleNode ruleNode) {
-        // Convert children recursively
-        List<RuleNode> convertedChildren = convertChildrenRecursively(ruleNode);
-
-        return RuleNode.builder()
-                .nodeId(ruleNode.getId())
-                .type(ruleNode.getType())
-                .groupLogic(ruleNode.getGroupLogic())
-                .children(convertedChildren)
-                .operatorName(ruleNode.getOperatorName())
-                .params(ruleNode.getParams())
-                .reasonCode(ruleNode.getReasonCode())
-                .build();
-    }
-
-    private List<RuleNode> convertChildrenRecursively(RuleNode ruleNode) {
-        List<RuleNode> convertedChildren = new ArrayList<>();
-        if (ruleNode.getChildren() != null) {
-            convertedChildren = ruleNode.getChildren().stream()
-                    .map(this::convertRuleNodeToValidationNode)
-                    .toList();
-        }
-        return convertedChildren;
     }
 
     // Result classes
