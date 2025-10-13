@@ -155,13 +155,31 @@ public class ValidationDomainService {
     /**
      * Evaluate basic rule conditions
      * @param rule the rule to evaluate
-     * @param request the validation request
-     * @return true if all basic conditions pass
+     * @return true if all basic conditions pass, false if validation fails
      */
     private boolean evaluateBasicConditions(Rule rule) {
-        // Placeholder for basic condition evaluation
-        // Complex rule evaluation handled by validation-engine
-        return rule.getNodes() != null && !rule.getNodes().isEmpty();
+        // Complex rule evaluation is delegated to validation-engine module with Drools
+        // This is a simplified placeholder that performs basic structural validation
+
+        if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
+            // Rules without nodes are invalid - they need at least one condition
+            log.debug("Rule {} has no nodes defined", rule.getId());
+            return false;
+        }
+
+        // Check if any node has an invalid structure
+        boolean hasValidNodes = rule.getNodes().stream()
+                .anyMatch(node -> node != null && node.getOperatorName() != null);
+
+        if (!hasValidNodes) {
+            log.debug("Rule {} has no valid operator nodes", rule.getId());
+            return false;
+        }
+
+        // TODO: Integrate with validation-engine for actual node evaluation
+        // For now, rules with valid node structure pass
+        // Actual business logic evaluation is performed by validation-engine
+        return true;
     }
 
     /**
