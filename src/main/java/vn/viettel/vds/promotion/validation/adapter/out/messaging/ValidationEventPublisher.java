@@ -110,7 +110,7 @@ public class ValidationEventPublisher implements EventPublisherPort {
                     .ruleId(rule.getId())
                     .ruleCode(rule.getRuleCode())
                     .ruleName(rule.getName())
-                    .ruleType(rule.getType() != null ? rule.getType().toString() : null)
+                    .ruleType(rule.getType() != null ? String.valueOf(rule.getType()) : null)
                     .priority(rule.getPriority())
                     .active(rule.isActive())
                     .createdAt(rule.getCreatedAt())
@@ -142,7 +142,7 @@ public class ValidationEventPublisher implements EventPublisherPort {
                     .ruleId(rule.getId())
                     .ruleCode(rule.getRuleCode())
                     .ruleName(rule.getName())
-                    .ruleType(rule.getType() != null ? rule.getType().toString() : null)
+                    .ruleType(rule.getType() != null ? String.valueOf(rule.getType()) : null)
                     .priority(rule.getPriority())
                     .active(rule.isActive())
                     .createdAt(rule.getUpdatedAt()) // Use updated time
