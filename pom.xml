@@ -45,6 +45,13 @@
         <dependency>
             <groupId>com.promix.platform</groupId>
             <artifactId>promix-observer-spring-boot-starter</artifactId>
+            <exclusions>
+                <!-- Exclude Zipkin reporter to prevent Zipkin sender initialization -->
+                <exclusion>
+                    <groupId>io.zipkin.reporter2</groupId>
+                    <artifactId>zipkin-reporter-brave</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.promix.platform</groupId>
