@@ -4,6 +4,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.viettel.vds.promotion.validation.domain.exception.FactResolutionException;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.ProvenanceInfo;
 
@@ -78,7 +79,7 @@ public abstract class AbstractFactResolver<T> implements FactResolver<T> {
             try {
                 return decoratedSupplier.get();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to resolve " + getContextName() + " from IDs: " + e.getMessage(), e);
+                throw new FactResolutionException("Failed to resolve " + getContextName() + " from IDs: " + e.getMessage(), e, getContextName(), "FROM_IDS");
             }
         }, virtualThreadExecutor);
     }
@@ -88,7 +89,7 @@ public abstract class AbstractFactResolver<T> implements FactResolver<T> {
             try {
                 return resolveFromEmbeddedPayload(request, embeddedData);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to resolve " + getContextName() + " from embedded payload: " + e.getMessage(), e);
+                throw new FactResolutionException("Failed to resolve " + getContextName() + " from embedded payload: " + e.getMessage(), e, getContextName(), "EMBEDDED_PAYLOAD");
             }
         }, virtualThreadExecutor);
     }

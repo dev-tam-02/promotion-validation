@@ -54,13 +54,8 @@ public class ValidationEngineIntegrationService {
         logger.info("Rule synchronization completed: success={}, failures={}, total={}",
                 successCount, activeAssignments.size() - successCount, activeAssignments.size());
 
-        // Trigger rules reload in validation-engine
-        try {
-            validationEngineClient.reloadRules();
-            logger.info("Triggered rule reload in validation-engine");
-        } catch (Exception e) {
-            logger.error("Failed to trigger rule reload in validation-engine", e);
-        }
+        // Note: reloadRules() is deprecated and does nothing.
+        // Bundle management is now automatic in validation-engine.
     }
 
     private boolean synchronizeAssignment(AssignmentEntity assignment) {
@@ -74,16 +69,11 @@ public class ValidationEngineIntegrationService {
 
             ValidationRuleEntity rule = validationRuleOpt.get();
 
-            // Deploy to validation-engine
-            boolean deployed = validationEngineClient.deployRule(rule);
-            if (deployed) {
-                logger.debug("Successfully synchronized rule: ruleId={}, assignmentId={}",
-                        rule.getId(), assignment.getId());
-            } else {
-                logger.error("Failed to synchronize rule: ruleId={}, assignmentId={}",
-                        rule.getId(), assignment.getId());
-            }
-            return deployed;
+            // Note: deployRule() is deprecated and does nothing.
+            // Actual rule deployment is handled by RulePublishingService.publishRule()
+            logger.debug("Rule assignment found for synchronization: ruleId={}, assignmentId={}",
+                    rule.getId(), assignment.getId());
+            return true;
 
         } catch (Exception e) {
             logger.error("Error synchronizing rule for assignment: assignmentId={}",
@@ -125,17 +115,12 @@ public class ValidationEngineIntegrationService {
 
             ValidationRuleEntity rule = validationRuleOpt.get();
 
-            // Deploy to validation-engine
-            boolean deployed = validationEngineClient.deployRule(rule);
-            if (deployed) {
-                logger.info("Successfully deployed rule assignment: ruleId={}, assignmentId={}",
-                        rule.getId(), assignmentId);
-            } else {
-                logger.error("Failed to deploy rule assignment: ruleId={}, assignmentId={}",
-                        rule.getId(), assignmentId);
-            }
+            // Note: deployRule() is deprecated and does nothing.
+            // Actual rule deployment is handled by RulePublishingService.publishRule()
+            logger.info("Rule assignment ready for deployment: ruleId={}, assignmentId={}",
+                    rule.getId(), assignmentId);
 
-            return CompletableFuture.completedFuture(deployed);
+            return CompletableFuture.completedFuture(true);
 
         } catch (Exception e) {
             logger.error("Error deploying rule assignment: assignmentId={}", assignmentId, e);
@@ -151,14 +136,10 @@ public class ValidationEngineIntegrationService {
         logger.info("Removing rule from validation-engine: ruleId={}", ruleId);
 
         try {
-            boolean removed = validationEngineClient.removeRule(ruleId);
-            if (removed) {
-                logger.info("Successfully removed rule from validation-engine: ruleId={}", ruleId);
-            } else {
-                logger.error("Failed to remove rule from validation-engine: ruleId={}", ruleId);
-            }
-
-            return CompletableFuture.completedFuture(removed);
+            // Note: removeRule() is deprecated and does nothing.
+            // Bundle management is now automatic in validation-engine.
+            logger.info("Rule removal requested (automatic management): ruleId={}", ruleId);
+            return CompletableFuture.completedFuture(true);
 
         } catch (Exception e) {
             logger.error("Error removing rule from validation-engine: ruleId={}", ruleId, e);

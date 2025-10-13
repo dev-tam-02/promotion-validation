@@ -537,17 +537,10 @@ public class SettingValidationRuleCommandHandler {
 
             // Only deploy if assignment is active
             if (assignment.getActive() != null && assignment.getActive()) {
-                logger.info("Deploying rule to validation-engine: ruleId={}, assignmentId={}",
+                logger.info("Rule assignment created successfully: ruleId={}, assignmentId={}",
                         ruleId, assignment.getId());
-
-                boolean deployed = validationEngineClient.deployRule(rule);
-                if (deployed) {
-                    logger.info("Successfully deployed rule to validation-engine: ruleId={}, assignmentId={}",
-                            ruleId, assignment.getId());
-                } else {
-                    logger.error("Failed to deploy rule to validation-engine: ruleId={}, assignmentId={}",
-                            ruleId, assignment.getId());
-                }
+                // Note: deployRule() is deprecated and does nothing.
+                // Actual rule deployment is handled by RulePublishingService.publishRule()
             } else {
                 logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
                         ruleId, assignment.getId());

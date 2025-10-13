@@ -227,15 +227,10 @@ public class RollbackValidationRuleCommandHandler {
         logger.info("Removing rule from validation-engine: ruleId={}, assignmentId={}",
                 ruleId, assignment.getId());
 
-        boolean removed = validationEngineClient.removeRule(ruleId);
-        if (removed) {
-            logger.info("Successfully removed rule from validation-engine: ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-        } else {
-            logger.warn("Failed to remove rule from validation-engine: ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-            // Don't fail the entire rollback for removal issues
-        }
+        // Note: removeRule() is deprecated and does nothing.
+        // Bundle management is now automatic in validation-engine.
+        logger.info("Rule removal requested (automatic management): ruleId={}, assignmentId={}",
+                ruleId, assignment.getId());
     }
 
     private void handleUndeployException(Exception e, AssignmentEntity assignment) {

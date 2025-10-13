@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.EventPublishingException;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 
 import java.net.URI;
@@ -77,11 +78,13 @@ public class ValidationHttpEventPublisher implements EventPublisher {
             }
 
             if (!success) {
-                throw new RuntimeException("Failed to publish event to any destination");
+                throw new EventPublishingException("Failed to publish event to any destination", event.getId(), event.getEventType());
             }
 
+        } catch (EventPublishingException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("HTTP event publishing failed for event id=" + event.getId(), e);
+            throw new EventPublishingException("HTTP event publishing failed for event id=" + event.getId(), e, event.getId(), event.getEventType());
         }
     }
 

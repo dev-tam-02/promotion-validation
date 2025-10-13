@@ -78,7 +78,7 @@ public class TimeoutService {
                 try {
                     return callable.call();
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new TimeoutExecutionException("Callable execution failed", e, timeLimiterName);
                 }
             }, executorService);
 
