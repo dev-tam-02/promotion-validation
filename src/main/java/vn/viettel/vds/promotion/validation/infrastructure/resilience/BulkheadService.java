@@ -17,6 +17,7 @@ public class BulkheadService {
     private static final Logger logger = LoggerFactory.getLogger(BulkheadService.class);
 
     private static final String BULKHEAD_EXECUTION_FAILED = "Bulkhead execution failed";
+    private static final String FOR_SEPARATOR = " for: ";
 
     private final BulkheadRegistry bulkheadRegistry;
     private final ResilienceConfiguration config;
@@ -51,7 +52,7 @@ public class BulkheadService {
         try {
             return decoratedSupplier.get();
         } catch (Exception e) {
-            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + " for: " + bulkheadName, e, bulkheadName);
+            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + FOR_SEPARATOR + bulkheadName, e, bulkheadName);
         }
     }
 
@@ -62,7 +63,7 @@ public class BulkheadService {
         try {
             return decoratedCallable.call();
         } catch (Exception e) {
-            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + " for: " + bulkheadName, e, bulkheadName);
+            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + FOR_SEPARATOR + bulkheadName, e, bulkheadName);
         }
     }
 
@@ -73,7 +74,7 @@ public class BulkheadService {
         try {
             decoratedRunnable.run();
         } catch (Exception e) {
-            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + " for: " + bulkheadName, e, bulkheadName);
+            throw new BulkheadExecutionException(BULKHEAD_EXECUTION_FAILED + FOR_SEPARATOR + bulkheadName, e, bulkheadName);
         }
     }
 

@@ -17,6 +17,7 @@ public class CircuitBreakerService {
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerService.class);
 
     private static final String CIRCUIT_BREAKER_EXECUTION_FAILED = "Circuit breaker execution failed";
+    private static final String FOR_SEPARATOR = " for: ";
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final ResilienceConfiguration config;
@@ -68,7 +69,7 @@ public class CircuitBreakerService {
         try {
             return decoratedSupplier.get();
         } catch (Exception e) {
-            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + " for: " + circuitBreakerName, e, circuitBreakerName);
+            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + FOR_SEPARATOR + circuitBreakerName, e, circuitBreakerName);
         }
     }
 
@@ -79,7 +80,7 @@ public class CircuitBreakerService {
         try {
             return decoratedCallable.call();
         } catch (Exception e) {
-            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + " for: " + circuitBreakerName, e, circuitBreakerName);
+            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + FOR_SEPARATOR + circuitBreakerName, e, circuitBreakerName);
         }
     }
 
@@ -90,7 +91,7 @@ public class CircuitBreakerService {
         try {
             decoratedRunnable.run();
         } catch (Exception e) {
-            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + " for: " + circuitBreakerName, e, circuitBreakerName);
+            throw new CircuitBreakerExecutionException(CIRCUIT_BREAKER_EXECUTION_FAILED + FOR_SEPARATOR + circuitBreakerName, e, circuitBreakerName);
         }
     }
 
