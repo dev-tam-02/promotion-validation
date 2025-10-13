@@ -12,6 +12,7 @@ import java.util.Map;
 public class ValidationEngineClientFallback implements ValidationEngineClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationEngineClientFallback.class);
+    private static final String SERVICE_UNAVAILABLE_MESSAGE = "Validation engine service is unavailable";
 
     @Override
     public CompileResponse compile(CompileRequest request) {
@@ -20,7 +21,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
 
         CompileResponse fallbackResponse = new CompileResponse();
         fallbackResponse.setOk(false);
-        fallbackResponse.setErrors(List.of("Validation engine service is unavailable"));
+        fallbackResponse.setErrors(List.of(SERVICE_UNAVAILABLE_MESSAGE));
         return fallbackResponse;
     }
 
@@ -33,7 +34,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         fallbackResponse.setOk(false);
         fallbackResponse.setDecision("DENY");
         fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
-        fallbackResponse.setExplain(List.of("Validation engine service is unavailable"));
+        fallbackResponse.setExplain(List.of(SERVICE_UNAVAILABLE_MESSAGE));
         return fallbackResponse;
     }
 
@@ -47,7 +48,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
                     fallbackResponse.setOk(false);
                     fallbackResponse.setDecision("DENY");
                     fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
-                    fallbackResponse.setExplain(List.of("Validation engine service is unavailable"));
+                    fallbackResponse.setExplain(List.of(SERVICE_UNAVAILABLE_MESSAGE));
                     return fallbackResponse;
                 })
                 .toList();
@@ -58,7 +59,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         logger.error("Fallback: Bundle warmup failed for bundleHash={}", request.getBundleHash());
         WarmupResponse fallbackResponse = new WarmupResponse();
         fallbackResponse.setOk(false);
-        fallbackResponse.setErrors(List.of("Validation engine service is unavailable"));
+        fallbackResponse.setErrors(List.of(SERVICE_UNAVAILABLE_MESSAGE));
         return fallbackResponse;
     }
 
@@ -70,7 +71,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         fallbackResponse.setBundleHash(bundleHash);
         fallbackResponse.setLoaded(false);
         fallbackResponse.setHealth("UNKNOWN");
-        fallbackResponse.setInfo("Validation engine service is unavailable");
+        fallbackResponse.setInfo(SERVICE_UNAVAILABLE_MESSAGE);
         return fallbackResponse;
     }
 
@@ -79,7 +80,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         logger.error("Fallback: Rule deployment failed for ruleSetId={}", ruleSetId);
         DeployResponse fallbackResponse = new DeployResponse();
         fallbackResponse.setDeployed(false);
-        fallbackResponse.setMessage("Validation engine service is unavailable");
+        fallbackResponse.setMessage(SERVICE_UNAVAILABLE_MESSAGE);
         return fallbackResponse;
     }
 
@@ -92,6 +93,6 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     @Override
     public org.springframework.http.ResponseEntity<String> getHealth() {
         logger.error("Fallback: Health check failed");
-        return org.springframework.http.ResponseEntity.status(503).body("Validation engine service is unavailable");
+        return org.springframework.http.ResponseEntity.status(503).body(SERVICE_UNAVAILABLE_MESSAGE);
     }
 }

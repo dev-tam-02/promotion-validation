@@ -8,13 +8,13 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Request to clone an existing rule")
 public class CloneRuleRequest {
 
-    @Schema(description = "New rule code", example = "WEEKEND_VIP_500K_V2", required = true)
+    @Schema(description = "New rule code", example = "WEEKEND_VIP_500K_V2", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "New rule code is required")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("newCode")
     private String newCode;
 
-    @Schema(description = "New rule name", example = "Weekend VIP ≥500k promotion V2", required = true)
+    @Schema(description = "New rule name", example = "Weekend VIP ≥500k promotion V2", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "New rule name is required")
     @Size(max = 255, message = "Rule name must not exceed 255 characters")
     @JsonProperty("newName")

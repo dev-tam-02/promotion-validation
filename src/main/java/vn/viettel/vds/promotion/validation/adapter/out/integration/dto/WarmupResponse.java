@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WarmupResponse {
 
-    @Schema(description = "Warmup success status", example = "true", required = true)
+    @Schema(description = "Warmup success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("success")
     private boolean success;
 

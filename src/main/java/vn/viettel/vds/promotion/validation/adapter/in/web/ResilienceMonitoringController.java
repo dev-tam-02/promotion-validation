@@ -39,14 +39,12 @@ public class ResilienceMonitoringController {
 
     @GetMapping("/status")
     public ResilienceOrchestrator.ResilienceStatus getResilienceStatus() {
-        ResilienceOrchestrator.ResilienceStatus status = resilienceOrchestrator.getResilienceStatus();
-        return status;
+        return resilienceOrchestrator.getResilienceStatus();
     }
 
     @GetMapping("/circuit-breaker/{name}")
     public CircuitBreakerService.CircuitBreakerStatus getCircuitBreakerStatus(@PathVariable String name) {
-        CircuitBreakerService.CircuitBreakerStatus status = circuitBreakerService.getCircuitBreakerStatus(name);
-        return status;
+        return circuitBreakerService.getCircuitBreakerStatus(name);
     }
 
     @PostMapping("/circuit-breaker/{name}/reset")
@@ -69,26 +67,21 @@ public class ResilienceMonitoringController {
 
     @GetMapping("/retry/{name}")
     public RetryService.RetryStatus getRetryStatus(@PathVariable String name) {
-        RetryService.RetryStatus status = retryService.getRetryStatus(name);
-        return status;
+        return retryService.getRetryStatus(name);
     }
 
     @GetMapping("/timeout/{name}")
     public TimeoutService.TimeoutStatus getTimeoutStatus(@PathVariable String name) {
-        TimeoutService.TimeoutStatus status = timeoutService.getTimeoutStatus(name);
-        return status;
+        return timeoutService.getTimeoutStatus(name);
     }
 
     @GetMapping("/bulkhead/{name}")
     public BulkheadService.BulkheadStatus getBulkheadStatus(@PathVariable String name) {
-        BulkheadService.BulkheadStatus status = bulkheadService.getBulkheadStatus(name);
-        return status;
+        return bulkheadService.getBulkheadStatus(name);
     }
 
-    @GetMapping("/fallback/stats")
     public FallbackService.FallbackStats getFallbackStats() {
-        FallbackService.FallbackStats stats = fallbackService.getFallbackStats();
-        return stats;
+        return fallbackService.getFallbackStats();
     }
 
     @PostMapping("/fallback/reset")

@@ -13,50 +13,65 @@ import java.util.concurrent.Executor;
 @EnableScheduling
 public class AsyncConfig {
 
+    private static final int TASK_EXECUTOR_CORE_POOL_SIZE = 5;
+    private static final int TASK_EXECUTOR_MAX_POOL_SIZE = 20;
+    private static final int TASK_EXECUTOR_QUEUE_CAPACITY = 100;
+    private static final int TASK_EXECUTOR_AWAIT_TERMINATION_SECONDS = 30;
+    
     /**
      * Task executor for async operations
      */
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(100);
+        executor.setCorePoolSize(TASK_EXECUTOR_CORE_POOL_SIZE);
+        executor.setMaxPoolSize(TASK_EXECUTOR_MAX_POOL_SIZE);
+        executor.setQueueCapacity(TASK_EXECUTOR_QUEUE_CAPACITY);
         executor.setThreadNamePrefix("ValidationAsync-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(30);
+        executor.setAwaitTerminationSeconds(TASK_EXECUTOR_AWAIT_TERMINATION_SECONDS);
         executor.initialize();
         return executor;
     }
 
+    private static final int OUTBOX_EXECUTOR_CORE_POOL_SIZE = 3;
+    private static final int OUTBOX_EXECUTOR_MAX_POOL_SIZE = 10;
+    private static final int OUTBOX_EXECUTOR_QUEUE_CAPACITY = 50;
+    private static final int OUTBOX_EXECUTOR_AWAIT_TERMINATION_SECONDS = 60;
+    
     /**
      * Task executor specifically for outbox event processing
      */
     @Bean(name = "outboxExecutor")
     public Executor outboxExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(3);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(50);
+        executor.setCorePoolSize(OUTBOX_EXECUTOR_CORE_POOL_SIZE);
+        executor.setMaxPoolSize(OUTBOX_EXECUTOR_MAX_POOL_SIZE);
+        executor.setQueueCapacity(OUTBOX_EXECUTOR_QUEUE_CAPACITY);
         executor.setThreadNamePrefix("OutboxProcessor-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
+        executor.setAwaitTerminationSeconds(OUTBOX_EXECUTOR_AWAIT_TERMINATION_SECONDS);
         executor.initialize();
         return executor;
     }
 
+    private static final int PUBLISH_EXECUTOR_CORE_POOL_SIZE = 2;
+    private static final int PUBLISH_EXECUTOR_MAX_POOL_SIZE = 5;
+    private static final int PUBLISH_EXECUTOR_QUEUE_CAPACITY = 25;
+    private static final int PUBLISH_EXECUTOR_AWAIT_TERMINATION_SECONDS = 120;
+    
     /**
      * Task executor for publishing jobs
      */
     @Bean(name = "publishExecutor")
     public Executor publishExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(5);
-        executor.setQueueCapacity(25);
+        executor.setCorePoolSize(PUBLISH_EXECUTOR_CORE_POOL_SIZE);
+        executor.setMaxPoolSize(PUBLISH_EXECUTOR_MAX_POOL_SIZE);
+        executor.setQueueCapacity(PUBLISH_EXECUTOR_QUEUE_CAPACITY);
         executor.setThreadNamePrefix("PublishProcessor-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(120);
+        executor.setAwaitTerminationSeconds(PUBLISH_EXECUTOR_AWAIT_TERMINATION_SECONDS);
         executor.initialize();
         return executor;
     }

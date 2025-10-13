@@ -51,24 +51,24 @@ public interface AuditLogEntityMapper {
     @org.mapstruct.Named("jsonStringToMap")
     default Map<String, Object> jsonStringToMap(String json) {
         if (json == null || json.isBlank()) {
-            return null;
+            return Map.of(); // Return empty map instead of null
         }
         try {
             return OBJECT_MAPPER.readValue(json, Map.class);
         } catch (JsonProcessingException e) {
-            return null;
+            return Map.of(); // Return empty map instead of null
         }
     }
 
     @org.mapstruct.Named("mapToJsonString")
     default String mapToJsonString(Map<String, Object> map) {
         if (map == null || map.isEmpty()) {
-            return null;
+            return "{}"; // Return empty JSON object instead of null
         }
         try {
             return OBJECT_MAPPER.writeValueAsString(map);
         } catch (JsonProcessingException e) {
-            return null;
+            return "{}"; // Return empty JSON object instead of null
         }
     }
 

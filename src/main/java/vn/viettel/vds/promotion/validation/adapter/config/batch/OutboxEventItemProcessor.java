@@ -51,11 +51,9 @@ public class OutboxEventItemProcessor implements ItemProcessor<OutboxEvent, Outb
             logger.error("Error processing outbox event: id={}", event.getId(), e);
 
             // Mark as failed (will auto-move to dead letter if max attempts exceeded)
-            OutboxEvent failedEvent = event
+            return event
                     .withIncrementedAttempts()
                     .markAsFailed(errorMessage);
-
-            return failedEvent;
         }
     }
 }

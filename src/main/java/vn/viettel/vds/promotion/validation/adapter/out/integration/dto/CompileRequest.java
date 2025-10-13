@@ -14,28 +14,28 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CompileRequest {
 
-    @Schema(description = "Tenant identifier", example = "tenant1", required = true)
+    @Schema(description = "Tenant identifier", example = "tenant1")
     @NotBlank(message = "Tenant ID is required")
     @JsonProperty("tenantId")
     private String tenantId;
 
-    @Schema(description = "Rule identifier", example = "rule123", required = true)
+    @Schema(description = "Rule identifier", example = "rule123")
     @NotBlank(message = "Rule ID is required")
     @JsonProperty("ruleId")
     private String ruleId;
 
-    @Schema(description = "Rule version", example = "1", required = true)
+    @Schema(description = "Rule version", example = "1")
     @NotNull(message = "Version is required")
     @Min(value = 1, message = "Version must be positive")
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Root logic type", example = "ALL", required = true, allowableValues = {"ALL", "ANY", "NONE"})
+    @Schema(description = "Root logic type", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
     @NotBlank(message = "Logic is required")
     @JsonProperty("logic")
     private String logic;
 
-    @Schema(description = "Rule nodes", required = true)
+    @Schema(description = "Rule nodes")
     @NotNull(message = "Nodes are required")
     @Valid
     @JsonProperty("nodes")

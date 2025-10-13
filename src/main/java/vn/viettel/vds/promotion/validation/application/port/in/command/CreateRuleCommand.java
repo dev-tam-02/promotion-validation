@@ -16,6 +16,7 @@ import java.util.Set;
  */
 @Data
 @Builder
+@SuppressWarnings("unused")
 public class CreateRuleCommand {
 
     @NotBlank(message = "Rule code is required")

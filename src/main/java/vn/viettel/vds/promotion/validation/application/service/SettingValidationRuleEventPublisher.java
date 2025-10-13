@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
 import vn.viettel.vds.promotion.schema.validation.event.*;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
@@ -65,7 +66,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, result.getAssignment().getId());
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to publish success event for commandId: " + commandId, e);
+            throw new ValidationException("Failed to publish success event for commandId: " + commandId, e);
         }
     }
 
@@ -81,7 +82,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, errorCode);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to publish error event for commandId: " + commandId, e);
+            throw new ValidationException("Failed to publish error event for commandId: " + commandId, e);
         }
     }
 
@@ -130,34 +131,7 @@ public class SettingValidationRuleEventPublisher {
                 .build();
 
         // Build Timeframe Result (if provided)
-        TimeframeResult timeframeResult = null;
-        if (result.getTimeFrameId() != null) {
-            TimeFrame timeframeData = result.getTimeframeData();
-
-            Long validFrom = null;
-            Long validTo = null;
-            String mode = "ALLOW";
-            String timezone = "UTC";
-
-            if (timeframeData != null) {
-                if (timeframeData.getValidityTimeframe() != null) {
-                    java.time.Instant startDate = timeframeData.getValidityTimeframe().getStartDate();
-                    java.time.Instant expirationDate = timeframeData.getValidityTimeframe().getExpirationDate();
-                    validFrom = startDate != null ? startDate.toEpochMilli() : null;
-                    validTo = expirationDate != null ? expirationDate.toEpochMilli() : null;
-                }
-                mode = timeframeData.getMode().toString();
-                timezone = timeframeData.getTimezone().toString();
-            }
-
-            timeframeResult = TimeframeResult.newBuilder()
-                    .setTimeFrameId(result.getTimeFrameId())
-                    .setValidFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
-                    .setValidTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
-                    .setMode(mode)
-                    .setTimezone(timezone)
-                    .build();
-        }
+        TimeframeResult timeframeResult = buildTimeframeResult(result);
 
         // Build Event Payload
         SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
@@ -251,16 +225,16 @@ public class SettingValidationRuleEventPublisher {
 
         // Build Metadata with original command info
         Map<String, String> metadata = new HashMap<>();
-        metadata.put("correlationId", commandId);
-        metadata.put("serviceName", serviceName);
-        metadata.put("serviceVersion", "1.0.0");
+        metadata.put(CORRELATION_ID_KEY, commandId);
+        metadata.put(SERVICE_NAME_KEY, serviceName);
+        metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
         metadata.put("originalCommandId", originalCommand.getId().toString());
 
         // Build Complete Event
         return SettingValidationRuleEvent.newBuilder()
                 .setId(IdGenerator.generateId())
-                .setAggregate("Validation")
-                .setType("SettingValidationRuleEvent")
+                .setAggregate(AGGREGATE_VALIDATION)
+                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
                 .setSource(serviceName)
                 .setSubject(commandId)
                 .setOccurredAt(Instant.now())
@@ -318,7 +292,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, campaignId, validationRuleId);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to publish rollback success event for commandId: " + commandId, e);
+            throw new ValidationException("Failed to publish rollback success event for commandId: " + commandId, e);
         }
     }
 
@@ -366,7 +340,8 @@ public class SettingValidationRuleEventPublisher {
                     commandId, errorCode, errorMessage);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to publish rollback error event for commandId: " + commandId, e);
+            throw new vn.viettel.vds.promotion.validation.domain.exception.ValidationException(
+                    "Failed to publish rollback error event for commandId: " + commandId, e);
         }
     }
 
@@ -405,13 +380,45 @@ public class SettingValidationRuleEventPublisher {
                         } else {
                             logger.error("Failed to publish Avro event to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
-                            throw new RuntimeException("Failed to publish event to Kafka", ex);
+                            throw new vn.viettel.vds.promotion.validation.domain.exception.ValidationException(
+                                    "Failed to publish event to Kafka", ex);
                         }
                     });
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to publish Avro event to Kafka - topic: " + eventTopic + ", key: " + key, e);
+            throw new ValidationException("Failed to publish Avro event to Kafka - topic: " + eventTopic + ", key: " + key, e);
         }
+    }
+
+    private TimeframeResult buildTimeframeResult(SettingValidationRuleCommandHandler.CommandProcessingResult result) {
+        if (result.getTimeFrameId() == null) {
+            return null;
+        }
+
+        TimeFrame timeframeData = result.getTimeframeData();
+        Long validFrom = null;
+        Long validTo = null;
+        String mode = "ALLOW";
+        String timezone = "UTC";
+
+        if (timeframeData != null) {
+            if (timeframeData.getValidityTimeframe() != null) {
+                java.time.Instant startDate = timeframeData.getValidityTimeframe().getStartDate();
+                java.time.Instant expirationDate = timeframeData.getValidityTimeframe().getExpirationDate();
+                validFrom = startDate != null ? startDate.toEpochMilli() : null;
+                validTo = expirationDate != null ? expirationDate.toEpochMilli() : null;
+            }
+            mode = timeframeData.getMode().toString();
+            timezone = timeframeData.getTimezone().toString();
+        }
+
+        return TimeframeResult.newBuilder()
+                .setTimeFrameId(result.getTimeFrameId())
+                .setValidFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
+                .setValidTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
+                .setMode(mode)
+                .setTimezone(timezone)
+                .build();
     }
 
 }

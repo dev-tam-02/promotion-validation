@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.*;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 
 import java.time.Instant;
@@ -91,7 +92,7 @@ public class OutboxEventEntity {
             return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize payload", e);
+            throw new ValidationException("Failed to deserialize payload", e);
         }
     }
 
@@ -106,7 +107,7 @@ public class OutboxEventEntity {
         try {
             this.payload = objectMapper.writeValueAsString(payloadMap);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize payload", e);
+            throw new ValidationException("Failed to serialize payload", e);
         }
     }
 
@@ -121,7 +122,7 @@ public class OutboxEventEntity {
             return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize metadata", e);
+            throw new ValidationException("Failed to deserialize metadata", e);
         }
     }
 
@@ -136,7 +137,7 @@ public class OutboxEventEntity {
         try {
             this.metadata = objectMapper.writeValueAsString(metadataMap);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize metadata", e);
+            throw new ValidationException("Failed to serialize metadata", e);
         }
     }
 }

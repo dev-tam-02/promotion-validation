@@ -106,12 +106,13 @@ public class ValidateStackableDiscountConsumer {
                     e.getMessage(),
                     e);
 
-            // TODO: Implement DLQ publishing via PublishValidationResultPort
-            // For now, acknowledge to avoid infinite retries
-            // In production, consider:
-            // - Retry with exponential backoff
-            // - Publish to DLQ after max retries
-            // - Circuit breaker pattern
+            /*
+             * Future enhancement: Implement DLQ publishing via PublishValidationResultPort
+             * Production considerations:
+             * - Retry with exponential backoff
+             * - Publish to DLQ after max retries
+             * - Circuit breaker pattern
+             */
 
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();

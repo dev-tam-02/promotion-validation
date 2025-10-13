@@ -43,6 +43,8 @@ import java.util.List;
 @Transactional
 public class ValidateStackableDiscountService implements ValidateStackableDiscountUseCase {
 
+    private static final String VALIDATION_FAILED_CODE = "VALIDATION_FAILED";
+    
     private final StackableDiscountValidationService domainValidationService;
     private final StackableRuleEvaluator ruleEvaluator;
     private final RuleService ruleService;
@@ -245,7 +247,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
                 .toList();
 
         List<ValidationIssue> issues = domainResult.getIssues().stream()
-                .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
+                .map(issue -> ValidationIssue.error(VALIDATION_FAILED_CODE, issue))
                 .toList();
 
         ValidationDecision decision = domainResult.isApproved()
@@ -286,7 +288,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
 
         List<ValidationIssue> issues = new ArrayList<>();
         issues.addAll(domainResult.getIssues().stream()
-                .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
+                .map(issue -> ValidationIssue.error(VALIDATION_FAILED_CODE, issue))
                 .toList());
         issues.addAll(ruleEvaluation.getFailureReasons().stream()
                 .map(reason -> ValidationIssue.error("RULE_FAILED", reason))
@@ -339,7 +341,7 @@ public class ValidateStackableDiscountService implements ValidateStackableDiscou
             return ValidationExplanation.rejected(
                     domainResult.getSummary(),
                     domainResult.getIssues().stream()
-                            .map(issue -> ValidationIssue.error("VALIDATION_FAILED", issue))
+                            .map(issue -> ValidationIssue.error(VALIDATION_FAILED_CODE, issue))
                             .toList()
             );
         }

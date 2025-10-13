@@ -8,11 +8,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RulePublishResponse {
 
-    @Schema(description = "Rule ID", example = "rule-001", required = true)
+    @Schema(description = "Rule ID", example = "rule-001", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("ruleId")
     private String ruleId;
 
-    @Schema(description = "Publishing success status", example = "true", required = true)
+    @Schema(description = "Publishing success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("success")
     private Boolean success;
 

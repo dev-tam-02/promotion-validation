@@ -11,30 +11,30 @@ import jakarta.validation.constraints.NotNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExecuteRequest {
 
-    @Schema(description = "Bundle hash to execute", example = "sha256:abc123...", required = true)
+    @Schema(description = "Bundle hash to execute", example = "sha256:abc123...", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Bundle hash is required")
     @JsonProperty("bundleHash")
     private String bundleHash;
 
-    @Schema(description = "Customer data", required = true)
+    @Schema(description = "Customer data", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Customer is required")
     @Valid
     @JsonProperty("customer")
     private CustomerDto customer;
 
-    @Schema(description = "Order data", required = true)
+    @Schema(description = "Order data", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Order is required")
     @Valid
     @JsonProperty("order")
     private OrderDto order;
 
-    @Schema(description = "Candidate data", required = true)
+    @Schema(description = "Candidate data", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Candidate is required")
     @Valid
     @JsonProperty("candidate")
     private CandidateDto candidate;
 
-    @Schema(description = "Execution context", required = true)
+    @Schema(description = "Execution context", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Execution context is required")
     @Valid
     @JsonProperty("executionContext")

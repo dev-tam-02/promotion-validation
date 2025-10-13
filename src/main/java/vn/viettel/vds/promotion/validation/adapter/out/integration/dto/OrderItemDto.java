@@ -13,18 +13,18 @@ import java.util.Map;
 @Schema(description = "Order item data")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderItemDto(
-        @Schema(description = "Product identifier", example = "prod123", required = true)
+        @Schema(description = "Product identifier", example = "prod123", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Product ID is required")
         @JsonProperty("productId")
         String productId,
 
-        @Schema(description = "Item quantity", example = "2", required = true)
+        @Schema(description = "Item quantity", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Quantity is required")
         @Positive(message = "Quantity must be positive")
         @JsonProperty("quantity")
         Integer quantity,
 
-        @Schema(description = "Item price", example = "250000", required = true)
+        @Schema(description = "Item price", example = "250000", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Price is required")
         @JsonProperty("price")
         BigDecimal price,

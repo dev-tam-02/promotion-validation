@@ -13,7 +13,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public abstract class ValidationRuleMapper {
+public interface ValidationRuleMapper {
 
     /**
      * Convert JPA RuleJpaEntity to Rule domain model
@@ -35,5 +35,5 @@ public abstract class ValidationRuleMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "dsl", ignore = true)
-    public abstract Rule jpaEntityToDomain(RuleJpaEntity entity);
+    Rule jpaEntityToDomain(RuleJpaEntity entity);
 }

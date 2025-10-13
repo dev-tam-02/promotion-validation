@@ -48,11 +48,10 @@ public class ValidationSettingsController {
             log.error("Validation setting validation failed for ruleId: {}",
                     request.validationRuleId(), e);
 
-            ValidationResult errorResult = ValidationResult.failure(
+            return ValidationResult.failure(
                     "VALIDATION_SETTING_ERROR",
                     "Validation setting validation failed: " + e.getMessage()
             );
-            return errorResult;
         }
     }
 }

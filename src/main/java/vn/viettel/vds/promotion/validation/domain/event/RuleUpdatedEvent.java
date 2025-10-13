@@ -27,10 +27,6 @@ public class RuleUpdatedEvent extends DomainEvent {
         return null; // No longer using tenantId
     }
 
-    public String getRuleId() {
-        return ruleId;
-    }
-
     public String getRuleCode() {
         return ruleCode;
     }

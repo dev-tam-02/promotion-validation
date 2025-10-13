@@ -112,10 +112,6 @@ public class ExternalServiceAdapter implements ExternalServicePort {
 
             log.debug("Notifying external system {} with validation result", externalSystemId);
 
-            // Example: POST to webhook endpoint
-            // String webhookUrl = getWebhookUrl(externalSystemId);
-            // restTemplate.postForObject(webhookUrl, result, Void.class);
-
         } catch (Exception e) {
             log.error("Failed to notify external system: {}", externalSystemId, e);
         }

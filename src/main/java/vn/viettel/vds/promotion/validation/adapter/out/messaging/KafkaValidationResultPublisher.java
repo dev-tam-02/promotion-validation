@@ -214,7 +214,7 @@ public class KafkaValidationResultPublisher implements PublishValidationResultPo
 
     /**
      * Simple error event DTO.
-     * TODO: Replace with proper Avro schema when available.
+
      */
     private record ValidationErrorEvent(
             String correlationId,

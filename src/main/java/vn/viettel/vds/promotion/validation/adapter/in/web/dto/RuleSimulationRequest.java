@@ -9,12 +9,12 @@ import java.util.Map;
 @Schema(description = "Request to simulate rule execution")
 public class RuleSimulationRequest {
 
-    @Schema(description = "Customer context for simulation", required = true)
+    @Schema(description = "Customer context for simulation", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Customer context is required")
     @JsonProperty("customerContext")
     private CustomerContext customerContext;
 
-    @Schema(description = "Order context for simulation", required = true)
+    @Schema(description = "Order context for simulation", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Order context is required")
     @JsonProperty("orderContext")
     private OrderContext orderContext;

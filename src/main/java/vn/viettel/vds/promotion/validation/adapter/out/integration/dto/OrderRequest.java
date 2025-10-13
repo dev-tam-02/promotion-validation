@@ -14,17 +14,17 @@ import java.util.Map;
 @Schema(description = "Order data for rule execution")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderRequest(
-        @Schema(description = "Order identifier", example = "order123", required = true)
+        @Schema(description = "Order identifier", example = "order123", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Order ID is required")
         @JsonProperty("id")
         String id,
 
-        @Schema(description = "Order total amount", example = "500000", required = true)
+        @Schema(description = "Order total amount", example = "500000", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Total is required")
         @JsonProperty("total")
         BigDecimal total,
 
-        @Schema(description = "Currency code", example = "VND", required = true)
+        @Schema(description = "Currency code", example = "VND", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Currency is required")
         @JsonProperty("currency")
         String currency,

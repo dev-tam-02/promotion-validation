@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.fact.DiscountFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.OrderFact;
 import vn.viettel.vds.promotion.validation.domain.fact.OrderItemFact;
 
@@ -23,6 +24,9 @@ import java.util.Map;
 @Component
 public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
+    private static final String STATUS_KEY = "status";
+    private static final String METADATA_KEY = "metadata";
+    
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String baseUrl;
@@ -76,10 +80,10 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to resolve order facts for orderId: " + request.orderId(), e);
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            throw new ValidationException("Failed to resolve order facts for orderId: " + request.orderId(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve order facts for orderId: " + request.orderId(), e);
+            throw new ValidationException("Failed to resolve order facts for orderId: " + request.orderId(), e);
         }
     }
 
@@ -122,6 +126,19 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
     private OrderFact mapToOrderFact(Map<String, Object> data) {
         OrderFact.Builder builder = OrderFact.builder();
 
+        // Map basic fields
+        mapBasicFields(data, builder);
+        
+        // Map monetary fields
+        mapMonetaryFields(data, builder);
+        
+        // Map items and derived fields
+        mapItemsAndDerivedFields(data, builder);
+
+        return builder.build();
+    }
+
+    private void mapBasicFields(Map<String, Object> data, OrderFact.Builder builder) {
         if (data.get("orderId") != null) {
             builder.orderId((String) data.get("orderId"));
         }
@@ -131,9 +148,21 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("orderDate") != null) {
             builder.orderDate(Instant.parse((String) data.get("orderDate")));
         }
-        if (data.get("status") != null) {
-            builder.status((String) data.get("status"));
+        if (data.get(STATUS_KEY) != null) {
+            builder.status((String) data.get(STATUS_KEY));
         }
+        if (data.get("currency") != null) {
+            builder.currency((String) data.get("currency"));
+        }
+        if (data.get("channel") != null) {
+            builder.channel((String) data.get("channel"));
+        }
+        if (data.get("paymentMethod") != null) {
+            builder.paymentMethod((String) data.get("paymentMethod"));
+        }
+    }
+
+    private void mapMonetaryFields(Map<String, Object> data, OrderFact.Builder builder) {
         if (data.get("totalAmount") != null) {
             builder.totalAmount(new BigDecimal(data.get("totalAmount").toString()));
         }
@@ -146,15 +175,9 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("shipping") != null) {
             builder.shipping(new BigDecimal(data.get("shipping").toString()));
         }
-        if (data.get("currency") != null) {
-            builder.currency((String) data.get("currency"));
-        }
-        if (data.get("channel") != null) {
-            builder.channel((String) data.get("channel"));
-        }
-        if (data.get("paymentMethod") != null) {
-            builder.paymentMethod((String) data.get("paymentMethod"));
-        }
+    }
+
+    private void mapItemsAndDerivedFields(Map<String, Object> data, OrderFact.Builder builder) {
         if (data.get("items") != null) {
             List<Map<String, Object>> itemsData = (List<Map<String, Object>>) data.get("items");
             List<OrderItemFact> items = itemsData.stream()
@@ -163,23 +186,7 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
             builder.items(items);
 
             // Calculate derived fields
-            if (!items.isEmpty()) {
-                BigDecimal cheapest = items.stream()
-                        .map(OrderItemFact::unitPrice)
-                        .min(BigDecimal::compareTo)
-                        .orElse(BigDecimal.ZERO);
-                BigDecimal mostExpensive = items.stream()
-                        .map(OrderItemFact::unitPrice)
-                        .max(BigDecimal::compareTo)
-                        .orElse(BigDecimal.ZERO);
-                Integer totalQuantity = items.stream()
-                        .mapToInt(OrderItemFact::quantity)
-                        .sum();
-
-                builder.cheapestItemPrice(cheapest);
-                builder.mostExpensiveItemPrice(mostExpensive);
-                builder.totalQuantity(totalQuantity);
-            }
+            calculateAndSetDerivedFields(items, builder);
         }
         if (data.get("appliedDiscounts") != null) {
             List<Map<String, Object>> discountsData = (List<Map<String, Object>>) data.get("appliedDiscounts");
@@ -188,16 +195,47 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
                     .toList();
             builder.appliedDiscounts(discounts);
         }
-        if (data.get("metadata") != null) {
-            builder.metadata((Map<String, Object>) data.get("metadata"));
+        if (data.get(METADATA_KEY) != null) {
+            builder.metadata((Map<String, Object>) data.get(METADATA_KEY));
         }
+    }
 
-        return builder.build();
+    private void calculateAndSetDerivedFields(List<OrderItemFact> items, OrderFact.Builder builder) {
+        if (!items.isEmpty()) {
+            BigDecimal cheapest = items.stream()
+                    .map(OrderItemFact::unitPrice)
+                    .min(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+            BigDecimal mostExpensive = items.stream()
+                    .map(OrderItemFact::unitPrice)
+                    .max(BigDecimal::compareTo)
+                    .orElse(BigDecimal.ZERO);
+            Integer totalQuantity = items.stream()
+                    .mapToInt(OrderItemFact::quantity)
+                    .sum();
+
+            builder.cheapestItemPrice(cheapest);
+            builder.mostExpensiveItemPrice(mostExpensive);
+            builder.totalQuantity(totalQuantity);
+        }
     }
 
     private OrderItemFact mapToOrderItemFact(Map<String, Object> data) {
         OrderItemFact.Builder builder = OrderItemFact.builder();
 
+        // Map basic fields
+        mapBasicItemFields(data, builder);
+        
+        // Map monetary fields
+        mapItemMonetaryFields(data, builder);
+        
+        // Map additional fields
+        mapAdditionalItemFields(data, builder);
+
+        return builder.build();
+    }
+
+    private void mapBasicItemFields(Map<String, Object> data, OrderItemFact.Builder builder) {
         if (data.get("itemId") != null) {
             builder.itemId((String) data.get("itemId"));
         }
@@ -219,9 +257,9 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("brand") != null) {
             builder.brand((String) data.get("brand"));
         }
-        if (data.get("tags") != null) {
-            builder.tags((List<String>) data.get("tags"));
-        }
+    }
+
+    private void mapItemMonetaryFields(Map<String, Object> data, OrderItemFact.Builder builder) {
         if (data.get("unitPrice") != null) {
             builder.unitPrice(new BigDecimal(data.get("unitPrice").toString()));
         }
@@ -234,14 +272,18 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("discountAmount") != null) {
             builder.discountAmount(new BigDecimal(data.get("discountAmount").toString()));
         }
+    }
+
+    private void mapAdditionalItemFields(Map<String, Object> data, OrderItemFact.Builder builder) {
+        if (data.get("tags") != null) {
+            builder.tags((List<String>) data.get("tags"));
+        }
         if (data.get("unit") != null) {
             builder.unit((String) data.get("unit"));
         }
         if (data.get("attributes") != null) {
             builder.attributes((Map<String, Object>) data.get("attributes"));
         }
-
-        return builder.build();
     }
 
     private DiscountFact mapToDiscountFact(Map<String, Object> data) {
@@ -265,11 +307,11 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
         if (data.get("scope") != null) {
             builder.scope((String) data.get("scope"));
         }
-        if (data.get("status") != null) {
-            builder.status((String) data.get("status"));
+        if (data.get(STATUS_KEY) != null) {
+            builder.status((String) data.get(STATUS_KEY));
         }
-        if (data.get("metadata") != null) {
-            builder.metadata((Map<String, Object>) data.get("metadata"));
+        if (data.get(METADATA_KEY) != null) {
+            builder.metadata((Map<String, Object>) data.get(METADATA_KEY));
         }
 
         return builder.build();

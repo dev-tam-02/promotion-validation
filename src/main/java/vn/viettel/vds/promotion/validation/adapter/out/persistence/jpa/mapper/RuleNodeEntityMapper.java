@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 @Component
 public class RuleNodeEntityMapper {
 
+    private static final String NODE_TYPE_GROUP = "GROUP";
+
     /**
      * Convert entity to domain model
      */
@@ -30,9 +32,8 @@ public class RuleNodeEntityMapper {
                 .params(entity.getParams());
 
         // Map based on node type
-        if ("GROUP".equalsIgnoreCase(entity.getType())) {
-            builder.groupLogic(parseLogicType(entity.getGroupLogic()));
-            // Children will be set later after loading from repository
+        if (NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType())) {
+            // Group nodes don't have operator-specific fields
         } else if ("COND".equalsIgnoreCase(entity.getType())) {
             builder.operatorName(entity.getOperatorName())
                     .reasonCode(entity.getReasonCode());
@@ -58,7 +59,7 @@ public class RuleNodeEntityMapper {
 
         // Build tree structure by connecting children to parents
         for (RuleNodeEntity entity : entities) {
-            if ("GROUP".equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null) {
+            if (NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null) {
                 RuleNode.Builder parentBuilder = builderMap.get(entity.getNodeId());
                 List<RuleNode> children = entity.getChildrenIds().stream()
                         .map(builderMap::get)
@@ -93,7 +94,7 @@ public class RuleNodeEntityMapper {
                 .params(entity.getParams());
 
         // Map based on node type
-        if ("GROUP".equalsIgnoreCase(entity.getType())) {
+        if (NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType())) {
             builder.groupLogic(parseLogicType(entity.getGroupLogic()));
         } else if ("COND".equalsIgnoreCase(entity.getType())) {
             builder.operatorName(entity.getOperatorName())
@@ -134,7 +135,7 @@ public class RuleNodeEntityMapper {
     /**
      * Convert domain to entity (for saving)
      */
-    public RuleNodeEntity toEntity(RuleNode node, String validationRuleId, RuleNodeEntity parent) {
+    public RuleNodeEntity toEntity(RuleNode node, RuleNodeEntity parent) {
         if (node == null) {
             return null;
         }
@@ -146,7 +147,7 @@ public class RuleNodeEntityMapper {
 
         // Set validation rule ID
         // Note: validationRule entity reference should be set by caller
-        // entity.setValidationRule(validationRuleEntity);
+
 
         // Set parent if provided
         if (parent != null) {

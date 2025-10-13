@@ -27,6 +27,9 @@ import java.util.*;
 @Transactional
 public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUseCase {
 
+    private static final String RULE_NOT_FOUND_MESSAGE = "Rule not found: ";
+    private static final String RULES_KEY = "rules";
+    
     private final ValidationRuleRepositoryPort ruleRepository;
     private final ValidationEnginePort validationEngine;
     private final ValidationDomainService domainService;
@@ -71,7 +74,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
         // Get existing rule
         Rule existingRule = ruleRepository.findById(ruleId)
-                .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
+                .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         // Update fields if provided
         Rule.RuleBuilder updatedRule = existingRule.toBuilder()
@@ -126,7 +129,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         log.info("Deleting rule: {}", ruleId);
 
         if (!ruleRepository.existsById(ruleId)) {
-            throw new NoSuchElementException("Rule not found: " + ruleId);
+            throw new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId);
         }
 
         ruleRepository.deleteById(ruleId);
@@ -156,7 +159,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         log.info("Activating rule: {}", ruleId);
 
         Rule rule = ruleRepository.findById(ruleId)
-                .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
+                .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         Rule activated = rule.toBuilder()
                 .state(Rule.RuleState.PUBLISHED)
@@ -171,7 +174,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         log.info("Deactivating rule: {}", ruleId);
 
         Rule rule = ruleRepository.findById(ruleId)
-                .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
+                .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         Rule deactivated = rule.toBuilder()
                 .state(Rule.RuleState.ARCHIVED)
@@ -241,7 +244,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
         log.info("Cloning rule {} with new code: {}", ruleId, newRuleCode);
 
         Rule originalRule = ruleRepository.findById(ruleId)
-                .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
+                .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         Rule clonedRule = originalRule.toBuilder()
                 .id(UUID.randomUUID().toString())
@@ -277,7 +280,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
         try {
             Rule rule = ruleRepository.findById(ruleId)
-                    .orElseThrow(() -> new NoSuchElementException("Rule not found: " + ruleId));
+                    .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
             // Create test request
             ValidationRequest testRequest = ValidationRequest.builder()
@@ -362,7 +365,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             });
         }
 
-        export.put("rules", rulesExport);
+        export.put(RULES_KEY, rulesExport);
         return export;
     }
 
@@ -372,8 +375,8 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
         List<Rule> importedRules = new ArrayList<>();
 
-        if (configuration.get("rules") instanceof List) {
-            List<Map<String, Object>> rulesConfig = (List<Map<String, Object>>) configuration.get("rules");
+        if (configuration.get(RULES_KEY) instanceof List) {
+            List<Map<String, Object>> rulesConfig = (List<Map<String, Object>>) configuration.get(RULES_KEY);
 
             for (Map<String, Object> ruleConfig : rulesConfig) {
                 try {
@@ -408,7 +411,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
      */
     private Map<String, String> convertConfiguration(Map<String, Object> config) {
         if (config == null) {
-            return null;
+            return new HashMap<>();
         }
         Map<String, String> converted = new HashMap<>();
         config.forEach((key, value) -> {

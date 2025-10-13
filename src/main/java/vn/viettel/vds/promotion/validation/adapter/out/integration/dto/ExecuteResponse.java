@@ -11,11 +11,11 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExecuteResponse {
 
-    @Schema(description = "Execution success status", example = "true", required = true)
+    @Schema(description = "Execution success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("ok")
     private boolean ok;
 
-    @Schema(description = "Validation decision", example = "ALLOW", required = true, allowableValues = {"ALLOW", "DENY"})
+    @Schema(description = "Validation decision", example = "ALLOW", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"ALLOW", "DENY"})
     @JsonProperty("decision")
     private String decision;
 

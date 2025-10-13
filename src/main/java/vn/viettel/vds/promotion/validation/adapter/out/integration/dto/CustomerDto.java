@@ -11,7 +11,7 @@ import java.util.Map;
 @Schema(description = "Customer data for rule execution")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CustomerDto(
-        @Schema(description = "Customer identifier", example = "cust123", required = true)
+        @Schema(description = "Customer identifier", example = "cust123", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Customer ID is required")
         @JsonProperty("id")
         String id,

@@ -16,6 +16,8 @@ public class TimeoutService {
 
     private static final Logger logger = LoggerFactory.getLogger(TimeoutService.class);
 
+    private static final String TIMEOUT_EXECUTION_FAILED = "Timeout execution failed";
+
     private final TimeLimiterRegistry timeLimiterRegistry;
     private final ResilienceConfiguration config;
     private final ExecutorService executorService;
@@ -63,8 +65,7 @@ public class TimeoutService {
             CompletableFuture<T> future = CompletableFuture.supplyAsync(supplier, executorService);
             return timeLimiter.executeFutureSupplier(() -> future);
         } catch (Exception e) {
-            logger.error("Timeout execution failed for: {}", timeLimiterName, e);
-            throw new TimeoutExecutionException("Timeout execution failed", e, timeLimiterName);
+            throw new TimeoutExecutionException(TIMEOUT_EXECUTION_FAILED + " for: " + timeLimiterName, e, timeLimiterName);
         }
     }
 
@@ -82,8 +83,7 @@ public class TimeoutService {
 
             return timeLimiter.executeFutureSupplier(() -> future);
         } catch (Exception e) {
-            logger.error("Timeout execution failed for: {}", timeLimiterName, e);
-            throw new TimeoutExecutionException("Timeout execution failed", e, timeLimiterName);
+            throw new TimeoutExecutionException(TIMEOUT_EXECUTION_FAILED + " for: " + timeLimiterName, e, timeLimiterName);
         }
     }
 
@@ -94,8 +94,7 @@ public class TimeoutService {
             CompletableFuture<Void> future = CompletableFuture.runAsync(runnable, executorService);
             timeLimiter.executeFutureSupplier(() -> future);
         } catch (Exception e) {
-            logger.error("Timeout execution failed for: {}", timeLimiterName, e);
-            throw new TimeoutExecutionException("Timeout execution failed", e, timeLimiterName);
+            throw new TimeoutExecutionException(TIMEOUT_EXECUTION_FAILED + " for: " + timeLimiterName, e, timeLimiterName);
         }
     }
 

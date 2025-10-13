@@ -14,6 +14,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@SuppressWarnings("unused")
 public class ValidationFailedEvent {
     private String eventId;
     private String validationId;

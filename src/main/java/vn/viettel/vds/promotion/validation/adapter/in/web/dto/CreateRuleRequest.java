@@ -14,19 +14,19 @@ import java.util.Map;
 @Schema(description = "Request to create a new rule")
 public class CreateRuleRequest {
 
-    @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K", required = true)
+    @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K")
     @NotBlank(message = "Rule code is required")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("code")
     private String code;
 
-    @Schema(description = "Rule name", example = "Weekend VIP ≥500k promotion", required = true)
+    @Schema(description = "Rule name", example = "Weekend VIP ≥500k promotion")
     @NotBlank(message = "Rule name is required")
     @Size(max = 255, message = "Rule name must not exceed 255 characters")
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Root logic operator", example = "ALL", required = true, allowableValues = {"ALL", "ANY", "NONE"})
+    @Schema(description = "Root logic operator", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
     @NotNull(message = "Logic is required")
     @JsonProperty("logic")
     private String logic;
@@ -35,7 +35,7 @@ public class CreateRuleRequest {
     @JsonProperty("limits")
     private Map<String, Object> limits;
 
-    @Schema(description = "Rule nodes (conditions and groups)", required = true)
+    @Schema(description = "Rule nodes (conditions and groups)")
     @NotEmpty(message = "Rule must have at least one node")
     @Valid
     @JsonProperty("nodes")

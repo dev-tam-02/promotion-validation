@@ -8,6 +8,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Service for validating object validity.
@@ -17,6 +18,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ObjectValidityService {
+
+
 
     private final AssignmentService assignmentService;
 
@@ -41,17 +44,19 @@ public class ObjectValidityService {
             }
 
             // 2. Get validation settings for the object
-            Map<String, Object> validationSettings = getObjectValidationSettings(
+            Optional<ValidationSettingsDTO> validationSettingsOpt = getObjectValidationSettings(
                     request.objectType(),
                     request.objectId()
             );
 
-            if (validationSettings == null || validationSettings.isEmpty()) {
+            if (validationSettingsOpt.isEmpty()) {
                 // No validation settings configured - consider as valid
                 log.debug("No validation settings found for object {}:{}, considering as valid",
                         request.objectType(), request.objectId());
                 return ValidationResult.success();
             }
+
+            ValidationSettingsDTO validationSettings = validationSettingsOpt.get();
 
             // 3. Check if object is currently within its validity timeframe
             ValidationResult timeframeResult = validateTimeframeValidity(
@@ -94,38 +99,34 @@ public class ObjectValidityService {
         }
     }
 
-    private Map<String, Object> getObjectValidationSettings(String objectType, String objectId) {
+    private Optional<ValidationSettingsDTO> getObjectValidationSettings(String objectType, String objectId) {
         try {
             // Retrieve validation settings for the object
             // This could include timeframe, rules, and other validation metadata
             return assignmentService.getValidationSettings(objectType, objectId);
         } catch (Exception e) {
             log.error("Error retrieving validation settings for {}:{}", objectType, objectId, e);
-            return null;
+            return Optional.empty();
         }
     }
 
     private ValidationResult validateTimeframeValidity(
-            Map<String, Object> validationSettings,
+            ValidationSettingsDTO validationSettings,
             OffsetDateTime currentDateTime) {
 
         try {
             // Extract timeframe configuration from validation settings
-            @SuppressWarnings("unchecked")
-            Map<String, Object> timeframe = (Map<String, Object>) validationSettings.get("timeframe");
-
-            if (timeframe == null) {
+            if (validationSettings.getTimeframe() == null) {
                 // No timeframe restriction
                 return ValidationResult.success();
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> validityTimeframe = (Map<String, Object>) timeframe.get("validityTimeframe");
+            ValidationSettingsDTO.ValidityTimeframe validityTimeframe = validationSettings.getTimeframe().getValidityTimeframe();
 
             if (validityTimeframe != null) {
                 // Check if current time is within start and end dates
-                String startDateStr = (String) validityTimeframe.get("startDate");
-                String endDateStr = (String) validityTimeframe.get("expirationDate");
+                String startDateStr = validityTimeframe.getStartDate();
+                String endDateStr = validityTimeframe.getExpirationDate();
 
                 if (startDateStr != null && endDateStr != null) {
                     OffsetDateTime startDate = OffsetDateTime.parse(startDateStr);
@@ -147,40 +148,6 @@ public class ObjectValidityService {
                 }
             }
 
-            // Check validity days of week
-            @SuppressWarnings("unchecked")
-            java.util.List<Integer> validityDaysOfWeek =
-                    (java.util.List<Integer>) validationSettings.get("validityDaysOfWeek");
-
-            if (validityDaysOfWeek != null && !validityDaysOfWeek.isEmpty()) {
-                int currentDayOfWeek = currentDateTime.getDayOfWeek().getValue(); // 1-7 (Monday-Sunday)
-                if (!validityDaysOfWeek.contains(currentDayOfWeek)) {
-                    return ValidationResult.failure(
-                            "OBJECT_INVALID_DAY",
-                            String.format("Object is not valid on day %d. Valid days: %s",
-                                    currentDayOfWeek, validityDaysOfWeek)
-                    );
-                }
-            }
-
-            // Check validity hours per day
-            @SuppressWarnings("unchecked")
-            java.util.List<Map<String, Object>> validityHoursPerDay =
-                    (java.util.List<Map<String, Object>>) validationSettings.get("validityHoursPerDay");
-
-            if (validityHoursPerDay != null && !validityHoursPerDay.isEmpty()) {
-                String currentDayName = currentDateTime.getDayOfWeek().name();
-
-                ValidationResult hoursResult = validateCurrentTimeInValidHours(
-                        validityHoursPerDay,
-                        currentDayName,
-                        currentDateTime
-                );
-                if (!hoursResult.isValid()) {
-                    return hoursResult;
-                }
-            }
-
             return ValidationResult.success();
 
         } catch (Exception e) {
@@ -192,57 +159,7 @@ public class ObjectValidityService {
         }
     }
 
-    private ValidationResult validateCurrentTimeInValidHours(
-            java.util.List<Map<String, Object>> validityHoursPerDay,
-            String currentDayName,
-            OffsetDateTime currentDateTime) {
 
-        // Find hours configuration for current day
-        Map<String, Object> dayHours = validityHoursPerDay.stream()
-                .filter(hours -> currentDayName.equals(hours.get("dayOfWeek")))
-                .findFirst()
-                .orElse(null);
-
-        if (dayHours == null) {
-            // No specific hours configured for this day - consider invalid
-            return ValidationResult.failure(
-                    "OBJECT_INVALID_TIME",
-                    String.format("No valid hours configured for day %s", currentDayName)
-            );
-        }
-
-        try {
-            String startTimeStr = (String) dayHours.get("startTime");
-            String endTimeStr = (String) dayHours.get("expirationTime");
-
-            if (startTimeStr != null && endTimeStr != null) {
-                // Parse time components (assuming format like "09:00:00+07:00")
-                OffsetDateTime startTime = OffsetDateTime.parse(
-                        currentDateTime.toLocalDate() + "T" + startTimeStr
-                );
-                OffsetDateTime endTime = OffsetDateTime.parse(
-                        currentDateTime.toLocalDate() + "T" + endTimeStr
-                );
-
-                if (currentDateTime.isBefore(startTime) || currentDateTime.isAfter(endTime)) {
-                    return ValidationResult.failure(
-                            "OBJECT_INVALID_TIME",
-                            String.format("Current time %s is outside valid hours %s - %s",
-                                    currentDateTime.toLocalTime(), startTimeStr, endTimeStr)
-                    );
-                }
-            }
-
-            return ValidationResult.success();
-
-        } catch (Exception e) {
-            log.error("Error validating current time in valid hours", e);
-            return ValidationResult.failure(
-                    "OBJECT_INVALID_TIME",
-                    "Failed to validate time range: " + e.getMessage()
-            );
-        }
-    }
 
     private ValidationResult validateObjectStatus(String objectType, String objectId) {
         try {
@@ -253,12 +170,12 @@ public class ObjectValidityService {
                 // For campaigns, we might check campaign service
                 Boolean isActive = checkCampaignStatus(objectId);
 
-                // TODO: Implement actual campaign status check with campaign service
+
                 // Currently returns null for unknown status, true for active, false for inactive
 
                 // Only fail validation if we definitively know the campaign is inactive
                 // If status is unknown (null) or active (true), we allow validation to pass
-                if (isActive != null && !isActive) {
+                if (!isActive) {
                     return ValidationResult.failure(
                             "OBJECT_INACTIVE",
                             String.format("Campaign %s is not in active status", objectId)

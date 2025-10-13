@@ -8,11 +8,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BundleStatusResponse {
 
-    @Schema(description = "Bundle hash", example = "sha256:abc123...", required = true)
+    @Schema(description = "Bundle hash", example = "sha256:abc123...", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("bundleHash")
     private String bundleHash;
 
-    @Schema(description = "Bundle loaded status", example = "true", required = true)
+    @Schema(description = "Bundle loaded status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("loaded")
     private boolean loaded;
 

@@ -16,7 +16,7 @@ public class BatchSimulateRequest {
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Test cases to run", required = true)
+    @Schema(description = "Test cases to run", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "Test cases cannot be empty")
     @Valid
     @JsonProperty("cases")
@@ -42,12 +42,12 @@ public class BatchSimulateRequest {
     @Schema(description = "Test case definition")
     public static class TestCase {
 
-        @Schema(description = "Test case name", example = "VIP customer with large order", required = true)
+        @Schema(description = "Test case name", example = "VIP customer with large order", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Test case name is required")
         @JsonProperty("name")
         private String name;
 
-        @Schema(description = "Context data for this test case", required = true)
+        @Schema(description = "Context data for this test case", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Context is required")
         @JsonProperty("context")
         private Map<String, Object> context;

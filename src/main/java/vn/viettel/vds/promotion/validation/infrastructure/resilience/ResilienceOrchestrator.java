@@ -15,6 +15,8 @@ import java.util.function.Supplier;
 public class ResilienceOrchestrator {
 
     private static final Logger logger = LoggerFactory.getLogger(ResilienceOrchestrator.class);
+    
+    private static final String DEFAULT_RESILIENCE_NAME = "default";
 
     private final CircuitBreakerService circuitBreakerService;
     private final RetryService retryService;
@@ -55,7 +57,7 @@ public class ResilienceOrchestrator {
 
         } catch (Exception e) {
             logger.error("Validation execution failed for request: {}, attempting fallback", request.getTransactionId(), e);
-            return fallbackService.executeValidationFallback(request, "default", e);
+            return fallbackService.executeValidationFallback(request, DEFAULT_RESILIENCE_NAME, e);
         } finally {
             Duration executionTime = Duration.between(startTime, Instant.now());
             logger.info("Validation execution completed for request: {} in {}ms",
@@ -100,8 +102,7 @@ public class ResilienceOrchestrator {
         try {
             return circuitBreakerService.executeWithCircuitBreaker(operationName, operation);
         } catch (CircuitBreakerService.CircuitBreakerExecutionException e) {
-            logger.error("Circuit breaker execution failed for operation: {}", operationName, e);
-            throw new ResilienceExecutionException("Circuit breaker failed", e, operationName, "CIRCUIT_BREAKER");
+            throw new ResilienceExecutionException("Circuit breaker failed for operation: " + operationName, e, operationName, "CIRCUIT_BREAKER");
         }
     }
 
@@ -109,8 +110,7 @@ public class ResilienceOrchestrator {
         try {
             return retryService.executeWithRetry(operationName, operation);
         } catch (RetryService.RetryExecutionException e) {
-            logger.error("Retry execution failed for operation: {}", operationName, e);
-            throw new ResilienceExecutionException("Retry failed", e, operationName, "RETRY");
+            throw new ResilienceExecutionException("Retry failed for operation: " + operationName, e, operationName, "RETRY");
         }
     }
 
@@ -118,8 +118,7 @@ public class ResilienceOrchestrator {
         try {
             return timeoutService.executeWithTimeout(operationName, operation);
         } catch (TimeoutService.TimeoutExecutionException e) {
-            logger.error("Timeout execution failed for operation: {}", operationName, e);
-            throw new ResilienceExecutionException("Timeout occurred", e, operationName, "TIMEOUT");
+            throw new ResilienceExecutionException("Timeout occurred for operation: " + operationName, e, operationName, "TIMEOUT");
         }
     }
 
@@ -127,18 +126,17 @@ public class ResilienceOrchestrator {
         try {
             return bulkheadService.executeWithBulkhead(operationName, operation);
         } catch (BulkheadService.BulkheadExecutionException e) {
-            logger.error("Bulkhead execution failed for operation: {}", operationName, e);
-            throw new ResilienceExecutionException("Bulkhead rejected", e, operationName, "BULKHEAD");
+            throw new ResilienceExecutionException("Bulkhead rejected for operation: " + operationName, e, operationName, "BULKHEAD");
         }
     }
 
     public ResilienceStatus getResilienceStatus() {
         return new ResilienceStatus(
                 config.isEnabled(),
-                circuitBreakerService.getCircuitBreakerStatus("default"),
-                retryService.getRetryStatus("default"),
-                timeoutService.getTimeoutStatus("default"),
-                bulkheadService.getBulkheadStatus("default"),
+                circuitBreakerService.getCircuitBreakerStatus(DEFAULT_RESILIENCE_NAME),
+                retryService.getRetryStatus(DEFAULT_RESILIENCE_NAME),
+                timeoutService.getTimeoutStatus(DEFAULT_RESILIENCE_NAME),
+                bulkheadService.getBulkheadStatus(DEFAULT_RESILIENCE_NAME),
                 fallbackService.getFallbackStats(),
                 Instant.now()
         );
@@ -146,9 +144,9 @@ public class ResilienceOrchestrator {
 
     public void resetResilienceComponents() {
         logger.info("Resetting all resilience components");
-        circuitBreakerService.resetCircuitBreaker("default");
-        retryService.resetRetry("default");
-        bulkheadService.resetBulkhead("default");
+        circuitBreakerService.resetCircuitBreaker(DEFAULT_RESILIENCE_NAME);
+        retryService.resetRetry(DEFAULT_RESILIENCE_NAME);
+        bulkheadService.resetBulkhead(DEFAULT_RESILIENCE_NAME);
         fallbackService.resetFallbackStats();
     }
 

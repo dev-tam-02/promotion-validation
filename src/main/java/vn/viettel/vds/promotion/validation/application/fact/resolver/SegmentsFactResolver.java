@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.SegmentsFact;
 
 import java.util.*;
@@ -65,8 +66,7 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
                     .build();
 
         } catch (Exception e) {
-            log.error("Error resolving segments for customer {}: {}", customerId, e.getMessage(), e);
-            throw new RuntimeException("Failed to resolve segments for customer: " + customerId, e);
+            throw new ValidationException("Failed to resolve segments for customer: " + customerId + " - " + e.getMessage(), e);
         }
     }
 
@@ -94,7 +94,9 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
                 segmentIdsList.addAll(segmentSet);
             }
 
-            log.debug("Resolved segments from embedded payload for customer {}: {}", customerId, segmentIdsList);
+            if (log.isDebugEnabled()) {
+                log.debug("Resolved segments from embedded payload for customer {}: {}", customerId, segmentIdsList);
+            }
 
             return SegmentsFact.builder()
                     .segmentIds(segmentIdsList)
@@ -104,8 +106,7 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
                     .build();
 
         } catch (Exception e) {
-            log.error("Error resolving segments from embedded payload: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to resolve segments from embedded payload", e);
+            throw new ValidationException("Failed to resolve segments from embedded payload: " + e.getMessage(), e);
         }
     }
 
@@ -144,9 +145,8 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
      * @return set of segment IDs
      */
     private Set<String> fetchSegmentsFromService(String customerId) {
-        // TODO: Implement actual service call
-        // Example:
-        // return segmentServiceClient.getCustomerSegments(customerId);
+
+
 
         // Mock implementation
         log.debug("Fetching segments for customer {} (mock implementation)", customerId);

@@ -12,12 +12,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 @Service
 public class GetRuleByIdUseCaseImpl implements GetRuleByIdUseCase {
 
-    private final RulePersistencePort rulePersistencePort;
-
-    public GetRuleByIdUseCaseImpl(RulePersistencePort rulePersistencePort) {
-        this.rulePersistencePort = rulePersistencePort;
-    }
-
     @Override
     public RuleResponse execute(GetRuleByIdQuery query) {
         // Note: This use case is not currently in use - uses incompatible domain model

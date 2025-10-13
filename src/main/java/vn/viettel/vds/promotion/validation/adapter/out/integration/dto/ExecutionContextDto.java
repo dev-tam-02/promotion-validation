@@ -13,12 +13,12 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ExecutionContextDto {
 
-    @Schema(description = "Current timestamp", example = "2025-09-20T10:00:00Z", required = true)
+    @Schema(description = "Current timestamp", example = "2025-09-20T10:00:00Z", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Now timestamp is required")
     @JsonProperty("now")
     private Instant now;
 
-    @Schema(description = "Timezone for evaluation", example = "Asia/Bangkok", required = true)
+    @Schema(description = "Timezone for evaluation", example = "Asia/Bangkok", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Timezone is required")
     @JsonProperty("timezone")
     private String timezone;

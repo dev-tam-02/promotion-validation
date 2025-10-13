@@ -24,6 +24,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ValidationEngineAdapter implements ValidationEnginePort {
 
+    private static final String SUCCESS_KEY = "success";
+    private static final String ERROR_KEY = "error";
+
     private final ValidationEngineClient validationEngineClient;
     private final ValidationProxyFeignClient validationProxyClient;
 
@@ -87,15 +90,14 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
             // This is a legacy method that needs to be deprecated or updated
 
             Map<String, Object> errorResult = new HashMap<>();
-            errorResult.put("success", false);
-            errorResult.put("error", "This method is deprecated. Use RulePublishingService.publishRule() instead.");
+            errorResult.put(SUCCESS_KEY, false);
             return errorResult;
 
         } catch (Exception e) {
             log.error("Failed to compile rules", e);
             Map<String, Object> errorResult = new HashMap<>();
-            errorResult.put("success", false);
-            errorResult.put("error", e.getMessage());
+            errorResult.put(SUCCESS_KEY, false);
+            errorResult.put(ERROR_KEY, "This method is deprecated. Use RulePublishingService.publishRule() instead.");
             return errorResult;
         }
     }
@@ -183,14 +185,14 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
 
             Map<String, Object> compileResult = compileRules(singleRule);
 
-            result.put("valid", Boolean.TRUE.equals(compileResult.get("success")));
+            result.put("valid", Boolean.TRUE.equals(compileResult.get(SUCCESS_KEY)));
             result.put("errors", compileResult.get("errors"));
 
             return result;
 
         } catch (Exception e) {
             result.put("valid", false);
-            result.put("error", "Syntax validation failed: " + e.getMessage());
+            result.put(ERROR_KEY, "Syntax validation failed: " + e.getMessage());
             return result;
         }
     }

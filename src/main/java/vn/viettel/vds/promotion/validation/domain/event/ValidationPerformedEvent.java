@@ -34,16 +34,8 @@ public class ValidationPerformedEvent extends DomainEvent {
         return tenantId;
     }
 
-    public String getValidationId() {
-        return validationId;
-    }
-
     public String getRuleId() {
         return ruleId;
-    }
-
-    public String getTenantId() {
-        return tenantId;
     }
 
     public ValidationResult.Decision getDecision() {

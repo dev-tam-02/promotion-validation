@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class WarmupRequest {
 
-    @Schema(description = "Bundle hash to warm up", example = "sha256:abc123...", required = true)
+    @Schema(description = "Bundle hash to warm up", example = "sha256:abc123...", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Bundle hash is required")
     @JsonProperty("bundleHash")
     private String bundleHash;

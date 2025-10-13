@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.PublishRuleRequest
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleDeploymentStatusResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RulePublishResponse;
 import vn.viettel.vds.promotion.validation.domain.service.RulePublishingService;
+import vn.viettel.vds.promotion.validation.domain.exception.RulePublishingException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -71,7 +72,7 @@ public class RulePublishingController {
             return RulePublishResponse.failed(ruleId, e.getMessage());
         } catch (Exception e) {
             logger.error("Unexpected error publishing rule: ruleId={}", ruleId, e);
-            return RulePublishResponse.failed(ruleId, "Internal server error");
+            return RulePublishResponse.failed(ruleId, "Internal server error: " + e.getMessage());
         }
     }
 
@@ -104,15 +105,14 @@ public class RulePublishingController {
                     })
                     .toList();
 
-            long successCount = responses.stream().mapToLong(r -> r.isSuccess() ? 1 : 0).sum();
+            long successCount = responses.stream().mapToLong(r -> r.isSuccess() ? 1L : 0L).sum();
             logger.info("Batch publishing completed: total={}, successful={}, failed={}",
                     responses.size(), successCount, responses.size() - successCount);
 
             return responses;
 
         } catch (Exception e) {
-            logger.error("Batch publishing failed", e);
-            throw new RuntimeException("Batch publishing failed", e);
+            throw new vn.viettel.vds.promotion.validation.domain.exception.RulePublishingException("Batch publishing failed: " + e.getMessage(), e);
         }
     }
 
@@ -182,10 +182,9 @@ public class RulePublishingController {
 
         } catch (IllegalArgumentException e) {
             logger.warn("Rule not found for status check: ruleId={}", ruleId);
-            throw new RuntimeException("Rule not found: " + ruleId);
+            throw new RulePublishingException("Rule not found: " + ruleId, null);
         } catch (Exception e) {
-            logger.error("Failed to get deployment status: ruleId={}", ruleId, e);
-            throw new RuntimeException("Failed to get deployment status", e);
+            throw new RulePublishingException("Failed to get deployment status: ruleId=" + ruleId + " due to: " + e.getMessage(), e);
         }
     }
 

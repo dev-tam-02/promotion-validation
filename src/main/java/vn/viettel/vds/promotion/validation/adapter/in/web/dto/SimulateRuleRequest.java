@@ -13,7 +13,7 @@ public class SimulateRuleRequest {
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Context data for simulation", required = true)
+    @Schema(description = "Context data for simulation", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Context is required")
     @JsonProperty("context")
     private Map<String, Object> context;

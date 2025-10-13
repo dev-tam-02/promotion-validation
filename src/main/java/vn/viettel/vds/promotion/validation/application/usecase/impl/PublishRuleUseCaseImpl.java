@@ -15,17 +15,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 @Transactional
 public class PublishRuleUseCaseImpl implements PublishRuleUseCase {
 
-    private final RulePersistencePort rulePersistencePort;
-    private final EventPublisherPort eventPublisherPort;
-
-    public PublishRuleUseCaseImpl(
-            RulePersistencePort rulePersistencePort,
-            EventPublisherPort eventPublisherPort
-    ) {
-        this.rulePersistencePort = rulePersistencePort;
-        this.eventPublisherPort = eventPublisherPort;
-    }
-
     @Override
     public RuleResponse execute(PublishRuleCommand command) {
         // Note: This use case is not currently in use - uses incompatible domain model

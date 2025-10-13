@@ -157,6 +157,7 @@ public class ValidateStackableDiscountMapper {
             case COUPON -> DiscountObjectType.COUPON;
             case PROMOTION_STACK -> DiscountObjectType.PROMOTION_STACK;
             case DISCOUNT_CODE -> DiscountObjectType.DISCOUNT_CODE;
+            default -> throw new IllegalArgumentException("Unknown discount object type: " + avroType);
         };
     }
 
@@ -185,6 +186,7 @@ public class ValidateStackableDiscountMapper {
             case NONE -> ValidationOptions.ExplainLevel.NONE;
             case BASIC -> ValidationOptions.ExplainLevel.BASIC;
             case FULL -> ValidationOptions.ExplainLevel.FULL;
+            default -> throw new IllegalArgumentException("Unknown explain level: " + avroLevel);
         };
     }
 }

@@ -11,28 +11,28 @@ import java.util.Map;
 @Schema(description = "Request to create a new operator")
 public class CreateOperatorRequest {
 
-    @Schema(description = "Operator name", example = "order.total.gte", required = true)
+    @Schema(description = "Operator name", example = "order.total.gte", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Operator name is required")
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Operator version", example = "1", required = true)
+    @Schema(description = "Operator version", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Version is required")
     @Positive(message = "Version must be positive")
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Context/domain", example = "order", required = true)
+    @Schema(description = "Context/domain", example = "order", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Context is required")
     @JsonProperty("context")
     private String context;
 
-    @Schema(description = "JSON Schema for parameter validation", required = true)
+    @Schema(description = "JSON Schema for parameter validation", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "JSON Schema is required")
     @JsonProperty("jsonSchema")
     private Map<String, Object> jsonSchema;
 
-    @Schema(description = "Compiler ID for code generation", example = "tpl_order_total_gte_v2", required = true)
+    @Schema(description = "Compiler ID for code generation", example = "tpl_order_total_gte_v2", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Compiler ID is required")
     @JsonProperty("compilerId")
     private String compilerId;

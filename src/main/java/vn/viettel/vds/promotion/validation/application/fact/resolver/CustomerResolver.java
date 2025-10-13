@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 
@@ -74,10 +75,10 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            throw new ValidationException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
+            throw new ValidationException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
         }
     }
 
@@ -118,6 +119,19 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
     private CustomerFact mapToCustomerFact(Map<String, Object> data) {
         CustomerFact.Builder builder = CustomerFact.builder();
 
+        // Map identification fields
+        mapIdentificationFields(data, builder);
+        
+        // Map contact fields
+        mapContactFields(data, builder);
+        
+        // Map preference fields
+        mapPreferenceFields(data, builder);
+
+        return builder.build();
+    }
+
+    private void mapIdentificationFields(Map<String, Object> data, CustomerFact.Builder builder) {
         if (data.get("customerId") != null) {
             builder.customerId((String) data.get("customerId"));
         }
@@ -127,6 +141,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
         if (data.get("phone") != null) {
             builder.phone((String) data.get("phone"));
         }
+    }
+
+    private void mapContactFields(Map<String, Object> data, CustomerFact.Builder builder) {
         if (data.get("tier") != null) {
             builder.tier((String) data.get("tier"));
         }
@@ -139,6 +156,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
         if (data.get("isActive") != null) {
             builder.isActive((Boolean) data.get("isActive"));
         }
+    }
+
+    private void mapPreferenceFields(Map<String, Object> data, CustomerFact.Builder builder) {
         if (data.get("region") != null) {
             builder.region((String) data.get("region"));
         }
@@ -157,7 +177,5 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
         if (data.get("preferences") != null) {
             builder.preferences((Map<String, Object>) data.get("preferences"));
         }
-
-        return builder.build();
     }
 }

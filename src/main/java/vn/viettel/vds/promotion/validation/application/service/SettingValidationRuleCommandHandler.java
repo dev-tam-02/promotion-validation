@@ -18,6 +18,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repositor
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
+import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingException;
 import vn.viettel.vds.promotion.validation.domain.common.Result;
 
 import java.time.Instant;
@@ -125,12 +126,10 @@ public class SettingValidationRuleCommandHandler {
             // ✅ ENHANCED: Auto-create product.applicability.in node if applicableTo provided
             if (components.applicableToData() != null) {
                 boolean hasNode = validateRuleHasProductApplicabilityNode(
-                        components.ruleId(),
-                        components.applicableToData()
+                        components.ruleId()
                 );
                 if (!hasNode) {
-                    logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}",
-                            components.ruleId());
+                    logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}", components.ruleId());
                     // Auto-create the node instead of failing
                     boolean created = createProductApplicabilityNode(
                             components.ruleId(),
@@ -149,9 +148,7 @@ public class SettingValidationRuleCommandHandler {
             vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
                     createRuleAssignment(
                             components.assignRuleData(),
-                            components.campaignId(),
-                            components.priority(),
-                            components.notes()
+                            components.campaignId()
                     );
 
             // Convert to JPA entity and save
@@ -159,8 +156,7 @@ public class SettingValidationRuleCommandHandler {
             assignmentEntity = assignmentRepository.save(assignmentEntity);
             assignment.setId(assignmentEntity.getId());
 
-            logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}",
-                    components.campaignId(), components.ruleId(), assignment.getId());
+            logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}", components.campaignId(), components.ruleId(), assignment.getId());
 
             // Process timeframe if provided
             String timeFrameId = null;
@@ -253,13 +249,12 @@ public class SettingValidationRuleCommandHandler {
      * This ensures consistency between rule definition and applicableTo data
      */
     private boolean validateRuleHasProductApplicabilityNode(
-            String ruleId,
-            ApplicabilityScope applicableToData) {
+            String ruleId) {
 
         try {
             var ruleOpt = validationRuleRepository.findById(ruleId);
             if (ruleOpt.isEmpty()) {
-                logger.error("Rule not found during validation: ruleId={}", ruleId);
+                handleMissingRule(ruleId);
                 return false;
             }
 
@@ -267,7 +262,7 @@ public class SettingValidationRuleCommandHandler {
 
             // Check if rule has nodes
             if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-                logger.warn("Rule has no nodes: ruleId={}", ruleId);
+                handleEmptyRuleNodes(ruleId);
                 return false;
             }
 
@@ -275,7 +270,7 @@ public class SettingValidationRuleCommandHandler {
             boolean hasApplicabilityNode = findProductApplicabilityNode(rule.getNodes());
 
             if (!hasApplicabilityNode) {
-                logger.error("Rule does not contain product.applicability.in node: ruleId={}", ruleId);
+                handleMissingApplicabilityNode(ruleId);
                 return false;
             }
 
@@ -283,9 +278,25 @@ public class SettingValidationRuleCommandHandler {
             return true;
 
         } catch (Exception e) {
-            logger.error("Error validating rule applicability node: ruleId={}", ruleId, e);
+            handleValidationException(e, ruleId);
             return false;
         }
+    }
+
+    private void handleMissingRule(String ruleId) {
+        logger.error("Rule not found during validation: ruleId={}", ruleId);
+    }
+
+    private void handleEmptyRuleNodes(String ruleId) {
+        logger.warn("Rule has no nodes: ruleId={}", ruleId);
+    }
+
+    private void handleMissingApplicabilityNode(String ruleId) {
+        logger.error("Rule does not contain product.applicability.in node: ruleId={}", ruleId);
+    }
+
+    private void handleValidationException(Exception e, String ruleId) {
+        logger.error("Error validating rule applicability node: ruleId={}", ruleId, e);
     }
 
     /**
@@ -298,43 +309,18 @@ public class SettingValidationRuleCommandHandler {
         try {
             var ruleOpt = validationRuleRepository.findById(ruleId);
             if (ruleOpt.isEmpty()) {
-                logger.error("Rule not found when creating applicability node: ruleId={}", ruleId);
+                handleMissingRuleForCreation(ruleId);
                 return false;
             }
 
             ValidationRuleEntity rule = ruleOpt.get();
 
             // Create new COND node for product.applicability.in
-            RuleNodeEntity productNode = new RuleNodeEntity();
-            productNode.setId(IdGenerator.generateId());
-            productNode.setType("COND");
-            productNode.setOperatorName("product.applicability.in");
-            productNode.setValidationRule(rule);
+            RuleNodeEntity productNode = createProductApplicabilityNodeEntity(rule);
 
             // Build params map for RuleNodeEntity from applicableToData
-            java.util.Map<String, Object> params = new java.util.HashMap<>();
+            java.util.Map<String, Object> params = buildApplicabilityParams(applicableToData);
 
-            if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
-                params.put("includedAll", true);
-            } else {
-                if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
-                    // Extract IDs from ApplicabilityRule objects
-                    List<String> includedIds = applicableToData.getIncluded().stream()
-                            .map(applicabilityRule -> applicabilityRule.getId())
-                            .collect(java.util.stream.Collectors.toList());
-                    params.put("included", includedIds);
-                }
-
-                if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
-                    // Extract IDs from ApplicabilityRule objects
-                    List<String> excludedIds = applicableToData.getExcluded().stream()
-                            .map(applicabilityRule -> applicabilityRule.getId())
-                            .collect(java.util.stream.Collectors.toList());
-                    params.put("excluded", excludedIds);
-                }
-            }
-
-            // Set params on the node
             productNode.setParams(params);
             productNode.setCreatedAt(Instant.now());
             productNode.setUpdatedAt(Instant.now());
@@ -353,9 +339,58 @@ public class SettingValidationRuleCommandHandler {
             return true;
 
         } catch (Exception e) {
-            logger.error("Error creating product applicability node: ruleId={}", ruleId, e);
+            handleCreationException(e, ruleId);
             return false;
         }
+    }
+
+    private void handleMissingRuleForCreation(String ruleId) {
+        logger.error("Rule not found when creating applicability node: ruleId={}", ruleId);
+    }
+
+    private RuleNodeEntity createProductApplicabilityNodeEntity(ValidationRuleEntity rule) {
+        RuleNodeEntity productNode = new RuleNodeEntity();
+        productNode.setId(IdGenerator.generateId());
+        productNode.setType("COND");
+        productNode.setOperatorName("product.applicability.in");
+        productNode.setValidationRule(rule);
+        return productNode;
+    }
+
+    private java.util.Map<String, Object> buildApplicabilityParams(ApplicabilityScope applicableToData) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+
+        if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
+            params.put("includedAll", true);
+        } else {
+            addIncludedItems(params, applicableToData);
+            addExcludedItems(params, applicableToData);
+        }
+        return params;
+    }
+
+    private void addIncludedItems(java.util.Map<String, Object> params, ApplicabilityScope applicableToData) {
+        if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
+            // Extract IDs from ApplicabilityRule objects
+            List<String> includedIds = applicableToData.getIncluded().stream()
+                    .map(applicabilityRule -> applicabilityRule.getId())
+                    .toList();
+            params.put("included", includedIds);
+        }
+    }
+
+    private void addExcludedItems(java.util.Map<String, Object> params, ApplicabilityScope applicableToData) {
+        if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
+            // Extract IDs from ApplicabilityRule objects
+            List<String> excludedIds = applicableToData.getExcluded().stream()
+                    .map(applicabilityRule -> applicabilityRule.getId())
+                    .toList();
+            params.put("excluded", excludedIds);
+        }
+    }
+
+    private void handleCreationException(Exception e, String ruleId) {
+        logger.error("Error creating product applicability node: ruleId={}", ruleId, e);
     }
 
     /**
@@ -385,9 +420,7 @@ public class SettingValidationRuleCommandHandler {
      */
     private vn.viettel.vds.promotion.validation.domain.model.Assignment createRuleAssignment(
             vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
-            String campaignId,  // ✅ Changed from ApplicabilityScope to campaignId
-            Integer priority,
-            String notes) {
+            String campaignId) {  // ✅ Changed from ApplicabilityScope to campaignId
 
         String ruleId = assignRuleData.getRuleId().toString();
         String assignmentId = assignRuleData.getAssignmentId() != null ?
@@ -459,8 +492,7 @@ public class SettingValidationRuleCommandHandler {
             return timeFrameId;
 
         } catch (Exception e) {
-            logger.error("Error processing timeframe: ruleId={}", ruleId, e);
-            throw new RuntimeException("Failed to process timeframe", e);
+            throw new TimeframeProcessingException("Failed to process timeframe for ruleId=" + ruleId + " due to: " + e.getMessage(), e);
         }
     }
 

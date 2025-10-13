@@ -44,8 +44,7 @@ public class ValidationRuleCompatibilityController {
     public ResponseEntity<ValidateCompatibilityResponse> validateCompatibility(
             @Valid @RequestBody ValidateCompatibilityRequest request) {
 
-        logger.info("Pre-flight validation check: ruleId={}, campaignType={}",
-                request.ruleId(), request.campaignType());
+        logger.info("Pre-flight validation check: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
 
         try {
             // 1. Check if rule exists
@@ -74,8 +73,7 @@ public class ValidationRuleCompatibilityController {
             // 3. Validate rule compatibility with campaign type
             // Check if rule contains required nodes based on campaign type
             if (!isRuleCompatibleWithCampaignType(rule, request.campaignType())) {
-                logger.warn("Rule is not compatible with campaign type: ruleId={}, campaignType={}",
-                        request.ruleId(), request.campaignType());
+                logger.warn("Rule is not compatible with campaign type: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
                 return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
                         request.ruleId(),
                         "RULE_INCOMPATIBLE_WITH_CAMPAIGN_TYPE",
@@ -84,8 +82,7 @@ public class ValidationRuleCompatibilityController {
             }
 
             // 4. Success - rule is valid and compatible
-            logger.info("Pre-flight validation passed: ruleId={}, campaignType={}",
-                    request.ruleId(), request.campaignType());
+            logger.info("Pre-flight validation passed: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
 
             return ResponseEntity.ok(ValidateCompatibilityResponse.success(
                     rule.getId(),
@@ -122,12 +119,12 @@ public class ValidationRuleCompatibilityController {
         // This ensures the rule can validate product-based criteria
         if ("CASHBACK".equalsIgnoreCase(campaignType) || "DISCOUNT".equalsIgnoreCase(campaignType)) {
             boolean hasProductApplicability = hasProductApplicabilityNode(rule.getNodes());
-            if (!hasProductApplicability) {
+            if (!hasProductApplicability && logger.isDebugEnabled()) {
                 logger.debug("Rule does not have product applicability node for campaign type: {}",
                         campaignType);
-                // This is not necessarily a failure - some rules may be campaign-level only
-                // For now, we'll allow it but log the information
             }
+            // This is not necessarily a failure - some rules may be campaign-level only
+            // For now, we'll allow it but log the information
         }
 
         // Additional compatibility checks can be added here based on campaign type

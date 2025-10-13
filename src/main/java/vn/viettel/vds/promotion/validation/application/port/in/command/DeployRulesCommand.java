@@ -13,6 +13,7 @@ import java.util.Map;
  */
 @Data
 @Builder
+@SuppressWarnings("unused")
 public class DeployRulesCommand {
 
     @NotBlank(message = "Rule set ID is required")

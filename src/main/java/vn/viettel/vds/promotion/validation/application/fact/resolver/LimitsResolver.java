@@ -7,6 +7,7 @@ import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.LimitsFact;
 
 import java.math.BigDecimal;
@@ -79,10 +80,10 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            throw new ValidationException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
+            throw new ValidationException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         }
     }
 
@@ -111,6 +112,16 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
     private LimitsFact mapToLimitsFact(Map<String, Object> data) {
         LimitsFact.Builder builder = LimitsFact.builder();
 
+        // Map limit collections
+        mapLimitCollections(data, builder);
+        
+        // Map counters and snapshot
+        mapCountersAndSnapshot(data, builder);
+
+        return builder.build();
+    }
+
+    private void mapLimitCollections(Map<String, Object> data, LimitsFact.Builder builder) {
         if (data.get("globalLimits") != null) {
             List<Map<String, Object>> globalLimitsData = (List<Map<String, Object>>) data.get("globalLimits");
             List<LimitsFact.LimitInfo> globalLimits = globalLimitsData.stream()
@@ -134,7 +145,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
                     .toList();
             builder.campaignLimits(campaignLimits);
         }
+    }
 
+    private void mapCountersAndSnapshot(Map<String, Object> data, LimitsFact.Builder builder) {
         if (data.get("counters") != null) {
             Map<String, Map<String, Object>> countersData = (Map<String, Map<String, Object>>) data.get("counters");
             Map<String, LimitsFact.UsageCounter> counters = countersData.entrySet().stream()
@@ -148,8 +161,6 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
         if (data.get("snapshotAt") != null) {
             builder.snapshotAt(Instant.parse((String) data.get("snapshotAt")));
         }
-
-        return builder.build();
     }
 
     private LimitsFact.LimitInfo mapToLimitInfo(Map<String, Object> data) {

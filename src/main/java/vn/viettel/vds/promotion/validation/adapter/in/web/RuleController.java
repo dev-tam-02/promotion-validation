@@ -25,6 +25,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -462,7 +463,7 @@ public class RuleController {
                         return null;
                     }
                 })
-                .filter(response -> response != null)
+                .filter(Objects::nonNull)
                 .toList();
     }
 }

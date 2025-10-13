@@ -64,8 +64,8 @@ public class Rule {
     private Instant effectiveTo;
 
     // Targeting
-    private Set<String> targetSegments;
-    private List<String> targetSegmentsList;
+    @Builder.Default
+    private Set<String> targetSegments = new HashSet<>();
     private String campaignId;
     private String ruleSetId;
 
@@ -91,25 +91,12 @@ public class Rule {
      * Check if the rule is effective at the given time
      */
     public boolean isEffective(Instant checkTime) {
-        if (!isActive()) {
-            return false;
-        }
-
-        if (state != RuleState.PUBLISHED) {
-            return false;
-        }
-
         Instant now = checkTime != null ? checkTime : Instant.now();
 
-        if (effectiveFrom != null && now.isBefore(effectiveFrom)) {
-            return false;
-        }
-
-        if (effectiveTo != null && now.isAfter(effectiveTo)) {
-            return false;
-        }
-
-        return true;
+        return isActive() &&
+                state == RuleState.PUBLISHED &&
+                (effectiveFrom == null || !now.isBefore(effectiveFrom)) &&
+                (effectiveTo == null || !now.isAfter(effectiveTo));
     }
 
     /**
@@ -124,20 +111,11 @@ public class Rule {
      */
     public boolean appliesTo(String segment) {
         // If no segments specified, applies to all
-        if ((targetSegments == null || targetSegments.isEmpty()) &&
-                (targetSegmentsList == null || targetSegmentsList.isEmpty())) {
+        if (targetSegments.isEmpty()) {
             return true;
         }
 
-        if (targetSegments != null && targetSegments.contains(segment)) {
-            return true;
-        }
-
-        if (targetSegmentsList != null && targetSegmentsList.contains(segment)) {
-            return true;
-        }
-
-        return false;
+        return targetSegments.contains(segment);
     }
 
     /**
@@ -204,13 +182,7 @@ public class Rule {
      * Get target segments as Set
      */
     public Set<String> getTargetSegmentsSet() {
-        if (targetSegments != null) {
-            return targetSegments;
-        }
-        if (targetSegmentsList != null) {
-            return new HashSet<>(targetSegmentsList);
-        }
-        return new HashSet<>();
+        return targetSegments;
     }
 
     /**

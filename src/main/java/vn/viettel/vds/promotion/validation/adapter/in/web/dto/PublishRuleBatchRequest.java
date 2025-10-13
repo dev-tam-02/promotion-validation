@@ -12,7 +12,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PublishRuleBatchRequest {
 
-    @Schema(description = "List of rule IDs to publish", required = true)
+    @Schema(description = "List of rule IDs to publish", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "Rule IDs list cannot be empty")
     @Size(max = 50, message = "Batch size cannot exceed 50 rules")
     @JsonProperty("ruleIds")

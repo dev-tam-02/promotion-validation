@@ -23,8 +23,9 @@ public class ValidationEngineDeploymentService {
 
     /**
      * This method is deprecated - use RulePublishingService instead for rule compilation
+     * @deprecated As of release 1.0, replaced by {@link vn.viettel.vds.promotion.validation.domain.service.RulePublishingService}
      */
-    @Deprecated
+    @Deprecated(since = "1.0", forRemoval = true)
     public boolean deployRule(ValidationRuleEntity rule) {
         logger.warn("deployRule is deprecated - use RulePublishingService.publishRule instead");
         return true;
@@ -32,8 +33,9 @@ public class ValidationEngineDeploymentService {
 
     /**
      * This method is deprecated - bundle management is now handled automatically by compile/warmup
+     * @deprecated As of release 1.0, bundle management is now automatic
      */
-    @Deprecated
+    @Deprecated(since = "1.0", forRemoval = true)
     public boolean removeRule(String ruleId) {
         logger.warn("removeRule is deprecated - bundle management is now automatic");
         return true;
@@ -41,8 +43,9 @@ public class ValidationEngineDeploymentService {
 
     /**
      * This method is deprecated - bundle management is now handled automatically by compile/warmup
+     * @deprecated As of release 1.0, bundle management is now automatic
      */
-    @Deprecated
+    @Deprecated(since = "1.0", forRemoval = true)
     public boolean reloadRules() {
         logger.warn("reloadRules is deprecated - bundle management is now automatic");
         return true;

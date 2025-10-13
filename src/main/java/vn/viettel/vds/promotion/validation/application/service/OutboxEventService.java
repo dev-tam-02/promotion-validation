@@ -27,6 +27,7 @@ import java.util.UUID;
 public class OutboxEventService {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxEventService.class);
+    private static final String EVENT_NOT_FOUND_MESSAGE = "Event not found: ";
 
     private final OutboxEventPersistencePort outboxEventPersistencePort;
 
@@ -98,7 +99,7 @@ public class OutboxEventService {
      */
     public OutboxEvent markAsProcessing(String eventId) {
         OutboxEvent event = outboxEventPersistencePort.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found: " + eventId));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND_MESSAGE + eventId));
 
         OutboxEvent updated = event.markAsProcessing()
                 .withIncrementedAttempts();
@@ -111,7 +112,7 @@ public class OutboxEventService {
      */
     public OutboxEvent markAsPublished(String eventId) {
         OutboxEvent event = outboxEventPersistencePort.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found: " + eventId));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND_MESSAGE + eventId));
 
         OutboxEvent updated = event.markAsPublished();
         OutboxEvent saved = outboxEventPersistencePort.save(updated);
@@ -125,7 +126,7 @@ public class OutboxEventService {
      */
     public OutboxEvent markAsFailed(String eventId, String errorMessage) {
         OutboxEvent event = outboxEventPersistencePort.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found: " + eventId));
+                .orElseThrow(() -> new IllegalArgumentException(EVENT_NOT_FOUND_MESSAGE + eventId));
 
         OutboxEvent updated = event.markAsFailed(errorMessage);
         OutboxEvent saved = outboxEventPersistencePort.save(updated);

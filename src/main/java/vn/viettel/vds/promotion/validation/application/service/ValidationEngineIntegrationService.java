@@ -21,6 +21,10 @@ public class ValidationEngineIntegrationService {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationEngineIntegrationService.class);
 
+    private static final String STATUS_CONNECTED = "Connected";
+    private static final String STATUS_DISCONNECTED = "Disconnected";
+    private static final String STATUS_ERROR_PREFIX = "Error: ";
+
     private final ValidationEngineDeploymentService validationEngineClient;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final AssignmentJpaRepository assignmentRepository;
@@ -38,64 +42,54 @@ public class ValidationEngineIntegrationService {
      * Synchronize all active rules with validation-engine
      */
     @Async("validationEngineExecutor")
-    public CompletableFuture<Void> synchronizeAllRules() {
+    public void synchronizeAllRules() {
         logger.info("Starting full rule synchronization with validation-engine");
 
+        List<AssignmentEntity> activeAssignments = assignmentRepository.findByActive(true);
+
+        long successCount = activeAssignments.stream()
+                .filter(this::synchronizeAssignment)
+                .count();
+
+        logger.info("Rule synchronization completed: success={}, failures={}, total={}",
+                successCount, activeAssignments.size() - successCount, activeAssignments.size());
+
+        // Trigger rules reload in validation-engine
         try {
-            // Get all active assignments (validFrom/validTo removed from schema)
-            List<AssignmentEntity> activeAssignments = assignmentRepository.findByActive(true);
+            validationEngineClient.reloadRules();
+            logger.info("Triggered rule reload in validation-engine");
+        } catch (Exception e) {
+            logger.error("Failed to trigger rule reload in validation-engine", e);
+        }
+    }
 
-            int successCount = 0;
-            int failureCount = 0;
-
-            for (AssignmentEntity assignment : activeAssignments) {
-                try {
-                    // Get the validation rule
-                    var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
-                    if (validationRuleOpt.isEmpty()) {
-                        logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
-                                assignment.getId(), assignment.getId());
-                        failureCount++;
-                        continue;
-                    }
-
-                    ValidationRuleEntity rule = validationRuleOpt.get();
-
-                    // Deploy to validation-engine
-                    boolean deployed = validationEngineClient.deployRule(rule);
-                    if (deployed) {
-                        successCount++;
-                        logger.debug("Successfully synchronized rule: ruleId={}, assignmentId={}",
-                                rule.getId(), assignment.getId());
-                    } else {
-                        failureCount++;
-                        logger.error("Failed to synchronize rule: ruleId={}, assignmentId={}",
-                                rule.getId(), assignment.getId());
-                    }
-
-                } catch (Exception e) {
-                    failureCount++;
-                    logger.error("Error synchronizing rule for assignment: assignmentId={}",
-                            assignment.getId(), e);
-                }
+    private boolean synchronizeAssignment(AssignmentEntity assignment) {
+        try {
+            var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
+            if (validationRuleOpt.isEmpty()) {
+                logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
+                        assignment.getId(), assignment.getId());
+                return false;
             }
 
-            logger.info("Rule synchronization completed: success={}, failures={}, total={}",
-                    successCount, failureCount, activeAssignments.size());
+            ValidationRuleEntity rule = validationRuleOpt.get();
 
-            // Trigger rules reload in validation-engine
-            try {
-                validationEngineClient.reloadRules();
-                logger.info("Triggered rule reload in validation-engine");
-            } catch (Exception e) {
-                logger.error("Failed to trigger rule reload in validation-engine", e);
+            // Deploy to validation-engine
+            boolean deployed = validationEngineClient.deployRule(rule);
+            if (deployed) {
+                logger.debug("Successfully synchronized rule: ruleId={}, assignmentId={}",
+                        rule.getId(), assignment.getId());
+            } else {
+                logger.error("Failed to synchronize rule: ruleId={}, assignmentId={}",
+                        rule.getId(), assignment.getId());
             }
+            return deployed;
 
         } catch (Exception e) {
-            logger.error("Error during rule synchronization", e);
+            logger.error("Error synchronizing rule for assignment: assignmentId={}",
+                    assignment.getId(), e);
+            return false;
         }
-
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -198,39 +192,12 @@ public class ValidationEngineIntegrationService {
             return new SynchronizationStatus(
                     activeAssignments,
                     engineHealthy,
-                    engineHealthy ? "Connected" : "Disconnected"
+                    engineHealthy ? STATUS_CONNECTED : STATUS_DISCONNECTED
             );
 
         } catch (Exception e) {
             logger.error("Error getting synchronization status", e);
-            return new SynchronizationStatus(0, false, "Error: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Synchronization status information
-     */
-    public static class SynchronizationStatus {
-        private final long activeRuleAssignments;
-        private final boolean validationEngineHealthy;
-        private final String status;
-
-        public SynchronizationStatus(long activeRuleAssignments, boolean validationEngineHealthy, String status) {
-            this.activeRuleAssignments = activeRuleAssignments;
-            this.validationEngineHealthy = validationEngineHealthy;
-            this.status = status;
-        }
-
-        public long getActiveRuleAssignments() {
-            return activeRuleAssignments;
-        }
-
-        public boolean isValidationEngineHealthy() {
-            return validationEngineHealthy;
-        }
-
-        public String getStatus() {
-            return status;
+            return new SynchronizationStatus(0, false, STATUS_ERROR_PREFIX + e.getMessage());
         }
     }
 }

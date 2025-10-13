@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DeployResponse {
 
-    @Schema(description = "Deployment success status", example = "true", required = true)
+    @Schema(description = "Deployment success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("success")
     private boolean success;
 

@@ -12,12 +12,12 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RuleNodeDto {
 
-    @Schema(description = "Unique node identifier", example = "n1", required = true)
+    @Schema(description = "Unique node identifier", example = "n1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Node ID is required")
     @JsonProperty("id")
     private String id;
 
-    @Schema(description = "Node type", example = "COND", required = true, allowableValues = {"GROUP", "COND"})
+    @Schema(description = "Node type", example = "COND", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"GROUP", "COND"})
     @NotBlank(message = "Node type is required")
     @JsonProperty("type")
     private String type;

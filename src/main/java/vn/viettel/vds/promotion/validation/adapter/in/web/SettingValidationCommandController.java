@@ -23,6 +23,9 @@ import java.util.UUID;
 public class SettingValidationCommandController {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationCommandController.class);
+    private static final String STATUS_KEY = "status";
+    private static final String MESSAGE_KEY = "message";
+    private static final String COMMAND_ID_KEY = "commandId";
 
     private SettingValidationRuleCommandConsumer commandConsumer;
 
@@ -47,7 +50,7 @@ public class SettingValidationCommandController {
     public ResponseEntity<Map<String, Object>> processSettingValidationCommand(
             @RequestBody SettingValidationRuleCommand command) {
 
-        String commandId = command.getId() != null ? command.getId().toString() : UUID.randomUUID().toString();
+        String commandId = command.getId() != null ? command.getId() : UUID.randomUUID().toString();
 
         logger.info("REST API: Received SettingValidationRuleCommand for processing: commandId={}, type={}, source={}",
                 commandId, command.getType(), command.getSource());
@@ -56,9 +59,9 @@ public class SettingValidationCommandController {
 
         // Check if consumer is available
         if (commandConsumer == null) {
-            response.put("status", "ERROR");
-            response.put("message", "SettingValidationRuleCommandConsumer not available");
-            response.put("commandId", commandId);
+            response.put(STATUS_KEY, "ERROR");
+            response.put(MESSAGE_KEY, "SettingValidationRuleCommandConsumer not available");
+            response.put(COMMAND_ID_KEY, commandId);
 
             logger.error("REST API: SettingValidationRuleCommandConsumer is null, cannot process command");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -80,17 +83,17 @@ public class SettingValidationCommandController {
 
             // Check if the command was acknowledged (successfully processed)
             if (acknowledgment.isAcknowledged()) {
-                response.put("status", "SUCCESS");
-                response.put("message", "Command processed successfully");
-                response.put("commandId", commandId);
+                response.put(STATUS_KEY, "SUCCESS");
+                response.put(MESSAGE_KEY, "Command processed successfully");
+                response.put(COMMAND_ID_KEY, commandId);
                 response.put("commandType", command.getType());
 
                 logger.info("REST API: Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
                 return ResponseEntity.ok(response);
             } else {
-                response.put("status", "FAILED");
-                response.put("message", "Command processing failed - not acknowledged");
-                response.put("commandId", commandId);
+                response.put(STATUS_KEY, "FAILED");
+                response.put(MESSAGE_KEY, "Command processing failed - not acknowledged");
+                response.put(COMMAND_ID_KEY, commandId);
                 response.put("commandType", command.getType());
 
                 logger.error("REST API: Failed to process SettingValidationRuleCommand: commandId={}", commandId);
@@ -101,9 +104,9 @@ public class SettingValidationCommandController {
             logger.error("REST API: Error processing SettingValidationRuleCommand: commandId={}, error={}",
                     commandId, e.getMessage(), e);
 
-            response.put("status", "ERROR");
-            response.put("message", "Error processing command: " + e.getMessage());
-            response.put("commandId", commandId);
+            response.put(STATUS_KEY, "ERROR");
+            response.put(MESSAGE_KEY, "Error processing command: " + e.getMessage());
+            response.put(COMMAND_ID_KEY, commandId);
             response.put("errorDetails", e.toString());
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -116,7 +119,7 @@ public class SettingValidationCommandController {
     @GetMapping("/settings/health")
     public ResponseEntity<Map<String, String>> healthCheck() {
         Map<String, String> health = new HashMap<>();
-        health.put("status", "UP");
+        health.put(STATUS_KEY, "UP");
         health.put("service", "SettingValidationCommandController");
         health.put("timestamp", String.valueOf(System.currentTimeMillis()));
         return ResponseEntity.ok(health);

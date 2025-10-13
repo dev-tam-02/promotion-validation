@@ -10,7 +10,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CompileResponse {
 
-    @Schema(description = "Compilation success status", example = "true", required = true)
+    @Schema(description = "Compilation success status", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("ok")
     private boolean ok;
 

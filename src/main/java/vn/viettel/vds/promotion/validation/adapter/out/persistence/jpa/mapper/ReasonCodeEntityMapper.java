@@ -66,19 +66,19 @@ public interface ReasonCodeEntityMapper {
     // Convert Map<String, Object> to Map<String, String>
     default Map<String, String> mapLabelsToString(Map<String, Object> labels) {
         if (labels == null) {
-            return null;
+            return Map.of(); // Return empty map instead of null
         }
         return labels.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue() != null ? e.getValue().toString() : null
+                        e -> e.getValue() != null ? e.getValue().toString() : ""
                 ));
     }
 
     // Convert Map<String, String> to Map<String, Object>
     default Map<String, Object> mapLabelsToObject(Map<String, String> labels) {
         if (labels == null) {
-            return null;
+            return Map.of(); // Return empty map instead of null
         }
         return new HashMap<>(labels);
     }

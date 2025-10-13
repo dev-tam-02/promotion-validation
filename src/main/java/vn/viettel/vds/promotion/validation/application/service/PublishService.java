@@ -30,7 +30,6 @@ public class PublishService {
     private final RuleService ruleService;
     private final RuleVersionPersistencePort ruleVersionPersistencePort;
     private final PublishJobPersistencePort publishJobPersistencePort;
-    private final RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort;
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
     private final OutboxEventService outboxEventService;
@@ -39,7 +38,6 @@ public class PublishService {
     public PublishService(RuleService ruleService,
                           RuleVersionPersistencePort ruleVersionPersistencePort,
                           PublishJobPersistencePort publishJobPersistencePort,
-                          RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort,
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
                           OutboxEventService outboxEventService,
@@ -47,7 +45,6 @@ public class PublishService {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.publishJobPersistencePort = publishJobPersistencePort;
-        this.ruleTemporalLinkPersistencePort = ruleTemporalLinkPersistencePort;
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
         this.outboxEventService = outboxEventService;
@@ -301,7 +298,7 @@ public class PublishService {
     }
 
     private Map<String, Object> convertUsageLimitsToMap(Rule.UsageLimits limits) {
-        if (limits == null) return null;
+        if (limits == null) return new HashMap<>();
 
         Map<String, Object> map = new HashMap<>();
         if (limits.getPerCodeTotal() != null) {

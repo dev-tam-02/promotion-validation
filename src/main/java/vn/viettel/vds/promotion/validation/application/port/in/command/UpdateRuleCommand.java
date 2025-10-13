@@ -13,6 +13,7 @@ import java.util.Set;
  */
 @Data
 @Builder
+@SuppressWarnings("unused")
 public class UpdateRuleCommand {
 
     private String name;

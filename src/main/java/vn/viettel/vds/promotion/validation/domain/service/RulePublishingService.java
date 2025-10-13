@@ -21,6 +21,7 @@ import java.util.Map;
 public class RulePublishingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RulePublishingService.class);
+    private static final String RULE_NOT_FOUND_MESSAGE = "Rule not found: ";
 
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
@@ -41,58 +42,67 @@ public class RulePublishingService {
         logger.info("Publishing rule: ruleId={}", ruleId);
 
         try {
-            // Find the rule to publish
-            Rule rule = rulePersistencePort.findById(ruleId)
-                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
-
-            // Validate rule before publishing
+            Rule rule = loadRuleForPublishing(ruleId);
             validateRuleForPublishing(rule);
 
-            // Compile rule in validation-engine
             CompileResponse compileResponse = compileRuleInEngine(rule);
-
             if (!compileResponse.isOk()) {
-                List<String> errors = compileResponse.getErrors();
-                String errorMessage = (errors != null && !errors.isEmpty())
-                        ? String.join(", ", errors)
-                        : "Unknown compilation error";
-                logger.error("Rule compilation failed: ruleId={}, errors={}", ruleId, errorMessage);
-                return RulePublishResult.failed(ruleId, "Compilation failed: " + errorMessage);
+                return handleCompilationFailure(ruleId, compileResponse);
             }
 
-            // Warm up the compiled bundle
-            warmup(compileResponse);
-
-            // Verify the bundle is working
-            boolean verificationResult = verifyRuleExecution(rule, compileResponse.getBundleHash());
-
-            if (!verificationResult) {
-                logger.error("Rule verification failed: ruleId={}", ruleId);
-                return RulePublishResult.failed(ruleId, "Rule verification failed");
-            }
-
-            // Update rule status to published
-            rule.setState(Rule.RuleState.PUBLISHED);
-            // Note: bundleHash and artifactSize not available in current entity
-            // rule.setBundleHash(compileResponse.getBundleHash());
-            // rule.setArtifactSize(compileResponse.getArtifactSize());
-            rule.setUpdatedAt(Instant.now());
-
-            rulePersistencePort.save(rule);
-
-            // Create Rule from published Rule for SettingValidationRuleCommandHandler
-            Rule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
-            validationRuleEntityPersistencePort.save(validationRule);
-
-            logger.info("Rule published successfully: ruleId={}, bundleHash={}, validationRuleId={}",
-                    ruleId, compileResponse.getBundleHash(), validationRule.getId());
-
-            return RulePublishResult.success(ruleId, compileResponse.getBundleHash(), compileResponse.getArtifactSize());
+            performRulePublishingSteps(rule, compileResponse);
+            
+            return createSuccessfulPublishResult(ruleId, compileResponse);
 
         } catch (Exception e) {
             logger.error("Failed to publish rule: ruleId={}", ruleId, e);
             return RulePublishResult.failed(ruleId, "Publishing failed: " + e.getMessage());
         }
+    }
+
+    private Rule loadRuleForPublishing(String ruleId) {
+        return rulePersistencePort.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
+    }
+
+    private RulePublishResult handleCompilationFailure(String ruleId, CompileResponse compileResponse) {
+        List<String> errors = compileResponse.getErrors();
+        String errorMessage = (errors != null && !errors.isEmpty())
+                ? String.join(", ", errors)
+                : "Unknown compilation error";
+        logger.error("Rule compilation failed: ruleId={}, errors={}", ruleId, errorMessage);
+        return RulePublishResult.failed(ruleId, "Compilation failed: " + errorMessage);
+    }
+
+    private void performRulePublishingSteps(Rule rule, CompileResponse compileResponse) {
+        warmup(compileResponse);
+
+        boolean verificationResult = verifyRuleExecution(rule, compileResponse.getBundleHash());
+        if (!verificationResult) {
+            throw new IllegalStateException("Rule verification failed: " + rule.getId());
+        }
+
+        updateRuleToPublishedState(rule);
+        saveRuleAndValidationRule(rule, compileResponse);
+    }
+
+    private void updateRuleToPublishedState(Rule rule) {
+        rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setUpdatedAt(Instant.now());
+        rulePersistencePort.save(rule);
+    }
+
+    private void saveRuleAndValidationRule(Rule rule, CompileResponse compileResponse) {
+        // Create Rule from published Rule for SettingValidationRuleCommandHandler
+        Rule validationRule = createValidationRuleFromRule(rule, compileResponse.getBundleHash());
+        validationRuleEntityPersistencePort.save(validationRule);
+
+        logger.info("Rule published successfully: ruleId={}, bundleHash={}, validationRuleId={}",
+                rule.getId(), compileResponse.getBundleHash(), validationRule.getId());
+    }
+
+    private RulePublishResult createSuccessfulPublishResult(String ruleId, CompileResponse compileResponse) {
+        return RulePublishResult.success(ruleId, compileResponse.getBundleHash(), compileResponse.getArtifactSize());
     }
 
     public List<RulePublishResult> publishRuleBatch(List<String> ruleIds) {
@@ -130,7 +140,7 @@ public class RulePublishingService {
 
         try {
             Rule rule = rulePersistencePort.findById(ruleId)
-                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+                    .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
             if (Rule.RuleState.PUBLISHED != rule.getState()) {
                 return RulePublishResult.failed(ruleId, "Rule is not published, cannot unpublish");
@@ -156,7 +166,7 @@ public class RulePublishingService {
     public RuleDeploymentStatus getDeploymentStatus(String ruleId) {
         try {
             Rule rule = rulePersistencePort.findById(ruleId)
-                    .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+                    .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
             if (Rule.RuleState.PUBLISHED != rule.getState()) {
                 return new RuleDeploymentStatus(ruleId, "NOT_DEPLOYED", false, null);
@@ -219,22 +229,11 @@ public class RulePublishingService {
         // Convert nodes to DTOs using new API
         List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
-        // Determine version - use latestVersion if available, otherwise use ruleVersion or default to 1
-        Integer version = rule.getLatestVersion();
-        if (version == null) {
-            version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
-        }
+        // Determine version and logic
+        Integer version = determineRuleVersion(rule);
+        String logic = determineRootLogic(rule);
 
-        // Determine root logic - use rule logic if available, default to ALL
-        String logic = rule.getLogic() != null ? rule.getLogic().name() : "ALL";
-
-        CompileRequest compileRequest = new CompileRequest();
-        compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
-        compileRequest.setRuleId(rule.getId());
-        compileRequest.setVersion(version);
-        compileRequest.setLogic(logic);
-        compileRequest.setNodes(nodeDtos);
-        compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
+        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, nodeDtos);
 
         // Note: Removed compilerId, Source, Limits, timeLinks - not part of new simplified API
         // These are business logic concerns, not compilation concerns
@@ -242,74 +241,108 @@ public class RulePublishingService {
         return validationEngineClient.compile(compileRequest);
     }
 
+    private Integer determineRuleVersion(Rule rule) {
+        // Determine version - use latestVersion if available, otherwise use ruleVersion or default to 1
+        Integer version = rule.getLatestVersion();
+        if (version == null) {
+            version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
+        }
+        return version;
+    }
+
+    private String determineRootLogic(Rule rule) {
+        // Determine root logic - use rule logic if available, default to ALL
+        return rule.getLogic() != null ? rule.getLogic().name() : "ALL";
+    }
+
+    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos) {
+        CompileRequest compileRequest = new CompileRequest();
+        compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
+        compileRequest.setRuleId(rule.getId());
+        compileRequest.setVersion(version);
+        compileRequest.setLogic(logic);
+        compileRequest.setNodes(nodeDtos);
+        compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
+        return compileRequest;
+    }
+
     private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {
         List<RuleNodeDto> dtos = new ArrayList<>();
 
         for (RuleNode node : nodes) {
             // Convert children nodes to IDs
-            List<String> childIds = null;
-            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-                childIds = new ArrayList<>();
-                for (RuleNode child : node.getChildren()) {
-                    childIds.add(child.getId());
-                }
-            }
-
+            List<String> childIds = convertChildrenToIds(node);
+            
             // Create RuleNodeDto using setters (it's a class, not a record)
-            RuleNodeDto dto = new RuleNodeDto();
-            dto.setId(node.getId());
-            dto.setType(node.getType() != null ? node.getType().name() : null);
-            dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
-            dto.setOperatorName(node.getOperatorName());
-            dto.setOperatorVersion(null); // Not available in current model
-            dto.setParams(node.getParams());
-            dto.setReasonCode(node.getReasonCode());
-            dto.setChildren(childIds);
-            dto.setOrder(null); // Not available in current model
-
+            RuleNodeDto dto = createRuleNodeDto(node, childIds);
+            
             dtos.add(dto);
         }
 
         return dtos;
     }
 
+    private List<String> convertChildrenToIds(RuleNode node) {
+        List<String> childIds = null;
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            childIds = new ArrayList<>();
+            for (RuleNode child : node.getChildren()) {
+                childIds.add(child.getId());
+            }
+        }
+        return childIds;
+    }
+
+    private RuleNodeDto createRuleNodeDto(RuleNode node, List<String> childIds) {
+        RuleNodeDto dto = new RuleNodeDto();
+        dto.setId(node.getId());
+        dto.setType(node.getType() != null ? node.getType().name() : null);
+        dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
+        dto.setOperatorName(node.getOperatorName());
+        dto.setOperatorVersion(null); // Not available in current model
+        dto.setParams(node.getParams());
+        dto.setReasonCode(node.getReasonCode());
+        dto.setChildren(childIds);
+        dto.setOrder(null); // Not available in current model
+        return dto;
+    }
+
     private List<Map<String, Object>> convertNodesToMaps(List<RuleNode> nodes) {
-        List<Map<String, Object>> nodeMaps = new ArrayList<>();
+        return nodes.stream()
+                .map(this::convertRuleNodeToMap)
+                .toList();
+    }
 
-        for (RuleNode node : nodes) {
-            Map<String, Object> nodeMap = new HashMap<>();
-            nodeMap.put("id", node.getId());
-            nodeMap.put("type", node.getType() != null ? node.getType().name() : null);
+    private Map<String, Object> convertRuleNodeToMap(RuleNode node) {
+        Map<String, Object> nodeMap = new HashMap<>();
+        nodeMap.put("id", node.getId());
+        nodeMap.put("type", node.getType() != null ? node.getType().name() : null);
 
-            if (node.getGroupLogic() != null) {
-                nodeMap.put("groupLogic", node.getGroupLogic().name());
-            }
-
-            if (node.getOperatorName() != null) {
-                nodeMap.put("operatorName", node.getOperatorName());
-            }
-
-            if (node.getParams() != null) {
-                nodeMap.put("params", node.getParams());
-            }
-
-            if (node.getReasonCode() != null) {
-                nodeMap.put("reasonCode", node.getReasonCode());
-            }
-
-            // Convert children to IDs
-            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-                List<String> childIds = new ArrayList<>();
-                for (RuleNode child : node.getChildren()) {
-                    childIds.add(child.getId());
-                }
-                nodeMap.put("children", childIds);
-            }
-
-            nodeMaps.add(nodeMap);
+        if (node.getGroupLogic() != null) {
+            nodeMap.put("groupLogic", node.getGroupLogic().name());
         }
 
-        return nodeMaps;
+        if (node.getOperatorName() != null) {
+            nodeMap.put("operatorName", node.getOperatorName());
+        }
+
+        if (node.getParams() != null) {
+            nodeMap.put("params", node.getParams());
+        }
+
+        if (node.getReasonCode() != null) {
+            nodeMap.put("reasonCode", node.getReasonCode());
+        }
+
+        // Convert children to IDs
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            List<String> childIds = new ArrayList<>();
+            for (RuleNode child : node.getChildren()) {
+                childIds.add(child.getId());
+            }
+            nodeMap.put("children", childIds);
+        }
+        return nodeMap;
     }
 
     private String generateOperatorFingerprint(List<RuleNode> nodes) {
@@ -326,29 +359,7 @@ public class RulePublishingService {
         return fingerprint.toString().isEmpty() ? "default-fingerprint" : fingerprint.toString();
     }
 
-    private String generateSnapshotHash(Rule rule) {
-        // Generate a hash based on rule content for versioning
-        Integer version = rule.getLatestVersion();
-        if (version == null) {
-            version = rule.getRuleVersion() != null ? rule.getRuleVersion().intValue() : 1;
-        }
 
-        StringBuilder content = new StringBuilder();
-        content.append(rule.getId());
-        content.append("|");
-        content.append(version);
-        content.append("|");
-        if (rule.getLogic() != null) {
-            content.append(rule.getLogic().name());
-        }
-        content.append("|");
-        if (rule.getNodes() != null) {
-            content.append(rule.getNodes().size());
-        }
-
-        // Simple hash - in production, use proper hashing algorithm like SHA-256
-        return Integer.toHexString(content.toString().hashCode());
-    }
 
     private void warmup(CompileResponse compileResponse) {
         // Validate artifact bytes are present
@@ -385,13 +396,7 @@ public class RulePublishingService {
                     compileResponse.getArtifactBytes().length);
 
         } catch (Exception e) {
-            String errorMsg = String.format(
-                    "Failed to warm up bundle: bundleHash=%s, error=%s",
-                    compileResponse.getBundleHash(),
-                    e.getMessage()
-            );
-            logger.error(errorMsg, e);
-            throw new IllegalStateException(errorMsg, e);
+            throw new IllegalStateException("Failed to warm up bundle: bundleHash=" + compileResponse.getBundleHash() + ", error=" + e.getMessage(), e);
         }
     }
 
@@ -401,8 +406,7 @@ public class RulePublishingService {
             ExecuteRequest testRequest = createTestExecuteRequest(rule, bundleHash);
             ExecuteResponse response = validationEngineClient.execute(testRequest);
 
-            boolean isValid = response.isOk() &&
-                    (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
+            boolean isValid = isValidResponse(response);
 
             logger.debug("Rule verification completed: ruleId={}, valid={}, decision={}",
                     rule.getId(), isValid, response.getDecision());
@@ -413,6 +417,11 @@ public class RulePublishingService {
             logger.error("Rule verification failed: ruleId={}", rule.getId(), e);
             return false;
         }
+    }
+
+    private boolean isValidResponse(ExecuteResponse response) {
+        return response.isOk() &&
+                (response.getDecision().equals("ALLOW") || response.getDecision().equals("DENY"));
     }
 
     private ExecuteRequest createTestExecuteRequest(Rule rule, String bundleHash) {
@@ -462,12 +471,7 @@ public class RulePublishingService {
 
     private Rule createValidationRuleFromRule(Rule rule, String bundleHash) {
         // Convert nodes
-        List<RuleNode> validationNodes = null;
-        if (rule.getNodes() != null) {
-            validationNodes = rule.getNodes().stream()
-                    .map(this::convertRuleNodeToValidationNode)
-                    .toList();
-        }
+        List<RuleNode> validationNodes = convertRuleNodes(rule);
 
         // Set timestamps
         Instant now = Instant.now();
@@ -497,14 +501,19 @@ public class RulePublishingService {
         return validationRule;
     }
 
-    private RuleNode convertRuleNodeToValidationNode(RuleNode ruleNode) {
-        // Convert children recursively
-        List<RuleNode> convertedChildren = new ArrayList<>();
-        if (ruleNode.getChildren() != null) {
-            convertedChildren = ruleNode.getChildren().stream()
+    private List<RuleNode> convertRuleNodes(Rule rule) {
+        List<RuleNode> validationNodes = null;
+        if (rule.getNodes() != null) {
+            validationNodes = rule.getNodes().stream()
                     .map(this::convertRuleNodeToValidationNode)
                     .toList();
         }
+        return validationNodes;
+    }
+
+    private RuleNode convertRuleNodeToValidationNode(RuleNode ruleNode) {
+        // Convert children recursively
+        List<RuleNode> convertedChildren = convertChildrenRecursively(ruleNode);
 
         return RuleNode.builder()
                 .nodeId(ruleNode.getId())
@@ -515,6 +524,16 @@ public class RulePublishingService {
                 .params(ruleNode.getParams())
                 .reasonCode(ruleNode.getReasonCode())
                 .build();
+    }
+
+    private List<RuleNode> convertChildrenRecursively(RuleNode ruleNode) {
+        List<RuleNode> convertedChildren = new ArrayList<>();
+        if (ruleNode.getChildren() != null) {
+            convertedChildren = ruleNode.getChildren().stream()
+                    .map(this::convertRuleNodeToValidationNode)
+                    .toList();
+        }
+        return convertedChildren;
     }
 
     // Result classes

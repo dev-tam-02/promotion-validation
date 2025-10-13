@@ -16,6 +16,8 @@ import java.util.*;
  */
 public class RuleVersioningDomainService {
 
+    private static final String SYSTEM_MERGE_USER = "system-merge";
+
     /**
      * Create a new version of an existing rule
      */
@@ -109,7 +111,7 @@ public class RuleVersioningDomainService {
                         sourceRule.getDescription(),
                         sourceRule.getLogicType(),
                         sourceRule.getNodes(),
-                        "system-merge"
+                        SYSTEM_MERGE_USER
                 );
                 break;
 
@@ -122,7 +124,7 @@ public class RuleVersioningDomainService {
                         targetRule.getDescription(),
                         targetRule.getLogicType(),
                         mergedNodes,
-                        "system-merge"
+                        SYSTEM_MERGE_USER
                 );
                 break;
 
@@ -133,7 +135,7 @@ public class RuleVersioningDomainService {
                         sourceRule.getDescription() != null ? sourceRule.getDescription() : targetRule.getDescription(),
                         sourceRule.getLogicType() != null ? sourceRule.getLogicType() : targetRule.getLogicType(),
                         !sourceRule.getNodes().isEmpty() ? sourceRule.getNodes() : targetRule.getNodes(),
-                        "system-merge"
+                        SYSTEM_MERGE_USER
                 );
                 break;
 

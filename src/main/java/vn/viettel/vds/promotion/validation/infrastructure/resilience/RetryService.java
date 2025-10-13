@@ -17,6 +17,8 @@ public class RetryService {
 
     private static final Logger logger = LoggerFactory.getLogger(RetryService.class);
 
+    private static final String RETRY_EXECUTION_FAILED = "Retry execution failed";
+
     private final RetryRegistry retryRegistry;
     private final ResilienceConfiguration config;
 
@@ -70,8 +72,7 @@ public class RetryService {
         try {
             return decoratedSupplier.get();
         } catch (Exception e) {
-            logger.error("Retry execution failed for: {}", retryName, e);
-            throw new RetryExecutionException("Retry execution failed", e, retryName);
+            throw new RetryExecutionException(RETRY_EXECUTION_FAILED + " for: " + retryName, e, retryName);
         }
     }
 
@@ -82,8 +83,7 @@ public class RetryService {
         try {
             return decoratedCallable.call();
         } catch (Exception e) {
-            logger.error("Retry execution failed for: {}", retryName, e);
-            throw new RetryExecutionException("Retry execution failed", e, retryName);
+            throw new RetryExecutionException(RETRY_EXECUTION_FAILED + " for: " + retryName, e, retryName);
         }
     }
 
@@ -94,8 +94,7 @@ public class RetryService {
         try {
             decoratedRunnable.run();
         } catch (Exception e) {
-            logger.error("Retry execution failed for: {}", retryName, e);
-            throw new RetryExecutionException("Retry execution failed", e, retryName);
+            throw new RetryExecutionException(RETRY_EXECUTION_FAILED + " for: " + retryName, e, retryName);
         }
     }
 

@@ -22,6 +22,13 @@ import java.util.concurrent.Executors;
 public class RuleDeploymentPipelineService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleDeploymentPipelineService.class);
+    
+    // Pipeline stage constants
+    private static final String STAGE_VALIDATION = "VALIDATION";
+    private static final String STAGE_COMPILATION = "COMPILATION";
+    private static final String STAGE_TESTING = "TESTING";
+    private static final String STAGE_HEALTH_CHECK = "HEALTH_CHECK";
+    private static final String STAGE_DIRECT_DEPLOYMENT = "DIRECT_DEPLOYMENT";
 
     private final RulePublishingService rulePublishingService;
     private final RuleVersioningService ruleVersioningService;
@@ -169,7 +176,7 @@ public class RuleDeploymentPipelineService {
 
             // Validate rule structure
             if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-                return DeploymentStage.failed("VALIDATION", "Rule has no nodes defined");
+                return DeploymentStage.failed(STAGE_VALIDATION, "Rule has no nodes defined");
             }
 
             // Additional validations based on config
@@ -178,10 +185,10 @@ public class RuleDeploymentPipelineService {
                 // validateRuleComplexity, validateNodeReferences, etc.
             }
 
-            return DeploymentStage.success("VALIDATION", "Rule validation passed");
+            return DeploymentStage.success(STAGE_VALIDATION, "Rule validation passed");
 
         } catch (Exception e) {
-            return DeploymentStage.failed("VALIDATION", "Validation error: " + e.getMessage());
+            return DeploymentStage.failed(STAGE_VALIDATION, "Validation error: " + e.getMessage());
         }
     }
 
@@ -192,14 +199,14 @@ public class RuleDeploymentPipelineService {
             RulePublishingService.RulePublishResult result = rulePublishingService.publishRule(ruleId);
 
             if (result.isSuccess()) {
-                return DeploymentStage.success("COMPILATION",
+                return DeploymentStage.success(STAGE_COMPILATION,
                         "Rule compiled successfully: " + result.getBundleHash());
             } else {
-                return DeploymentStage.failed("COMPILATION", result.getErrorMessage());
+                return DeploymentStage.failed(STAGE_COMPILATION, result.getErrorMessage());
             }
 
         } catch (Exception e) {
-            return DeploymentStage.failed("COMPILATION", "Compilation error: " + e.getMessage());
+            return DeploymentStage.failed(STAGE_COMPILATION, "Compilation error: " + e.getMessage());
         }
     }
 
@@ -211,13 +218,13 @@ public class RuleDeploymentPipelineService {
             boolean testsPassed = runRuleTests(tenantId, ruleId, config.getTestScenarios());
 
             if (testsPassed) {
-                return DeploymentStage.success("TESTING", "All tests passed");
+                return DeploymentStage.success(STAGE_TESTING, "All tests passed");
             } else {
-                return DeploymentStage.failed("TESTING", "Some tests failed");
+                return DeploymentStage.failed(STAGE_TESTING, "Some tests failed");
             }
 
         } catch (Exception e) {
-            return DeploymentStage.failed("TESTING", "Testing error: " + e.getMessage());
+            return DeploymentStage.failed(STAGE_TESTING, "Testing error: " + e.getMessage());
         }
     }
 
@@ -248,13 +255,13 @@ public class RuleDeploymentPipelineService {
                     rulePublishingService.getDeploymentStatus(ruleId);
 
             if (status.isDeployed()) {
-                return DeploymentStage.success("DIRECT_DEPLOYMENT", "Rule deployed successfully");
+                return DeploymentStage.success(STAGE_DIRECT_DEPLOYMENT, "Rule deployed successfully");
             } else {
-                return DeploymentStage.failed("DIRECT_DEPLOYMENT", "Deployment verification failed");
+                return DeploymentStage.failed(STAGE_DIRECT_DEPLOYMENT, "Deployment verification failed");
             }
 
         } catch (Exception e) {
-            return DeploymentStage.failed("DIRECT_DEPLOYMENT", "Deployment error: " + e.getMessage());
+            return DeploymentStage.failed(STAGE_DIRECT_DEPLOYMENT, "Deployment error: " + e.getMessage());
         }
     }
 
@@ -267,13 +274,13 @@ public class RuleDeploymentPipelineService {
 
             // Note: Health check would require bundleHash field in Rule entity
             if (rule.getState() == Rule.RuleState.PUBLISHED) {
-                return DeploymentStage.success("HEALTH_CHECK", "Rule is published (health check skipped)");
+                return DeploymentStage.success(STAGE_HEALTH_CHECK, "Rule is published (health check skipped)");
             } else {
-                return DeploymentStage.failed("HEALTH_CHECK", "Rule is not published");
+                return DeploymentStage.failed(STAGE_HEALTH_CHECK, "Rule is not published");
             }
 
         } catch (Exception e) {
-            return DeploymentStage.failed("HEALTH_CHECK", "Health check error: " + e.getMessage());
+            return DeploymentStage.failed(STAGE_HEALTH_CHECK, "Health check error: " + e.getMessage());
         }
     }
 

@@ -10,12 +10,12 @@ import java.util.Map;
 
 @Schema(description = "Rule node response (condition or group)")
 public record RuleNodeResponse(
-        @Schema(description = "Unique node identifier", example = "n1", required = true)
+        @Schema(description = "Unique node identifier", example = "n1", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Node ID is required")
         @JsonProperty("id")
         String id,
 
-        @Schema(description = "Node type", example = "COND", required = true, allowableValues = {"GROUP", "COND"})
+        @Schema(description = "Node type", example = "COND", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"GROUP", "COND"})
         @NotNull(message = "Node type is required")
         @JsonProperty("type")
         String type,

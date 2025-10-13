@@ -18,6 +18,7 @@ import java.util.Map;
 public class AuditService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuditService.class);
+    private static final String DEFAULT_TENANT_ID = "default";
 
     private final AuditLogPersistencePort auditLogPersistencePort;
 
@@ -56,28 +57,28 @@ public class AuditService {
      * Log rule creation
      */
     public void logRuleCreated(String ruleId, String actor) {
-        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_CREATE, "rule", ruleId, null);
+        logAuditEvent(DEFAULT_TENANT_ID, actor, AuditLog.AuditAction.RULE_CREATE, "rule", ruleId, null);
     }
 
     /**
      * Log rule update
      */
     public void logRuleUpdated(String ruleId, String actor) {
-        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId, null);
+        logAuditEvent(DEFAULT_TENANT_ID, actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId, null);
     }
 
     /**
      * Log rule published
      */
     public void logRulePublished(String ruleId, String actor, Map<String, Object> details) {
-        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_PUBLISH, "rule", ruleId, details);
+        logAuditEvent(DEFAULT_TENANT_ID, actor, AuditLog.AuditAction.RULE_PUBLISH, "rule", ruleId, details);
     }
 
     /**
      * Log rule archived
      */
     public void logRuleArchived(String ruleId, String actor) {
-        logAuditEvent("default", actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId,
+        logAuditEvent(DEFAULT_TENANT_ID, actor, AuditLog.AuditAction.RULE_EDIT, "rule", ruleId,
                 Map.of("action", "archive"));
     }
 

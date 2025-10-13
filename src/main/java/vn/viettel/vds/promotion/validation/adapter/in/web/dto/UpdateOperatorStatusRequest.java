@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Pattern;
 @Schema(description = "Request to update operator status")
 public class UpdateOperatorStatusRequest {
 
-    @Schema(description = "New operator status", example = "deprecated", allowableValues = {"active", "deprecated"}, required = true)
+    @Schema(description = "New operator status", example = "deprecated", allowableValues = {"active", "deprecated"}, requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Status is required")
     @Pattern(regexp = "^(active|deprecated)$", message = "Status must be either 'active' or 'deprecated'")
     @JsonProperty("status")

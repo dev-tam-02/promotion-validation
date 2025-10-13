@@ -38,6 +38,7 @@ public class PublishJobEntity extends BaseEntity {
     private Instant completedAt;
 
     @Embedded
+    @Transient
     private CompileJobInfoEmbeddable compile;
 
     @Convert(converter = ListStringConverter.class)

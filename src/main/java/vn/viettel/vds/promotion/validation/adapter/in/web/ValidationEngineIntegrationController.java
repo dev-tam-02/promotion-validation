@@ -1,17 +1,13 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
-import com.promix.platform.web.annotation.ResponseWrapper;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.application.service.ValidationEngineIntegrationService;
+import vn.viettel.vds.promotion.validation.application.service.SynchronizationStatus;
 
-import java.util.concurrent.CompletableFuture;
-
-/**
- * REST controller for managing validation-engine integration
- */
 @RestController
-@RequestMapping("/api/validation-engine")
-@ResponseWrapper
+@RequestMapping("/api/v1/integration/validation-engine")
 public class ValidationEngineIntegrationController {
 
     private final ValidationEngineIntegrationService integrationService;
@@ -20,44 +16,14 @@ public class ValidationEngineIntegrationController {
         this.integrationService = integrationService;
     }
 
-    /**
-     * Get synchronization status
-     */
-    @GetMapping("/status")
-    public ValidationEngineIntegrationService.SynchronizationStatus getStatus() {
-        return integrationService.getSynchronizationStatus();
-    }
-
-    /**
-     * Trigger full synchronization of all rules
-     */
-    @PostMapping("/sync")
-    public String synchronizeAllRules() {
+    @PostMapping("/synchronize")
+    public ResponseEntity<Void> synchronizeAllRules() {
         integrationService.synchronizeAllRules();
-        return "Rule synchronization started";
+        return ResponseEntity.accepted().build();
     }
 
-    /**
-     * Deploy a specific rule assignment
-     */
-    @PostMapping("/deploy/{assignmentId}")
-    public CompletableFuture<Boolean> deployRuleAssignment(@PathVariable String assignmentId) {
-        return integrationService.deployRuleAssignment(assignmentId);
-    }
-
-    /**
-     * Remove a rule from validation-engine
-     */
-    @DeleteMapping("/rules/{ruleId}")
-    public CompletableFuture<Boolean> removeRule(@PathVariable String ruleId) {
-        return integrationService.removeRule(ruleId);
-    }
-
-    /**
-     * Check validation-engine health
-     */
-    @GetMapping("/health")
-    public Boolean checkHealth() {
-        return integrationService.isValidationEngineHealthy();
+    @GetMapping("/status")
+    public ResponseEntity<SynchronizationStatus> getSynchronizationStatus() {
+        return ResponseEntity.ok(integrationService.getSynchronizationStatus());
     }
 }

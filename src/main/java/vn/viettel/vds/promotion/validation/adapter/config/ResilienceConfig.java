@@ -8,27 +8,26 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.github.resilience4j.timelimiter.TimeLimiter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import vn.viettel.vds.promotion.validation.infrastructure.resilience.ResilienceConfiguration;
+
 
 @Configuration
 public class ResilienceConfig {
 
-    private final ResilienceConfiguration config;
+    private static final String FACT_RESOLVER = "factResolver";
+
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
 
     public ResilienceConfig(
-            ResilienceConfiguration config,
             CircuitBreakerRegistry circuitBreakerRegistry,
             RetryRegistry retryRegistry) {
-        this.config = config;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.retryRegistry = retryRegistry;
     }
 
     @Bean
     public CircuitBreaker factResolverCircuitBreaker() {
-        return CircuitBreaker.ofDefaults("factResolver");
+        return CircuitBreaker.ofDefaults(FACT_RESOLVER);
     }
 
     @Bean
@@ -53,7 +52,7 @@ public class ResilienceConfig {
 
     @Bean
     public Retry factResolverRetry() {
-        return Retry.ofDefaults("factResolver");
+        return Retry.ofDefaults(FACT_RESOLVER);
     }
 
     @Bean
@@ -78,12 +77,12 @@ public class ResilienceConfig {
 
     @Bean
     public Bulkhead factResolverBulkhead() {
-        return Bulkhead.ofDefaults("factResolver");
+        return Bulkhead.ofDefaults(FACT_RESOLVER);
     }
 
     @Bean
     public TimeLimiter factResolverTimeLimiter() {
-        return TimeLimiter.ofDefaults("factResolver");
+        return TimeLimiter.ofDefaults(FACT_RESOLVER);
     }
 
     /**

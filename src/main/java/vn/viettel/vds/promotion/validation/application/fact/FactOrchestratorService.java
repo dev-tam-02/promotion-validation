@@ -18,6 +18,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,6 +26,14 @@ import java.util.concurrent.CompletableFuture;
 public class FactOrchestratorService implements FactOrchestrator {
 
     private static final Logger log = LoggerFactory.getLogger(FactOrchestratorService.class);
+
+    private static final String CACHE_KEY_PREFIX = "facts:v1:";
+    private static final String CACHE_KEY_FALLBACK_PREFIX = "facts:v1:fallback:";
+    private static final String HASH_ALGORITHM = "SHA-256";
+    private static final int HASH_TRUNCATE_LENGTH = 16;
+    private static final int CACHE_TTL_SECONDS = 60;
+    private static final String FACT_PACK_VERSION = "1.0";
+    private static final String SERVICE_VERSION = "1.0.0";
 
     private final FactResolverOrchestrator resolverOrchestrator;
     private final FactMapper factMapper;
@@ -85,10 +94,10 @@ public class FactOrchestratorService implements FactOrchestrator {
     public String generateCacheKey(FactRequest request) {
         try {
             String requestJson = objectMapper.writeValueAsString(request);
-            return "facts:v1:" + hashString(requestJson);
+            return CACHE_KEY_PREFIX + hashString(requestJson);
         } catch (JsonProcessingException e) {
             log.warn("Failed to generate cache key for request", e);
-            return "facts:v1:fallback:" + UUID.randomUUID();
+            return CACHE_KEY_FALLBACK_PREFIX + UUID.randomUUID();
         }
     }
 
@@ -96,8 +105,7 @@ public class FactOrchestratorService implements FactOrchestrator {
         long startTime = System.currentTimeMillis();
         String aggregationId = UUID.randomUUID().toString();
 
-        log.info("Starting fact aggregation for request: customerId={}, orderId={}, aggregationId={}",
-                request.customerId(), request.orderId(), aggregationId);
+        log.info("Starting fact aggregation for request: customerId={}, orderId={}, aggregationId={}", request.customerId(), request.orderId(), aggregationId);
 
         return policyEngine.determineFetchPolicy(request)
                 .thenCompose(policy -> resolverOrchestrator.resolveAll(request, policy))
@@ -108,11 +116,9 @@ public class FactOrchestratorService implements FactOrchestrator {
                 .whenComplete((result, throwable) -> {
                     long processingTime = System.currentTimeMillis() - startTime;
                     if (throwable == null) {
-                        log.info("Fact aggregation completed: aggregationId={}, processingTime={}ms",
-                                aggregationId, processingTime);
+                        log.info("Fact aggregation completed: aggregationId={}, processingTime={}ms", aggregationId, processingTime);
                     } else {
-                        log.error("Fact aggregation failed: aggregationId={}, processingTime={}ms, error={}",
-                                aggregationId, processingTime, throwable.getMessage(), throwable);
+                        log.error("Fact aggregation failed: aggregationId={}, processingTime={}ms, error={}", aggregationId, processingTime, throwable != null ? throwable.getMessage() : "unknown error", throwable);
                     }
                 });
     }
@@ -124,9 +130,9 @@ public class FactOrchestratorService implements FactOrchestrator {
                 .aggregatedAt(Instant.now())
                 .aggregationId(aggregationId)
                 .processingTimeMs(processingTime)
-                .fetchPolicy(factPack.provenance() != null ? factPack.provenance().fetchPolicy() : null)
-                .sources(factPack.provenance() != null ? factPack.provenance().sources() : null)
-                .versions(Map.of("factPack", "1.0", "service", "1.0.0"))
+                .fetchPolicy(Optional.ofNullable(factPack.provenance()).map(ProvenanceInfo::fetchPolicy).orElse(null))
+                .sources(Optional.ofNullable(factPack.provenance()).map(ProvenanceInfo::sources).orElse(null))
+                .versions(Map.of("factPack", FACT_PACK_VERSION, "service", SERVICE_VERSION))
                 .build();
 
         return FactPack.builder()
@@ -145,12 +151,12 @@ public class FactOrchestratorService implements FactOrchestrator {
     }
 
     private int getCacheTtlSeconds() {
-        return 60; // 60 seconds default TTL
+        return CACHE_TTL_SECONDS; // 60 seconds default TTL
     }
 
     private String hashString(String input) {
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM);
             byte[] hashBytes = md.digest(input.getBytes());
             StringBuilder hexString = new StringBuilder();
 
@@ -162,7 +168,7 @@ public class FactOrchestratorService implements FactOrchestrator {
                 hexString.append(hex);
             }
 
-            return hexString.toString().substring(0, 16); // Use first 16 characters
+            return hexString.toString().substring(0, HASH_TRUNCATE_LENGTH); // Use first 16 characters
         } catch (NoSuchAlgorithmException e) {
             log.warn("SHA-256 not available, using fallback hash", e);
             return String.valueOf(input.hashCode());

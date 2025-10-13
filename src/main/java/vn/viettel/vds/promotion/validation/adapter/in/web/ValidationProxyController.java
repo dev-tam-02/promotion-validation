@@ -20,6 +20,10 @@ import java.util.Map;
 @Slf4j
 public class ValidationProxyController {
 
+    private static final String CAMPAIGN_ID_KEY = "campaignId";
+    private static final String DECISION_KEY = "decision";
+    private static final String BUNDLE_HASH_KEY = "bundleHash";
+
     private final ValidationProxyService validationProxyService;
 
     /**
@@ -28,20 +32,20 @@ public class ValidationProxyController {
      */
     @PostMapping("/fast-check")
     public Map<String, Object> fastCheck(@RequestBody Map<String, Object> request) {
-        log.info("Received fast-check request for campaign: {}", request.get("campaignId"));
+        log.info("Received fast-check request for campaign: {}", request.get(CAMPAIGN_ID_KEY));
 
         try {
             Map<String, Object> result = validationProxyService.performFastCheck(request);
             log.debug("Fast-check completed for campaign: {} with decision: {}",
-                    request.get("campaignId"), result.get("decision"));
+                    request.get(CAMPAIGN_ID_KEY), result.get(DECISION_KEY));
             return result;
 
         } catch (Exception e) {
-            log.error("Fast-check failed for campaign: {}", request.get("campaignId"), e);
+            log.error("Fast-check failed for campaign: {}", request.get(CAMPAIGN_ID_KEY), e);
 
             // Return failure response
             return Map.of(
-                    "decision", "DENY",
+                    DECISION_KEY, "DENY",
                     "reasonCode", "FAST_CHECK_ERROR",
                     "explanation", "Fast check service unavailable: " + e.getMessage()
             );
@@ -54,21 +58,21 @@ public class ValidationProxyController {
      */
     @PostMapping("/execute")
     public Map<String, Object> execute(@RequestBody Map<String, Object> request) {
-        log.info("Received execute request for bundle: {}", request.get("bundleHash"));
+        log.info("Received execute request for bundle: {}", request.get(BUNDLE_HASH_KEY));
 
         try {
             Map<String, Object> result = validationProxyService.performExecution(request);
             log.debug("Execution completed for bundle: {} with decision: {}",
-                    request.get("bundleHash"), result.get("decision"));
+                    request.get(BUNDLE_HASH_KEY), result.get(DECISION_KEY));
             return result;
 
         } catch (Exception e) {
-            log.error("Execution failed for bundle: {}", request.get("bundleHash"), e);
+            log.error("Execution failed for bundle: {}", request.get(BUNDLE_HASH_KEY), e);
 
             // Return failure response
             return Map.of(
                     "ok", false,
-                    "decision", "DENY",
+                    DECISION_KEY, "DENY",
                     "reasonCodes", java.util.List.of("EXECUTION_ERROR"),
                     "explain", java.util.List.of("Validation execution service unavailable: " + e.getMessage())
             );

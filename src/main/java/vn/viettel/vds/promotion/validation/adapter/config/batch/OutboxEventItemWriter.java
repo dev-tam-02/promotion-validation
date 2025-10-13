@@ -7,6 +7,7 @@ import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.OutboxItemWriterException;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 
 /**
@@ -30,10 +31,9 @@ public class OutboxEventItemWriter implements ItemWriter<OutboxEvent> {
                 outboxEventPersistencePort.save(event);
                 logger.debug("Saved outbox event: id={}, status={}", event.getId(), event.getStatus());
             } catch (Exception e) {
-                logger.error("Failed to save outbox event: id={}", event.getId(), e);
                 // In a production system, you might want to handle this differently
                 // For now, we'll let the exception propagate to trigger batch retry
-                throw new RuntimeException("Failed to save outbox event: " + event.getId(), e);
+                throw new OutboxItemWriterException("Failed to save outbox event: id=" + event.getId() + " due to: " + e.getMessage(), e);
             }
         }
 

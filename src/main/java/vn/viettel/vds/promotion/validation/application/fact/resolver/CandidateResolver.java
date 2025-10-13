@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.CandidateFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 
@@ -73,10 +74,10 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to resolve candidate facts for key: " + request.candidate().key(), e);
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            throw new ValidationException("Failed to resolve candidate facts for key: " + request.candidate().key(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to resolve candidate facts for key: " + request.candidate().key(), e);
+            throw new ValidationException("Failed to resolve candidate facts for key: " + request.candidate().key(), e);
         }
     }
 
@@ -123,6 +124,19 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
     private CandidateFact mapToCandidateFact(Map<String, Object> data) {
         CandidateFact.Builder builder = CandidateFact.builder();
 
+        // Map basic fields
+        mapBasicFields(data, builder);
+        
+        // Map date fields
+        mapDateFields(data, builder);
+        
+        // Map configuration fields
+        mapConfigurationFields(data, builder);
+
+        return builder.build();
+    }
+
+    private void mapBasicFields(Map<String, Object> data, CandidateFact.Builder builder) {
         if (data.get("type") != null) {
             builder.type((String) data.get("type"));
         }
@@ -144,19 +158,23 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
         if (data.get("status") != null) {
             builder.status((String) data.get("status"));
         }
+    }
+
+    private void mapDateFields(Map<String, Object> data, CandidateFact.Builder builder) {
         if (data.get("startDate") != null) {
             builder.startDate(Instant.parse((String) data.get("startDate")));
         }
         if (data.get("endDate") != null) {
             builder.endDate(Instant.parse((String) data.get("endDate")));
         }
+    }
+
+    private void mapConfigurationFields(Map<String, Object> data, CandidateFact.Builder builder) {
         if (data.get("configuration") != null) {
             builder.configuration((Map<String, Object>) data.get("configuration"));
         }
         if (data.get("constraints") != null) {
             builder.constraints((Map<String, Object>) data.get("constraints"));
         }
-
-        return builder.build();
     }
 }

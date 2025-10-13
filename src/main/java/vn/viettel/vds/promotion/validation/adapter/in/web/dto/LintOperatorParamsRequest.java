@@ -11,18 +11,18 @@ import java.util.Map;
 @Schema(description = "Request to validate operator parameters")
 public class LintOperatorParamsRequest {
 
-    @Schema(description = "Operator name", example = "order.total.gte", required = true)
+    @Schema(description = "Operator name", example = "order.total.gte", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Operator name is required")
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Operator version", example = "1", required = true)
+    @Schema(description = "Operator version", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Version is required")
     @Positive(message = "Version must be positive")
     @JsonProperty("version")
     private Integer version;
 
-    @Schema(description = "Parameters to validate", example = "{\"amount\": 500000, \"currency\": \"VND\"}", required = true)
+    @Schema(description = "Parameters to validate", example = "{\"amount\": 500000, \"currency\": \"VND\"}", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Parameters are required")
     @JsonProperty("params")
     private Map<String, Object> params;

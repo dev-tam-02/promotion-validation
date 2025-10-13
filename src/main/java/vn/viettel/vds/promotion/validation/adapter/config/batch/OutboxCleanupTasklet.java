@@ -10,6 +10,7 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.application.service.OutboxEventService;
+import vn.viettel.vds.promotion.validation.domain.exception.OutboxCleanupException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -51,8 +52,7 @@ public class OutboxCleanupTasklet implements Tasklet {
             return RepeatStatus.FINISHED;
 
         } catch (Exception e) {
-            logger.error("Error during outbox cleanup", e);
-            throw new RuntimeException("Outbox cleanup failed", e);
+            throw new OutboxCleanupException("Error during outbox cleanup: " + e.getMessage(), e);
         }
     }
 

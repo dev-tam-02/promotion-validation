@@ -172,9 +172,9 @@ public class AdminController {
                 ),
                 "dependencies", Map.of(
                         "mongodb", "Required for data persistence",
-                        "artifactService", "Optional for rule compilation",
-                        "redemptionService", "Optional for event publishing",
-                        "eventBus", "Optional for event streaming"
+                        ARTIFACT_SERVICE_KEY, "Optional for rule compilation",
+                        REDEMPTION_SERVICE_KEY, "Optional for event publishing",
+                        EVENT_BUS_KEY, "Optional for event streaming"
                 ),
                 TIMESTAMP_KEY, Instant.now()
         );

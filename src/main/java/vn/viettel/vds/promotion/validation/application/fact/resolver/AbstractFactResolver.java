@@ -78,8 +78,7 @@ public abstract class AbstractFactResolver<T> implements FactResolver<T> {
             try {
                 return decoratedSupplier.get();
             } catch (Exception e) {
-                log.error("Failed to resolve {} from IDs after retries: {}", getContextName(), e.getMessage());
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to resolve " + getContextName() + " from IDs: " + e.getMessage(), e);
             }
         }, virtualThreadExecutor);
     }
@@ -89,8 +88,7 @@ public abstract class AbstractFactResolver<T> implements FactResolver<T> {
             try {
                 return resolveFromEmbeddedPayload(request, embeddedData);
             } catch (Exception e) {
-                log.error("Failed to resolve {} from embedded payload: {}", getContextName(), e.getMessage());
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to resolve " + getContextName() + " from embedded payload: " + e.getMessage(), e);
             }
         }, virtualThreadExecutor);
     }

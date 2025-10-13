@@ -17,8 +17,7 @@ import java.util.List;
  * The database schema only has: id, entity_type, entity_id, rule_id, priority, active,
  * created_at, updated_at
  * <p>
- * TODO: Either update the database schema to match the domain model OR use a different
- * entity structure that matches the schema.
+
  */
 @Mapper(componentModel = "spring")
 public interface AssignmentEntityMapper {

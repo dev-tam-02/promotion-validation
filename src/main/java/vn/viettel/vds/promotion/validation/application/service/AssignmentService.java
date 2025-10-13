@@ -16,114 +16,185 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import vn.viettel.vds.promotion.validation.application.service.dto.CreateAssignmentRequest;
+import vn.viettel.vds.promotion.validation.application.service.dto.UpdateAssignmentRequest;
+
+
+
 @Service
+
 @Transactional
+
 public class AssignmentService {
+
+
 
     private static final Logger logger = LoggerFactory.getLogger(AssignmentService.class);
 
+
+
+    private static final String DEFAULT_TENANT = "default";
+
+    private static final String ASSIGNMENT_ID_PREFIX = "asg_";
+
+    private static final String AUDIT_ACTION_KEY = "action";
+
+    private static final String AUDIT_VERSION_KEY = "version";
+
+    private static final String ERROR_CODE_ASSIGNMENT_OVERLAP = "ASSIGNMENT_OVERLAP";
+
+
+
     private final AssignmentPersistencePort assignmentPersistencePort;
+
     private final RuleService ruleService;
+
     private final AuditService auditService;
 
+
+
     public AssignmentService(AssignmentPersistencePort assignmentPersistencePort,
+
                              RuleService ruleService, AuditService auditService) {
+
         this.assignmentPersistencePort = assignmentPersistencePort;
+
         this.ruleService = ruleService;
+
         this.auditService = auditService;
+
     }
 
+
+
     /**
+
      * Create a new assignment
+
      */
-    public Assignment createAssignment(String tenantId, String ruleId, String subjectType, String subjectKey,
-                                       Boolean active, Instant validFrom, Instant validTo,
-                                       Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
-                                       String createdBy) {
+
+    public Assignment createAssignment(CreateAssignmentRequest request) {
+
         logger.info("Creating assignment: tenant={}, rule={}, subject={}:{}",
-                tenantId, ruleId, subjectType, subjectKey);
+
+                request.getTenantId(), request.getRuleId(), request.getSubjectType(), request.getSubjectKey());
+
+
 
         // Verify rule exists
-        ruleService.getRuleById(ruleId);
+
+        ruleService.getRuleById(request.getRuleId());
+
+
 
         // Check for overlapping assignments if this assignment is active
-        if (Boolean.TRUE.equals(active)) {
-            checkForOverlappingAssignments(tenantId, subjectType, subjectKey, validFrom, validTo, null);
+
+        if (Boolean.TRUE.equals(request.getActive())) {
+
+            checkForOverlappingAssignments(request.getTenantId(), request.getSubjectType(), request.getSubjectKey(), request.getValidFrom(), request.getValidTo(), null);
+
         }
 
+
+
         Assignment assignment = new Assignment();
-        assignment.setId(generateAssignmentId(tenantId, subjectType, subjectKey));
-        assignment.setRuleId(ruleId);
+
+        assignment.setId(generateAssignmentId(request.getTenantId(), request.getSubjectType(), request.getSubjectKey()));
+
+        assignment.setRuleId(request.getRuleId());
+
         assignment.setRuleVersionPinned(null); // Use latest version by default
 
+
+
         Assignment.Subject subject = new Assignment.Subject();
-        subject.setType(subjectType);
-        subject.setKey(subjectKey);
+
+        subject.setType(request.getSubjectType());
+
+        subject.setKey(request.getSubjectKey());
+
         assignment.setSubject(subject);
 
+
+
         assignment.setAssignmentVersion(1);
-        assignment.setActive(active != null ? active : true);
-        assignment.setValidFrom(validFrom);
-        assignment.setValidTo(validTo);
-        assignment.setTrafficPercent(trafficPercent != null ? trafficPercent : 100);
-        assignment.setStickyKeyStrategy(stickyKeyStrategy != null ? stickyKeyStrategy : Assignment.StickyKeyStrategy.CUSTOMER_ID);
+
+        assignment.setActive(Optional.ofNullable(request.getActive()).orElse(true));
+
+        assignment.setValidFrom(request.getValidFrom());
+
+        assignment.setValidTo(request.getValidTo());
+
+        assignment.setTrafficPercent(request.getTrafficPercent() != null ? request.getTrafficPercent() : 100);
+
+        assignment.setStickyKeyStrategy(request.getStickyKeyStrategy() != null ? request.getStickyKeyStrategy() : Assignment.StickyKeyStrategy.CUSTOMER_ID);
+
         assignment.setCreatedAt(Instant.now());
+
         assignment.setUpdatedAt(Instant.now());
+
+
 
         Assignment saved = assignmentPersistencePort.save(assignment);
 
+
+
         // Log audit event
-        auditService.logAssignmentUpdated(tenantId, saved.getId(), createdBy,
-                java.util.Map.of("action", "create"));
+
+        auditService.logAssignmentUpdated(request.getTenantId(), saved.getId(), request.getCreatedBy(),
+
+                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.CREATE.getAction()));
+
+
 
         logger.info("Assignment created successfully: id={}", saved.getId());
+
         return saved;
+
     }
 
     /**
      * Update an existing assignment
      */
-    public Assignment updateAssignment(String assignmentId, Boolean active, Instant validFrom, Instant validTo,
-                                       Integer trafficPercent, Assignment.StickyKeyStrategy stickyKeyStrategy,
-                                       Integer ruleVersionPinned, String updatedBy) {
-        logger.info("Updating assignment: id={}", assignmentId);
+    public Assignment updateAssignment(UpdateAssignmentRequest request) {
+        logger.info("Updating assignment: id={}", request.getAssignmentId());
 
-        Assignment assignment = getAssignmentById(assignmentId);
+        Assignment assignment = getAssignmentById(request.getAssignmentId());
 
         // Check for overlapping assignments if making this assignment active
-        if (Boolean.TRUE.equals(active) && !Boolean.TRUE.equals(assignment.getActive())) {
+        if (Boolean.TRUE.equals(request.getActive()) && !Boolean.TRUE.equals(assignment.getActive())) {
             checkForOverlappingAssignments(
-                    "default",  // Remove tenant concept
+                    DEFAULT_TENANT,  // Remove tenant concept
                     assignment.getSubject().getType(),
                     assignment.getSubject().getKey(),
-                    validFrom != null ? validFrom : assignment.getValidFrom(),
-                    validTo != null ? validTo : assignment.getValidTo(),
-                    assignmentId
+                    request.getValidFrom() != null ? request.getValidFrom() : assignment.getValidFrom(),
+                    request.getValidTo() != null ? request.getValidTo() : assignment.getValidTo(),
+                    request.getAssignmentId()
             );
         }
 
-        if (active != null) {
-            assignment.setActive(active);
+        if (request.getActive() != null) {
+            assignment.setActive(request.getActive());
         }
 
-        if (validFrom != null) {
-            assignment.setValidFrom(validFrom);
+        if (request.getValidFrom() != null) {
+            assignment.setValidFrom(request.getValidFrom());
         }
 
-        if (validTo != null) {
-            assignment.setValidTo(validTo);
+        if (request.getValidTo() != null) {
+            assignment.setValidTo(request.getValidTo());
         }
 
-        if (trafficPercent != null) {
-            assignment.setTrafficPercent(trafficPercent);
+        if (request.getTrafficPercent() != null) {
+            assignment.setTrafficPercent(request.getTrafficPercent());
         }
 
-        if (stickyKeyStrategy != null) {
-            assignment.setStickyKeyStrategy(stickyKeyStrategy);
+        if (request.getStickyKeyStrategy() != null) {
+            assignment.setStickyKeyStrategy(request.getStickyKeyStrategy());
         }
 
-        if (ruleVersionPinned != null) {
-            assignment.setRuleVersionPinned(ruleVersionPinned);
+        if (request.getRuleVersionPinned() != null) {
+            assignment.setRuleVersionPinned(request.getRuleVersionPinned());
         }
 
         // Bump assignment version
@@ -133,8 +204,8 @@ public class AssignmentService {
         Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
-        auditService.logAssignmentUpdated("default", saved.getId(), updatedBy,
-                java.util.Map.of("action", "update", "version", saved.getAssignmentVersion()));
+        auditService.logAssignmentUpdated(DEFAULT_TENANT, saved.getId(), request.getUpdatedBy(),
+                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.UPDATE.getAction(), AUDIT_VERSION_KEY, saved.getAssignmentVersion()));
 
         logger.info("Assignment updated successfully: id={}, version={}",
                 saved.getId(), saved.getAssignmentVersion());
@@ -147,7 +218,7 @@ public class AssignmentService {
     @Transactional(readOnly = true)
     public Assignment getAssignmentById(String assignmentId) {
         return assignmentPersistencePort.findById(assignmentId)
-                .orElseThrow(() -> new ResourceNotFoundException());
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     /**
@@ -202,8 +273,8 @@ public class AssignmentService {
         Assignment saved = assignmentPersistencePort.save(assignment);
 
         // Log audit event
-        auditService.logAssignmentUpdated("default", saved.getId(), updatedBy,
-                java.util.Map.of("action", "deactivate"));
+        auditService.logAssignmentUpdated(DEFAULT_TENANT, saved.getId(), updatedBy,
+                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.DEACTIVATE.getAction()));
 
         logger.info("Assignment deactivated successfully: id={}", saved.getId());
         return saved;
@@ -222,14 +293,14 @@ public class AssignmentService {
         }
 
         if (!overlapping.isEmpty()) {
-            throw new BusinessException(new ResponseInfo("ASSIGNMENT_OVERLAP",
+            throw new BusinessException(new ResponseInfo(ERROR_CODE_ASSIGNMENT_OVERLAP,
                     String.format("Active assignment already exists for subject %s:%s in the specified time range",
                             subjectType, subjectKey), 400));
         }
     }
 
     private String generateAssignmentId(String tenantId, String subjectType, String subjectKey) {
-        return "asg_" + tenantId + "_" + subjectType + "_" + subjectKey;
+        return ASSIGNMENT_ID_PREFIX + tenantId + "_" + subjectType + "_" + subjectKey;
     }
 
     /**
@@ -245,45 +316,43 @@ public class AssignmentService {
      * Returns validation configuration including timeframe and rules
      */
     @Transactional(readOnly = true)
-    public java.util.Map<String, Object> getValidationSettings(String objectType, String objectId) {
+    public Optional<ValidationSettingsDTO> getValidationSettings(String objectType, String objectId) {
         Optional<Assignment> assignment = assignmentPersistencePort
                 .findBySubjectTypeAndSubjectKey(objectType, objectId);
 
         if (assignment.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         Assignment assign = assignment.get();
 
-        // Build validation settings map
-        java.util.Map<String, Object> settings = new java.util.HashMap<>();
+        // Build validation settings DTO
+        ValidationSettingsDTO.Builder settingsBuilder = ValidationSettingsDTO.builder();
 
         // Add timeframe information
         if (assign.getValidFrom() != null || assign.getValidTo() != null) {
-            java.util.Map<String, Object> timeframe = new java.util.HashMap<>();
-            java.util.Map<String, Object> validityTimeframe = new java.util.HashMap<>();
-
+            ValidationSettingsDTO.ValidityTimeframe.Builder validityTimeframeBuilder = ValidationSettingsDTO.ValidityTimeframe.builder();
             if (assign.getValidFrom() != null) {
-                validityTimeframe.put("startDate", assign.getValidFrom().toString());
+                validityTimeframeBuilder.startDate(assign.getValidFrom().toString());
             }
             if (assign.getValidTo() != null) {
-                validityTimeframe.put("expirationDate", assign.getValidTo().toString());
+                validityTimeframeBuilder.expirationDate(assign.getValidTo().toString());
             }
-
-            timeframe.put("validityTimeframe", validityTimeframe);
-            settings.put("timeframe", timeframe);
+            settingsBuilder.timeframe(ValidationSettingsDTO.Timeframe.builder()
+                    .validityTimeframe(validityTimeframeBuilder.build())
+                    .build());
         }
 
         // Add rule information
         if (assign.getId() != null) {
-            settings.put("ruleId", assign.getId());
+            settingsBuilder.ruleId(assign.getId());
         }
 
         // Add assignment metadata
-        settings.put("active", assign.getActive());
-        settings.put("trafficPercent", assign.getTrafficPercent());
+        settingsBuilder.active(assign.getActive());
+        settingsBuilder.trafficPercent(assign.getTrafficPercent());
 
-        return settings;
+        return Optional.of(settingsBuilder.build());
     }
 
     /**

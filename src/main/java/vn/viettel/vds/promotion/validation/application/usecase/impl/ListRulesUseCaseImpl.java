@@ -12,12 +12,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 @Service
 public class ListRulesUseCaseImpl implements ListRulesUseCase {
 
-    private final RulePersistencePort rulePersistencePort;
-
-    public ListRulesUseCaseImpl(RulePersistencePort rulePersistencePort) {
-        this.rulePersistencePort = rulePersistencePort;
-    }
-
     @Override
     public PagedRulesResponse execute(ListRulesQuery query) {
         // Note: This use case is not currently in use - uses incompatible domain model

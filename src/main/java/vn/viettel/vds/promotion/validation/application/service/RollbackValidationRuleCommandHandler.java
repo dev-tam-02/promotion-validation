@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Va
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import java.time.Instant;
 import java.util.List;
 
@@ -51,7 +52,7 @@ public class RollbackValidationRuleCommandHandler {
      * @return true if rollback successful, false otherwise
      */
     public boolean handleRollback(RollbackValidationRuleCommand command) {
-        String commandId = command.getId().toString();
+        String commandId = command.getId();
 
         try {
             logger.info("Processing RollbackValidationRuleCommand: commandId={}", commandId);
@@ -70,9 +71,9 @@ public class RollbackValidationRuleCommandHandler {
                 return false;
             }
 
-            String campaignId = payload.getCampaignId().toString();
+            String campaignId = payload.getCampaignId();
             String validationRuleId = payload.getValidationRuleId() != null ?
-                    payload.getValidationRuleId().toString() : null;
+                    payload.getValidationRuleId() : null;
             boolean rollbackAll = payload.getRollbackAll();
 
             logger.info("Rollback request: campaignId={}, validationRuleId={}, rollbackAll={}",
@@ -175,8 +176,7 @@ public class RollbackValidationRuleCommandHandler {
             logger.info("Successfully rolled back assignment: assignmentId={}", assignment.getId());
 
         } catch (Exception e) {
-            logger.error("Error rolling back assignment: assignmentId={}", assignment.getId(), e);
-            throw new RuntimeException("Failed to rollback assignment: " + assignment.getId(), e);
+            throw new ValidationException("Failed to rollback assignment: " + assignment.getId() + " - " + e.getMessage(), e);
         }
     }
 
@@ -207,30 +207,41 @@ public class RollbackValidationRuleCommandHandler {
             // Get the validation rule details
             var ruleOpt = validationRuleRepository.findById(ruleId);
             if (ruleOpt.isEmpty()) {
-                logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
+                handleMissingRule(ruleId);
                 return;
             }
 
             ValidationRuleEntity rule = ruleOpt.get();
-
-            logger.info("Removing rule from validation-engine: ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-
-            boolean removed = validationEngineClient.removeRule(ruleId);
-            if (removed) {
-                logger.info("Successfully removed rule from validation-engine: ruleId={}, assignmentId={}",
-                        ruleId, assignment.getId());
-            } else {
-                logger.warn("Failed to remove rule from validation-engine: ruleId={}, assignmentId={}",
-                        ruleId, assignment.getId());
-                // Don't fail the entire rollback for removal issues
-            }
+            removeRuleFromEngine(ruleId, assignment);
 
         } catch (Exception e) {
-            logger.error("Error undeploying rule from validation-engine: assignmentId={}",
-                    assignment.getId(), e);
-            // Don't fail the entire rollback for undeployment issues
+            handleUndeployException(e, assignment);
         }
+    }
+
+    private void handleMissingRule(String ruleId) {
+        logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
+    }
+
+    private void removeRuleFromEngine(String ruleId, AssignmentEntity assignment) {
+        logger.info("Removing rule from validation-engine: ruleId={}, assignmentId={}",
+                ruleId, assignment.getId());
+
+        boolean removed = validationEngineClient.removeRule(ruleId);
+        if (removed) {
+            logger.info("Successfully removed rule from validation-engine: ruleId={}, assignmentId={}",
+                    ruleId, assignment.getId());
+        } else {
+            logger.warn("Failed to remove rule from validation-engine: ruleId={}, assignmentId={}",
+                    ruleId, assignment.getId());
+            // Don't fail the entire rollback for removal issues
+        }
+    }
+
+    private void handleUndeployException(Exception e, AssignmentEntity assignment) {
+        logger.error("Error undeploying rule from validation-engine: assignmentId={}",
+                assignment.getId(), e);
+        // Don't fail the entire rollback for undeployment issues
     }
 
     /**

@@ -10,6 +10,7 @@ import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -171,7 +172,7 @@ public class HybridFactCacheService implements FactCacheService {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize cache value", e);
+            throw new vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException("Failed to serialize cache value", e);
         }
     }
 
@@ -179,7 +180,7 @@ public class HybridFactCacheService implements FactCacheService {
         try {
             return objectMapper.readValue(json, Object.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to deserialize cache value", e);
+            throw new vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException("Failed to deserialize cache value", e);
         }
     }
 }

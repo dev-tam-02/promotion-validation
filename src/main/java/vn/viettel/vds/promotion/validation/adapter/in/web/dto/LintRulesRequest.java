@@ -10,7 +10,7 @@ import java.util.List;
 @Schema(description = "Request to lint/validate rule structure")
 public class LintRulesRequest {
 
-    @Schema(description = "Rule nodes to validate", required = true)
+    @Schema(description = "Rule nodes to validate", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "Nodes list cannot be empty")
     @Valid
     @JsonProperty("nodes")

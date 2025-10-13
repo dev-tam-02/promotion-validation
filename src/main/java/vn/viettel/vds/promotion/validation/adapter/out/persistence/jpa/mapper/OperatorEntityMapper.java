@@ -14,10 +14,8 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface OperatorEntityMapper {
 
-    @Mapping(source = "operatorVersion", target = "version")
     Operator toDomain(OperatorEntity entity);
 
-    @Mapping(source = "version", target = "operatorVersion")
     OperatorEntity toEntity(Operator domain);
 
     List<Operator> toDomainList(List<OperatorEntity> entities);

@@ -10,7 +10,7 @@ import java.util.Map;
 @Schema(description = "Candidate data for rule execution")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CandidateRequest(
-        @Schema(description = "Candidate identifier", example = "SAVE20", required = true)
+        @Schema(description = "Candidate identifier", example = "SAVE20", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Candidate ID is required")
         @JsonProperty("id")
         String id,

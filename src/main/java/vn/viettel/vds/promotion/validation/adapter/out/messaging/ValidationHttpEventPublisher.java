@@ -81,8 +81,7 @@ public class ValidationHttpEventPublisher implements EventPublisher {
             }
 
         } catch (Exception e) {
-            logger.error("Error publishing HTTP event: id={}", event.getId(), e);
-            throw new RuntimeException("HTTP event publishing failed", e);
+            throw new RuntimeException("HTTP event publishing failed for event id=" + event.getId(), e);
         }
     }
 

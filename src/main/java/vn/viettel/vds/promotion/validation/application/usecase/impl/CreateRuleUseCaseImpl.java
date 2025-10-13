@@ -16,20 +16,6 @@ import vn.viettel.vds.promotion.validation.domain.factory.RuleFactory;
 @Transactional
 public class CreateRuleUseCaseImpl implements CreateRuleUseCase {
 
-    private final RulePersistencePort rulePersistencePort;
-    private final EventPublisherPort eventPublisherPort;
-    private final RuleFactory ruleFactory;
-
-    public CreateRuleUseCaseImpl(
-            RulePersistencePort rulePersistencePort,
-            EventPublisherPort eventPublisherPort,
-            RuleFactory ruleFactory
-    ) {
-        this.rulePersistencePort = rulePersistencePort;
-        this.eventPublisherPort = eventPublisherPort;
-        this.ruleFactory = ruleFactory;
-    }
-
     @Override
     public RuleResponse execute(CreateRuleCommand command) {
         // Note: This use case is not currently in use - uses incompatible domain model

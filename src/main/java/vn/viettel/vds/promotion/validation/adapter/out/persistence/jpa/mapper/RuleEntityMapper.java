@@ -134,21 +134,19 @@ public interface RuleEntityMapper {
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
-    @Mapping(target = "ruleCode", ignore = true)     // No longer exists in entity
-    @Mapping(target = "description", ignore = true)  // No longer exists in entity
+    @Mapping(target = "ruleCode", ignore = true)
+    @Mapping(target = "description", ignore = true)
     @Mapping(target = "notes", ignore = true)        // No longer exists in entity
-    @Mapping(target = "active", ignore = true)       // No longer exists in entity
+    @Mapping(target = "active", ignore = true)
     @Mapping(target = "latestVersion", ignore = true) // No longer exists in entity
     @Mapping(target = "type", ignore = true)         // No longer exists in entity
-    @Mapping(target = "expression", ignore = true)   // No longer exists in entity
-    @Mapping(target = "priority", ignore = true)     // No longer exists in entity
-    @Mapping(target = "effectiveFrom", ignore = true) // No longer exists in entity
-    @Mapping(target = "effectiveTo", ignore = true)  // No longer exists in entity
-    @Mapping(target = "targetSegmentsList", ignore = true) // Duplicate of targetSegments
-    @Mapping(target = "campaignId", ignore = true)   // No longer exists in entity
-    @Mapping(target = "ruleSetId", ignore = true)    // No longer exists in entity
+    @Mapping(target = "expression", ignore = true)
+    @Mapping(target = "priority", ignore = true)
+    @Mapping(target = "effectiveFrom", ignore = true)
+    @Mapping(target = "effectiveTo", ignore = true)
+    @Mapping(target = "campaignId", ignore = true)
+    @Mapping(target = "ruleSetId", ignore = true)
     @Mapping(target = "version", ignore = true)
-        // No longer exists in entity
     Rule toDomain(RuleJpaEntity entity);
 
     @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")

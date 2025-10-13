@@ -220,44 +220,47 @@ public class RuleValidationService {
             RuleNode node = nodes.get(i);
             if (node.getType() == RuleNode.NodeType.COND && node.getOperatorName() != null) {
                 String path = NODES_PREFIX + i + "]";
+                validateOperatorNode(tenantId, node, path, issues);
+            }
+        }
+    }
 
-                try {
-                    // Check if operator exists
-                    Optional<vn.viettel.vds.promotion.validation.domain.model.Operator> operator =
-                            operatorService.getLatestOperator(tenantId, node.getOperatorName());
+    private void validateOperatorNode(String tenantId, RuleNode node, String path, List<LintIssue> issues) {
+        try {
+            // Check if operator exists
+            Optional<vn.viettel.vds.promotion.validation.domain.model.Operator> operator =
+                    operatorService.getLatestOperator(tenantId, node.getOperatorName());
 
-                    if (operator.isEmpty()) {
-                        issues.add(new LintIssue(path + OPERATOR_NAME_SUFFIX,
-                                "Operator not found: " + node.getOperatorName(), node.getOperatorName()));
-                        continue;
+            if (operator.isEmpty()) {
+                issues.add(new LintIssue(path + OPERATOR_NAME_SUFFIX,
+                        "Operator not found: " + node.getOperatorName(), node.getOperatorName()));
+                return;
+            }
+
+            // Validate parameters against schema
+            if (node.getParams() != null) {
+                OperatorService.ValidationResult paramValidation =
+                        operatorService.validateOperatorParams(
+                                tenantId,
+                                node.getOperatorName(),
+                                operator.get().getVersion().intValue(),
+                                node.getParams()
+                        );
+
+                if (!paramValidation.isValid()) {
+                    for (OperatorService.ValidationIssue issue : paramValidation.getIssues()) {
+                        issues.add(new LintIssue(
+                                path + ".params." + issue.getPath(),
+                                issue.getMessage(),
+                                node.getOperatorName()
+                        ));
                     }
-
-                    // Validate parameters against schema
-                    if (node.getParams() != null) {
-                        OperatorService.ValidationResult paramValidation =
-                                operatorService.validateOperatorParams(
-                                        tenantId,
-                                        node.getOperatorName(),
-                                        operator.get().getVersion().intValue(),
-                                        node.getParams()
-                                );
-
-                        if (!paramValidation.isValid()) {
-                            for (OperatorService.ValidationIssue issue : paramValidation.getIssues()) {
-                                issues.add(new LintIssue(
-                                        path + ".params." + issue.getPath(),
-                                        issue.getMessage(),
-                                        node.getOperatorName()
-                                ));
-                            }
-                        }
-                    }
-
-                } catch (Exception e) {
-                    issues.add(new LintIssue(path + OPERATOR_NAME_SUFFIX,
-                            "Error validating operator: " + e.getMessage(), node.getOperatorName()));
                 }
             }
+
+        } catch (Exception e) {
+            issues.add(new LintIssue(path + OPERATOR_NAME_SUFFIX,
+                    "Error validating operator: " + e.getMessage(), node.getOperatorName()));
         }
     }
 

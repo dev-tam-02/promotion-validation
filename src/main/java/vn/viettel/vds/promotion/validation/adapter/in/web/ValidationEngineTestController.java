@@ -28,6 +28,9 @@ import java.util.Map;
 @RequestMapping("/api/test")
 public class ValidationEngineTestController {
 
+    private static final String BUNDLE_HASH_KEY = "bundleHash";
+    private static final String STATUS_KEY = "status";
+
     private final ValidationEngineClient validationEngineClient;
 
     public ValidationEngineTestController(ValidationEngineClient validationEngineClient) {
@@ -57,7 +60,7 @@ public class ValidationEngineTestController {
         ExecuteResponse denyResponse = validationEngineClient.execute(denyRequest);
 
         return Map.of(
-                "bundleHash", bundleHash,
+                BUNDLE_HASH_KEY, bundleHash,
                 "vipCustomer", Map.of(
                         "decision", allowResponse.getDecision(),
                         "reasonCodes", allowResponse.getReasonCodes(),
@@ -108,8 +111,8 @@ public class ValidationEngineTestController {
         validationEngineClient.warmup(request);
 
         return Map.of(
-                "status", "success",
-                "bundleHash", bundleHash,
+                STATUS_KEY, "success",
+                BUNDLE_HASH_KEY, bundleHash,
                 "message", "Bundle warmed up successfully"
         );
     }
@@ -122,15 +125,15 @@ public class ValidationEngineTestController {
             CompileResponse response = validationEngineClient.compile(request);
 
             return Map.of(
-                    "status", "healthy",
+                    STATUS_KEY, "healthy",
                     "validationEngine", "connected",
                     "drools", "working",
                     "lastTest", Instant.now(),
-                    "bundleHash", response.getBundleHash()
+                    BUNDLE_HASH_KEY, response.getBundleHash()
             );
         } catch (Exception e) {
             return Map.of(
-                    "status", "unhealthy",
+                    STATUS_KEY, "unhealthy",
                     "validationEngine", "disconnected",
                     "error", e.getMessage(),
                     "lastTest", Instant.now()

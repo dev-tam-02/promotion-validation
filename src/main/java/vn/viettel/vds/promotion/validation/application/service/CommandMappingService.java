@@ -7,6 +7,7 @@ import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule;
 import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service for mapping and analyzing command data.
@@ -45,7 +46,7 @@ public class CommandMappingService {
             return new ApplicabilityStats(
                     includedCount,
                     excludedCount,
-                    includedAll != null ? includedAll : false
+                    Optional.ofNullable(includedAll).orElse(false)
             );
 
         } catch (Exception e) {
