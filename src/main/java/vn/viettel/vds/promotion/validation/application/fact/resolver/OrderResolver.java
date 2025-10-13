@@ -58,7 +58,9 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
             return null;
         }
 
-        log.debug("Resolving order facts for orderId: {}", request.orderId());
+        if (log.isDebugEnabled()) {
+            log.debug("Resolving order facts for orderId: {}", request.orderId());
+        }
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -73,10 +75,14 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
                 Map<String, Object> orderData = objectMapper.readValue(response.body(), new TypeReference<>() {
                 });
                 OrderFact result = mapToOrderFact(orderData);
-                log.debug("Successfully resolved order facts for: {}", request.orderId());
+                if (log.isDebugEnabled()) {
+                    log.debug("Successfully resolved order facts for: {}", request.orderId());
+                }
                 return result;
             } else {
-                log.warn("Order service returned status {} for orderId: {}", response.statusCode(), request.orderId());
+                if (log.isWarnEnabled()) {
+                    log.warn("Order service returned status {} for orderId: {}", response.statusCode(), request.orderId());
+                }
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {

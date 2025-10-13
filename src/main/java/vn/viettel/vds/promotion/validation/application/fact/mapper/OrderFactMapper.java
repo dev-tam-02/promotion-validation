@@ -15,8 +15,8 @@ public class OrderFactMapper {
             return null;
         }
 
-        if (data instanceof OrderFact) {
-            return (OrderFact) data;
+        if (data instanceof OrderFact orderFact) {
+            return orderFact;
         }
 
         if (data instanceof Map) {

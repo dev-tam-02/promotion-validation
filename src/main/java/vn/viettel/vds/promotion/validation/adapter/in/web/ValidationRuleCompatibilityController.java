@@ -44,13 +44,17 @@ public class ValidationRuleCompatibilityController {
     public ResponseEntity<ValidateCompatibilityResponse> validateCompatibility(
             @Valid @RequestBody ValidateCompatibilityRequest request) {
 
-        logger.info("Pre-flight validation check: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+        if (logger.isInfoEnabled()) {
+            logger.info("Pre-flight validation check: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+        }
 
         try {
             // 1. Check if rule exists
             Optional<ValidationRuleEntity> ruleOpt = validationRuleRepository.findById(request.ruleId());
             if (ruleOpt.isEmpty()) {
-                logger.warn("Rule not found: ruleId={}", request.ruleId());
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Rule not found: ruleId={}", request.ruleId());
+                }
                 return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
                         request.ruleId(),
                         "RULE_NOT_FOUND",
@@ -62,7 +66,9 @@ public class ValidationRuleCompatibilityController {
 
             // 2. Check if rule is published (not draft or archived)
             if (!"published".equalsIgnoreCase(rule.getState())) {
-                logger.warn("Rule is not published: ruleId={}, state={}", request.ruleId(), rule.getState());
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Rule is not published: ruleId={}, state={}", request.ruleId(), rule.getState());
+                }
                 return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
                         request.ruleId(),
                         "RULE_NOT_PUBLISHED",
@@ -73,7 +79,9 @@ public class ValidationRuleCompatibilityController {
             // 3. Validate rule compatibility with campaign type
             // Check if rule contains required nodes based on campaign type
             if (!isRuleCompatibleWithCampaignType(rule, request.campaignType())) {
-                logger.warn("Rule is not compatible with campaign type: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Rule is not compatible with campaign type: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+                }
                 return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
                         request.ruleId(),
                         "RULE_INCOMPATIBLE_WITH_CAMPAIGN_TYPE",
@@ -82,7 +90,9 @@ public class ValidationRuleCompatibilityController {
             }
 
             // 4. Success - rule is valid and compatible
-            logger.info("Pre-flight validation passed: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+            if (logger.isInfoEnabled()) {
+                logger.info("Pre-flight validation passed: ruleId={}, campaignType={}", request.ruleId(), request.campaignType());
+            }
 
             return ResponseEntity.ok(ValidateCompatibilityResponse.success(
                     rule.getId(),
@@ -111,7 +121,9 @@ public class ValidationRuleCompatibilityController {
     private boolean isRuleCompatibleWithCampaignType(ValidationRuleEntity rule, String campaignType) {
         // Basic check: ensure rule has nodes
         if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-            logger.warn("Rule has no nodes: ruleId={}", rule.getId());
+            if (logger.isWarnEnabled()) {
+                logger.warn("Rule has no nodes: ruleId={}", rule.getId());
+            }
             return false;
         }
 

@@ -55,7 +55,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             return null;
         }
 
-        log.debug("Resolving limits facts for customerId: {}", request.customerId());
+        if (log.isDebugEnabled()) {
+            log.debug("Resolving limits facts for customerId: {}", request.customerId());
+        }
 
         try {
             String campaignId = request.candidate() != null ? request.candidate().campaignId() : "";
@@ -73,10 +75,14 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
                 Map<String, Object> limitsData = objectMapper.readValue(response.body(), new TypeReference<>() {
                 });
                 LimitsFact result = mapToLimitsFact(limitsData);
-                log.debug("Successfully resolved limits facts for: {}", request.customerId());
+                if (log.isDebugEnabled()) {
+                    log.debug("Successfully resolved limits facts for: {}", request.customerId());
+                }
                 return result;
             } else {
-                log.warn("Redemption service returned status {} for customerId: {}", response.statusCode(), request.customerId());
+                if (log.isWarnEnabled()) {
+                    log.warn("Redemption service returned status {} for customerId: {}", response.statusCode(), request.customerId());
+                }
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {

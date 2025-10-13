@@ -13,8 +13,8 @@ public class LimitsFactMapper {
             return null;
         }
 
-        if (data instanceof LimitsFact) {
-            return (LimitsFact) data;
+        if (data instanceof LimitsFact limitsFact) {
+            return limitsFact;
         }
 
         if (data instanceof Map) {

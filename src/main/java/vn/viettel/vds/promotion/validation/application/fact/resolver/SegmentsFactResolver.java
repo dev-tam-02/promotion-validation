@@ -44,12 +44,16 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
         String customerId = request.customerId();
 
         if (customerId == null || customerId.isEmpty()) {
-            log.warn("Customer ID is null or empty, returning empty segments");
+            if (log.isWarnEnabled()) {
+                log.warn("Customer ID is null or empty, returning empty segments");
+            }
             return getPartialResult(request);
         }
 
         try {
-            log.debug("Resolving segments for customer: {}", customerId);
+            if (log.isDebugEnabled()) {
+                log.debug("Resolving segments for customer: {}", customerId);
+            }
 
             // TODO: Replace with actual segment service call
             // For now, return mock data
@@ -112,7 +116,9 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
 
     @Override
     protected SegmentsFact getPartialResult(FactRequest request) {
-        log.warn("Returning fallback empty segments for customer: {}", request.customerId());
+        if (log.isWarnEnabled()) {
+            log.warn("Returning fallback empty segments for customer: {}", request.customerId());
+        }
 
         return SegmentsFact.builder()
                 .segmentIds(new ArrayList<>())
@@ -149,7 +155,9 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
 
 
         // Mock implementation
-        log.debug("Fetching segments for customer {} (mock implementation)", customerId);
+        if (log.isDebugEnabled()) {
+            log.debug("Fetching segments for customer {} (mock implementation)", customerId);
+        }
 
         Set<String> segments = new HashSet<>();
 

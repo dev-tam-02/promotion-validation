@@ -108,8 +108,8 @@ public class CustomerFactMapper {
         if (value == null) {
             return defaultValue;
         }
-        if (value instanceof Boolean) {
-            return (Boolean) value;
+        if (value instanceof Boolean boolValue) {
+            return boolValue;
         }
         String str = value.toString().toLowerCase();
         return "true".equals(str) || "1".equals(str) || "yes".equals(str);

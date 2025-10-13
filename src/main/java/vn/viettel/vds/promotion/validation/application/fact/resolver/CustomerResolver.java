@@ -53,7 +53,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
             return null;
         }
 
-        log.debug("Resolving customer facts for customerId: {}", request.customerId());
+        if (log.isDebugEnabled()) {
+            log.debug("Resolving customer facts for customerId: {}", request.customerId());
+        }
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -68,10 +70,14 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
                 Map<String, Object> customerData = objectMapper.readValue(response.body(), new TypeReference<>() {
                 });
                 CustomerFact result = mapToCustomerFact(customerData);
-                log.debug("Successfully resolved customer facts for: {}", request.customerId());
+                if (log.isDebugEnabled()) {
+                    log.debug("Successfully resolved customer facts for: {}", request.customerId());
+                }
                 return result;
             } else {
-                log.warn("Customer service returned status {} for customerId: {}", response.statusCode(), request.customerId());
+                if (log.isWarnEnabled()) {
+                    log.warn("Customer service returned status {} for customerId: {}", response.statusCode(), request.customerId());
+                }
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {

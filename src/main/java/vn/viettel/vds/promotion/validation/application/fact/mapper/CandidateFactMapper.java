@@ -13,8 +13,8 @@ public class CandidateFactMapper {
             return null;
         }
 
-        if (data instanceof CandidateFact) {
-            return (CandidateFact) data;
+        if (data instanceof CandidateFact candidateFact) {
+            return candidateFact;
         }
 
         if (data instanceof Map) {

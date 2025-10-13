@@ -13,8 +13,8 @@ public class GeoFactMapper {
             return null;
         }
 
-        if (data instanceof GeoFact) {
-            return (GeoFact) data;
+        if (data instanceof GeoFact geoFact) {
+            return geoFact;
         }
 
         if (data instanceof Map) {

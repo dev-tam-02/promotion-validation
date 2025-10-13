@@ -52,7 +52,9 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
             return null;
         }
 
-        log.debug("Resolving candidate facts for key: {}", request.candidate().key());
+        if (log.isDebugEnabled()) {
+            log.debug("Resolving candidate facts for key: {}", request.candidate().key());
+        }
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -67,10 +69,14 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
                 Map<String, Object> candidateData = objectMapper.readValue(response.body(), new TypeReference<>() {
                 });
                 CandidateFact result = mapToCandidateFact(candidateData);
-                log.debug("Successfully resolved candidate facts for: {}", request.candidate().key());
+                if (log.isDebugEnabled()) {
+                    log.debug("Successfully resolved candidate facts for: {}", request.candidate().key());
+                }
                 return result;
             } else {
-                log.warn("Catalog service returned status {} for candidateKey: {}", response.statusCode(), request.candidate().key());
+                if (log.isWarnEnabled()) {
+                    log.warn("Catalog service returned status {} for candidateKey: {}", response.statusCode(), request.candidate().key());
+                }
                 return getPartialResult(request);
             }
         } catch (InterruptedException e) {

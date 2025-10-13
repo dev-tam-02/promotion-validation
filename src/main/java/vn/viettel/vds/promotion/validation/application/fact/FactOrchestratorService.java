@@ -105,7 +105,9 @@ public class FactOrchestratorService implements FactOrchestrator {
         long startTime = System.currentTimeMillis();
         String aggregationId = UUID.randomUUID().toString();
 
-        log.info("Starting fact aggregation for request: customerId={}, orderId={}, aggregationId={}", request.customerId(), request.orderId(), aggregationId);
+        if (log.isInfoEnabled()) {
+            log.info("Starting fact aggregation for request: customerId={}, orderId={}, aggregationId={}", request.customerId(), request.orderId(), aggregationId);
+        }
 
         return policyEngine.determineFetchPolicy(request)
                 .thenCompose(policy -> resolverOrchestrator.resolveAll(request, policy))

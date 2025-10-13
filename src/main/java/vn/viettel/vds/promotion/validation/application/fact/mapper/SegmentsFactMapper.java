@@ -13,8 +13,8 @@ public class SegmentsFactMapper {
             return null;
         }
 
-        if (data instanceof SegmentsFact) {
-            return (SegmentsFact) data;
+        if (data instanceof SegmentsFact segmentsFact) {
+            return segmentsFact;
         }
 
         if (data instanceof Map) {
