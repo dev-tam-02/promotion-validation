@@ -475,6 +475,92 @@ databaseChangeLog:
                   name: parent_id
                   value: 01932b6f-0006-7000-8000-000000000001
 
+  # Sample rule nodes for second rule (BUSINESS_HOURS_PROMO)
+  - changeSet:
+      id: 002-insert-sample-rule-nodes-second-rule
+      author: harley hoang
+      changes:
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000005
+              - column:
+                  name: node_id
+                  value: n1
+              - column:
+                  name: type
+                  value: GROUP
+              - column:
+                  name: group_logic
+                  value: ALL
+              - column:
+                  name: children_ids
+                  value: '["n2","n3"]'
+              - column:
+                  name: node_order
+                  valueNumeric: 0
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000002
+
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000006
+              - column:
+                  name: node_id
+                  value: n2
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: time.window.active
+              - column:
+                  name: params
+                  value: '{"policyId":"01932b6f-0002-7000-8000-000000000002","tz":"Asia/Bangkok"}'
+              - column:
+                  name: reason_code
+                  value: TIME_WINDOW
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000002
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000005
+
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000007
+              - column:
+                  name: node_id
+                  value: n3
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: order.total.gte
+              - column:
+                  name: params
+                  value: '{"amount":300000,"currency":"VND"}'
+              - column:
+                  name: reason_code
+                  value: ORDER_TOTAL_MIN
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000002
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000005
+
   # Sample rule usage limits
   - changeSet:
       id: 002-insert-sample-usage-limits
