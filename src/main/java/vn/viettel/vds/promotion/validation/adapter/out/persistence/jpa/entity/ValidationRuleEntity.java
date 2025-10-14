@@ -37,7 +37,8 @@ public class ValidationRuleEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "dsl", columnDefinition = "TEXT")
-    private transient Map<String, Object> dsl; // optional raw DSL snapshot for audit
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> dsl; // optional raw DSL snapshot for audit
 
     @Column(name = "published_at")
     private Instant publishedAt;
@@ -51,22 +52,27 @@ public class ValidationRuleEntity extends BaseEntity {
 
     // One-to-many relationship with rule nodes
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleNodeEntity> nodes = new ArrayList<>();
 
     // One-to-many relationship with rule assignments
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleAssignmentEntity> assignments = new ArrayList<>();
 
     // One-to-many relationship with rule bundles
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleBundleEntity> bundles = new ArrayList<>();
 
     // One-to-many relationship with rule temporal links
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleTemporalLinkEntity> temporalLinks = new ArrayList<>();
 
     // One-to-many relationship with rule time frames
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleTimeFrameEntity> timeFrames = new ArrayList<>();
 
     public ValidationRuleEntity() {

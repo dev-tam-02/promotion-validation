@@ -33,7 +33,8 @@ public class ResourceEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "headers", columnDefinition = "TEXT")
-    private transient Map<String, Object> headers;
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> headers;
 
     @Column(name = "field_key", length = 100)
     private String fieldKey;
@@ -52,6 +53,7 @@ public class ResourceEntity extends BaseEntity {
 
     // One-to-many relationship with operator resources
     @OneToMany(mappedBy = "resource", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<OperatorResourceEntity> operatorResources = new ArrayList<>();
 
     public ResourceEntity() {

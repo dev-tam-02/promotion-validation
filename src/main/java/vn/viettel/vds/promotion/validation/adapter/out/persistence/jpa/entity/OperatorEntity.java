@@ -53,6 +53,7 @@ public class OperatorEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "json_schema", columnDefinition = "TEXT")
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
     private Map<String, Object> jsonSchema;
 
     @Column(name = "compiler_id", length = 100)

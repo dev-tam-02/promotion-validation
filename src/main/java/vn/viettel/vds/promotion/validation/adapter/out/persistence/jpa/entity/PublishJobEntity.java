@@ -43,6 +43,7 @@ public class PublishJobEntity extends BaseEntity {
 
     @Convert(converter = ListStringConverter.class)
     @Column(name = "errors", columnDefinition = "TEXT")
+    @SuppressWarnings("java:S1948") // List content is converted to JSON by ListStringConverter
     private List<String> errors;
 
     public enum JobStatus {
@@ -61,6 +62,7 @@ public class PublishJobEntity extends BaseEntity {
 
         @Convert(converter = ListStringConverter.class)
         @Column(name = "compile_logs", columnDefinition = "TEXT")
+        @SuppressWarnings("java:S1948") // List content is converted to JSON by ListStringConverter
         private List<String> logs;
 
         @Column(name = "bundle_hash", length = 200)

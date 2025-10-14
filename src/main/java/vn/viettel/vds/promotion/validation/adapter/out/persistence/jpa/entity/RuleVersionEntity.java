@@ -38,21 +38,25 @@ public class RuleVersionEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "limits", columnDefinition = "TEXT")
-    private transient Map<String, Object> limits;
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> limits;
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "nodes", columnDefinition = "TEXT")
-    private transient List<Map<String, Object>> nodes;
+    @SuppressWarnings("java:S1948") // List content is converted to JSON by MapStringObjectConverter
+    private List<Map<String, Object>> nodes;
 
     @Column(name = "operators_fingerprint", length = 200)
     private String operatorsFingerprint;
 
     @OneToMany(mappedBy = "ruleVersion", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<TimeLinkEntity> timeLinks = new ArrayList<>();
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "dsl", columnDefinition = "TEXT")
-    private transient Map<String, Object> dsl;
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> dsl;
 
     @Column(name = "published_at")
     private Instant publishedAt;
@@ -83,6 +87,7 @@ public class RuleVersionEntity extends BaseEntity {
 
         @Convert(converter = ListStringConverter.class)
         @Column(name = "compile_logs", columnDefinition = "TEXT")
+        @SuppressWarnings("java:S1948") // List content is converted to JSON by ListStringConverter
         private List<String> logs;
 
         public enum CompileStatus {

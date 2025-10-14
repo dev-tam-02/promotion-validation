@@ -23,13 +23,15 @@ public class OperatorRegistryEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "json_schema", columnDefinition = "TEXT")
-    private transient Map<String, Object> jsonSchema;
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> jsonSchema;
 
     @Column(name = "compiler_id", length = 100)
     private String compilerId;
 
     // One-to-many relationship with operator resources
     @OneToMany(mappedBy = "operatorRegistry", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<OperatorResourceEntity> operatorResources = new ArrayList<>();
 
     public OperatorRegistryEntity() {
