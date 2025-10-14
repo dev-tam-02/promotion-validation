@@ -32,6 +32,7 @@ public class RuleNodeEntity extends BaseEntity {
 
     @Convert(converter = ListStringConverter.class)
     @Column(name = "children_ids", columnDefinition = "TEXT")
+    @SuppressWarnings("java:S1948") // List content is converted to JSON by ListStringConverter
     private List<String> childrenIds = new ArrayList<>(); // child node IDs (for GROUP type)
 
     @Column(name = "node_order")
@@ -42,7 +43,8 @@ public class RuleNodeEntity extends BaseEntity {
 
     @Convert(converter = MapStringObjectConverter.class)
     @Column(name = "params", columnDefinition = "TEXT")
-    private transient Map<String, Object> params; // (for COND type)
+    @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
+    private Map<String, Object> params; // (for COND type)
 
     @Column(name = "reason_code", length = 100)
     private String reasonCode; // (for COND type)
@@ -58,6 +60,7 @@ public class RuleNodeEntity extends BaseEntity {
     private RuleNodeEntity parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleNodeEntity> children = new ArrayList<>();
 
     public RuleNodeEntity() {
