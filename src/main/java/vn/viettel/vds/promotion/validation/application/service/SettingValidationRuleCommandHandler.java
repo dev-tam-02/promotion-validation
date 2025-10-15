@@ -357,7 +357,9 @@ public class SettingValidationRuleCommandHandler {
 
     private RuleNodeEntity createProductApplicabilityNodeEntity(ValidationRuleEntity rule) {
         RuleNodeEntity productNode = new RuleNodeEntity();
-        productNode.setId(IdGenerator.generateId());
+        String generatedId = IdGenerator.generateId();
+        productNode.setId(generatedId);
+        productNode.setNodeId(generatedId);
         productNode.setType("COND");
         productNode.setOperatorName("product.applicability.in");
         productNode.setValidationRule(rule);
