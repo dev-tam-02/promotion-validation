@@ -83,7 +83,7 @@ databaseChangeLog:
                   value: time
               - column:
                   name: json_schema
-                  value: '{"type":"object","properties":{"policyId":{"type":"string"},"tz":{"type":"string"}},"required":["policyId"]}'
+                  value: '{"type":"object","properties":{"startTime":{"type":"string","pattern":"^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"},"endTime":{"type":"string","pattern":"^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"},"timezone":{"type":"string"},"daysOfWeek":{"type":"array","items":{"type":"string","enum":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"]}},"spansMidnight":{"type":"boolean"}},"required":["startTime","endTime"]}'
               - column:
                   name: compiler_id
                   value: tpl_time_window_v1
@@ -408,7 +408,7 @@ databaseChangeLog:
                   value: time.window.active
               - column:
                   name: params
-                  value: '{"policyId":"01932b6f-0002-7000-8000-000000000001","tz":"Asia/Bangkok"}'
+                  value: '{"startTime":"09:00:00","endTime":"12:00:00","timezone":"Asia/Bangkok","daysOfWeek":["SATURDAY","SUNDAY"],"spansMidnight":false}'
               - column:
                   name: reason_code
                   value: TIME_WINDOW
@@ -522,7 +522,7 @@ databaseChangeLog:
                   value: time.window.active
               - column:
                   name: params
-                  value: '{"policyId":"01932b6f-0002-7000-8000-000000000002","tz":"Asia/Bangkok"}'
+                  value: '{"startTime":"09:00:00","endTime":"17:00:00","timezone":"Asia/Bangkok","daysOfWeek":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"spansMidnight":false}'
               - column:
                   name: reason_code
                   value: TIME_WINDOW

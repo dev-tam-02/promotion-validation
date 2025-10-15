@@ -220,7 +220,7 @@ promix:
     redisson:
       enabled: true
       mode: CLUSTER
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:redis_cluster_password}
       connection-timeout: 3000
       timeout: 3000
       retry-attempts: 3

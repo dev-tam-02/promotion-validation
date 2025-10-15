@@ -87,7 +87,9 @@ public class SettingValidationRuleCommandHandler {
                 publishSuccessEvent(commandId, result);
 
                 // Mark as processed after successful processing
-                idempotencyService.markAsProcessed(commandId, result);
+                // Convert to serializable DTO to avoid Avro Schema serialization issues
+                IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
+                idempotencyService.markAsProcessed(commandId, idempotencyDto);
 
                 logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
                 return true;
@@ -617,6 +619,40 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
+     * Serializable DTO for idempotency storage
+     * Excludes Avro Schema objects to prevent Jackson serialization errors
+     */
+    public static class IdempotencyResultDto {
+        private final boolean success;
+        private final String assignmentId;
+        private final String ruleId;
+        private final String timeFrameId;
+
+        public IdempotencyResultDto(boolean success, String assignmentId, String ruleId, String timeFrameId) {
+            this.success = success;
+            this.assignmentId = assignmentId;
+            this.ruleId = ruleId;
+            this.timeFrameId = timeFrameId;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getAssignmentId() {
+            return assignmentId;
+        }
+
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public String getTimeFrameId() {
+            return timeFrameId;
+        }
+    }
+
+    /**
      * Result wrapper for command processing
      */
     public static class CommandProcessingResult {
@@ -735,6 +771,16 @@ public class SettingValidationRuleCommandHandler {
 
         public TimeFrame getTimeframeData() {
             return timeframeData;
+        }
+
+        /**
+         * Convert to serializable DTO for idempotency storage
+         * Excludes Avro objects that cannot be serialized by Jackson
+         */
+        public IdempotencyResultDto toIdempotencyDto() {
+            String assignmentId = assignment != null ? assignment.getId() : null;
+            String ruleId = assignment != null ? assignment.getRuleId() : null;
+            return new IdempotencyResultDto(success, assignmentId, ruleId, timeFrameId);
         }
     }
 }
