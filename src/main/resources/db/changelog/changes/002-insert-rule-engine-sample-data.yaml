@@ -116,7 +116,7 @@ databaseChangeLog:
                   value: Asia/Bangkok
               - column:
                   name: rrule
-                  value: FREQ=WEEKLY;BYDAY=SA,SU;BYHOUR=9,10,11;BYMINUTE=0;BYSECOND=0
+                  value: FREQ=WEEKLY;BYDAY=SA,SU
               - column:
                   name: rdate
                   value: '[]'
@@ -141,7 +141,7 @@ databaseChangeLog:
                   value: Asia/Bangkok
               - column:
                   name: rrule
-                  value: FREQ=DAILY;BYHOUR=9,10,11,12,13,14,15,16,17;BYMINUTE=0;BYSECOND=0
+                  value: FREQ=DAILY
               - column:
                   name: rdate
                   value: '[]'
