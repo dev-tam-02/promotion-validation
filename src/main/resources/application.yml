@@ -144,16 +144,16 @@ promix:
       enable-avro: true
 
       # Security Configuration
-      security:
-        protocol: SASL_PLAINTEXT
-
-      # SASL Authentication Configuration
-      sasl:
-        enabled: true
-        mechanism: PLAIN
-        security-protocol: SASL_PLAINTEXT
-        username: admin
-        password: 123123a@
+#      security:
+#        protocol: SASL_PLAINTEXT
+#
+#      # SASL Authentication Configuration
+#      sasl:
+#        enabled: true
+#        mechanism: PLAIN
+#        security-protocol: SASL_PLAINTEXT
+#        username: admin
+#        password: 123123a@
 
       # Producer Configuration
       producer:
