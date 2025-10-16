@@ -143,6 +143,18 @@ promix:
       client-id: validation
       enable-avro: true
 
+      # Security Configuration
+      security:
+        protocol: SASL_PLAINTEXT
+
+      # SASL Authentication Configuration
+      sasl:
+        enabled: true
+        mechanism: PLAIN
+        security-protocol: SASL_PLAINTEXT
+        username: admin
+        password: 123123a@
+
       # Producer Configuration
       producer:
         key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -220,7 +232,7 @@ promix:
     redisson:
       enabled: true
       mode: CLUSTER
-      password: ${REDIS_PASSWORD:redis_cluster_password}
+#      password: 123123a@
       connection-timeout: 3000
       timeout: 3000
       retry-attempts: 3
