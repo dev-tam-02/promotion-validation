@@ -144,16 +144,16 @@ promix:
       enable-avro: true
 
       # Security Configuration
-#      security:
-#        protocol: SASL_PLAINTEXT
+      security:
+        protocol: SASL_PLAINTEXT
 #
-#      # SASL Authentication Configuration
-#      sasl:
-#        enabled: true
-#        mechanism: PLAIN
-#        security-protocol: SASL_PLAINTEXT
-#        username: admin
-#        password: 123123a@
+      # SASL Authentication Configuration
+      sasl:
+        enabled: true
+        mechanism: PLAIN
+        security-protocol: SASL_PLAINTEXT
+        username: admin
+        password: 123123a@
 
       # Producer Configuration
       producer:
@@ -232,7 +232,7 @@ promix:
     redisson:
       enabled: true
       mode: CLUSTER
-#      password: 123123a@
+      password: 123123a@
       connection-timeout: 3000
       timeout: 3000
       retry-attempts: 3
