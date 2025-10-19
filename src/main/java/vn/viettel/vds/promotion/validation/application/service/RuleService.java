@@ -10,6 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleBundleEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleBundleRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -28,12 +31,15 @@ public class RuleService {
     private final RulePersistencePort rulePersistencePort;
     private final AuditService auditService;
     private final AssignmentService assignmentService;
+    private final RuleBundleRepository ruleBundleRepository;
 
     public RuleService(RulePersistencePort rulePersistencePort, AuditService auditService,
-                       @Lazy AssignmentService assignmentService) {
+                       @Lazy AssignmentService assignmentService,
+                       RuleBundleRepository ruleBundleRepository) {
         this.rulePersistencePort = rulePersistencePort;
         this.auditService = auditService;
         this.assignmentService = assignmentService;
+        this.ruleBundleRepository = ruleBundleRepository;
     }
 
     /**
@@ -377,5 +383,43 @@ public class RuleService {
                 })
                 .filter(java.util.Objects::nonNull)
                 .toList();
+    }
+
+    /**
+     * Get bundle hash for an object.
+     * Returns the latest compiled bundle hash for the specified object.
+     *
+     * @param objectType Object type (campaign, voucher, tier, reward)
+     * @param objectId Object identifier/key
+     * @return BundleHashResponse with bundle hash and metadata
+     * @throws ResourceNotFoundException if no bundle found for object
+     */
+    @Transactional(readOnly = true)
+    public BundleHashResponse getBundleHashForObject(String objectType, String objectId) {
+        logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
+
+        // Query latest bundle by subject type and key
+        List<RuleBundleEntity> bundles = ruleBundleRepository.findBySubjectTypeAndKey(objectType, objectId);
+
+        if (bundles.isEmpty()) {
+            logger.warn("No bundle found for object: type={}, id={}", objectType, objectId);
+            throw new ResourceNotFoundException();
+        }
+
+        // Get latest bundle (first in list ordered by version DESC)
+        RuleBundleEntity latestBundle = bundles.get(0);
+
+        logger.debug("Found bundle hash {} for object {}:{} (ruleVersion={}, assignmentVersion={})",
+                latestBundle.getBundleHash(), objectType, objectId,
+                latestBundle.getRuleVersion(), latestBundle.getAssignmentVersion());
+
+        return BundleHashResponse.builder()
+                .objectType(objectType)
+                .objectId(objectId)
+                .bundleHash(latestBundle.getBundleHash())
+                .ruleVersion(latestBundle.getRuleVersion())
+                .assignmentVersion(latestBundle.getAssignmentVersion())
+                .compiledAt(latestBundle.getCreatedAt())
+                .build();
     }
 }

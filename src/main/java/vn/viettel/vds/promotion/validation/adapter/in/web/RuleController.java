@@ -466,4 +466,34 @@ public class RuleController {
                 .filter(Objects::nonNull)
                 .toList();
     }
+
+    @Operation(summary = "Get bundle hash for object",
+               description = "Retrieve the compiled bundle hash for a specific object (campaign, voucher, etc.)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bundle hash found"),
+            @ApiResponse(responseCode = "404", description = "No bundle found for this object")
+    })
+    @GetMapping("/bundle-hash")
+    public BundleHashResponse getBundleHashForObject(
+            @Parameter(description = "Object type (campaign, voucher, tier, reward)", example = "campaign")
+            @RequestParam String objectType,
+            @Parameter(description = "Object identifier/key", example = "CAMPAIGN-001")
+            @RequestParam String objectId) {
+
+        logger.info("Received bundle hash request for objectType: {}, objectId: {}", objectType, objectId);
+
+        try {
+            BundleHashResponse response = ruleService.getBundleHashForObject(objectType, objectId);
+
+            logger.debug("Bundle hash retrieved for objectId: {} - hash: {}",
+                objectId, response.bundleHash());
+
+            return response;
+
+        } catch (Exception e) {
+            logger.error("Failed to get bundle hash for objectType: {}, objectId: {}",
+                objectType, objectId, e);
+            throw e;
+        }
+    }
 }

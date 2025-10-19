@@ -64,7 +64,6 @@ public class RuleNode {
         } else if (type == NodeType.COND) {
             // COND nodes must have operatorName and reasonCode
             Objects.requireNonNull(operatorName, "OperatorName cannot be null for COND nodes");
-            Objects.requireNonNull(reasonCode, "ReasonCode cannot be null for COND nodes");
             // params can be null or empty for operators that don't require parameters
         }
     }

@@ -225,9 +225,6 @@ promix:
     # Disable standard Redis cache manager (using Redisson instead)
     redis:
       enabled: false
-      cluster:
-        nodes: [ ]  # Empty to prevent initialization
-
     # Enable Redisson as the default cache manager
     redisson:
       enabled: true
