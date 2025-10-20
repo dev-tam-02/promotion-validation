@@ -3,8 +3,8 @@ package vn.viettel.vds.promotion.validation.application.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.ApplicabilityRule;
-import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.ApplicabilityScope;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
 
 import java.util.List;
 import java.util.Optional;

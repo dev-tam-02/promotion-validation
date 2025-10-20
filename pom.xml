@@ -26,6 +26,12 @@
         <url/>
     </scm>
     <dependencies>
+        <!-- Schema module for shared DTOs -->
+        <dependency>
+            <groupId>vn.viettel.vds.promotion</groupId>
+            <artifactId>schema</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>com.promix.platform</groupId>
             <artifactId>promix-web-spring-boot-starter</artifactId>

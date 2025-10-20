@@ -8,10 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.TimeFrame;
-import vn.viettel.vds.promotion.validation.domain.dto.event.SettingValidationRuleEvent;
-import vn.viettel.vds.promotion.validation.domain.dto.event.SettingValidationRuleEvent.*;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.*;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 

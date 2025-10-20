@@ -141,6 +141,15 @@ promix:
       client-id: validation
       enable-avro: false
 
+      # JSON Serialization/Deserialization Configuration
+      json:
+        # CRITICAL: Disable type headers to allow JsonDeserializer infer type from method signature
+        # When use-type-headers=false, deserializer uses @KafkaListener method parameter type
+        # This prevents ClassNotFoundException when different services use different DTO packages
+        use-type-info-headers: false
+        add-type-info: false
+        trusted-packages: "*"
+
       # Security Configuration
       security:
         protocol: SASL_PLAINTEXT

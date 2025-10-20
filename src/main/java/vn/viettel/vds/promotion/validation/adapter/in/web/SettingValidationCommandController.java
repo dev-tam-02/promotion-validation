@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.web.bind.annotation.*;
-import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.SettingValidationRuleCommandConsumer;
 
 import java.util.HashMap;
