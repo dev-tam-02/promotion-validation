@@ -5,10 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.schema.validation.command.ApplicabilityScope;
-import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
-import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.ApplicabilityScope;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
@@ -196,7 +196,7 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleCommandPayload payload) {
 
         // Extract command components
-        vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData = payload.getAssignRule();
+        SettingValidationRuleCommand.RuleAssignment assignRuleData = payload.getAssignRule();
         ApplicabilityScope applicableToData = payload.getApplicableTo();
         TimeFrame timeframeData = payload.getTimeframe();
         Integer priority = payload.getPriority();
@@ -382,7 +382,7 @@ public class SettingValidationRuleCommandHandler {
         if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
             // Extract IDs from ApplicabilityRule objects
             List<String> includedIds = applicableToData.getIncluded().stream()
-                    .map(vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule::getId)
+                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
                     .toList();
             params.put("included", includedIds);
         }
@@ -392,7 +392,7 @@ public class SettingValidationRuleCommandHandler {
         if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
             // Extract IDs from ApplicabilityRule objects
             List<String> excludedIds = applicableToData.getExcluded().stream()
-                    .map(vn.viettel.vds.promotion.schema.validation.command.ApplicabilityRule::getId)
+                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
                     .toList();
             params.put("excluded", excludedIds);
         }
@@ -428,7 +428,7 @@ public class SettingValidationRuleCommandHandler {
      * ✅ FIXED: Create RuleAssignment entity with campaign ID
      */
     private vn.viettel.vds.promotion.validation.domain.model.Assignment createRuleAssignment(
-            vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
+            SettingValidationRuleCommand.RuleAssignment assignRuleData,
             String campaignId) {  // ✅ Changed from ApplicabilityScope to campaignId
 
         String ruleId = assignRuleData.getRuleId();
@@ -610,7 +610,7 @@ public class SettingValidationRuleCommandHandler {
      * Record to hold validated command components
      */
     private record ComponentsData(
-            vn.viettel.vds.promotion.schema.validation.command.RuleAssignment assignRuleData,
+            SettingValidationRuleCommand.RuleAssignment assignRuleData,
             ApplicabilityScope applicableToData,
             TimeFrame timeframeData,
             Integer priority,

@@ -128,20 +128,18 @@ promix:
   messaging:
     enabled: true
     avro:
-      enabled: true  # Enable Avro support in promix-messaging
+      enabled: false  # Disable Avro support - using JSON instead
       producer:
-        enabled: true  # Enable Avro producer factory
+        enabled: false  # Disable Avro producer factory
       consumer:
-        enabled: true  # Enable Avro consumer factory
-      schema-registry:
-        url: embedded
+        enabled: false  # Disable Avro consumer factory
     kafka:
       bootstrap-servers:
         - kafka-1:9092
         - kafka-2:9093
         - kafka-3:9094
       client-id: validation
-      enable-avro: true
+      enable-avro: false
 
       # Security Configuration
       security:
@@ -158,7 +156,7 @@ promix:
       # Producer Configuration
       producer:
         key-serializer: org.apache.kafka.common.serialization.StringSerializer
-        value-serializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
         acks: all
         retries: 5
         batch-size: 16384
@@ -170,12 +168,12 @@ promix:
         request-timeout: 30000
         delivery-timeout: 120000
         retry-backoff: 100
-        use-avro: true
+        use-avro: false
 
       # Consumer Configuration
       consumer:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: com.promix.platform.messaging.autoconfigure.serializer.OptimizedEmbeddedAvroDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
         group-id: validation-group
         auto-offset-reset: earliest
         enable-auto-commit: false
@@ -190,8 +188,7 @@ promix:
         ack-mode: MANUAL_IMMEDIATE
         session-timeout: 30000
         heartbeat-interval: 10000
-        use-avro: true
-        specific-avro-reader: true
+        use-avro: false
 
         # Retry Configuration
         retry:

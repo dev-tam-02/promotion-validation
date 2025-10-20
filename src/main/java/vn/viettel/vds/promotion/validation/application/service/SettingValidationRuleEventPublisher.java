@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.schema.validation.command.SettingValidationRuleCommand;
-import vn.viettel.vds.promotion.schema.validation.command.TimeFrame;
-import vn.viettel.vds.promotion.schema.validation.event.*;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.domain.dto.command.SettingValidationRuleCommand.TimeFrame;
+import vn.viettel.vds.promotion.validation.domain.dto.event.SettingValidationRuleEvent;
+import vn.viettel.vds.promotion.validation.domain.dto.event.SettingValidationRuleEvent.*;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
@@ -112,37 +113,37 @@ public class SettingValidationRuleEventPublisher {
                 mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
         // Build Assignment Result
-        AssignmentResult assignmentResult = AssignmentResult.newBuilder()
-                .setAssignmentId(assignment.getId())
-                .setRuleId(assignment.getId())
-                .setActive(Boolean.TRUE.equals(assignment.getActive()))
-                .setTrafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
-                .setPriority(0) // Priority field can be added to assignment entity when needed
+        AssignmentResult assignmentResult = AssignmentResult.builder()
+                .assignmentId(assignment.getId())
+                .ruleId(assignment.getId())
+                .active(Boolean.TRUE.equals(assignment.getActive()))
+                .trafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
+                .priority(0) // Priority field can be added to assignment entity when needed
                 .build();
 
         // Build Applicability Result
-        ApplicabilityResult applicabilityResult = ApplicabilityResult.newBuilder()
-                .setSubjectType("PRODUCT") // Default subject type for applicability
-                .setSubjectKey("*") // Default to all products
-                .setIncludedItemsCount(stats.getIncludedItemsCount())
-                .setExcludedItemsCount(stats.getExcludedItemsCount())
-                .setIncludedAll(stats.isIncludedAll())
+        ApplicabilityResult applicabilityResult = ApplicabilityResult.builder()
+                .subjectType("PRODUCT") // Default subject type for applicability
+                .subjectKey("*") // Default to all products
+                .includedItemsCount(stats.getIncludedItemsCount())
+                .excludedItemsCount(stats.getExcludedItemsCount())
+                .includedAll(stats.isIncludedAll())
                 .build();
 
         // Build Timeframe Result (if provided)
         TimeframeResult timeframeResult = buildTimeframeResult(result);
 
         // Build Event Payload
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
-                .setCommandId(commandId)
-                .setIsSuccess(true)
-                .setErrorCode(null)
-                .setErrorMessage(null)
-                .setAssignmentResult(assignmentResult)
-                .setApplicabilityResult(applicabilityResult)
-                .setTimeframeResult(timeframeResult)
-                .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now())
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+                .commandId(commandId)
+                .isSuccess(true)
+                .errorCode(null)
+                .errorMessage(null)
+                .assignmentResult(assignmentResult)
+                .applicabilityResult(applicabilityResult)
+                .timeframeResult(timeframeResult)
+                .processedBy(serviceName)
+                .processedAt(Instant.now())
                 .build();
 
         // Build Metadata
@@ -152,16 +153,16 @@ public class SettingValidationRuleEventPublisher {
         metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
-        return SettingValidationRuleEvent.newBuilder()
-                .setId(IdGenerator.generateId())
-                .setAggregate(AGGREGATE_VALIDATION)
-                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
-                .setSource(serviceName)
-                .setSubject(assignment.getId())
-                .setOccurredAt(Instant.now())
-                .setVersion(1)
-                .setPayload(payload)
-                .setMetadata(metadata)
+        return SettingValidationRuleEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(AGGREGATE_VALIDATION)
+                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
+                .source(serviceName)
+                .subject(assignment.getId())
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(metadata)
                 .build();
     }
 
@@ -170,16 +171,16 @@ public class SettingValidationRuleEventPublisher {
      */
     private SettingValidationRuleEvent createErrorEvent(String commandId, String errorCode, String errorMessage) {
         // Build Event Payload for error
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
-                .setCommandId(commandId)
-                .setIsSuccess(false)
-                .setErrorCode(errorCode)
-                .setErrorMessage(errorMessage)
-                .setAssignmentResult(null)
-                .setApplicabilityResult(null)
-                .setTimeframeResult(null)
-                .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now())
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+                .commandId(commandId)
+                .isSuccess(false)
+                .errorCode(errorCode)
+                .errorMessage(errorMessage)
+                .assignmentResult(null)
+                .applicabilityResult(null)
+                .timeframeResult(null)
+                .processedBy(serviceName)
+                .processedAt(Instant.now())
                 .build();
 
         // Build Metadata
@@ -189,16 +190,16 @@ public class SettingValidationRuleEventPublisher {
         metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
-        return SettingValidationRuleEvent.newBuilder()
-                .setId(IdGenerator.generateId())
-                .setAggregate(AGGREGATE_VALIDATION)
-                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
-                .setSource(serviceName)
-                .setSubject(commandId)
-                .setOccurredAt(Instant.now())
-                .setVersion(1)
-                .setPayload(payload)
-                .setMetadata(metadata)
+        return SettingValidationRuleEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(AGGREGATE_VALIDATION)
+                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
+                .source(serviceName)
+                .subject(commandId)
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(metadata)
                 .build();
     }
 
@@ -210,16 +211,16 @@ public class SettingValidationRuleEventPublisher {
             SettingValidationRuleCommand originalCommand) {
 
         // Build Event Payload for dead letter
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
-                .setCommandId(commandId)
-                .setIsSuccess(false)
-                .setErrorCode("DEAD_LETTER")
-                .setErrorMessage("Command sent to dead letter queue after max retries")
-                .setAssignmentResult(null)
-                .setApplicabilityResult(null)
-                .setTimeframeResult(null)
-                .setProcessedBy(serviceName)
-                .setProcessedAt(Instant.now())
+        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+                .commandId(commandId)
+                .isSuccess(false)
+                .errorCode("DEAD_LETTER")
+                .errorMessage("Command sent to dead letter queue after max retries")
+                .assignmentResult(null)
+                .applicabilityResult(null)
+                .timeframeResult(null)
+                .processedBy(serviceName)
+                .processedAt(Instant.now())
                 .build();
 
         // Build Metadata with original command info
@@ -230,16 +231,16 @@ public class SettingValidationRuleEventPublisher {
         metadata.put("originalCommandId", originalCommand.getId());
 
         // Build Complete Event
-        return SettingValidationRuleEvent.newBuilder()
-                .setId(IdGenerator.generateId())
-                .setAggregate(AGGREGATE_VALIDATION)
-                .setType(EVENT_TYPE_SETTING_VALIDATION_RULE)
-                .setSource(serviceName)
-                .setSubject(commandId)
-                .setOccurredAt(Instant.now())
-                .setVersion(1)
-                .setPayload(payload)
-                .setMetadata(metadata)
+        return SettingValidationRuleEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(AGGREGATE_VALIDATION)
+                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
+                .source(serviceName)
+                .subject(commandId)
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(metadata)
                 .build();
     }
 
@@ -249,16 +250,16 @@ public class SettingValidationRuleEventPublisher {
     public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             // Build Event Payload for rollback success
-            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
-                    .setCommandId(commandId)
-                    .setIsSuccess(true)
-                    .setErrorCode(null)
-                    .setErrorMessage(null)
-                    .setAssignmentResult(null)
-                    .setApplicabilityResult(null)
-                    .setTimeframeResult(null)
-                    .setProcessedBy(serviceName)
-                    .setProcessedAt(Instant.now())
+            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+                    .commandId(commandId)
+                    .isSuccess(true)
+                    .errorCode(null)
+                    .errorMessage(null)
+                    .assignmentResult(null)
+                    .applicabilityResult(null)
+                    .timeframeResult(null)
+                    .processedBy(serviceName)
+                    .processedAt(Instant.now())
                     .build();
 
             // Build Metadata
@@ -273,16 +274,16 @@ public class SettingValidationRuleEventPublisher {
             }
 
             // Build Complete Event
-            SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
-                    .setId(IdGenerator.generateId())
-                    .setAggregate(AGGREGATE_VALIDATION)
-                    .setType("ValidationRollbackSuccessEvent")
-                    .setSource(serviceName)
-                    .setSubject(campaignId)
-                    .setOccurredAt(Instant.now())
-                    .setVersion(1)
-                    .setPayload(payload)
-                    .setMetadata(metadata)
+            SettingValidationRuleEvent event = SettingValidationRuleEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRollbackSuccessEvent")
+                    .source(serviceName)
+                    .subject(campaignId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
                     .build();
 
             publishEvent(event, campaignId, commandId, "ROLLBACK_SUCCESS", campaignId);
@@ -301,16 +302,16 @@ public class SettingValidationRuleEventPublisher {
     public void publishRollbackErrorEvent(String commandId, String errorCode, String errorMessage) {
         try {
             // Build Event Payload for rollback error
-            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.newBuilder()
-                    .setCommandId(commandId)
-                    .setIsSuccess(false)
-                    .setErrorCode(errorCode)
-                    .setErrorMessage(errorMessage)
-                    .setAssignmentResult(null)
-                    .setApplicabilityResult(null)
-                    .setTimeframeResult(null)
-                    .setProcessedBy(serviceName)
-                    .setProcessedAt(Instant.now())
+            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+                    .commandId(commandId)
+                    .isSuccess(false)
+                    .errorCode(errorCode)
+                    .errorMessage(errorMessage)
+                    .assignmentResult(null)
+                    .applicabilityResult(null)
+                    .timeframeResult(null)
+                    .processedBy(serviceName)
+                    .processedAt(Instant.now())
                     .build();
 
             // Build Metadata
@@ -321,16 +322,16 @@ public class SettingValidationRuleEventPublisher {
             metadata.put("eventType", "ROLLBACK_ERROR");
 
             // Build Complete Event
-            SettingValidationRuleEvent event = SettingValidationRuleEvent.newBuilder()
-                    .setId(IdGenerator.generateId())
-                    .setAggregate(AGGREGATE_VALIDATION)
-                    .setType("ValidationRollbackErrorEvent")
-                    .setSource(serviceName)
-                    .setSubject(commandId)
-                    .setOccurredAt(Instant.now())
-                    .setVersion(1)
-                    .setPayload(payload)
-                    .setMetadata(metadata)
+            SettingValidationRuleEvent event = SettingValidationRuleEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRollbackErrorEvent")
+                    .source(serviceName)
+                    .subject(commandId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
                     .build();
 
             publishEvent(event, commandId, commandId, "ROLLBACK_ERROR", null);
@@ -409,12 +410,12 @@ public class SettingValidationRuleEventPublisher {
             timezone = timeframeData.getTimezone();
         }
 
-        return TimeframeResult.newBuilder()
-                .setTimeFrameId(result.getTimeFrameId())
-                .setValidFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
-                .setValidTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
-                .setMode(mode)
-                .setTimezone(timezone)
+        return TimeframeResult.builder()
+                .timeFrameId(result.getTimeFrameId())
+                .validFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
+                .validTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
+                .mode(mode)
+                .timezone(timezone)
                 .build();
     }
 

@@ -88,20 +88,6 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
-        <!-- Schema module dependency -->
-        <dependency>
-            <groupId>vn.viettel.vds.promotion</groupId>
-            <artifactId>schema</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- Avro Schema Dependencies -->
-        <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
-            <version>1.11.3</version>
-        </dependency>
-
         <!-- JSON Schema Validation -->
         <dependency>
             <groupId>com.networknt</groupId>
