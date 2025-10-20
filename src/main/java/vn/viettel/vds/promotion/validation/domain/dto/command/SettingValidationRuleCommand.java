@@ -52,9 +52,25 @@ public class SettingValidationRuleCommand {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SettingValidationRuleCommandPayload {
 
-        @JsonProperty("assignRule")
-        private RuleAssignment assignRule;
+        // Rule assignment fields (flattened from nested assignRule)
+        @JsonProperty("ruleId")
+        private String ruleId;
 
+        @JsonProperty("objectType")
+        private String objectType;  // "campaign", "product", "customer", "segment", etc.
+
+        @JsonProperty("objectId")
+        private String objectId;    // ID of the object (campaignId, productId, customerId, etc.)
+
+        @JsonProperty("active")
+        @Builder.Default
+        private Boolean active = true;
+
+        @JsonProperty("trafficPercent")
+        @Builder.Default
+        private Integer trafficPercent = 100;
+
+        // Rule configuration (keep nested for logical grouping)
         @JsonProperty("applicableTo")
         private ApplicabilityScope applicableTo;
 
@@ -67,28 +83,6 @@ public class SettingValidationRuleCommand {
 
         @JsonProperty("notes")
         private String notes;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class RuleAssignment {
-
-        @JsonProperty("ruleId")
-        private String ruleId;
-
-        @JsonProperty("assignmentId")
-        private String assignmentId;
-
-        @JsonProperty("active")
-        @Builder.Default
-        private Boolean active = true;
-
-        @JsonProperty("trafficPercent")
-        @Builder.Default
-        private Integer trafficPercent = 100;
     }
 
     @Data

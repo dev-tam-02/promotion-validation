@@ -149,11 +149,14 @@ public class SettingValidationRuleCommandHandler {
                 }
             }
 
-            // ✅ FIXED: Create rule assignment with campaign ID
+            // ✅ Create rule assignment with objectType + objectId
             vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
                     createRuleAssignment(
-                            components.assignRuleData(),
-                            components.campaignId()
+                            components.ruleId(),
+                            components.objectType(),
+                            components.objectId(),
+                            components.active(),
+                            components.trafficPercent()
                     );
 
             // Convert to JPA entity and save
@@ -162,7 +165,8 @@ public class SettingValidationRuleCommandHandler {
             assignment.setId(assignmentEntity.getId());
 
             if (logger.isInfoEnabled()) {
-                logger.info("Created assignment for campaign: campaignId={}, ruleId={}, assignmentId={}", components.campaignId(), components.ruleId(), assignment.getId());
+                logger.info("Created assignment: objectType={}, objectId={}, ruleId={}, assignmentId={}",
+                        components.objectType(), components.objectId(), components.ruleId(), assignment.getId());
             }
 
             // Process timeframe if provided
@@ -195,61 +199,49 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleCommand command,
             SettingValidationRuleCommandPayload payload) {
 
-        // Extract command components
-        SettingValidationRuleCommand.RuleAssignment assignRuleData = payload.getAssignRule();
+        // Extract command components (flattened structure)
+        String ruleId = payload.getRuleId();
+        String objectType = payload.getObjectType();
+        String objectId = payload.getObjectId();
+        Boolean active = payload.getActive();
+        Integer trafficPercent = payload.getTrafficPercent();
         ApplicabilityScope applicableToData = payload.getApplicableTo();
         TimeFrame timeframeData = payload.getTimeframe();
         Integer priority = payload.getPriority();
         String notes = payload.getNotes();
 
-        // Validate assignRule
-        if (assignRuleData == null) {
-            return Result.failure(ErrorCode.MISSING_ASSIGN_RULE, "assignRule is required in payload");
+        // Validate required fields
+        if (ruleId == null || ruleId.isEmpty()) {
+            return Result.failure(ErrorCode.MISSING_ASSIGN_RULE, "ruleId is required in payload");
         }
 
-        // Get campaign ID from command.subject
-        String campaignId = getCampaignIdFromCommand(command);
-        if (campaignId == null || campaignId.isEmpty()) {
-            return Result.failure(ErrorCode.MISSING_CAMPAIGN_ID, "Campaign ID is required in command.subject");
+        if (objectType == null || objectType.isEmpty()) {
+            return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectType is required in payload");
+        }
+
+        if (objectId == null || objectId.isEmpty()) {
+            return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectId is required in payload");
         }
 
         // Validate rule exists
-        String ruleId = assignRuleData.getRuleId();
-        if (ruleId == null || !validationRuleRepository.existsById(ruleId)) {
+        if (!validationRuleRepository.existsById(ruleId)) {
             return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
         }
 
         // Return validated components
         return Result.success(new ComponentsData(
-                assignRuleData,
+                ruleId,
+                objectType,
+                objectId,
+                active,
+                trafficPercent,
                 applicableToData,
                 timeframeData,
                 priority,
-                notes,
-                campaignId,
-                ruleId
+                notes
         ));
     }
 
-    /**
-     * ✅ NEW: Extract campaign ID from command.subject
-     */
-    private String getCampaignIdFromCommand(SettingValidationRuleCommand command) {
-        if (command == null || command.getSubject() == null) {
-            logger.error("Command or command.subject is null");
-            return null;
-        }
-
-        String subject = command.getSubject();
-
-        if (subject == null || subject.trim().isEmpty()) {
-            logger.error("Campaign ID (command.subject) is null or empty");
-            return null;
-        }
-
-        logger.debug("Extracted campaign ID from command.subject: {}", subject);
-        return subject.trim();
-    }
 
     /**
      * ✅ NEW: Validate that rule contains product.applicability.in node
@@ -425,27 +417,23 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * ✅ FIXED: Create RuleAssignment entity with campaign ID
+     * ✅ Create RuleAssignment entity with objectType + objectId (flexible design)
      */
     private vn.viettel.vds.promotion.validation.domain.model.Assignment createRuleAssignment(
-            SettingValidationRuleCommand.RuleAssignment assignRuleData,
-            String campaignId) {  // ✅ Changed from ApplicabilityScope to campaignId
+            String ruleId,
+            String objectType,
+            String objectId,
+            Boolean active,
+            Integer trafficPercent) {
 
-        String ruleId = assignRuleData.getRuleId();
-        String assignmentId = assignRuleData.getAssignmentId();
-        Boolean active = assignRuleData.getActive();
-        Integer trafficPercent = assignRuleData.getTrafficPercent();
+        // Generate assignment ID
+        String assignmentId = IdGenerator.generateId();
 
-        // Generate assignment ID if not provided
-        if (assignmentId == null) {
-            assignmentId = IdGenerator.generateId();
-        }
-
-        // ✅ FIXED: Create Subject with campaign ID
+        // ✅ Create Subject with objectType + objectId (supports multiple object types)
         vn.viettel.vds.promotion.validation.domain.model.Assignment.Subject subject =
                 new vn.viettel.vds.promotion.validation.domain.model.Assignment.Subject();
-        subject.setType("campaign");      // ✅ Always "campaign"
-        subject.setKey(campaignId);       // ✅ Campaign ID from command.subject
+        subject.setType(objectType);      // "campaign", "product", "customer", etc.
+        subject.setKey(objectId);         // ID of the object
 
         // Create and configure assignment
         vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
@@ -454,13 +442,13 @@ public class SettingValidationRuleCommandHandler {
         assignment.setRuleId(ruleId);
         assignment.setSubject(subject);
         assignment.setAssignmentVersion(1);
-        assignment.setActive(active);
-        assignment.setTrafficPercent(trafficPercent);
+        assignment.setActive(active != null ? active : true);
+        assignment.setTrafficPercent(trafficPercent != null ? trafficPercent : 100);
         assignment.setCreatedAt(Instant.now());
         assignment.setUpdatedAt(Instant.now());
 
-        logger.debug("Created assignment entity: assignmentId={}, campaignId={}, ruleId={}",
-                assignmentId, campaignId, ruleId);
+        logger.debug("Created assignment entity: assignmentId={}, objectType={}, objectId={}, ruleId={}",
+                assignmentId, objectType, objectId, ruleId);
 
         return assignment;
     }
@@ -607,16 +595,18 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * Record to hold validated command components
+     * Record to hold validated command components (flattened structure)
      */
     private record ComponentsData(
-            SettingValidationRuleCommand.RuleAssignment assignRuleData,
+            String ruleId,
+            String objectType,
+            String objectId,
+            Boolean active,
+            Integer trafficPercent,
             ApplicabilityScope applicableToData,
             TimeFrame timeframeData,
             Integer priority,
-            String notes,
-            String campaignId,
-            String ruleId
+            String notes
     ) {
     }
 
