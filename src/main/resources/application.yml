@@ -142,12 +142,8 @@ promix:
       enable-avro: false
 
       # JSON Serialization/Deserialization Configuration
+      # Use default values from promix-messaging (add-type-info: true, use-type-info-headers: true)
       json:
-        # CRITICAL: Disable type headers to allow JsonDeserializer infer type from method signature
-        # When use-type-headers=false, deserializer uses @KafkaListener method parameter type
-        # This prevents ClassNotFoundException when different services use different DTO packages
-        use-type-info-headers: false
-        add-type-info: false
         trusted-packages: "*"
 
       # Security Configuration
