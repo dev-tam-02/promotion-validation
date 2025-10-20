@@ -83,11 +83,12 @@ public class SettingValidationRuleCommandConsumer {
 
     /**
      * Consumer for dead letter topic (optional)
+     * Uses kafkaDlqListenerContainerFactory WITHOUT DLQ to prevent infinite loop
      */
     @KafkaListener(
             topics = "${kafka.topics.validation-command-dlq}",
             groupId = "${kafka.consumer.group-id}-dlq",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "kafkaDlqListenerContainerFactory"
     )
     public void handleDeadLetterMessage(
             @Payload(required = false) SettingValidationRuleCommand command,
