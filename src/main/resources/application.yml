@@ -184,7 +184,7 @@ promix:
         fetch-max-wait: 500
         isolation-level: read_committed
         concurrency: 3
-        batch-listener: true
+        batch-listener: false
         ack-mode: MANUAL_IMMEDIATE
         session-timeout: 30000
         heartbeat-interval: 10000

@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.application.service.SettingValidation
 
 /**
  * Kafka consumer for SettingValidationRuleCommand messages
+ * Processes messages one at a time (batch-listener: false)
  */
 @Component
 public class SettingValidationRuleCommandConsumer {
@@ -28,6 +29,7 @@ public class SettingValidationRuleCommandConsumer {
 
     /**
      * Consume SettingValidationRuleCommand from Kafka topic
+     * Handles nullable payload for tombstone messages
      */
     @KafkaListener(
             topics = "${kafka.topics.validation-command}",
@@ -35,12 +37,20 @@ public class SettingValidationRuleCommandConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleSettingValidationRuleCommand(
-            @Payload SettingValidationRuleCommand command,
+            @Payload(required = false) SettingValidationRuleCommand command,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             @Header(value = KafkaHeaders.RECEIVED_KEY, required = false) String key,
             Acknowledgment acknowledgment) {
+
+        // Skip null/tombstone messages
+        if (command == null) {
+            logger.warn("Received null/tombstone message: topic={}, partition={}, offset={}, key={} - Skipping",
+                    topic, partition, offset, key);
+            acknowledgment.acknowledge();
+            return;
+        }
 
         logger.info("Received SettingValidationRuleCommand: topic={}, partition={}, offset={}, key={}, commandId={}",
                 topic, partition, offset, key, command.getId());
@@ -66,8 +76,7 @@ public class SettingValidationRuleCommandConsumer {
             logger.error("Error processing SettingValidationRuleCommand: topic={}, partition={}, offset={}, commandId={}, error={}",
                     topic, partition, offset, command.getId(), e.getMessage(), e);
 
-            // For critical errors, we might want to acknowledge to avoid infinite retry
-            // This depends on your error handling strategy
+            // For critical errors, acknowledge to avoid infinite retry
             acknowledgment.acknowledge();
         }
     }
@@ -81,11 +90,19 @@ public class SettingValidationRuleCommandConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleDeadLetterMessage(
-            @Payload SettingValidationRuleCommand command,
+            @Payload(required = false) SettingValidationRuleCommand command,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
+
+        // Skip null/tombstone messages in DLQ
+        if (command == null) {
+            logger.warn("Received null/tombstone message in DLQ: topic={}, partition={}, offset={} - Skipping",
+                    topic, partition, offset);
+            acknowledgment.acknowledge();
+            return;
+        }
 
         logger.warn("Received message from dead letter queue: topic={}, partition={}, offset={}, commandId={}",
                 topic, partition, offset, command.getId());
