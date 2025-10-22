@@ -20,8 +20,11 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=123123a@
 
-      # Kafka Cluster Configuration
+      # Kafka Cluster Configuration (override incorrect ports in application.yml)
       - SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=kafka-1:9092,kafka-2:9092,kafka-3:9092
+      - PROMIX_MESSAGING_KAFKA_BOOTSTRAP_SERVERS[0]=kafka-1:9092
+      - PROMIX_MESSAGING_KAFKA_BOOTSTRAP_SERVERS[1]=kafka-2:9092
+      - PROMIX_MESSAGING_KAFKA_BOOTSTRAP_SERVERS[2]=kafka-3:9092
 
       # Redis Cluster Configuration
       - PROMIX_CACHE_REDISSON_CONFIG_CLUSTER_NODES_ADDRESSES=redis://node1:6379,redis://node2:6380,redis://node3:6381
