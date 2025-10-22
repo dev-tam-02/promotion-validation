@@ -75,9 +75,12 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Command payload is null: commandId={}", commandId);
-                publishErrorEvent(commandId, "INVALID_PAYLOAD", "Command payload is missing");
+                publishErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
                 return false;
             }
+
+            // Extract campaignId from payload for error events
+            String campaignId = payload.getObjectId();
 
             // Process the command
             CommandProcessingResult result = processCommand(commandId, payload);
@@ -94,7 +97,7 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
                 return true;
             } else {
-                publishErrorEvent(commandId, result.getErrorCode(), result.getErrorMessage());
+                publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
                 logger.error("Failed to process SettingValidationRuleCommand: commandId={}, error={}",
                         commandId, result.getErrorMessage());
                 return false;
@@ -102,7 +105,9 @@ public class SettingValidationRuleCommandHandler {
 
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
-            publishErrorEvent(commandId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            // Try to extract campaignId from command for error event
+            String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
+            publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
     }
@@ -503,9 +508,9 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Publish error event
      */
-    private void publishErrorEvent(String commandId, String errorCode, String errorMessage) {
+    private void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
-            eventPublisher.publishErrorEvent(commandId, errorCode, errorMessage);
+            eventPublisher.publishErrorEvent(commandId, campaignId, errorCode, errorMessage);
         } catch (Exception e) {
             logger.error("Failed to publish error event: commandId={}", commandId, e);
         }

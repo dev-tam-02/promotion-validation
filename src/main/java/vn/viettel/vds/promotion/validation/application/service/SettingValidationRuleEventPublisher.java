@@ -73,13 +73,14 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish error event with Avro schema
      */
-    public void publishErrorEvent(String commandId, String errorCode, String errorMessage) {
+    public void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
-            SettingValidationRuleEvent event = createErrorEvent(commandId, errorCode, errorMessage);
-            publishEvent(event, commandId, commandId, "FAILURE", null);
+            SettingValidationRuleEvent event = createErrorEvent(commandId, campaignId, errorCode, errorMessage);
+            String subject = campaignId != null ? campaignId : commandId;
+            publishEvent(event, subject, commandId, "FAILURE", campaignId);
 
-            logger.info("Published SettingValidationRuleEvent error: commandId={}, errorCode={}",
-                    commandId, errorCode);
+            logger.info("Published SettingValidationRuleEvent error: commandId={}, campaignId={}, errorCode={}",
+                    commandId, campaignId, errorCode);
 
         } catch (Exception e) {
             throw new ValidationException("Failed to publish error event for commandId: " + commandId, e);
@@ -158,7 +159,7 @@ public class SettingValidationRuleEventPublisher {
                 .aggregate(AGGREGATE_VALIDATION)
                 .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
                 .source(serviceName)
-                .subject(assignment.getId())
+                .subject(assignment.getSubject().getKey())
                 .occurredAt(Instant.now())
                 .version(1)
                 .payload(payload)
@@ -169,7 +170,7 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Create error event payload using Avro builder
      */
-    private SettingValidationRuleEvent createErrorEvent(String commandId, String errorCode, String errorMessage) {
+    private SettingValidationRuleEvent createErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         // Build Event Payload for error
         SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
                 .commandId(commandId)
@@ -190,12 +191,14 @@ public class SettingValidationRuleEventPublisher {
         metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
+        // Use campaignId as subject if available, otherwise fall back to commandId
+        String subject = campaignId != null ? campaignId : commandId;
         return SettingValidationRuleEvent.builder()
                 .id(IdGenerator.generateId())
                 .aggregate(AGGREGATE_VALIDATION)
                 .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
                 .source(serviceName)
-                .subject(commandId)
+                .subject(subject)
                 .occurredAt(Instant.now())
                 .version(1)
                 .payload(payload)

@@ -26,8 +26,16 @@ services:
       - PROMIX_MESSAGING_KAFKA_BOOTSTRAP_SERVERS[1]=kafka-2:9092
       - PROMIX_MESSAGING_KAFKA_BOOTSTRAP_SERVERS[2]=kafka-3:9092
 
+      # Kafka SASL Authentication
+      - PROMIX_MESSAGING_KAFKA_SASL_ENABLED=true
+      - PROMIX_MESSAGING_KAFKA_SASL_MECHANISM=PLAIN
+      - PROMIX_MESSAGING_KAFKA_SASL_SECURITY_PROTOCOL=SASL_PLAINTEXT
+      - PROMIX_MESSAGING_KAFKA_SASL_USERNAME=admin
+      - PROMIX_MESSAGING_KAFKA_SASL_PASSWORD=123123a@
+
       # Redis Cluster Configuration
       - PROMIX_CACHE_REDISSON_CONFIG_CLUSTER_NODES_ADDRESSES=redis://node1:6379,redis://node2:6380,redis://node3:6381
+      - PROMIX_CACHE_REDISSON_PASSWORD=123123a@
 
       # JVM Options
       - JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC
@@ -52,7 +60,7 @@ services:
       - "traefik.http.routers.validation.rule=Host(`validation.promixhub.com`)"
       - "traefik.http.routers.validation.entrypoints=websecure"
       - "traefik.http.routers.validation.tls=true"
-      - "traefik.http.routers.validation.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.validation.tls.certresolver=myresolver"
       - "traefik.http.services.validation.loadbalancer.server.port=8080"
       - "traefik.http.services.validation.loadbalancer.healthcheck.path=/actuator/health"
       - "traefik.http.routers.validation.middlewares=validation-ratelimit,validation-headers"
