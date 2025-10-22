@@ -80,7 +80,7 @@ public class SettingValidationRuleCommandHandler {
             }
 
             // Process the command
-            CommandProcessingResult result = processCommand(commandId, command, payload);
+            CommandProcessingResult result = processCommand(commandId, payload);
 
             // Publish success/failure event
             if (result.isSuccess()) {
@@ -112,11 +112,10 @@ public class SettingValidationRuleCommandHandler {
      */
     private CommandProcessingResult processCommand(
             String commandId,
-            SettingValidationRuleCommand command,
             SettingValidationRuleCommandPayload payload) {
         try {
             // Validate command components
-            Result<ComponentsData> componentsResult = validateCommandComponents(command, payload);
+            Result<ComponentsData> componentsResult = validateCommandComponents(payload);
             if (componentsResult.isFailure()) {
                 return CommandProcessingResult.failure(
                         componentsResult.getFirstErrorCode().orElse(ErrorCode.COMMAND_VALIDATION_ERROR).name(),
@@ -196,7 +195,6 @@ public class SettingValidationRuleCommandHandler {
      * Validate command components and extract data
      */
     private Result<ComponentsData> validateCommandComponents(
-            SettingValidationRuleCommand command,
             SettingValidationRuleCommandPayload payload) {
 
         // Extract command components (flattened structure)
@@ -442,7 +440,7 @@ public class SettingValidationRuleCommandHandler {
         assignment.setRuleId(ruleId);
         assignment.setSubject(subject);
         assignment.setAssignmentVersion(1);
-        assignment.setActive(active != null ? active : true);
+        assignment.setActive(active == null || active);
         assignment.setTrafficPercent(trafficPercent != null ? trafficPercent : 100);
         assignment.setCreatedAt(Instant.now());
         assignment.setUpdatedAt(Instant.now());

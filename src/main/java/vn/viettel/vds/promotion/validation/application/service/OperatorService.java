@@ -37,14 +37,17 @@ public class OperatorService {
     private final ValidationEngineOperatorClient validationEngineClient;
     private final ObjectMapper objectMapper;
     private final JsonSchemaFactory schemaFactory;
+    private final OperatorService self;
 
     public OperatorService(OperatorPersistencePort operatorPersistencePort, AuditService auditService,
-                           ValidationEngineOperatorClient validationEngineClient) {
+                           ValidationEngineOperatorClient validationEngineClient,
+                           @org.springframework.context.annotation.Lazy OperatorService self) {
         this.operatorPersistencePort = operatorPersistencePort;
         this.auditService = auditService;
         this.validationEngineClient = validationEngineClient;
         this.objectMapper = new ObjectMapper();
         this.schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        this.self = self;
     }
 
     /**
@@ -96,7 +99,7 @@ public class OperatorService {
                                          Operator.OperatorStatus status) {
         logger.info("Updating operator status: name={}, version={}, status={}", name, version, status);
 
-        Operator operator = getOperator(tenantId, name, version);
+        Operator operator = self.getOperator(tenantId, name, version);
         Operator updated = operator.toBuilder()
                 .status(status)
                 .updatedAt(Instant.now())
@@ -164,7 +167,7 @@ public class OperatorService {
         logger.debug("Validating operator params: operator={}@{}", operatorName, operatorVersion);
 
         try {
-            Operator operator = getOperator(tenantId, operatorName, operatorVersion);
+            Operator operator = self.getOperator(tenantId, operatorName, operatorVersion);
 
             if (operator.getJsonSchema() == null || operator.getJsonSchema().isEmpty()) {
                 return ValidationResult.valid();
@@ -205,7 +208,7 @@ public class OperatorService {
             StringBuilder fingerprintData = new StringBuilder();
 
             for (String operatorName : operatorNames) {
-                Optional<Operator> operator = getLatestOperator(tenantId, operatorName);
+                Optional<Operator> operator = self.getLatestOperator(tenantId, operatorName);
                 if (operator.isPresent()) {
                     fingerprintData.append(operator.get().getName())
                             .append("@")

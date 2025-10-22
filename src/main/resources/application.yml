@@ -213,7 +213,7 @@ promix:
 
     # Messaging Topics (for Spring property injection)
     topics:
-      setting-validation-rule-events: promotion_validation_events
+      setting-validation-rule-events: promotion_validation_event
 
   # Cache Configuration
   cache:
@@ -256,17 +256,17 @@ kafka:
   topics:
     # Standardized Topic Naming Convention
     # All commands (create, update, delete, rollback) go to single command topic
-    # All results/events go to single events topic
+    # All results/events go to single event topic
 
     # Inbound Topics (Commands to consume)
     validation-command: promotion_validation_command
 
     # Outbound Topics (Events to publish)
-    validation-events: promotion_validation_events
+    validation-event: promotion_validation_event
 
     # Dead Letter Queue Topics
     validation-command-dlq: promotion_validation_command_dlq
-    validation-events-dlq: promotion_validation_events_dlq
+    validation-event-dlq: promotion_validation_event_dlq
 
   consumer:
     group-id: validation-group

@@ -35,6 +35,7 @@ public class PublishService {
     private final RuleValidationService ruleValidationService;
     private final OutboxEventService outboxEventService;
     private final AuditService auditService;
+    private final PublishService self;
 
     public PublishService(RuleService ruleService,
                           RuleVersionPersistencePort ruleVersionPersistencePort,
@@ -42,7 +43,8 @@ public class PublishService {
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
                           OutboxEventService outboxEventService,
-                          AuditService auditService) {
+                          AuditService auditService,
+                          @org.springframework.context.annotation.Lazy PublishService self) {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.publishJobPersistencePort = publishJobPersistencePort;
@@ -50,6 +52,7 @@ public class PublishService {
         this.ruleValidationService = ruleValidationService;
         this.outboxEventService = outboxEventService;
         this.auditService = auditService;
+        this.self = self;
     }
 
     /**
@@ -104,7 +107,7 @@ public class PublishService {
     public PublishJob cancelPublishJob(String jobId, String cancelledBy) {
         logger.info("Cancelling publish job: id={}, cancelledBy={}", jobId, cancelledBy);
 
-        PublishJob job = getPublishJob(jobId);
+        PublishJob job = self.getPublishJob(jobId);
 
         if (job.getStatus() != PublishJob.JobStatus.RUNNING) {
             throw new BusinessException(new ResponseInfo("CANNOT_CANCEL_JOB",
@@ -189,7 +192,7 @@ public class PublishService {
         try {
             logger.info("Executing publish job: id={}", jobId);
 
-            PublishJob job = getPublishJob(jobId);
+            PublishJob job = self.getPublishJob(jobId);
             Rule rule = ruleService.getRuleById(job.getId());
 
             // Create rule version snapshot
@@ -254,7 +257,7 @@ public class PublishService {
             logger.error("Error executing publish job: id={}", jobId, e);
 
             try {
-                PublishJob job = getPublishJob(jobId);
+                PublishJob job = self.getPublishJob(jobId);
                 List<String> executionErrors = new ArrayList<>(job.getErrors() != null ? job.getErrors() : List.of());
                 executionErrors.add("Execution error: " + e.getMessage());
 

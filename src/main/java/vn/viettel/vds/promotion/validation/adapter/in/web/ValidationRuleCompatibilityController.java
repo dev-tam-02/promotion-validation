@@ -102,7 +102,7 @@ public class ValidationRuleCompatibilityController {
 
         } catch (Exception e) {
             logger.error("Error during pre-flight validation: ruleId={}", request.ruleId(), e);
-            return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
+            return ResponseEntity.internalServerError().body(ValidateCompatibilityResponse.failure(
                     request.ruleId(),
                     "VALIDATION_ERROR",
                     "Unexpected error during validation: " + e.getMessage()

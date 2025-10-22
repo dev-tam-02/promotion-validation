@@ -10,11 +10,11 @@ import jakarta.validation.constraints.NotBlank;
 @Schema(description = "Request to get bundle hash for an object")
 public record BundleHashRequest(
 
-        @Schema(description = "Object type (campaign, voucher, tier, reward)", example = "campaign", required = true)
+        @Schema(description = "Object type (campaign, voucher, tier, reward)", example = "campaign", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Object type is required")
         String objectType,
 
-        @Schema(description = "Object identifier/key", example = "CAMPAIGN-001", required = true)
+        @Schema(description = "Object identifier/key", example = "CAMPAIGN-001", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Object ID is required")
         String objectId
 ) {

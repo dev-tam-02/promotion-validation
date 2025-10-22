@@ -32,14 +32,17 @@ public class RuleService {
     private final AuditService auditService;
     private final AssignmentService assignmentService;
     private final RuleBundleRepository ruleBundleRepository;
+    private final RuleService self;
 
     public RuleService(RulePersistencePort rulePersistencePort, AuditService auditService,
                        @Lazy AssignmentService assignmentService,
-                       RuleBundleRepository ruleBundleRepository) {
+                       RuleBundleRepository ruleBundleRepository,
+                       @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
         this.auditService = auditService;
         this.assignmentService = assignmentService;
         this.ruleBundleRepository = ruleBundleRepository;
+        this.self = self;
     }
 
     /**
@@ -106,7 +109,7 @@ public class RuleService {
                            List<RuleNode> nodes, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
-        Rule rule = getRuleById(ruleId);
+        Rule rule = self.getRuleById(ruleId);
 
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
@@ -146,7 +149,7 @@ public class RuleService {
     public Rule cloneRule(String sourceRuleId, String newCode, String newName, String createdBy) {
         logger.info("Cloning rule: sourceId={}, newCode={}", sourceRuleId, newCode);
 
-        Rule sourceRule = getRuleById(sourceRuleId);
+        Rule sourceRule = self.getRuleById(sourceRuleId);
 
         return createRule(
                 newCode,
@@ -163,7 +166,7 @@ public class RuleService {
     public Rule activateRule(String ruleId, String activatedBy) {
         logger.info("Activating rule: id={}", ruleId);
 
-        Rule rule = getRuleById(ruleId);
+        Rule rule = self.getRuleById(ruleId);
 
         // Only allow activating draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
@@ -194,7 +197,7 @@ public class RuleService {
     public Rule archiveRule(String ruleId, String archivedBy) {
         logger.info("Archiving rule: id={}", ruleId);
 
-        Rule rule = getRuleById(ruleId);
+        Rule rule = self.getRuleById(ruleId);
 
         rule.setState(Rule.RuleState.ARCHIVED);
         rule.setActive(false);
@@ -262,7 +265,7 @@ public class RuleService {
     public Rule markRuleAsPublished(String ruleId, int newVersion) {
         logger.info("Marking rule as published: id={}, version={}", ruleId, newVersion);
 
-        Rule rule = getRuleById(ruleId);
+        Rule rule = self.getRuleById(ruleId);
         rule.setState(Rule.RuleState.PUBLISHED);
         rule.setLatestVersion(newVersion);
         rule.setUpdatedAt(Instant.now());
@@ -352,7 +355,7 @@ public class RuleService {
 
         // Get the rule from assignment
         String ruleId = assignment.get().getId();
-        return getRuleById(ruleId);
+        return self.getRuleById(ruleId);
     }
 
     /**
@@ -375,7 +378,7 @@ public class RuleService {
         return assignments.stream()
                 .map(assignment -> {
                     try {
-                        return getRuleById(assignment.getId());
+                        return self.getRuleById(assignment.getId());
                     } catch (Exception e) {
                         logger.warn("Failed to get rule {}: {}", assignment.getId(), e.getMessage());
                         return null;

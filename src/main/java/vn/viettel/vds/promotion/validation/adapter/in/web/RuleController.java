@@ -482,18 +482,11 @@ public class RuleController {
 
         logger.info("Received bundle hash request for objectType: {}, objectId: {}", objectType, objectId);
 
-        try {
-            BundleHashResponse response = ruleService.getBundleHashForObject(objectType, objectId);
+        BundleHashResponse response = ruleService.getBundleHashForObject(objectType, objectId);
 
-            logger.debug("Bundle hash retrieved for objectId: {} - hash: {}",
-                objectId, response.bundleHash());
+        logger.debug("Bundle hash retrieved for objectId: {} - hash: {}",
+            objectId, response.bundleHash());
 
-            return response;
-
-        } catch (Exception e) {
-            logger.error("Failed to get bundle hash for objectType: {}, objectId: {}",
-                objectType, objectId, e);
-            throw e;
-        }
+        return response;
     }
 }

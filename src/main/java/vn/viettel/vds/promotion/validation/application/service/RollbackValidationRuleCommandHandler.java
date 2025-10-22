@@ -259,4 +259,44 @@ public class RollbackValidationRuleCommandHandler {
             logger.error("Failed to publish rollback error event: commandId={}", commandId, e);
         }
     }
+
+    /**
+     * Wrapper method for unified consumer interface compatibility.
+     * Delegates to handleRollback for backward compatibility.
+     *
+     * @param command The rollback command
+     * @return true if rollback successful, false otherwise
+     */
+    public boolean handleCommand(RollbackValidationRuleCommand command) {
+        return handleRollback(command);
+    }
+
+    /**
+     * Handle dead letter command from DLQ topic.
+     * Logs the failed command for manual investigation and alerting.
+     *
+     * @param command The failed rollback command from DLQ
+     */
+    public void handleDeadLetterCommand(RollbackValidationRuleCommand command) {
+        logger.error("Processing dead letter RollbackValidationRuleCommand: commandId={}, campaignId={}, reason={}",
+                command.getId(),
+                command.getPayload() != null ? command.getPayload().getCampaignId() : "unknown",
+                command.getPayload() != null ? command.getPayload().getRollbackReason() : "unknown");
+
+        // Log detailed information for debugging
+        if (command.getPayload() != null) {
+            logger.error("Dead letter rollback details: validationRuleId={}, rollbackAll={}, correlationId={}",
+                    command.getPayload().getValidationRuleId(),
+                    command.getPayload().getRollbackAll(),
+                    command.getPayload().getCorrelationId());
+        }
+
+        // Could trigger alerting system, store in DB for manual processing, etc.
+        // For now, just log and acknowledge
+        publishRollbackErrorEvent(
+                command.getId(),
+                "DLQ_PROCESSING",
+                "Command moved to dead letter queue after multiple retries"
+        );
+    }
 }

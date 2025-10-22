@@ -23,9 +23,12 @@ public class ReasonCodeService {
     private static final Logger logger = LoggerFactory.getLogger(ReasonCodeService.class);
 
     private final ReasonCodePersistencePort reasonCodePersistencePort;
+    private final ReasonCodeService self;
 
-    public ReasonCodeService(ReasonCodePersistencePort reasonCodePersistencePort) {
+    public ReasonCodeService(ReasonCodePersistencePort reasonCodePersistencePort,
+                             @org.springframework.context.annotation.Lazy ReasonCodeService self) {
         this.reasonCodePersistencePort = reasonCodePersistencePort;
+        this.self = self;
     }
 
     /**
@@ -121,7 +124,7 @@ public class ReasonCodeService {
     public ReasonCode updateReasonCodeLabels(String tenantId, String id, Map<String, Object> labels) {
         logger.info("Updating reason code labels: tenant={}, id={}", tenantId, id);
 
-        ReasonCode reasonCode = getReasonCode(tenantId, id);
+        ReasonCode reasonCode = self.getReasonCode(tenantId, id);
         ReasonCode updated = reasonCode.toBuilder()
                 .labels(labels)
                 .build();
@@ -138,7 +141,7 @@ public class ReasonCodeService {
     public void deleteReasonCode(String tenantId, String id) {
         logger.info("Deleting reason code: tenant={}, id={}", tenantId, id);
 
-        ReasonCode reasonCode = getReasonCode(tenantId, id);
+        ReasonCode reasonCode = self.getReasonCode(tenantId, id);
 
         // Allow deletion
         reasonCodePersistencePort.delete(reasonCode);
@@ -152,7 +155,7 @@ public class ReasonCodeService {
     @Transactional(readOnly = true)
     public String getLocalizedMessage(String tenantId, String reasonCodeId, String locale) {
         try {
-            ReasonCode reasonCode = getReasonCode(tenantId, reasonCodeId);
+            ReasonCode reasonCode = self.getReasonCode(tenantId, reasonCodeId);
 
             if (reasonCode.getLabels() == null) {
                 return reasonCodeId; // Fallback to ID
@@ -190,7 +193,7 @@ public class ReasonCodeService {
         List<DefaultReasonCode> defaults = getDefaultReasonCodes();
 
         for (DefaultReasonCode defaultCode : defaults) {
-            if (!existsReasonCode(tenantId, defaultCode.getId())) {
+            if (!self.existsReasonCode(tenantId, defaultCode.getId())) {
                 try {
                     createReasonCode(
                             tenantId,

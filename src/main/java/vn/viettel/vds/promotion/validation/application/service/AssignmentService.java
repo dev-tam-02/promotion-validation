@@ -43,15 +43,20 @@ public class AssignmentService {
 
     private final AuditService auditService;
 
+    private final AssignmentService self;
+
     public AssignmentService(AssignmentPersistencePort assignmentPersistencePort,
 
-                             RuleService ruleService, AuditService auditService) {
+                             RuleService ruleService, AuditService auditService,
+                             @org.springframework.context.annotation.Lazy AssignmentService self) {
 
         this.assignmentPersistencePort = assignmentPersistencePort;
 
         this.ruleService = ruleService;
 
         this.auditService = auditService;
+
+        this.self = self;
 
     }
 
@@ -131,7 +136,7 @@ public class AssignmentService {
     public Assignment updateAssignment(UpdateAssignmentRequest request) {
         logger.info("Updating assignment: id={}", request.getAssignmentId());
 
-        Assignment assignment = getAssignmentById(request.getAssignmentId());
+        Assignment assignment = self.getAssignmentById(request.getAssignmentId());
 
         // Check for overlapping assignments if making this assignment active
         if (Boolean.TRUE.equals(request.getActive()) && !Boolean.TRUE.equals(assignment.getActive())) {
@@ -237,7 +242,7 @@ public class AssignmentService {
     public Assignment deactivateAssignment(String assignmentId, String updatedBy) {
         logger.info("Deactivating assignment: id={}", assignmentId);
 
-        Assignment assignment = getAssignmentById(assignmentId);
+        Assignment assignment = self.getAssignmentById(assignmentId);
         assignment.setActive(false);
         assignment.setAssignmentVersion(assignment.getAssignmentVersion() + 1);
         assignment.setUpdatedAt(Instant.now());

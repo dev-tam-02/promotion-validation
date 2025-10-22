@@ -33,9 +33,12 @@ public class TemporalPolicyService {
     );
 
     private final TemporalPolicyPersistencePort temporalPolicyPersistencePort;
+    private final TemporalPolicyService self;
 
-    public TemporalPolicyService(TemporalPolicyPersistencePort temporalPolicyPersistencePort) {
+    public TemporalPolicyService(TemporalPolicyPersistencePort temporalPolicyPersistencePort,
+                                 @org.springframework.context.annotation.Lazy TemporalPolicyService self) {
         this.temporalPolicyPersistencePort = temporalPolicyPersistencePort;
+        this.self = self;
     }
 
     /**
@@ -87,7 +90,7 @@ public class TemporalPolicyService {
     public TemporalPolicy updateTemporalPolicy(String policyId, TemporalPolicyRequest request) {
         logger.info("Updating temporal policy: id={}", policyId);
 
-        TemporalPolicy policy = getTemporalPolicyById(policyId);
+        TemporalPolicy policy = self.getTemporalPolicyById(policyId);
 
         // Use toBuilder() to create a mutable copy
         TemporalPolicy.TemporalPolicyBuilder builder = policy.toBuilder();
@@ -187,7 +190,7 @@ public class TemporalPolicyService {
     public List<TimeWindow> previewTimeWindows(String policyId, Instant from, Instant to, String timezone) {
         logger.info("Previewing time windows: policy={}, from={}, to={}", policyId, from, to);
 
-        TemporalPolicy policy = getTemporalPolicyById(policyId);
+        TemporalPolicy policy = self.getTemporalPolicyById(policyId);
 
         // This is a simplified preview - in a real implementation you would use
         // a proper RRULE library like ical4j or similar
@@ -200,7 +203,7 @@ public class TemporalPolicyService {
     @Transactional(readOnly = true)
     public boolean isTimeValidForPolicy(String policyId, Instant timestamp, String timezone) {
         try {
-            TemporalPolicy policy = getTemporalPolicyById(policyId);
+            TemporalPolicy policy = self.getTemporalPolicyById(policyId);
             return evaluateTemporalPolicy(policy, timestamp, timezone);
         } catch (Exception e) {
             logger.error("Error validating time for policy {}", policyId, e);
