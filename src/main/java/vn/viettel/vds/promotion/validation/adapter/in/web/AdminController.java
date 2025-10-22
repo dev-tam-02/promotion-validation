@@ -14,7 +14,7 @@ import java.util.Map;
 
 @RestController
 @ResponseWrapper
-@RequestMapping("/v1/admin")
+@RequestMapping("${spring.application.context-path}/v1/admin")
 public class AdminController {
 
     // String literal constants

@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 
 @RestController
 @ResponseWrapper
-@RequestMapping("/facts")
+@RequestMapping("${spring.application.context-path}/facts")
 public class FactController {
 
     private final FactOrchestrator factOrchestrator;

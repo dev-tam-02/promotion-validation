@@ -16,7 +16,7 @@ import vn.viettel.vds.promotion.validation.application.service.ValidationSetting
  * Handles validation of validation rule configurations and timeframe settings.
  */
 @RestController
-@RequestMapping("/api/v1/validation-settings")
+@RequestMapping("${spring.application.context-path}/api/v1/validation-settings")
 @ResponseWrapper
 @RequiredArgsConstructor
 @Slf4j

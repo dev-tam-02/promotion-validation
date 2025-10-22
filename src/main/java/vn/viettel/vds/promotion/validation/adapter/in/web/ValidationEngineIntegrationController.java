@@ -5,7 +5,7 @@ import vn.viettel.vds.promotion.validation.application.service.ValidationEngineI
 import vn.viettel.vds.promotion.validation.application.service.SynchronizationStatus;
 
 @RestController
-@RequestMapping("/api/v1/integration/validation-engine")
+@RequestMapping("${spring.application.context-path}/api/v1/integration/validation-engine")
 public class ValidationEngineIntegrationController {
 
     private final ValidationEngineIntegrationService integrationService;

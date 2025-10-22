@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @RestController
 @ResponseWrapper
-@RequestMapping("/api/test")
+@RequestMapping("${spring.application.context-path}/api/test")
 public class ValidationEngineTestController {
 
     private static final String BUNDLE_HASH_KEY = "bundleHash";

@@ -8,6 +8,7 @@ spring:
       - org.springframework.boot.actuate.autoconfigure.tracing.zipkin.ZipkinAutoConfiguration
   application:
     name: validation
+    context-path: /promotion/promotion-validation
 
   # MariaDB Secondary Database (for validation rules/metadata)
   datasource:
@@ -47,6 +48,13 @@ spring:
       enabled: false  # Disable auto-start of jobs (we'll use scheduling)
     jdbc:
       initialize-schema: always  # Create Spring Batch tables if not exist
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: ${spring.application.context-path}/v3/api-docs
+  swagger-ui:
+    path: ${spring.application.context-path}/swagger-ui.html
 
 # Server Configuration
 server:

@@ -19,7 +19,7 @@ import java.util.UUID;
  * This controller allows manual triggering of validation command processing via HTTP
  */
 @RestController
-@RequestMapping("/v1/validation/commands")
+@RequestMapping("${spring.application.context-path}/v1/validation/commands")
 public class SettingValidationCommandController {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationCommandController.class);

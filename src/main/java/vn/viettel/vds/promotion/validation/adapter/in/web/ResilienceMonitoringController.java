@@ -11,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @ResponseWrapper
-@RequestMapping("/api/v1/resilience")
+@RequestMapping("${spring.application.context-path}/api/v1/resilience")
 public class ResilienceMonitoringController {
 
     private static final Logger logger = LoggerFactory.getLogger(ResilienceMonitoringController.class);

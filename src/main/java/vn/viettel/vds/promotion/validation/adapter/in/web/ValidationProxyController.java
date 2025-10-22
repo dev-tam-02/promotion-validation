@@ -15,7 +15,7 @@ import java.util.Map;
  */
 @RestController
 @ResponseWrapper
-@RequestMapping("/api/validation")
+@RequestMapping("${spring.application.context-path}/api/validation")
 @RequiredArgsConstructor
 @Slf4j
 public class ValidationProxyController {

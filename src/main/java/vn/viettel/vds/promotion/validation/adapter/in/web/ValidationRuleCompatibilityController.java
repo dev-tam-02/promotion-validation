@@ -22,7 +22,7 @@ import java.util.Optional;
  * Allows campaign service to validate rule compatibility before starting saga
  */
 @RestController
-@RequestMapping("/api/v1/validation-rules")
+@RequestMapping("${spring.application.context-path}/api/v1/validation-rules")
 public class ValidationRuleCompatibilityController {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationRuleCompatibilityController.class);

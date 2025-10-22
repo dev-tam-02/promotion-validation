@@ -30,7 +30,7 @@ import java.util.Optional;
 
 @RestController
 @ResponseWrapper
-@RequestMapping("/v1/rules")
+@RequestMapping("${spring.application.context-path}/v1/rules")
 @Tag(name = "Rules", description = "Rule management API")
 public class RuleController {
 

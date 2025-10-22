@@ -23,7 +23,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/operators")
+@RequestMapping("${spring.application.context-path}/v1/operators")
 @ResponseWrapper
 @Tag(name = "Operators", description = "Operator registry management API")
 public class OperatorController {

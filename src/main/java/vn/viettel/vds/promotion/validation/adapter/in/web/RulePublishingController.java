@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 @RestController
-@RequestMapping("/v1/rules/publishing")
+@RequestMapping("${spring.application.context-path}/v1/rules/publishing")
 @ResponseWrapper
 @Tag(name = "Rule Publishing", description = "Rule publishing and deployment management API")
 public class RulePublishingController {

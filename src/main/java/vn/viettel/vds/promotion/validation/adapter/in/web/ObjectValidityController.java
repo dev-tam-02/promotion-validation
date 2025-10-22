@@ -17,7 +17,7 @@ import vn.viettel.vds.promotion.validation.application.service.ObjectValiditySer
  */
 @RestController
 @ResponseWrapper
-@RequestMapping("/api/v1/objects")
+@RequestMapping("${spring.application.context-path}/api/v1/objects")
 @RequiredArgsConstructor
 @Slf4j
 public class ObjectValidityController {
