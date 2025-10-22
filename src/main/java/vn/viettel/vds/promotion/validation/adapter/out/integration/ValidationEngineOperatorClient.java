@@ -9,8 +9,8 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateE
 import java.util.List;
 
 @FeignClient(
-        name = "validation-engine-operator",
-        url = "${integration.validation-engine.url:http://localhost:8082}",
+        name = "validation-engine",
+        path = "/promotion/promotion-rule-engine",
         fallback = ValidationEngineOperatorClientFallback.class
 )
 public interface ValidationEngineOperatorClient {

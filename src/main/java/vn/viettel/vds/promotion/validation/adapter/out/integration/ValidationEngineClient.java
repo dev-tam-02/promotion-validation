@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 @FeignClient(
-        name = "validation-engine-service",
-        url = "${integration.validation-engine.url:http://localhost:16013}",
+        name = "validation-engine",
+        path = "/promotion/promotion-rule-engine",
         fallback = ValidationEngineClientFallback.class
 )
 public interface ValidationEngineClient {
