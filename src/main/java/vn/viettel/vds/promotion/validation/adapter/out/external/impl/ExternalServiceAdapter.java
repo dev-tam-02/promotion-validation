@@ -2,9 +2,9 @@ package vn.viettel.vds.promotion.validation.adapter.out.external.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import vn.viettel.vds.promotion.validation.adapter.out.external.CustomerFeignClient;
+import vn.viettel.vds.promotion.validation.adapter.out.external.OrderFeignClient;
 import vn.viettel.vds.promotion.validation.application.port.out.ExternalServicePort;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationContext;
 
@@ -13,35 +13,32 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Implementation of ExternalServicePort for integrating with external services
+ * Implementation of ExternalServicePort for integrating with external services.
+ * Uses Feign clients for service-to-service communication.
  */
 @Component
 public class ExternalServiceAdapter implements ExternalServicePort {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalServiceAdapter.class);
 
-    private final RestTemplate restTemplate;
-    private final String customerServiceUrl;
-    private final String orderServiceUrl;
+    private final CustomerFeignClient customerFeignClient;
+    private final OrderFeignClient orderFeignClient;
 
     public ExternalServiceAdapter(
-            RestTemplate restTemplate,
-            @Value("${promix.validation.external.customer-service-url:http://customer:8080}") String customerServiceUrl,
-            @Value("${promix.validation.external.order-service-url:http://order:8080}") String orderServiceUrl
+            CustomerFeignClient customerFeignClient,
+            OrderFeignClient orderFeignClient
     ) {
-        this.restTemplate = restTemplate;
-        this.customerServiceUrl = customerServiceUrl;
-        this.orderServiceUrl = orderServiceUrl;
+        this.customerFeignClient = customerFeignClient;
+        this.orderFeignClient = orderFeignClient;
+        log.info("ExternalServiceAdapter initialized with Feign clients");
     }
 
     @Override
     public Optional<Map<String, Object>> fetchCustomerData(String customerId) {
         try {
-            String url = customerServiceUrl + "/api/v1/customers/" + customerId;
+            log.debug("Fetching customer data for: {}", customerId);
 
-            log.debug("Fetching customer data from: {}", url);
-
-            Map<String, Object> customerData = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> customerData = customerFeignClient.getCustomerById(customerId);
 
             if (customerData != null) {
                 log.debug("Successfully fetched customer data for: {}", customerId);
@@ -60,11 +57,9 @@ public class ExternalServiceAdapter implements ExternalServicePort {
     @Override
     public Optional<Map<String, Object>> fetchOrderData(String orderId) {
         try {
-            String url = orderServiceUrl + "/api/v1/orders/" + orderId;
+            log.debug("Fetching order data for: {}", orderId);
 
-            log.debug("Fetching order data from: {}", url);
-
-            Map<String, Object> orderData = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> orderData = orderFeignClient.getOrderById(orderId);
 
             if (orderData != null) {
                 log.debug("Successfully fetched order data for: {}", orderId);

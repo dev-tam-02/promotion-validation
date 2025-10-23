@@ -1,17 +1,14 @@
 package vn.viettel.vds.promotion.validation.adapter.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.web.client.RestTemplate;
 import vn.viettel.vds.promotion.validation.domain.factory.RuleFactory;
 import vn.viettel.vds.promotion.validation.domain.service.RuleEvaluationService;
 import vn.viettel.vds.promotion.validation.domain.service.RuleVersioningDomainService;
 
-import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -40,17 +37,6 @@ public class ValidationHexagonalConfig {
     @Bean
     public RuleVersioningDomainService ruleVersioningDomainService() {
         return new RuleVersioningDomainService();
-    }
-
-    /**
-     * External Service Configuration
-     */
-    @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        return builder
-                .setConnectTimeout(Duration.ofSeconds(5))
-                .setReadTimeout(Duration.ofSeconds(10))
-                .build();
     }
 
     /**

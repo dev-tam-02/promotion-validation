@@ -8,6 +8,7 @@ import java.util.Map;
 
 @FeignClient(
         name = "validation-engine",
+        contextId = "validation-engine-proxy-client",
         path = "/promotion/promotion-rule-engine",
         fallback = ValidationProxyFeignClientFallback.class
 )

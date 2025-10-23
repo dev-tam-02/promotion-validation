@@ -10,6 +10,7 @@ import java.util.Map;
 
 @FeignClient(
         name = "validation-engine",
+        contextId = "validation-engine-client",
         path = "/promotion/promotion-rule-engine",
         fallback = ValidationEngineClientFallback.class
 )

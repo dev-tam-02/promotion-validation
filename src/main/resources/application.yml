@@ -120,6 +120,18 @@ promix:
       enabled: true
       service-name: ${spring.application.name}
 
+  # External Services Configuration
+  validation:
+    external:
+      customer:
+        name: ${CUSTOMER_SERVICE_NAME:customer}  # Eureka service name
+        path: ${CUSTOMER_SERVICE_PATH:/api/v1/customers}  # Base path for customer API
+        service-url: ${CUSTOMER_SERVICE_URL:http://customer:8080}  # Deprecated - kept for backward compatibility
+      order:
+        name: ${ORDER_SERVICE_NAME:order}  # Eureka service name
+        path: ${ORDER_SERVICE_PATH:/api/v1/orders}  # Base path for order API
+        service-url: ${ORDER_SERVICE_URL:http://order:8080}  # Deprecated - kept for backward compatibility
+
   # MongoDB Configuration - DISABLED (using JPA as primary database)
   mongo:
     enabled: false

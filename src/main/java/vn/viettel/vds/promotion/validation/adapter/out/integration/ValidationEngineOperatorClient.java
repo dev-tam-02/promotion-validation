@@ -10,6 +10,7 @@ import java.util.List;
 
 @FeignClient(
         name = "validation-engine",
+        contextId = "validation-engine-operator-client",
         path = "/promotion/promotion-rule-engine",
         fallback = ValidationEngineOperatorClientFallback.class
 )
