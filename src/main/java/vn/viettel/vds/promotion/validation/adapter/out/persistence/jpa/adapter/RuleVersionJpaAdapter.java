@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.util.List;
 import java.util.Optional;
+
 @Component
 @ConditionalOnPromixJpa
 public class RuleVersionJpaAdapter implements RuleVersionPersistencePort {

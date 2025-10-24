@@ -10,6 +10,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
 
 import java.util.List;
 import java.util.Optional;
+
 @Component
 @ConditionalOnPromixJpa
 public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePort {

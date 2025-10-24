@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 @Component
 @ConditionalOnPromixJpa
 public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {

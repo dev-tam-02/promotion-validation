@@ -17,7 +17,6 @@ import java.util.List;
  * The database schema only has: id, entity_type, entity_id, rule_id, priority, active,
  * created_at, updated_at
  * <p>
-
  */
 @Mapper(componentModel = "spring")
 public interface AssignmentEntityMapper {

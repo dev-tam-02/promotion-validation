@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -15,11 +14,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @Service

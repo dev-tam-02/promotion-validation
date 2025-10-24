@@ -8,7 +8,6 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Service for validating validation settings.
@@ -259,8 +258,8 @@ public class ValidationSettingsService {
         // Must contain at least one duration component (digit followed by Y/M/D/H/M/S)
         // Using possessive quantifiers (++) to prevent catastrophic backtracking
         return duration.matches("P(?>\\d+[YMD])+") ||
-               duration.matches("PT(?>\\d+[HMS])+") ||
-               duration.matches("P(?>\\d+[YMD])+T(?>\\d+[HMS])+");
+                duration.matches("PT(?>\\d+[HMS])+") ||
+                duration.matches("P(?>\\d+[YMD])+T(?>\\d+[HMS])+");
     }
 
     private boolean isValidInterval(String interval) {

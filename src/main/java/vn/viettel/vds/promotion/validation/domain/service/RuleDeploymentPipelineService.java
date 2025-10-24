@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 public class RuleDeploymentPipelineService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleDeploymentPipelineService.class);
-    
+
     // Pipeline stage constants
     private static final String STAGE_VALIDATION = "VALIDATION";
     private static final String STAGE_COMPILATION = "COMPILATION";
@@ -537,6 +537,35 @@ public class RuleDeploymentPipelineService {
             this.timestamp = builder.timestamp;
         }
 
+        // Getters
+        public String getTenantId() {
+            return tenantId;
+        }
+
+        public String getOverallHealth() {
+            return overallHealth;
+        }
+
+        public int getTotalRules() {
+            return totalRules;
+        }
+
+        public int getDeployedRules() {
+            return deployedRules;
+        }
+
+        public int getHealthyRules() {
+            return healthyRules;
+        }
+
+        public List<String> getUnhealthyRules() {
+            return unhealthyRules;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
         public static class Builder {
             private String tenantId;
             private String overallHealth;
@@ -584,35 +613,6 @@ public class RuleDeploymentPipelineService {
             public EnvironmentHealthStatus build() {
                 return new EnvironmentHealthStatus(this);
             }
-        }
-
-        // Getters
-        public String getTenantId() {
-            return tenantId;
-        }
-
-        public String getOverallHealth() {
-            return overallHealth;
-        }
-
-        public int getTotalRules() {
-            return totalRules;
-        }
-
-        public int getDeployedRules() {
-            return deployedRules;
-        }
-
-        public int getHealthyRules() {
-            return healthyRules;
-        }
-
-        public List<String> getUnhealthyRules() {
-            return unhealthyRules;
-        }
-
-        public long getTimestamp() {
-            return timestamp;
         }
     }
 }

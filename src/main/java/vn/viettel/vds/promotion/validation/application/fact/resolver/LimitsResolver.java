@@ -6,8 +6,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.LimitsFact;
 
 import java.math.BigDecimal;
@@ -120,7 +120,7 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
 
         // Map limit collections
         mapLimitCollections(data, builder);
-        
+
         // Map counters and snapshot
         mapCountersAndSnapshot(data, builder);
 

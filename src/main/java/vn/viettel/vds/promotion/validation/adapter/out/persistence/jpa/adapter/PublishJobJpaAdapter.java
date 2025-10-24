@@ -14,6 +14,7 @@ import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 @Component
 @ConditionalOnPromixJpa
 public class PublishJobJpaAdapter implements PublishJobPersistencePort {

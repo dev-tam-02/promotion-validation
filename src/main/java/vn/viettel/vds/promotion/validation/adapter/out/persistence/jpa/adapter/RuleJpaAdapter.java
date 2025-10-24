@@ -17,6 +17,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
 import java.util.Optional;
+
 @Component
 @ConditionalOnPromixJpa
 public class RuleJpaAdapter implements RulePersistencePort {

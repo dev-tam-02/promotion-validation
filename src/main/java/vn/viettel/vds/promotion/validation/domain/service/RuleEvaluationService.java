@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+
 /**
  * Domain service responsible for evaluating rules
  * Contains complex business logic for rule evaluation

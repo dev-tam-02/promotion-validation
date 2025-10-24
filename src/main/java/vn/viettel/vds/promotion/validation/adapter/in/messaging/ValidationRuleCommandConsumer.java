@@ -16,7 +16,7 @@ import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
 
 /**
  * Unified Kafka consumer for ValidationRuleCommand with type-based routing.
- *
+ * <p>
  * This consumer uses Java 21 pattern matching to handle different command types
  * from a single topic, providing a cleaner and more maintainable alternative to
  * multiple specialized consumers.
@@ -62,11 +62,11 @@ public class ValidationRuleCommandConsumer {
      * }
      * }</pre>
      *
-     * @param command The deserialized command (polymorphic type)
-     * @param topic Kafka topic name
-     * @param partition Partition number
-     * @param offset Message offset
-     * @param key Message key (optional)
+     * @param command        The deserialized command (polymorphic type)
+     * @param topic          Kafka topic name
+     * @param partition      Partition number
+     * @param offset         Message offset
+     * @param key            Message key (optional)
      * @param acknowledgment Manual acknowledgment callback
      */
     @KafkaListener(

@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
 import java.util.Optional;
+
 /**
  * JPA adapter implementation for Operator persistence.
  * Active when promix.jpa.enabled=true

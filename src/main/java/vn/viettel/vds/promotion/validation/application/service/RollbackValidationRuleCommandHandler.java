@@ -4,14 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
-
+import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+
 import java.time.Instant;
 import java.util.List;
 

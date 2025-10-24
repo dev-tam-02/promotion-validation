@@ -10,6 +10,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Optional;
+
 /**
  * JPA adapter implementation for ValidationRuleRepositoryPort
  */

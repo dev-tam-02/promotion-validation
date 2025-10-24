@@ -17,6 +17,7 @@ import vn.viettel.vds.promotion.validation.domain.service.ValidationDomainServic
 
 import java.time.Instant;
 import java.util.*;
+
 /**
  * Implementation of ManageValidationRulesUseCase
  * Handles rule management operations
@@ -29,7 +30,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
 
     private static final String RULE_NOT_FOUND_MESSAGE = "Rule not found: ";
     private static final String RULES_KEY = "rules";
-    
+
     private final ValidationRuleRepositoryPort ruleRepository;
     private final ValidationEnginePort validationEngine;
     private final ValidationDomainService domainService;

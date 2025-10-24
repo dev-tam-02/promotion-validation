@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.domain.model.AuditLog;
 
 import java.time.Instant;
 import java.util.List;
+
 /**
  * JPA adapter implementation for AuditLog persistence.
  */

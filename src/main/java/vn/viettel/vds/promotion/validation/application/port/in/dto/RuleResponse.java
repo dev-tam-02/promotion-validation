@@ -6,6 +6,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
 
 import java.time.Instant;
 import java.util.List;
+
 /**
  * Response DTO for a validation rule
  */

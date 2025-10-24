@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Feign client for communicating with Customer microservice.
  * Uses Eureka service discovery for dynamic service resolution.
- *
+ * <p>
  * Configuration:
  * - name: Eureka service name from application.yml
  * - path: Base path for all customer API endpoints

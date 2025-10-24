@@ -36,7 +36,7 @@ public class FactAggregationProperties {
     public static class Cache {
         private static final int DEFAULT_TTL_SECONDS = 60;
         private static final int DEFAULT_MAX_SIZE = 1000;
-        
+
         private int defaultTtlSeconds = DEFAULT_TTL_SECONDS;
         private int maxSize = DEFAULT_MAX_SIZE;
         private boolean enabled = true;
@@ -124,10 +124,9 @@ public class FactAggregationProperties {
     }
 
     public static class ServiceConfig {
-        private String baseUrl;
         private static final int DEFAULT_TIMEOUT_MS = 5000;
         private static final int DEFAULT_PRIORITY = 100;
-        
+        private String baseUrl;
         private int timeoutMs = DEFAULT_TIMEOUT_MS;
         private boolean enabled = true;
         private int priority = DEFAULT_PRIORITY;
@@ -174,7 +173,7 @@ public class FactAggregationProperties {
 
     public static class Policy {
         private static final long DEFAULT_TIMEOUT_MS = 10000L;
-        
+
         private long defaultTimeoutMs = DEFAULT_TIMEOUT_MS;
         private boolean allowPartialResults = true;
         private boolean enableFallback = true;

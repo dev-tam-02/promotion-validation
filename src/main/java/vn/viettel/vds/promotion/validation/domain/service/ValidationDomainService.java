@@ -121,7 +121,7 @@ public class ValidationDomainService {
 
     /**
      * Evaluate a single rule against the request
-     *
+     * <p>
      * Note: This is a simplified implementation. In production, this would delegate to
      * a RuleEvaluationService that performs actual rule evaluation against ValidationContext.
      * For now, we skip evaluation for applicable rules as the actual validation logic
@@ -154,6 +154,7 @@ public class ValidationDomainService {
 
     /**
      * Evaluate basic rule conditions
+     *
      * @param rule the rule to evaluate
      * @return true if all basic conditions pass, false if validation fails
      */

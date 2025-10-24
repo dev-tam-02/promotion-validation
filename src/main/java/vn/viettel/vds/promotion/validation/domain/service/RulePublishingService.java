@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 @Service
 @Transactional
 public class RulePublishingService {
@@ -47,7 +48,7 @@ public class RulePublishingService {
             }
 
             performRulePublishingSteps(rule, compileResponse);
-            
+
             return createSuccessfulPublishResult(ruleId, compileResponse);
 
         } catch (Exception e) {
@@ -270,10 +271,10 @@ public class RulePublishingService {
         for (RuleNode node : nodes) {
             // Convert children nodes to IDs
             List<String> childIds = convertChildrenToIds(node);
-            
+
             // Create RuleNodeDto using setters (it's a class, not a record)
             RuleNodeDto dto = createRuleNodeDto(node, childIds);
-            
+
             dtos.add(dto);
         }
 

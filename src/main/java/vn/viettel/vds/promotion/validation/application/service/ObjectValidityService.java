@@ -7,7 +7,6 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidateObjectVali
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.Optional;
 
 /**

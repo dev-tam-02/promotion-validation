@@ -4,6 +4,7 @@ import vn.viettel.vds.promotion.validation.domain.model.LogicType;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
+
 /**
  * Response DTO for a rule node
  */

@@ -9,6 +9,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.ArrayList;
 import java.util.List;
+
 /**
  * Domain service for evaluating stacking rules against validation facts.
  * <p>

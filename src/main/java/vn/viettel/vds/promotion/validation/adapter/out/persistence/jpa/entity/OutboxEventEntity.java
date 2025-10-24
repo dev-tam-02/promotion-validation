@@ -5,8 +5,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.*;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 
 import java.time.Instant;
 import java.util.HashMap;

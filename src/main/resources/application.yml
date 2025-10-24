@@ -180,7 +180,7 @@ promix:
       # Security Configuration
       security:
         protocol: SASL_PLAINTEXT
-#
+      #
       # SASL Authentication Configuration
       sasl:
         enabled: true

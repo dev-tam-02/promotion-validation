@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+
 /**
  * Domain model representing the result of stackable discount validation.
  * <p>

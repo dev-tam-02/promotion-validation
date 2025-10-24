@@ -127,10 +127,10 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
 
         // Map identification fields
         mapIdentificationFields(data, builder);
-        
+
         // Map contact fields
         mapContactFields(data, builder);
-        
+
         // Map preference fields
         mapPreferenceFields(data, builder);
 

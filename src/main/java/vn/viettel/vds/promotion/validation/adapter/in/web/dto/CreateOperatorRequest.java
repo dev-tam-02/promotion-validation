@@ -40,6 +40,7 @@ public class CreateOperatorRequest {
     @Schema(description = "Operator status", example = "active", allowableValues = {"active", "deprecated"})
     @JsonProperty("status")
     private String status = "active";
+
     public String getName() {
         return name;
     }

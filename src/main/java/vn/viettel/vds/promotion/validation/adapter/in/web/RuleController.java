@@ -468,7 +468,7 @@ public class RuleController {
     }
 
     @Operation(summary = "Get bundle hash for object",
-               description = "Retrieve the compiled bundle hash for a specific object (campaign, voucher, etc.)")
+            description = "Retrieve the compiled bundle hash for a specific object (campaign, voucher, etc.)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bundle hash found"),
             @ApiResponse(responseCode = "404", description = "No bundle found for this object")
@@ -485,7 +485,7 @@ public class RuleController {
         BundleHashResponse response = ruleService.getBundleHashForObject(objectType, objectId);
 
         logger.debug("Bundle hash retrieved for objectId: {} - hash: {}",
-            objectId, response.bundleHash());
+                objectId, response.bundleHash());
 
         return response;
     }

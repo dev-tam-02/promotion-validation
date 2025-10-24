@@ -16,6 +16,7 @@ import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 /**
  * JPA adapter implementation for OutboxEventPersistencePort.
  * Provides JPA-based persistence for outbox events.

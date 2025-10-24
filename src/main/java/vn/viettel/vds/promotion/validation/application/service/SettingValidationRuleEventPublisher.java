@@ -10,10 +10,13 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.*;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.ApplicabilityResult;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.AssignmentResult;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.SettingValidationRuleEventPayload;
+import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.TimeframeResult;
 
 import java.time.Instant;
 import java.util.HashMap;

@@ -53,6 +53,7 @@ public record OrderFact(
         private Instant createdAt;
         private Instant updatedAt;
         private Map<String, Object> metadata;
+
         public Builder orderId(String orderId) {
             this.orderId = orderId;
             return this;

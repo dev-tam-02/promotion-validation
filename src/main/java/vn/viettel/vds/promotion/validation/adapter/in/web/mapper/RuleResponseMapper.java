@@ -8,6 +8,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
+
 /**
  * Manual mapper for converting between Rule domain model and RuleResponse DTOs.
  *

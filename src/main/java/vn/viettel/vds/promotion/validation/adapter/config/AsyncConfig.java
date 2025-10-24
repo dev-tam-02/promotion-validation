@@ -17,7 +17,15 @@ public class AsyncConfig {
     private static final int TASK_EXECUTOR_MAX_POOL_SIZE = 20;
     private static final int TASK_EXECUTOR_QUEUE_CAPACITY = 100;
     private static final int TASK_EXECUTOR_AWAIT_TERMINATION_SECONDS = 30;
-    
+    private static final int OUTBOX_EXECUTOR_CORE_POOL_SIZE = 3;
+    private static final int OUTBOX_EXECUTOR_MAX_POOL_SIZE = 10;
+    private static final int OUTBOX_EXECUTOR_QUEUE_CAPACITY = 50;
+    private static final int OUTBOX_EXECUTOR_AWAIT_TERMINATION_SECONDS = 60;
+    private static final int PUBLISH_EXECUTOR_CORE_POOL_SIZE = 2;
+    private static final int PUBLISH_EXECUTOR_MAX_POOL_SIZE = 5;
+    private static final int PUBLISH_EXECUTOR_QUEUE_CAPACITY = 25;
+    private static final int PUBLISH_EXECUTOR_AWAIT_TERMINATION_SECONDS = 120;
+
     /**
      * Task executor for async operations
      */
@@ -34,11 +42,6 @@ public class AsyncConfig {
         return executor;
     }
 
-    private static final int OUTBOX_EXECUTOR_CORE_POOL_SIZE = 3;
-    private static final int OUTBOX_EXECUTOR_MAX_POOL_SIZE = 10;
-    private static final int OUTBOX_EXECUTOR_QUEUE_CAPACITY = 50;
-    private static final int OUTBOX_EXECUTOR_AWAIT_TERMINATION_SECONDS = 60;
-    
     /**
      * Task executor specifically for outbox event processing
      */
@@ -55,11 +58,6 @@ public class AsyncConfig {
         return executor;
     }
 
-    private static final int PUBLISH_EXECUTOR_CORE_POOL_SIZE = 2;
-    private static final int PUBLISH_EXECUTOR_MAX_POOL_SIZE = 5;
-    private static final int PUBLISH_EXECUTOR_QUEUE_CAPACITY = 25;
-    private static final int PUBLISH_EXECUTOR_AWAIT_TERMINATION_SECONDS = 120;
-    
     /**
      * Task executor for publishing jobs
      */

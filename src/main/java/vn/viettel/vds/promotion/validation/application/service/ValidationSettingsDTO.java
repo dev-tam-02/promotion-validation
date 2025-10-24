@@ -2,7 +2,6 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 
 @Data

@@ -393,7 +393,7 @@ public class RuleService {
      * Returns the latest compiled bundle hash for the specified object.
      *
      * @param objectType Object type (campaign, voucher, tier, reward)
-     * @param objectId Object identifier/key
+     * @param objectId   Object identifier/key
      * @return BundleHashResponse with bundle hash and metadata
      * @throws ResourceNotFoundException if no bundle found for object
      */

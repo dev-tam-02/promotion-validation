@@ -1,8 +1,12 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import vn.viettel.vds.promotion.validation.application.service.ValidationEngineIntegrationService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import vn.viettel.vds.promotion.validation.application.service.SynchronizationStatus;
+import vn.viettel.vds.promotion.validation.application.service.ValidationEngineIntegrationService;
 
 @RestController
 @RequestMapping("${spring.application.context-path}/api/v1/integration/validation-engine")

@@ -132,10 +132,10 @@ public class CandidateResolver extends AbstractFactResolver<CandidateFact> {
 
         // Map basic fields
         mapBasicFields(data, builder);
-        
+
         // Map date fields
         mapDateFields(data, builder);
-        
+
         // Map configuration fields
         mapConfigurationFields(data, builder);
 

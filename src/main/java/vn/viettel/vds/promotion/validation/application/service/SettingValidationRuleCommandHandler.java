@@ -5,10 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
@@ -17,9 +13,13 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Va
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
-import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingException;
 import vn.viettel.vds.promotion.validation.domain.common.Result;
+import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingException;
 
 import java.time.Instant;
 import java.util.List;
@@ -690,6 +690,45 @@ public class SettingValidationRuleCommandHandler {
                     .build();
         }
 
+        // Getters
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getErrorCode() {
+            return errorCode;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public vn.viettel.vds.promotion.validation.domain.model.Assignment getAssignment() {
+            return assignment;
+        }
+
+        public ApplicabilityScope getApplicabilityData() {
+            return applicabilityData;
+        }
+
+        public String getTimeFrameId() {
+            return timeFrameId;
+        }
+
+        public TimeFrame getTimeframeData() {
+            return timeframeData;
+        }
+
+        /**
+         * Convert to serializable DTO for idempotency storage
+         * Excludes Avro objects that cannot be serialized by Jackson
+         */
+        public IdempotencyResultDto toIdempotencyDto() {
+            String assignmentId = assignment != null ? assignment.getId() : null;
+            String ruleId = assignment != null ? assignment.getRuleId() : null;
+            return new IdempotencyResultDto(success, assignmentId, ruleId, timeFrameId);
+        }
+
         static class Builder {
             private boolean success;
             private String errorCode;
@@ -737,45 +776,6 @@ public class SettingValidationRuleCommandHandler {
             CommandProcessingResult build() {
                 return new CommandProcessingResult(this);
             }
-        }
-
-        // Getters
-        public boolean isSuccess() {
-            return success;
-        }
-
-        public String getErrorCode() {
-            return errorCode;
-        }
-
-        public String getErrorMessage() {
-            return errorMessage;
-        }
-
-        public vn.viettel.vds.promotion.validation.domain.model.Assignment getAssignment() {
-            return assignment;
-        }
-
-        public ApplicabilityScope getApplicabilityData() {
-            return applicabilityData;
-        }
-
-        public String getTimeFrameId() {
-            return timeFrameId;
-        }
-
-        public TimeFrame getTimeframeData() {
-            return timeframeData;
-        }
-
-        /**
-         * Convert to serializable DTO for idempotency storage
-         * Excludes Avro objects that cannot be serialized by Jackson
-         */
-        public IdempotencyResultDto toIdempotencyDto() {
-            String assignmentId = assignment != null ? assignment.getId() : null;
-            String ruleId = assignment != null ? assignment.getRuleId() : null;
-            return new IdempotencyResultDto(success, assignmentId, ruleId, timeFrameId);
         }
     }
 }

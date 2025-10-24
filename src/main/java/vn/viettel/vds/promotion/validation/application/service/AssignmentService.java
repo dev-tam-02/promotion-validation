@@ -10,14 +10,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.service.dto.CreateAssignmentRequest;
+import vn.viettel.vds.promotion.validation.application.service.dto.UpdateAssignmentRequest;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-
-import vn.viettel.vds.promotion.validation.application.service.dto.CreateAssignmentRequest;
-import vn.viettel.vds.promotion.validation.application.service.dto.UpdateAssignmentRequest;
 
 @Service
 
@@ -61,9 +60,7 @@ public class AssignmentService {
     }
 
     /**
-
      * Create a new assignment
-
      */
 
     public Assignment createAssignment(CreateAssignmentRequest request) {

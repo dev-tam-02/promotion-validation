@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.domain.fact.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 /**
  * Builder for constructing FactPack from validation commands.
  * <p>

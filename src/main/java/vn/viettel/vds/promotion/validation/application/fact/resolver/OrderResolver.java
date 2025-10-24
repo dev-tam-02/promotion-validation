@@ -6,9 +6,9 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.DiscountFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.fact.OrderFact;
 import vn.viettel.vds.promotion.validation.domain.fact.OrderItemFact;
 
@@ -21,12 +21,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
 @Component
 public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
     private static final String STATUS_KEY = "status";
     private static final String METADATA_KEY = "metadata";
-    
+
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String baseUrl;
@@ -134,10 +135,10 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
         // Map basic fields
         mapBasicFields(data, builder);
-        
+
         // Map monetary fields
         mapMonetaryFields(data, builder);
-        
+
         // Map items and derived fields
         mapItemsAndDerivedFields(data, builder);
 
@@ -231,10 +232,10 @@ public class OrderResolver extends AbstractFactResolver<OrderFact> {
 
         // Map basic fields
         mapBasicItemFields(data, builder);
-        
+
         // Map monetary fields
         mapItemMonetaryFields(data, builder);
-        
+
         // Map additional fields
         mapAdditionalItemFields(data, builder);
 
