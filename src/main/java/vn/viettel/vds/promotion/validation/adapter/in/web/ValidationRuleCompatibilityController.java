@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.web.annotation.ResponseWrapper;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import java.util.Optional;
  * Allows campaign service to validate rule compatibility before starting saga
  */
 @RestController
+@ResponseWrapper
 @RequestMapping("${spring.application.context-path}/api/v1/validation-rules")
 public class ValidationRuleCompatibilityController {
 

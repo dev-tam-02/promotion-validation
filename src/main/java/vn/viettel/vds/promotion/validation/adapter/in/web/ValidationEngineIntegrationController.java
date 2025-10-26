@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.web.annotation.ResponseWrapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +10,7 @@ import vn.viettel.vds.promotion.validation.application.service.SynchronizationSt
 import vn.viettel.vds.promotion.validation.application.service.ValidationEngineIntegrationService;
 
 @RestController
+@ResponseWrapper
 @RequestMapping("${spring.application.context-path}/api/v1/integration/validation-engine")
 public class ValidationEngineIntegrationController {
 

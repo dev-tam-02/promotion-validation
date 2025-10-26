@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.web.annotation.ResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.util.UUID;
  * This controller allows manual triggering of validation command processing via HTTP
  */
 @RestController
+@ResponseWrapper
 @RequestMapping("${spring.application.context-path}/v1/validation/commands")
 public class SettingValidationCommandController {
 
