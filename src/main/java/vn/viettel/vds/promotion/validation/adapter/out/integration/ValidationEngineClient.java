@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.integration;
 
+import com.promix.platform.web.template.ResponseTemplate;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,33 +10,33 @@ import java.util.List;
 import java.util.Map;
 
 @FeignClient(
-        name = "validation-engine",
+        name = "${integration.validation-engine.service-name:promotion-validation-engine}",
         contextId = "validation-engine-client",
-        path = "/promotion/promotion-rule-engine",
+        path = "${integration.validation-engine.service-path:/promotion/promotion-validation-engine}",
         fallback = ValidationEngineClientFallback.class
 )
 public interface ValidationEngineClient {
 
     @PostMapping("/v1/compiler/compile")
-    CompileResponse compile(@RequestBody CompileRequest request);
+    ResponseTemplate<CompileResponse> compile(@RequestBody CompileRequest request);
 
     @PostMapping("/v1/execute")
-    ExecuteResponse execute(@RequestBody ExecuteRequest request);
+    ResponseTemplate<ExecuteResponse> execute(@RequestBody ExecuteRequest request);
 
     @PostMapping("/v1/execute/batch")
-    List<ExecuteResponse> executeBatch(@RequestBody List<ExecuteRequest> requests);
+    ResponseTemplate<List<ExecuteResponse>> executeBatch(@RequestBody List<ExecuteRequest> requests);
 
     @PostMapping("/v1/compile/warmup")
-    WarmupResponse warmup(@RequestBody WarmupRequest request);
+    ResponseTemplate<WarmupResponse> warmup(@RequestBody WarmupRequest request);
 
     @GetMapping("/v1/compile/bundle/{bundleHash}/status")
-    BundleStatusResponse getBundleStatus(@PathVariable("bundleHash") String bundleHash);
+    ResponseTemplate<BundleStatusResponse> getBundleStatus(@PathVariable("bundleHash") String bundleHash);
 
     @PostMapping("/v1/rules/deploy")
-    DeployResponse deployRuleSet(@RequestParam("ruleSetId") String ruleSetId, @RequestBody Map<String, Object> compiledRules);
+    ResponseTemplate<DeployResponse> deployRuleSet(@RequestParam("ruleSetId") String ruleSetId, @RequestBody Map<String, Object> compiledRules);
 
     @GetMapping("/v1/operators/supported")
-    List<String> getSupportedOperators();
+    ResponseTemplate<List<String>> getSupportedOperators();
 
     @GetMapping("/actuator/health")
     ResponseEntity<String> getHealth();

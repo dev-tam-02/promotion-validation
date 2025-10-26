@@ -10,10 +10,29 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "integration.validation-engine")
 public class ValidationEngineProperties {
 
+    private String serviceName = "promotion-validation-engine";
+    private String servicePath = "/promotion/promotion-validation-engine";
+
     @Positive
     private int retryAttempts = 3;
 
     private CircuitBreakerConfig circuitBreaker = new CircuitBreakerConfig();
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
+    public String getServicePath() {
+        return servicePath;
+    }
+
+    public void setServicePath(String servicePath) {
+        this.servicePath = servicePath;
+    }
 
     public int getRetryAttempts() {
         return retryAttempts;

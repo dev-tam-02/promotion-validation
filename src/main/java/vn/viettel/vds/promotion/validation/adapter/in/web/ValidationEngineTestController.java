@@ -40,7 +40,7 @@ public class ValidationEngineTestController {
     @PostMapping("/compile")
     public CompileResponse testCompile() {
         CompileRequest request = createSampleCompileRequest();
-        return validationEngineClient.compile(request);
+        return validationEngineClient.compile(request).getData();
     }
 
     @PostMapping("/execute")
@@ -48,7 +48,7 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest).getData();
             bundleHash = compileResponse.getBundleHash();
         }
 
@@ -56,8 +56,8 @@ public class ValidationEngineTestController {
         ExecuteRequest allowRequest = createAllowExecuteRequest(bundleHash);
         ExecuteRequest denyRequest = createDenyExecuteRequest(bundleHash);
 
-        ExecuteResponse allowResponse = validationEngineClient.execute(allowRequest);
-        ExecuteResponse denyResponse = validationEngineClient.execute(denyRequest);
+        ExecuteResponse allowResponse = validationEngineClient.execute(allowRequest).getData();
+        ExecuteResponse denyResponse = validationEngineClient.execute(denyRequest).getData();
 
         return Map.of(
                 BUNDLE_HASH_KEY, bundleHash,
@@ -76,7 +76,7 @@ public class ValidationEngineTestController {
 
     @GetMapping("/status/{bundleHash}")
     public BundleStatusResponse testStatus(@PathVariable String bundleHash) {
-        return validationEngineClient.getBundleStatus(bundleHash);
+        return validationEngineClient.getBundleStatus(bundleHash).getData();
     }
 
     @PostMapping("/batch")
@@ -84,7 +84,7 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest).getData();
             bundleHash = compileResponse.getBundleHash();
         }
 
@@ -93,7 +93,7 @@ public class ValidationEngineTestController {
                 createDenyExecuteRequest(bundleHash)
         );
 
-        return validationEngineClient.executeBatch(requests);
+        return validationEngineClient.executeBatch(requests).getData();
     }
 
     @PostMapping("/warmup")
@@ -101,7 +101,7 @@ public class ValidationEngineTestController {
         // First compile if no bundle hash provided
         if (bundleHash == null) {
             CompileRequest compileRequest = createSampleCompileRequest();
-            CompileResponse compileResponse = validationEngineClient.compile(compileRequest);
+            CompileResponse compileResponse = validationEngineClient.compile(compileRequest).getData();
             bundleHash = compileResponse.getBundleHash();
         }
 
@@ -122,7 +122,7 @@ public class ValidationEngineTestController {
         try {
             // Try a simple compile to test connectivity
             CompileRequest request = createSampleCompileRequest();
-            CompileResponse response = validationEngineClient.compile(request);
+            CompileResponse response = validationEngineClient.compile(request).getData();
 
             return Map.of(
                     STATUS_KEY, "healthy",

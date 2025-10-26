@@ -237,7 +237,11 @@ public class RulePublishingService {
         // Note: Removed compilerId, Source, Limits, timeLinks - not part of new simplified API
         // These are business logic concerns, not compilation concerns
 
-        return validationEngineClient.compile(compileRequest);
+        com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
+        if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+            throw new RuntimeException("Failed to compile rule: " + (responseTemplate != null ? responseTemplate.getMessage() : "null response"));
+        }
+        return responseTemplate.getData();
     }
 
     private Integer determineRuleVersion(Rule rule) {
@@ -339,7 +343,11 @@ public class RulePublishingService {
                     compileResponse.getArtifactBytes()
             );
 
-            WarmupResponse warmupResponse = validationEngineClient.warmup(warmupRequest);
+            com.promix.platform.web.template.ResponseTemplate<WarmupResponse> warmupResponseTemplate = validationEngineClient.warmup(warmupRequest);
+            if (warmupResponseTemplate == null || !warmupResponseTemplate.isSuccess() || warmupResponseTemplate.getData() == null) {
+                throw new RuntimeException("Failed to warmup bundle: " + (warmupResponseTemplate != null ? warmupResponseTemplate.getMessage() : "null response"));
+            }
+            WarmupResponse warmupResponse = warmupResponseTemplate.getData();
 
             if (warmupResponse == null || !warmupResponse.isOk()) {
                 String errorMsg = String.format(
@@ -364,7 +372,11 @@ public class RulePublishingService {
         try {
             // Create a simple test execution to verify the rule works
             ExecuteRequest testRequest = createTestExecuteRequest(bundleHash);
-            ExecuteResponse response = validationEngineClient.execute(testRequest);
+            com.promix.platform.web.template.ResponseTemplate<ExecuteResponse> responseTemplate = validationEngineClient.execute(testRequest);
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                throw new RuntimeException("Failed to execute test: " + (responseTemplate != null ? responseTemplate.getMessage() : "null response"));
+            }
+            ExecuteResponse response = responseTemplate.getData();
 
             boolean isValid = isValidResponse(response);
 

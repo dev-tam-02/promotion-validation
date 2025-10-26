@@ -311,11 +311,13 @@ idempotency:
 
 # Integration Configuration
 # Note: FeignClient now uses Eureka service discovery instead of hardcoded URLs
-# Service name: validation-engine
-# Context path: /promotion/promotion-rule-engine
+# Service name can be configured via service-name property
+# Context path can be configured via service-path property
 # Feign client timeout is configured via Spring Cloud Feign properties (feign.client.config)
 integration:
   validation-engine:
+    service-name: ${VALIDATION_ENGINE_SERVICE_NAME:promotion-validation-engine}
+    service-path: ${VALIDATION_ENGINE_SERVICE_PATH:/promotion/promotion-validation-engine}
     retry-attempts: 3
     circuit-breaker:
       failure-rate-threshold: 50

@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.external;
 
+import com.promix.platform.web.template.ResponseTemplate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,7 +41,19 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
             ExecuteRequest executeRequest = buildExecuteRequest(request);
 
             // Call validation engine
-            ExecuteResponse response = validationEngineClient.execute(executeRequest);
+            ResponseTemplate<ExecuteResponse> responseTemplate = validationEngineClient.execute(executeRequest);
+
+            // Unwrap response from ResponseTemplate
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                log.error("Validation engine returned error response: {}",
+                        responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                return ValidationResult.error(
+                        request.getTransactionId(),
+                        responseTemplate != null ? responseTemplate.getMessage() : "No response from engine"
+                );
+            }
+
+            ExecuteResponse response = responseTemplate.getData();
 
             // Convert response to domain result
             return convertToValidationResult(response, request.getTransactionId());
@@ -114,10 +127,15 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
             deployRequest.put("deploymentTime", Instant.now().toString());
 
             // Call engine deployment endpoint
-            vn.viettel.vds.promotion.validation.adapter.out.integration.dto.DeployResponse response = validationEngineClient.deployRuleSet(ruleSetId, deployRequest);
+            ResponseTemplate<DeployResponse> responseTemplate = validationEngineClient.deployRuleSet(ruleSetId, deployRequest);
 
-            // Check deployment status
-            return response.isDeployed();
+            // Unwrap and check deployment status
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                log.error("Deploy rule set failed: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                return false;
+            }
+
+            return responseTemplate.getData().isDeployed();
 
         } catch (Exception e) {
             log.error("Failed to deploy rules", e);
@@ -129,8 +147,12 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
     public boolean isAvailable() {
         try {
             // Health check via getting supported operators
-            List<String> operators = validationEngineClient.getSupportedOperators();
-            return operators != null && !operators.isEmpty();
+            ResponseTemplate<List<String>> responseTemplate = validationEngineClient.getSupportedOperators();
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                return false;
+            }
+            List<String> operators = responseTemplate.getData();
+            return !operators.isEmpty();
         } catch (Exception e) {
             log.warn("Validation engine is not available", e);
             return false;
@@ -147,10 +169,15 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
             warmupRequest.setBundleHash(ruleSetId);
 
             // Call warmup endpoint
-            vn.viettel.vds.promotion.validation.adapter.out.integration.dto.WarmupResponse response = validationEngineClient.warmup(warmupRequest);
+            ResponseTemplate<WarmupResponse> responseTemplate = validationEngineClient.warmup(warmupRequest);
 
-            // Check warmup status
-            return response.isOk();
+            // Unwrap and check warmup status
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                log.error("Warmup failed: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                return false;
+            }
+
+            return responseTemplate.getData().isOk();
 
         } catch (Exception e) {
             log.error("Failed to warm up rule set", e);
@@ -161,7 +188,13 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
     @Override
     public Map<String, Object> getSupportedOperators() {
         try {
-            List<String> operators = validationEngineClient.getSupportedOperators();
+            ResponseTemplate<List<String>> responseTemplate = validationEngineClient.getSupportedOperators();
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                log.error("Failed to get supported operators: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                return new HashMap<>();
+            }
+
+            List<String> operators = responseTemplate.getData();
             Map<String, Object> result = new HashMap<>();
             result.put("operators", operators);
             result.put("count", operators.size());
