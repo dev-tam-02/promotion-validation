@@ -61,14 +61,14 @@ eureka:
     service-url:
       defaultZone: http://service-registry:8761/eureka
   instance:
-    appname: ${spring.application.name}
-    instanceId: ${spring.application.name}:${spring.application.instance-id:${random.value}}
+    appname: promotion-${spring.application.name}
+    instanceId: promotion-${spring.application.name}:${spring.application.instance-id:${random.value}}
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
     lease-expiration-duration-in-seconds: 10
     status-page-url-path: ${management.endpoints.web.base-path}/info
     health-check-url-path: ${management.endpoints.web.base-path}/health
-    virtual-host-name: ${spring.application.name}
+    virtual-host-name: promotion-${spring.application.name}
 
 # Management Configuration
 management:
