@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
@@ -21,6 +23,7 @@ import vn.viettel.vds.promotion.validation.application.service.AssignmentService
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
+import vn.viettel.vds.promotion.validation.config.validator.ValidRuleId;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @RestController
+@Validated
 @ResponseWrapper
 @RequestMapping("${spring.application.context-path}/v1/rules")
 @Tag(name = "Rules", description = "Rule management API")
@@ -81,15 +85,23 @@ public class RuleController {
     @Operation(summary = "Get rule by ID", description = "Retrieve a specific rule by its ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Rule found"),
+            @ApiResponse(responseCode = "400", description = "Invalid rule ID format"),
             @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @GetMapping("/{ruleId}")
     public RuleResponse getRuleById(
-            @Parameter(description = "Rule ID") @PathVariable String ruleId) {
+            @Parameter(description = "Rule ID (UUID format, max 36 characters, alphanumeric and hyphens only)")
+            @PathVariable
+            @ValidRuleId
+            @NotBlank(message = "VALIDATION_RULE_ID_REQUIRED: ID quy tắc không được để trống")
+            String ruleId) {
 
-        logger.info("Getting rule: id={}", ruleId);
+        // Trim whitespace from rule ID
+        String trimmedRuleId = ruleId.trim();
 
-        Rule rule = ruleService.getRuleById(ruleId);
+        logger.info("Getting rule: id={}", trimmedRuleId);
+
+        Rule rule = ruleService.getRuleById(trimmedRuleId);
         return ruleMapper.toRuleResponse(rule);
     }
 

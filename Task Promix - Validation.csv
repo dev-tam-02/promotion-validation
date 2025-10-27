@@ -1,0 +1,67 @@
+Va,Tên bug,Các bước thực hiện,Kết quả thực tế,Kết quả mong muốn,Kết quả test lỗi,CURL,Trace Id,Kết quả verify bug,Task,Assignee,Trạng thái ,Tester,Ngày log bug,Note
+Validation Rule - Xem chi tiết quy tắc ,"Truyền validation-rule-id = chuỗi kí tự đặc biệt không hợp lệ (khác ""-"")","1. Truyền validation-rule-id = chuỗi kí tự đặc biệt không hợp lệ (""-"")
+2. Click Send","<html>
+
+<head>
+    <title>400 Bad Request</title>
+</head>
+
+<body>
+    <center>
+        <h1>400 Bad Request</h1>
+    </center>
+    <hr>
+    <center>nginx/1.24.0</center>
+</body>
+
+</html>","Thông tin response trả về:
+- Status: 400
+- Error code: ""VALIDATION_RULE_ID_INVALID ""
+- Message: ""ID quy tắc không đúng định dạng, cho phép nhập ký tự chữ, số và ký tự ""-""""",,"curl --location --request GET 'http://gw-staging.kdqt.vn/promotion/promotion-validation/v1/rules/&*%*^&' \
+--header 'accept: */*' \
+--header 'Content-Type: application/json' \
+--data '
+
+'",,,BE,BE - Hoàng Lâm,DONE,ManLan,27/10/2025,"FIXED: Path variable không có validation. Đã thêm @ValidRuleId annotation và RuleIdValidator để validate format (chỉ cho phép a-z, A-Z, 0-9, và dấu '-'). ValidationExceptionHandler xử lý ConstraintViolationException và trả về 400 với error code phù hợp."
+Validation Rule - Xem chi tiết quy tắc ,"Truyền validation-rule-id = chuỗi kí tự bất kỳ không hợp lệ  (khác ""-"")","1. Truyền validation-rule-id = chuỗi kí tự bất kỳ không hợp lệ (""-"")
+2. Click Send","""status"": 404,
+    ""code"": ""NOT_FOUND"",","Thông tin response trả về:
+- Status: 400
+- Error code: ""VALIDATION_RULE_ID_INVALID ""
+- Message: ""ID quy tắc không đúng định dạng, cho phép nhập ký tự chữ, số và ký tự ""-""""",,"curl --location --request GET 'http://gw-staging.kdqt.vn/promotion/promotion-validation/v1/rules/01932b6f*0005&7000$8000#00000abcd' \
+--header 'accept: */*' \
+--header 'Content-Type: application/json' \
+--data '
+
+'",68fe5a4f69185be6c0b709a3da442ae7,,BE,BE - Hoàng Lâm,DONE,ManLan,27/10/2025,"FIXED: Cùng nguyên nhân với bug #1. RuleIdValidator sử dụng regex pattern ^[a-zA-Z0-9-]+$ để kiểm tra format, từ chối các ký tự đặc biệt như *, &, $, #. Trả về 400 với VALIDATION_RULE_ID_INVALID."
+Validation Rule - Xem chi tiết quy tắc ,Kiểm tra nhập chuỗi kí tự hợp lệ có space đầu cuối,"1. Truyền validation-rule-id = chuỗi kí tự hợp lệ có space đầu cuối
+2. Click Send","""status"": 404,
+    ""code"": ""NOT_FOUND"",","- Trim space
+- Trả về response thành công",,"curl --location --request GET 'http://gw-staging.kdqt.vn/promotion/promotion-validation/v1/rules/           01932b6f-0005-7000-8000-000000000001              ' \
+--header 'accept: */*' \
+--header 'Content-Type: application/json' \
+--data '
+
+'",68fe5aebb1ba622481b2c80d5b387fde,,BE,BE - Hoàng Lâm,DONE,ManLan,27/10/2025,"FIXED: Path variable không tự động trim space. Đã thêm logic trim trong RuleController.getRuleById(): String trimmedRuleId = ruleId.trim(). RuleIdValidator cũng trim trước khi validate để đảm bảo consistency."
+Validation Rule - Xem chi tiết quy tắc ,Truyền validation_rule_id > chuỗi 36 kí tự hợp lệ,"1. Truyền validation_rule_id > chuỗi 36 kí tự hợp lệ
+2. Click Send","""status"": 404,
+    ""code"": ""NOT_FOUND"",","Thông tin response trả về:
+- Status: 400
+- Error code: ""VALIDATION_RULE_LENGTH_EXCEEDED ""
+- Message: ""ID quy tắc không được vượt quá 36 ký tự""",,"curl --location --request GET 'http://gw-staging.kdqt.vn/promotion/promotion-validation/v1/rules/01932b6f-0005-7000-8000-00000000000101' \
+--header 'accept: */*' \
+--header 'Content-Type: application/json' \
+--data '
+
+'",68fe5c374920abdd531e35ecf87272dc,,BE,BE - Hoàng Lâm,DONE,ManLan,27/10/2025,"FIXED: Không validate độ dài tối đa. RuleIdValidator kiểm tra trimmedValue.length() > 36 và trả về VALIDATION_RULE_LENGTH_EXCEEDED với message tương ứng."
+Validation Rule - Xem chi tiết quy tắc ,Truyền validation_rule_id không tồn tại trong DB,"1. Truyền validation_rule_id không tồn tại trong DB
+2. Click Send","""status"": 404,
+    ""code"": ""NOT_FOUND"",","Thông tin response trả về:
+- Status: 404
+- Error code: ""NOT_FOUND""
+- Message: ""Rule not found""",,"curl --location --request GET 'http://gw-staging.kdqt.vn/promotion/promotion-validation/v1/rules/01932b6f-0005-7000-8000-000000000003' \
+--header 'accept: */*' \
+--header 'Content-Type: application/json' \
+--data '
+
+'",68fe5cedf2516d240d662a26d309f305,,BE,BE - Hoàng Lâm,DONE,ManLan,27/10/2025,"NO FIX NEEDED: Kết quả hiện tại (404 NOT_FOUND) là ĐÚNG theo REST API standard (RFC 7231). Khi resource không tồn tại trong database, server nên trả về 404 NOT FOUND chứ không phải 400 BAD REQUEST. Expectation trong requirement cần được cập nhật. 400 chỉ dùng cho validation input, 404 dùng cho resource không tồn tại."
