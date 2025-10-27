@@ -3,36 +3,33 @@ package vn.viettel.vds.promotion.validation.config.validator;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 /**
  * Validator for {@link ValidRuleId} annotation.
  * <p>
- * This validator checks that a Rule ID:
+ * This validator checks that a Rule ID is a valid UUID format:
  * <ul>
- *   <li>Contains only alphanumeric characters and hyphens (a-z, A-Z, 0-9, -)</li>
- *   <li>Does not exceed 36 characters (UUID format)</li>
+ *   <li>Must be a valid UUID format (8-4-4-4-12 with hyphens)</li>
+ *   <li>Exactly 36 characters in length</li>
+ *   <li>Accepts any UUID version (v1, v2, v3, v4, v5, v6, v7)</li>
  * </ul>
  * <p>
  * Validation logic:
  * <ol>
  *   <li>Null values are considered valid (use @NotNull for null checking)</li>
  *   <li>Trim leading and trailing whitespaces</li>
- *   <li>Check length does not exceed 36 characters</li>
- *   <li>Check format matches pattern: [a-zA-Z0-9-]+</li>
+ *   <li>Check if empty after trim</li>
+ *   <li>Validate UUID format using UUID.fromString()</li>
  * </ol>
+ * <p>
+ * UUID format examples:
+ * <ul>
+ *   <li>UUIDv4: 550e8400-e29b-41d4-a716-446655440000</li>
+ *   <li>UUIDv7: 01932b6f-0005-7000-8000-000000000001</li>
+ * </ul>
  */
 public class RuleIdValidator implements ConstraintValidator<ValidRuleId, String> {
-
-    /**
-     * Maximum length for Rule ID (UUID format).
-     */
-    private static final int MAX_LENGTH = 36;
-
-    /**
-     * Pattern for valid Rule ID format: alphanumeric and hyphens only.
-     */
-    private static final Pattern VALID_PATTERN = Pattern.compile("^[a-zA-Z0-9-]+$");
 
     @Override
     public void initialize(ValidRuleId constraintAnnotation) {
@@ -56,21 +53,15 @@ public class RuleIdValidator implements ConstraintValidator<ValidRuleId, String>
             return false;
         }
 
-        // Check length constraint
-        if (trimmedValue.length() > MAX_LENGTH) {
-            buildCustomViolation(context, "VALIDATION_RULE_LENGTH_EXCEEDED",
-                "ID quy tắc không được vượt quá 36 ký tự");
-            return false;
-        }
-
-        // Check format constraint (alphanumeric and hyphen only)
-        if (!VALID_PATTERN.matcher(trimmedValue).matches()) {
+        // Validate UUID format using Java's UUID parser
+        try {
+            UUID.fromString(trimmedValue);
+            return true;
+        } catch (IllegalArgumentException e) {
             buildCustomViolation(context, "VALIDATION_RULE_ID_INVALID",
-                "ID quy tắc không đúng định dạng, cho phép nhập ký tự chữ, số và ký tự \"-\"");
+                "ID quy tắc không đúng định dạng UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)");
             return false;
         }
-
-        return true;
     }
 
     /**
