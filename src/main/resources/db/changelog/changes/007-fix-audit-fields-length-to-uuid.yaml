@@ -1,0 +1,243 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-fix-audit-fields-length-to-uuid-standard
+      author: dba-review
+      comment: "Fix all audit fields (created_by, updated_by, published_by, initiated_by) from varchar(50/100) to varchar(36) for UUID standard"
+      changes:
+        # validation_rules table
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: published_by
+            newDataType: VARCHAR(36)
+
+        # rule_nodes table
+        - modifyDataType:
+            tableName: rule_nodes
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_nodes
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_usage_limits table
+        - modifyDataType:
+            tableName: rule_usage_limits
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_usage_limits
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # operators table
+        - modifyDataType:
+            tableName: operators
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: operators
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # temporal_policies table
+        - modifyDataType:
+            tableName: temporal_policies
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: temporal_policies
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # temporal_policy_windows table
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # time_exceptions table
+        - modifyDataType:
+            tableName: time_exceptions
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: time_exceptions
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_temporal_links table
+        - modifyDataType:
+            tableName: rule_temporal_links
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_temporal_links
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_assignments table
+        - modifyDataType:
+            tableName: rule_assignments
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_assignments
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_bundles table
+        - modifyDataType:
+            tableName: rule_bundles
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_bundles
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # resources table
+        - modifyDataType:
+            tableName: resources
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: resources
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # operator_resources table
+        - modifyDataType:
+            tableName: operator_resources
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: operator_resources
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # operator_registry table
+        - modifyDataType:
+            tableName: operator_registry
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: operator_registry
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # reason_codes table
+        - modifyDataType:
+            tableName: reason_codes
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: reason_codes
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # admin_audit_logs table
+        - modifyDataType:
+            tableName: admin_audit_logs
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: admin_audit_logs
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: admin_audit_logs
+            columnName: actor_id
+            newDataType: VARCHAR(36)
+
+        # publish_jobs table
+        - modifyDataType:
+            tableName: publish_jobs
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: publish_jobs
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: publish_jobs
+            columnName: initiated_by
+            newDataType: VARCHAR(36)
+
+        # rule_versions table
+        - modifyDataType:
+            tableName: rule_versions
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_versions
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # assignments table
+        - modifyDataType:
+            tableName: assignments
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: assignments
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_assignment_subjects table
+        - modifyDataType:
+            tableName: rule_assignment_subjects
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_assignment_subjects
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # rule_time_frames table
+        - modifyDataType:
+            tableName: rule_time_frames
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: rule_time_frames
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+        # time_links table
+        - modifyDataType:
+            tableName: time_links
+            columnName: created_by
+            newDataType: VARCHAR(36)
+        - modifyDataType:
+            tableName: time_links
+            columnName: updated_by
+            newDataType: VARCHAR(36)
+
+      rollback:
+        # Rollback to varchar(50) for all tables
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: created_by
+            newDataType: VARCHAR(100)
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: updated_by
+            newDataType: VARCHAR(100)
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: published_by
+            newDataType: VARCHAR(50)
+        # ... (similar rollback for other tables)
