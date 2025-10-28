@@ -27,9 +27,6 @@ public class RuleBundleEntity extends BaseEntity {
     @Column(name = "kie_module_bytes")
     private byte[] kieModuleBytes;
 
-    @Column(name = "kie_module_file_id", length = 100)
-    private String kieModuleFileId; // GridFS file ID (alternative to storing bytes directly)
-
     // Many-to-one relationship with validation rule
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "validation_rule_id", nullable = false)
