@@ -26,7 +26,7 @@ public record BundleHashResponse(
         String bundleHash,
 
         @Schema(description = "Rule version number", example = "3")
-        Integer ruleVersion,
+        Long ruleVersion,
 
         @Schema(description = "Assignment version number", example = "1")
         Integer assignmentVersion,

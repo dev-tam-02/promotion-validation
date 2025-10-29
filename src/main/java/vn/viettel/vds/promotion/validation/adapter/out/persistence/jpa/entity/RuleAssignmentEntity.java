@@ -11,10 +11,16 @@ import java.time.Instant;
 @Setter
 @Entity
 @Table(name = "rule_assignments", indexes = {
-        @Index(name = "idx_rule_assignments_subject_active", columnList = "subject_id, active"),
-        @Index(name = "idx_rule_assignments_rule_version", columnList = "validation_rule_id, assignment_version")
+        @Index(name = "idx_assignments_subject", columnList = "subject_type, subject_key, active"),
+        @Index(name = "idx_assignments_rule_version", columnList = "validation_rule_id, assignment_version")
 })
 public class RuleAssignmentEntity extends BaseEntity {
+
+    @Column(name = "subject_type", nullable = false, length = 50)
+    private String subjectType;
+
+    @Column(name = "subject_key", nullable = false, length = 255)
+    private String subjectKey;
 
     @Column(name = "assignment_version", nullable = false)
     private Integer assignmentVersion;
@@ -36,17 +42,14 @@ public class RuleAssignmentEntity extends BaseEntity {
     @JoinColumn(name = "validation_rule_id", nullable = false)
     private ValidationRuleEntity validationRule;
 
-    // Many-to-one relationship with subject
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "subject_id", nullable = false)
-    private RuleAssignmentSubjectEntity subject;
-
     public RuleAssignmentEntity() {
         super();
     }
 
-    public RuleAssignmentEntity(Integer assignmentVersion, Boolean active) {
+    public RuleAssignmentEntity(String subjectType, String subjectKey, Integer assignmentVersion, Boolean active) {
         super();
+        this.subjectType = subjectType;
+        this.subjectKey = subjectKey;
         this.assignmentVersion = assignmentVersion;
         this.active = active;
         this.trafficPercent = 100;

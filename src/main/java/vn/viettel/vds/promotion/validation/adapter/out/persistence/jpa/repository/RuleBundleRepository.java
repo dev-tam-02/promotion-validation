@@ -22,7 +22,7 @@ public interface RuleBundleRepository extends JpaRepository<RuleBundleEntity, St
     /**
      * Find bundles by subject type and key.
      */
-    @Query("SELECT rb FROM RuleBundleEntity rb WHERE rb.subject.type = :type AND rb.subject.key = :key ORDER BY rb.ruleVersion DESC, rb.assignmentVersion DESC")
+    @Query("SELECT rb FROM RuleBundleEntity rb WHERE rb.subjectType = :type AND rb.subjectKey = :key ORDER BY rb.ruleVersion DESC, rb.assignmentVersion DESC")
     List<RuleBundleEntity> findBySubjectTypeAndKey(@Param("type") String type, @Param("key") String key);
 
     /**
@@ -31,10 +31,10 @@ public interface RuleBundleRepository extends JpaRepository<RuleBundleEntity, St
     List<RuleBundleEntity> findByValidationRuleId(String validationRuleId);
 
     /**
-     * Find latest bundle for subject and rule.
+     * Find latest bundle for subject type/key and rule.
      */
-    @Query("SELECT rb FROM RuleBundleEntity rb WHERE rb.subject.id = :subjectId AND rb.validationRule.id = :ruleId ORDER BY rb.ruleVersion DESC, rb.assignmentVersion DESC")
-    Optional<RuleBundleEntity> findLatestBundleForSubjectAndRule(@Param("subjectId") String subjectId, @Param("ruleId") String ruleId);
+    @Query("SELECT rb FROM RuleBundleEntity rb WHERE rb.subjectType = :subjectType AND rb.subjectKey = :subjectKey AND rb.validationRule.id = :ruleId ORDER BY rb.ruleVersion DESC, rb.assignmentVersion DESC")
+    Optional<RuleBundleEntity> findLatestBundleForSubjectAndRule(@Param("subjectType") String subjectType, @Param("subjectKey") String subjectKey, @Param("ruleId") String ruleId);
 
     /**
      * Check if bundle hash exists.

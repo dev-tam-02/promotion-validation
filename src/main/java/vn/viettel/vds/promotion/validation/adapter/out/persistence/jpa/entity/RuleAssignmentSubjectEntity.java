@@ -5,38 +5,31 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 @Setter
 @Entity
 @Table(name = "rule_assignment_subjects", indexes = {
-        @Index(name = "idx_rule_assignment_subjects_type_key", columnList = "type, subject_key")
+        @Index(name = "idx_assignment_subjects_assignment", columnList = "rule_assignment_id")
 })
 public class RuleAssignmentSubjectEntity extends BaseEntity {
 
-    @Column(name = "type", nullable = false, length = 50)
-    private String type; // "voucher" | "campaign" | "tier" | "reward"
+    @Column(name = "rule_assignment_id", nullable = false, length = 36)
+    private String ruleAssignmentId;
 
-    @Column(name = "subject_key", nullable = false, length = 100)
-    private String key;
+    @Column(name = "subject_type", nullable = false, length = 50)
+    private String subjectType; // "voucher" | "campaign" | "tier" | "reward"
 
-    // One-to-many relationship with rule assignments
-    @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RuleAssignmentEntity> assignments = new ArrayList<>();
-
-    // One-to-many relationship with rule bundles
-    @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RuleBundleEntity> bundles = new ArrayList<>();
+    @Column(name = "subject_key", nullable = false, length = 255)
+    private String subjectKey;
 
     public RuleAssignmentSubjectEntity() {
         super();
     }
 
-    public RuleAssignmentSubjectEntity(String type, String key) {
+    public RuleAssignmentSubjectEntity(String ruleAssignmentId, String subjectType, String subjectKey) {
         super();
-        this.type = type;
-        this.key = key;
+        this.ruleAssignmentId = ruleAssignmentId;
+        this.subjectType = subjectType;
+        this.subjectKey = subjectKey;
     }
 }

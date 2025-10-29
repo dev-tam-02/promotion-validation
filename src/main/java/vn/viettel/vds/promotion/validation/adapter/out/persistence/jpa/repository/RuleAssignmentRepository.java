@@ -18,7 +18,7 @@ public interface RuleAssignmentRepository extends JpaRepository<RuleAssignmentEn
     /**
      * Find active assignments by subject type and key.
      */
-    @Query("SELECT ra FROM RuleAssignmentEntity ra WHERE ra.subject.type = :type AND ra.subject.key = :key AND ra.active = true")
+    @Query("SELECT ra FROM RuleAssignmentEntity ra WHERE ra.subjectType = :type AND ra.subjectKey = :key AND ra.active = true")
     List<RuleAssignmentEntity> findActiveAssignmentsBySubject(@Param("type") String type, @Param("key") String key);
 
     /**
@@ -46,12 +46,12 @@ public interface RuleAssignmentRepository extends JpaRepository<RuleAssignmentEn
     List<RuleAssignmentEntity> findValidAssignmentsAt(@Param("checkTime") Instant checkTime);
 
     /**
-     * Find assignments by subject ID.
+     * Find assignments by subject type and key.
      */
-    List<RuleAssignmentEntity> findBySubjectId(String subjectId);
+    List<RuleAssignmentEntity> findBySubjectTypeAndSubjectKey(String subjectType, String subjectKey);
 
     /**
-     * Find assignments by subject ID and active status.
+     * Find assignments by subject type, key and active status.
      */
-    List<RuleAssignmentEntity> findBySubjectIdAndActive(String subjectId, Boolean active);
+    List<RuleAssignmentEntity> findBySubjectTypeAndSubjectKeyAndActive(String subjectType, String subjectKey, Boolean active);
 }
