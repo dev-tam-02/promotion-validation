@@ -49,7 +49,7 @@ public class SettingValidationRuleEventPublisher {
     public SettingValidationRuleEventPublisher(
             KafkaUtils kafkaUtils,
             CommandMappingService mappingService,
-            @Value("${promix.messaging.topics.setting-validation-rule-events:promotion_validation_events}") String eventTopic,
+            @Value("${promix.messaging.topics.setting-validation-rule-events:promotion_validation_event}") String eventTopic,
             @Value("${spring.application.name:validation}") String serviceName) {
         this.kafkaUtils = kafkaUtils;
         this.mappingService = mappingService;
