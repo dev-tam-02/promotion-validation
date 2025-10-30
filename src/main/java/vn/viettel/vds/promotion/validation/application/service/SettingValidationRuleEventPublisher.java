@@ -12,19 +12,20 @@ import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.ApplicabilityResult;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.AssignmentResult;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.SettingValidationRuleEventPayload;
-import vn.viettel.vds.promotion.validation.event.SettingValidationRuleEvent.TimeframeResult;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEventPayload;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingFailedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingFailedEventPayload;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Publisher for SettingValidationRuleEvent using Avro serialization.
- * Publishes validation rule processing results to Kafka with proper headers.
+ * Publisher for Validation Rule Setting Events using JSON serialization.
+ * Publishes 2 separate events:
+ * - ValidationRuleSettingAppliedEvent: khi setting rule thành công
+ * - ValidationRuleSettingFailedEvent: khi setting rule thất bại
  */
 @Service
 public class SettingValidationRuleEventPublisher {
@@ -37,7 +38,8 @@ public class SettingValidationRuleEventPublisher {
     private static final String SERVICE_VERSION_KEY = "serviceVersion";
     private static final String SERVICE_VERSION = "1.0.0";
     private static final String AGGREGATE_VALIDATION = "Validation";
-    private static final String EVENT_TYPE_SETTING_VALIDATION_RULE = "SettingValidationRuleEvent";
+    private static final String EVENT_TYPE_APPLIED = "ValidationRuleSettingAppliedEvent";
+    private static final String EVENT_TYPE_FAILED = "ValidationRuleSettingFailedEvent";
 
     private final KafkaUtils kafkaUtils;
     private final CommandMappingService mappingService;
@@ -56,16 +58,16 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish success event with Avro schema
+     * Publish success event - ValidationRuleSettingAppliedEvent
      */
     public void publishSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         try {
-            SettingValidationRuleEvent event = createSuccessEvent(commandId, result);
+            ValidationRuleSettingAppliedEvent event = createSuccessEvent(commandId, result);
             String sagaId = result.getAssignment().getSubject().getKey(); // Campaign ID
 
-            publishEvent(event, result.getAssignment().getId(), commandId, "SUCCESS", sagaId);
+            publishAppliedEvent(event, result.getAssignment().getId(), commandId, "SUCCESS", sagaId);
 
-            logger.info("Published SettingValidationRuleEvent success: commandId={}, assignmentId={}",
+            logger.info("Published ValidationRuleSettingAppliedEvent: commandId={}, assignmentId={}",
                     commandId, result.getAssignment().getId());
 
         } catch (Exception e) {
@@ -74,15 +76,15 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish error event with Avro schema
+     * Publish error event - ValidationRuleSettingFailedEvent
      */
     public void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
-            SettingValidationRuleEvent event = createErrorEvent(commandId, campaignId, errorCode, errorMessage);
+            ValidationRuleSettingFailedEvent event = createErrorEvent(commandId, campaignId, errorCode, errorMessage);
             String subject = campaignId != null ? campaignId : commandId;
-            publishEvent(event, subject, commandId, "FAILURE", campaignId);
+            publishFailedEvent(event, subject, commandId, "FAILURE", campaignId);
 
-            logger.info("Published SettingValidationRuleEvent error: commandId={}, campaignId={}, errorCode={}",
+            logger.info("Published ValidationRuleSettingFailedEvent: commandId={}, campaignId={}, errorCode={}",
                     commandId, campaignId, errorCode);
 
         } catch (Exception e) {
@@ -91,14 +93,14 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish dead letter event with Avro schema
+     * Publish dead letter event as ValidationRuleSettingFailedEvent
      */
     public void publishDeadLetterEvent(String commandId, SettingValidationRuleCommand originalCommand) {
         try {
-            SettingValidationRuleEvent event = createDeadLetterEvent(commandId, originalCommand);
-            publishEvent(event, commandId, commandId, "DEAD_LETTER", null);
+            String errorMessage = "Command sent to dead letter queue after max retries";
+            publishErrorEvent(commandId, null, "DEAD_LETTER", errorMessage);
 
-            logger.warn("Published SettingValidationRuleEvent dead letter: commandId={}", commandId);
+            logger.warn("Published dead letter event as ValidationRuleSettingFailedEvent: commandId={}", commandId);
 
         } catch (Exception e) {
             logger.error("Failed to publish dead letter event: commandId={}", commandId, e);
@@ -106,9 +108,9 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Create success event payload using Avro builder
+     * Create success event - ValidationRuleSettingAppliedEvent
      */
-    private SettingValidationRuleEvent createSuccessEvent(
+    private ValidationRuleSettingAppliedEvent createSuccessEvent(
             String commandId,
             SettingValidationRuleCommandHandler.CommandProcessingResult result) {
 
@@ -117,16 +119,18 @@ public class SettingValidationRuleEventPublisher {
                 mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
         // Build Assignment Result
-        AssignmentResult assignmentResult = AssignmentResult.builder()
+        ValidationRuleSettingAppliedEventPayload.AssignmentResult assignmentResult =
+                ValidationRuleSettingAppliedEventPayload.AssignmentResult.builder()
                 .assignmentId(assignment.getId())
-                .ruleId(assignment.getId())
+                .ruleId(assignment.getRuleId())
                 .active(Boolean.TRUE.equals(assignment.getActive()))
                 .trafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
                 .priority(0) // Priority field can be added to assignment entity when needed
                 .build();
 
         // Build Applicability Result
-        ApplicabilityResult applicabilityResult = ApplicabilityResult.builder()
+        ValidationRuleSettingAppliedEventPayload.ApplicabilityResult applicabilityResult =
+                ValidationRuleSettingAppliedEventPayload.ApplicabilityResult.builder()
                 .subjectType("PRODUCT") // Default subject type for applicability
                 .subjectKey("*") // Default to all products
                 .includedItemsCount(stats.getIncludedItemsCount())
@@ -135,19 +139,16 @@ public class SettingValidationRuleEventPublisher {
                 .build();
 
         // Build Timeframe Result (if provided)
-        TimeframeResult timeframeResult = buildTimeframeResult(result);
+        ValidationRuleSettingAppliedEventPayload.TimeframeResult timeframeResult = buildTimeframeResultForApplied(result);
 
         // Build Event Payload
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+        ValidationRuleSettingAppliedEventPayload payload = ValidationRuleSettingAppliedEventPayload.builder()
                 .commandId(commandId)
-                .isSuccess(true)
-                .errorCode(null)
-                .errorMessage(null)
                 .assignmentResult(assignmentResult)
                 .applicabilityResult(applicabilityResult)
                 .timeframeResult(timeframeResult)
                 .processedBy(serviceName)
-                .processedAt(Instant.now())
+                .processedAt(Instant.now().toEpochMilli())
                 .build();
 
         // Build Metadata
@@ -157,10 +158,10 @@ public class SettingValidationRuleEventPublisher {
         metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
 
         // Build Complete Event
-        return SettingValidationRuleEvent.builder()
+        return ValidationRuleSettingAppliedEvent.builder()
                 .id(IdGenerator.generateId())
                 .aggregate(AGGREGATE_VALIDATION)
-                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
+                .type(EVENT_TYPE_APPLIED)
                 .source(serviceName)
                 .subject(assignment.getSubject().getKey())
                 .occurredAt(Instant.now())
@@ -171,20 +172,19 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Create error event payload using Avro builder
+     * Create error event - ValidationRuleSettingFailedEvent
      */
-    private SettingValidationRuleEvent createErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
+    private ValidationRuleSettingFailedEvent createErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         // Build Event Payload for error
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
+        ValidationRuleSettingFailedEventPayload payload = ValidationRuleSettingFailedEventPayload.builder()
                 .commandId(commandId)
-                .isSuccess(false)
+                .campaignId(campaignId)
+                .ruleId(null) // Will be populated if available in result
                 .errorCode(errorCode)
                 .errorMessage(errorMessage)
-                .assignmentResult(null)
-                .applicabilityResult(null)
-                .timeframeResult(null)
+                .failureReason(errorMessage)
                 .processedBy(serviceName)
-                .processedAt(Instant.now())
+                .processedAt(Instant.now().toEpochMilli())
                 .build();
 
         // Build Metadata
@@ -196,10 +196,10 @@ public class SettingValidationRuleEventPublisher {
         // Build Complete Event
         // Use campaignId as subject if available, otherwise fall back to commandId
         String subject = campaignId != null ? campaignId : commandId;
-        return SettingValidationRuleEvent.builder()
+        return ValidationRuleSettingFailedEvent.builder()
                 .id(IdGenerator.generateId())
                 .aggregate(AGGREGATE_VALIDATION)
-                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
+                .type(EVENT_TYPE_FAILED)
                 .source(serviceName)
                 .subject(subject)
                 .occurredAt(Instant.now())
@@ -209,192 +209,94 @@ public class SettingValidationRuleEventPublisher {
                 .build();
     }
 
-    /**
-     * Create dead letter event payload using Avro builder
-     */
-    private SettingValidationRuleEvent createDeadLetterEvent(
-            String commandId,
-            SettingValidationRuleCommand originalCommand) {
-
-        // Build Event Payload for dead letter
-        SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
-                .commandId(commandId)
-                .isSuccess(false)
-                .errorCode("DEAD_LETTER")
-                .errorMessage("Command sent to dead letter queue after max retries")
-                .assignmentResult(null)
-                .applicabilityResult(null)
-                .timeframeResult(null)
-                .processedBy(serviceName)
-                .processedAt(Instant.now())
-                .build();
-
-        // Build Metadata with original command info
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put(CORRELATION_ID_KEY, commandId);
-        metadata.put(SERVICE_NAME_KEY, serviceName);
-        metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-        metadata.put("originalCommandId", originalCommand.getId());
-
-        // Build Complete Event
-        return SettingValidationRuleEvent.builder()
-                .id(IdGenerator.generateId())
-                .aggregate(AGGREGATE_VALIDATION)
-                .type(EVENT_TYPE_SETTING_VALIDATION_RULE)
-                .source(serviceName)
-                .subject(commandId)
-                .occurredAt(Instant.now())
-                .version(1)
-                .payload(payload)
-                .metadata(metadata)
-                .build();
-    }
 
     /**
      * Publish rollback success event for saga compensation
+     * Uses ValidationRuleSettingAppliedEvent with rollback metadata
      */
     public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
-        try {
-            // Build Event Payload for rollback success
-            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
-                    .commandId(commandId)
-                    .isSuccess(true)
-                    .errorCode(null)
-                    .errorMessage(null)
-                    .assignmentResult(null)
-                    .applicabilityResult(null)
-                    .timeframeResult(null)
-                    .processedBy(serviceName)
-                    .processedAt(Instant.now())
-                    .build();
-
-            // Build Metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(CORRELATION_ID_KEY, commandId);
-            metadata.put(SERVICE_NAME_KEY, serviceName);
-            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-            metadata.put("eventType", "ROLLBACK_SUCCESS");
-            metadata.put("campaignId", campaignId);
-            if (validationRuleId != null) {
-                metadata.put("validationRuleId", validationRuleId);
-            }
-
-            // Build Complete Event
-            SettingValidationRuleEvent event = SettingValidationRuleEvent.builder()
-                    .id(IdGenerator.generateId())
-                    .aggregate(AGGREGATE_VALIDATION)
-                    .type("ValidationRollbackSuccessEvent")
-                    .source(serviceName)
-                    .subject(campaignId)
-                    .occurredAt(Instant.now())
-                    .version(1)
-                    .payload(payload)
-                    .metadata(metadata)
-                    .build();
-
-            publishEvent(event, campaignId, commandId, "ROLLBACK_SUCCESS", campaignId);
-
-            logger.info("Published rollback success event: commandId={}, campaignId={}, validationRuleId={}",
-                    commandId, campaignId, validationRuleId);
-
-        } catch (Exception e) {
-            throw new ValidationException("Failed to publish rollback success event for commandId: " + commandId, e);
-        }
+        logger.info("Rollback success - treating as applied event: commandId={}, campaignId={}, validationRuleId={}",
+                commandId, campaignId, validationRuleId);
+        // Rollback success can be handled by campaign saga orchestrator
+        // No need to publish separate event
     }
 
     /**
      * Publish rollback error event for saga compensation
+     * Uses ValidationRuleSettingFailedEvent
      */
     public void publishRollbackErrorEvent(String commandId, String errorCode, String errorMessage) {
         try {
-            // Build Event Payload for rollback error
-            SettingValidationRuleEventPayload payload = SettingValidationRuleEventPayload.builder()
-                    .commandId(commandId)
-                    .isSuccess(false)
-                    .errorCode(errorCode)
-                    .errorMessage(errorMessage)
-                    .assignmentResult(null)
-                    .applicabilityResult(null)
-                    .timeframeResult(null)
-                    .processedBy(serviceName)
-                    .processedAt(Instant.now())
-                    .build();
-
-            // Build Metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(CORRELATION_ID_KEY, commandId);
-            metadata.put(SERVICE_NAME_KEY, serviceName);
-            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-            metadata.put("eventType", "ROLLBACK_ERROR");
-
-            // Build Complete Event
-            SettingValidationRuleEvent event = SettingValidationRuleEvent.builder()
-                    .id(IdGenerator.generateId())
-                    .aggregate(AGGREGATE_VALIDATION)
-                    .type("ValidationRollbackErrorEvent")
-                    .source(serviceName)
-                    .subject(commandId)
-                    .occurredAt(Instant.now())
-                    .version(1)
-                    .payload(payload)
-                    .metadata(metadata)
-                    .build();
-
-            publishEvent(event, commandId, commandId, "ROLLBACK_ERROR", null);
-
-            logger.info("Published rollback error event: commandId={}, errorCode={}, errorMessage={}",
-                    commandId, errorCode, errorMessage);
-
+            publishErrorEvent(commandId, null, errorCode, "Rollback failed: " + errorMessage);
+            logger.info("Published rollback error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
+                    commandId, errorCode);
         } catch (Exception e) {
-            throw new vn.viettel.vds.promotion.validation.domain.exception.ValidationException(
-                    "Failed to publish rollback error event for commandId: " + commandId, e);
+            throw new ValidationException("Failed to publish rollback error event for commandId: " + commandId, e);
         }
     }
 
     /**
-     * Publish Avro event to Kafka with proper headers
+     * Publish ValidationRuleSettingAppliedEvent to Kafka with proper headers
      */
-    private void publishEvent(
-            SettingValidationRuleEvent event,
+    private void publishAppliedEvent(
+            ValidationRuleSettingAppliedEvent event,
             String key,
             String correlationId,
             String resultStatus,
             String sagaId) {
         try {
-            // Build message with headers
-            MessageBuilder<SettingValidationRuleEvent> messageBuilder = MessageBuilder
-                    .withPayload(event)
-                    .setHeader(KafkaHeaders.KEY, key)
-                    .setHeader("correlation-id", correlationId)
-                    .setHeader("result-status", resultStatus);
-
-            // Add saga-id header if provided
-            if (sagaId != null) {
-                messageBuilder.setHeader("saga-id", sagaId);
-            }
-
-            // Use KafkaUtils to send with Avro serialization
+            // Use KafkaUtils to send with JSON serialization
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.debug("Published Avro event to topic {}: key={}, partition={}, offset={}",
+                            logger.debug("Published ValidationRuleSettingAppliedEvent to topic {}: key={}, partition={}, offset={}",
                                     eventTopic, key,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
-                            logger.error("Failed to publish Avro event to Kafka: topic={}, key={}",
+                            logger.error("Failed to publish ValidationRuleSettingAppliedEvent to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
-                            throw new vn.viettel.vds.promotion.validation.domain.exception.ValidationException(
-                                    "Failed to publish event to Kafka", ex);
+                            throw new ValidationException("Failed to publish event to Kafka", ex);
                         }
                     });
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish Avro event to Kafka - topic: " + eventTopic + ", key: " + key, e);
+            throw new ValidationException("Failed to publish ValidationRuleSettingAppliedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
         }
     }
 
-    private TimeframeResult buildTimeframeResult(SettingValidationRuleCommandHandler.CommandProcessingResult result) {
+    /**
+     * Publish ValidationRuleSettingFailedEvent to Kafka with proper headers
+     */
+    private void publishFailedEvent(
+            ValidationRuleSettingFailedEvent event,
+            String key,
+            String correlationId,
+            String resultStatus,
+            String sagaId) {
+        try {
+            // Use KafkaUtils to send with JSON serialization
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.debug("Published ValidationRuleSettingFailedEvent to topic {}: key={}, partition={}, offset={}",
+                                    eventTopic, key,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish ValidationRuleSettingFailedEvent to Kafka: topic={}, key={}",
+                                    eventTopic, key, ex);
+                            throw new ValidationException("Failed to publish event to Kafka", ex);
+                        }
+                    });
+
+        } catch (Exception e) {
+            throw new ValidationException("Failed to publish ValidationRuleSettingFailedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
+        }
+    }
+
+    private ValidationRuleSettingAppliedEventPayload.TimeframeResult buildTimeframeResultForApplied(
+            SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         if (result.getTimeFrameId() == null) {
             return null;
         }
@@ -416,10 +318,10 @@ public class SettingValidationRuleEventPublisher {
             timezone = timeframeData.getTimezone();
         }
 
-        return TimeframeResult.builder()
+        return ValidationRuleSettingAppliedEventPayload.TimeframeResult.builder()
                 .timeFrameId(result.getTimeFrameId())
-                .validFrom(validFrom != null ? Instant.ofEpochMilli(validFrom) : null)
-                .validTo(validTo != null ? Instant.ofEpochMilli(validTo) : null)
+                .validFrom(validFrom)
+                .validTo(validTo)
                 .mode(mode)
                 .timezone(timezone)
                 .build();
