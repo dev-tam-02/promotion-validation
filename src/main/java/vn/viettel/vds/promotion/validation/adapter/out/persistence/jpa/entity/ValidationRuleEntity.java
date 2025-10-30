@@ -55,11 +55,6 @@ public class ValidationRuleEntity extends BaseEntity {
     @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleNodeEntity> nodes = new ArrayList<>();
 
-    // One-to-many relationship with rule assignments
-    @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
-    private List<RuleAssignmentEntity> assignments = new ArrayList<>();
-
     // One-to-many relationship with rule bundles
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly

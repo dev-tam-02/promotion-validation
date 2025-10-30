@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changes/006-fix-temporal-policy-rrule-conflict.yaml
   - include:
       file: db/changelog/changes/007-fix-audit-fields-length-to-uuid.yaml
+  - include:
+      file: db/changelog/changes/008-drop-duplicate-assignment-tables.yaml
