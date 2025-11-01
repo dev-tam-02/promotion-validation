@@ -34,17 +34,15 @@ public class OperatorService {
     private static final Logger logger = LoggerFactory.getLogger(OperatorService.class);
 
     private final OperatorPersistencePort operatorPersistencePort;
-    private final AuditService auditService;
     private final ValidationEngineOperatorClient validationEngineClient;
     private final ObjectMapper objectMapper;
     private final JsonSchemaFactory schemaFactory;
     private final OperatorService self;
 
-    public OperatorService(OperatorPersistencePort operatorPersistencePort, AuditService auditService,
+    public OperatorService(OperatorPersistencePort operatorPersistencePort,
                            ValidationEngineOperatorClient validationEngineClient,
                            @org.springframework.context.annotation.Lazy OperatorService self) {
         this.operatorPersistencePort = operatorPersistencePort;
-        this.auditService = auditService;
         this.validationEngineClient = validationEngineClient;
         this.objectMapper = new ObjectMapper();
         this.schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
@@ -85,9 +83,6 @@ public class OperatorService {
                 .build();
 
         Operator saved = operatorPersistencePort.save(operator);
-
-        // Log audit event
-        auditService.logOperatorCreated(null, saved.getId(), "system");
 
         logger.info("Operator created successfully: id={}", saved.getId());
         return saved;

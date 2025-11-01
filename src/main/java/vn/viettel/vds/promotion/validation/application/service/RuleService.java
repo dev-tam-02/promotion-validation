@@ -28,17 +28,15 @@ public class RuleService {
     private static final String INVALID_RULE_STRUCTURE_CODE = "INVALID_RULE_STRUCTURE";
 
     private final RulePersistencePort rulePersistencePort;
-    private final AuditService auditService;
     private final AssignmentService assignmentService;
     private final AssignmentJpaRepository assignmentRepository;
     private final RuleService self;
 
-    public RuleService(RulePersistencePort rulePersistencePort, AuditService auditService,
+    public RuleService(RulePersistencePort rulePersistencePort,
                        @Lazy AssignmentService assignmentService,
                        AssignmentJpaRepository assignmentRepository,
                        @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
-        this.auditService = auditService;
         this.assignmentService = assignmentService;
         this.assignmentRepository = assignmentRepository;
         this.self = self;
@@ -94,9 +92,6 @@ public class RuleService {
 
         Rule saved = rulePersistencePort.save(rule);
 
-        // Log audit event
-        auditService.logRuleCreated(saved.getId(), createdBy);
-
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
     }
@@ -134,9 +129,6 @@ public class RuleService {
         rule.setUpdatedBy(updatedBy);
 
         Rule saved = rulePersistencePort.save(rule);
-
-        // Log audit event
-        auditService.logRuleUpdated(saved.getId(), updatedBy);
 
         logger.info("Rule updated successfully: id={}", saved.getId());
         return saved;
@@ -183,9 +175,6 @@ public class RuleService {
 
         Rule saved = rulePersistencePort.save(rule);
 
-        // Log audit event
-        auditService.logRuleUpdated(saved.getId(), activatedBy);
-
         logger.info("Rule activated successfully: id={}", saved.getId());
         return saved;
     }
@@ -204,9 +193,6 @@ public class RuleService {
         rule.setUpdatedBy(archivedBy);
 
         Rule saved = rulePersistencePort.save(rule);
-
-        // Log audit event
-        auditService.logRuleArchived(saved.getId(), archivedBy);
 
         logger.info("Rule archived successfully: id={}", saved.getId());
         return saved;

@@ -40,20 +40,16 @@ public class AssignmentService {
 
     private final RuleService ruleService;
 
-    private final AuditService auditService;
-
     private final AssignmentService self;
 
     public AssignmentService(AssignmentPersistencePort assignmentPersistencePort,
 
-                             RuleService ruleService, AuditService auditService,
+                             RuleService ruleService,
                              @org.springframework.context.annotation.Lazy AssignmentService self) {
 
         this.assignmentPersistencePort = assignmentPersistencePort;
 
         this.ruleService = ruleService;
-
-        this.auditService = auditService;
 
         this.self = self;
 
@@ -115,12 +111,6 @@ public class AssignmentService {
 
         Assignment saved = assignmentPersistencePort.save(assignment);
 
-        // Log audit event
-
-        auditService.logAssignmentUpdated(request.getTenantId(), saved.getId(), request.getCreatedBy(),
-
-                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.CREATE.getAction()));
-
         logger.info("Assignment created successfully: id={}", saved.getId());
 
         return saved;
@@ -176,10 +166,6 @@ public class AssignmentService {
         assignment.setUpdatedAt(Instant.now());
 
         Assignment saved = assignmentPersistencePort.save(assignment);
-
-        // Log audit event
-        auditService.logAssignmentUpdated(DEFAULT_TENANT, saved.getId(), request.getUpdatedBy(),
-                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.UPDATE.getAction(), AUDIT_VERSION_KEY, saved.getAssignmentVersion()));
 
         logger.info("Assignment updated successfully: id={}, version={}",
                 saved.getId(), saved.getAssignmentVersion());
@@ -245,10 +231,6 @@ public class AssignmentService {
         assignment.setUpdatedAt(Instant.now());
 
         Assignment saved = assignmentPersistencePort.save(assignment);
-
-        // Log audit event
-        auditService.logAssignmentUpdated(DEFAULT_TENANT, saved.getId(), updatedBy,
-                java.util.Map.of(AUDIT_ACTION_KEY, AuditEvent.DEACTIVATE.getAction()));
 
         logger.info("Assignment deactivated successfully: id={}", saved.getId());
         return saved;

@@ -29,7 +29,6 @@ public class PublishService {
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
     private final OutboxEventService outboxEventService;
-    private final AuditService auditService;
     private final PublishService self;
 
     public PublishService(RuleService ruleService,
@@ -38,7 +37,6 @@ public class PublishService {
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
                           OutboxEventService outboxEventService,
-                          AuditService auditService,
                           @org.springframework.context.annotation.Lazy PublishService self) {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
@@ -46,7 +44,6 @@ public class PublishService {
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
         this.outboxEventService = outboxEventService;
-        this.auditService = auditService;
         this.self = self;
     }
 
@@ -226,10 +223,6 @@ public class PublishService {
                         Map.of("tenantId", "default"), // metadata
                         3                                // maxAttempts
                 );
-
-                // Log audit event
-                auditService.logRulePublished(rule.getId(), job.getRequestedBy(),
-                        Map.of("version", job.getTargetVersion(), "jobId", job.getId()));
 
                 logger.info("Publish job completed successfully: id={}, version={}", jobId, job.getTargetVersion());
 

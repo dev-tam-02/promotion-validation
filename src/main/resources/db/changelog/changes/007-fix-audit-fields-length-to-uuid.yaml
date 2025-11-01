@@ -148,20 +148,6 @@ databaseChangeLog:
             columnName: updated_by
             newDataType: VARCHAR(36)
 
-        # admin_audit_logs table
-        - modifyDataType:
-            tableName: admin_audit_logs
-            columnName: created_by
-            newDataType: VARCHAR(36)
-        - modifyDataType:
-            tableName: admin_audit_logs
-            columnName: updated_by
-            newDataType: VARCHAR(36)
-        - modifyDataType:
-            tableName: admin_audit_logs
-            columnName: actor_id
-            newDataType: VARCHAR(36)
-
         # publish_jobs table
         - modifyDataType:
             tableName: publish_jobs
