@@ -561,7 +561,7 @@ public class SettingValidationRuleCommandHandler {
 
         try {
             // Publish dead letter event for monitoring
-            eventPublisher.publishDeadLetterEvent(commandId, command);
+            eventPublisher.publishDeadLetterEvent(commandId);
         } catch (Exception e) {
             logger.error("Failed to publish dead letter event: commandId={}", commandId, e);
         }

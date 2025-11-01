@@ -27,6 +27,7 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
 
     private static final String SUCCESS_KEY = "success";
     private static final String ERROR_KEY = "error";
+    private static final String NULL_RESPONSE = "null response";
 
     private final ValidationEngineClient validationEngineClient;
     private final ValidationProxyFeignClient validationProxyClient;
@@ -46,7 +47,7 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
             // Unwrap response from ResponseTemplate
             if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
                 log.error("Validation engine returned error response: {}",
-                        responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                        responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE);
                 return ValidationResult.error(
                         request.getTransactionId(),
                         responseTemplate != null ? responseTemplate.getMessage() : "No response from engine"
@@ -131,7 +132,7 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
 
             // Unwrap and check deployment status
             if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
-                log.error("Deploy rule set failed: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                log.error("Deploy rule set failed: {}", responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE);
                 return false;
             }
 
@@ -173,7 +174,7 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
 
             // Unwrap and check warmup status
             if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
-                log.error("Warmup failed: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                log.error("Warmup failed: {}", responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE);
                 return false;
             }
 
@@ -190,7 +191,7 @@ public class ValidationEngineAdapter implements ValidationEnginePort {
         try {
             ResponseTemplate<List<String>> responseTemplate = validationEngineClient.getSupportedOperators();
             if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
-                log.error("Failed to get supported operators: {}", responseTemplate != null ? responseTemplate.getMessage() : "null response");
+                log.error("Failed to get supported operators: {}", responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE);
                 return new HashMap<>();
             }
 

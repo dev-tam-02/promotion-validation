@@ -5,10 +5,7 @@ import com.promix.platform.messaging.autoconfigure.utils.KafkaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
@@ -63,9 +60,8 @@ public class SettingValidationRuleEventPublisher {
     public void publishSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         try {
             ValidationRuleSettingAppliedEvent event = createSuccessEvent(commandId, result);
-            String sagaId = result.getAssignment().getSubject().getKey(); // Campaign ID
 
-            publishAppliedEvent(event, result.getAssignment().getId(), commandId, "SUCCESS", sagaId);
+            publishAppliedEvent(event, result.getAssignment().getId());
 
             logger.info("Published ValidationRuleSettingAppliedEvent: commandId={}, assignmentId={}",
                     commandId, result.getAssignment().getId());
@@ -82,7 +78,7 @@ public class SettingValidationRuleEventPublisher {
         try {
             ValidationRuleSettingFailedEvent event = createErrorEvent(commandId, campaignId, errorCode, errorMessage);
             String subject = campaignId != null ? campaignId : commandId;
-            publishFailedEvent(event, subject, commandId, "FAILURE", campaignId);
+            publishFailedEvent(event, subject);
 
             logger.info("Published ValidationRuleSettingFailedEvent: commandId={}, campaignId={}, errorCode={}",
                     commandId, campaignId, errorCode);
@@ -95,7 +91,7 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish dead letter event as ValidationRuleSettingFailedEvent
      */
-    public void publishDeadLetterEvent(String commandId, SettingValidationRuleCommand originalCommand) {
+    public void publishDeadLetterEvent(String commandId) {
         try {
             String errorMessage = "Command sent to dead letter queue after max retries";
             publishErrorEvent(commandId, null, "DEAD_LETTER", errorMessage);
@@ -240,10 +236,7 @@ public class SettingValidationRuleEventPublisher {
      */
     private void publishAppliedEvent(
             ValidationRuleSettingAppliedEvent event,
-            String key,
-            String correlationId,
-            String resultStatus,
-            String sagaId) {
+            String key) {
         try {
             // Use KafkaUtils to send with JSON serialization
             kafkaUtils.send(eventTopic, key, event)
@@ -270,10 +263,7 @@ public class SettingValidationRuleEventPublisher {
      */
     private void publishFailedEvent(
             ValidationRuleSettingFailedEvent event,
-            String key,
-            String correlationId,
-            String resultStatus,
-            String sagaId) {
+            String key) {
         try {
             // Use KafkaUtils to send with JSON serialization
             kafkaUtils.send(eventTopic, key, event)

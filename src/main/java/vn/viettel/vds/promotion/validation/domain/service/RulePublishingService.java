@@ -7,6 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.BundleWarmupException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleCompilationException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleExecutionException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -22,6 +25,7 @@ public class RulePublishingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RulePublishingService.class);
     private static final String RULE_NOT_FOUND_MESSAGE = "Rule not found: ";
+    private static final String NULL_RESPONSE = "null response";
 
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
@@ -239,7 +243,7 @@ public class RulePublishingService {
 
         com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
         if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
-            throw new RuntimeException("Failed to compile rule: " + (responseTemplate != null ? responseTemplate.getMessage() : "null response"));
+            throw new RuleCompilationException("Failed to compile rule: " + (responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE));
         }
         return responseTemplate.getData();
     }
@@ -345,7 +349,7 @@ public class RulePublishingService {
 
             com.promix.platform.web.template.ResponseTemplate<WarmupResponse> warmupResponseTemplate = validationEngineClient.warmup(warmupRequest);
             if (warmupResponseTemplate == null || !warmupResponseTemplate.isSuccess() || warmupResponseTemplate.getData() == null) {
-                throw new RuntimeException("Failed to warmup bundle: " + (warmupResponseTemplate != null ? warmupResponseTemplate.getMessage() : "null response"));
+                throw new BundleWarmupException("Failed to warmup bundle: " + (warmupResponseTemplate != null ? warmupResponseTemplate.getMessage() : NULL_RESPONSE));
             }
             WarmupResponse warmupResponse = warmupResponseTemplate.getData();
 
@@ -374,7 +378,7 @@ public class RulePublishingService {
             ExecuteRequest testRequest = createTestExecuteRequest(bundleHash);
             com.promix.platform.web.template.ResponseTemplate<ExecuteResponse> responseTemplate = validationEngineClient.execute(testRequest);
             if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
-                throw new RuntimeException("Failed to execute test: " + (responseTemplate != null ? responseTemplate.getMessage() : "null response"));
+                throw new RuleExecutionException("Failed to execute test: " + (responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE));
             }
             ExecuteResponse response = responseTemplate.getData();
 

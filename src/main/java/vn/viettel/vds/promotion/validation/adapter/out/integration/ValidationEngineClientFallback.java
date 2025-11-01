@@ -15,6 +15,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationEngineClientFallback.class);
     private static final String SERVICE_UNAVAILABLE_MESSAGE = "Validation engine service is unavailable";
+    private static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
     @Override
     public ResponseTemplate<CompileResponse> compile(CompileRequest request) {
@@ -37,7 +38,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
         ExecuteResponse fallbackResponse = new ExecuteResponse();
         fallbackResponse.setOk(false);
         fallbackResponse.setDecision("DENY");
-        fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
+        fallbackResponse.setReasonCodes(List.of(SERVICE_UNAVAILABLE));
         fallbackResponse.setExplain(List.of(SERVICE_UNAVAILABLE_MESSAGE));
         return createErrorResponse(fallbackResponse);
     }
@@ -51,7 +52,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
                     ExecuteResponse fallbackResponse = new ExecuteResponse();
                     fallbackResponse.setOk(false);
                     fallbackResponse.setDecision("DENY");
-                    fallbackResponse.setReasonCodes(List.of("SERVICE_UNAVAILABLE"));
+                    fallbackResponse.setReasonCodes(List.of(SERVICE_UNAVAILABLE));
                     fallbackResponse.setExplain(List.of(SERVICE_UNAVAILABLE_MESSAGE));
                     return fallbackResponse;
                 })
@@ -107,7 +108,7 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     private <T> ResponseTemplate<T> createErrorResponse(T data) {
         ResponseTemplate<T> errorResponse = new ResponseTemplate<>();
         errorResponse.setStatus(503);
-        errorResponse.setCode("SERVICE_UNAVAILABLE");
+        errorResponse.setCode(SERVICE_UNAVAILABLE);
         errorResponse.setSuccess(false);
         errorResponse.setMessage(SERVICE_UNAVAILABLE_MESSAGE);
         errorResponse.setTimestamp(OffsetDateTime.now());
