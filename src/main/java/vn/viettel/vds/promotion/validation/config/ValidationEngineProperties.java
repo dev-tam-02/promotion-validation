@@ -10,10 +10,8 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "integration.validation-engine")
 public class ValidationEngineProperties {
 
-    private static final String DEFAULT_SERVICE_PATH = "/promotion/promotion-validation-engine";
-
     private String serviceName = "promotion-validation-engine";
-    private String servicePath = DEFAULT_SERVICE_PATH;
+    private String servicePath = "/promotion/promotion-validation-engine";
 
     @Positive
     private int retryAttempts = 3;
