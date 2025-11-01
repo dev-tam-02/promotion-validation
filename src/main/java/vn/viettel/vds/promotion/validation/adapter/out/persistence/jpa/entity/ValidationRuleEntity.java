@@ -46,6 +46,9 @@ public class ValidationRuleEntity extends BaseEntity {
     @Column(name = "published_by", length = 50)
     private String publishedBy;
 
+    @Column(name = "bundle_hash", length = 200)
+    private String bundleHash;
+
     // One-to-one relationship with usage limits
     @OneToOne(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private RuleUsageLimitsEntity limits;

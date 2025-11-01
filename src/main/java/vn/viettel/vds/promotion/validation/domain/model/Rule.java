@@ -72,6 +72,7 @@ public class Rule {
     // Publishing
     private Instant publishedAt;
     private String publishedBy;
+    private String bundleHash;
 
     // Audit Trail
     private Instant createdAt;

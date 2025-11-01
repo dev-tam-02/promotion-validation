@@ -12,7 +12,6 @@ import vn.viettel.vds.promotion.validation.domain.exception.RuleCompilationExcep
 import vn.viettel.vds.promotion.validation.domain.exception.RuleExecutionException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-import vn.viettel.vds.promotion.validation.domain.model.RuleVersion;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -30,16 +29,13 @@ public class RulePublishingService {
 
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
-    private final vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
-                                 vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort,
                                  vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
-        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.tenantProperties = tenantProperties;
     }
 
@@ -91,106 +87,16 @@ public class RulePublishingService {
     }
 
     private void updateRuleToPublishedState(Rule rule, CompileResponse compileResponse) {
-        Instant now = Instant.now();
-
-        // Update Rule state
         rule.setState(Rule.RuleState.PUBLISHED);
-        rule.setPublishedAt(now);
+        rule.setPublishedAt(Instant.now());
         rule.setPublishedBy("rule-publishing-service");
-        rule.setUpdatedAt(now);
+        rule.setUpdatedAt(Instant.now());
+        // Save bundleHash directly to rule
+        rule.setBundleHash(compileResponse.getBundleHash());
         rulePersistencePort.save(rule);
-
-        // Save bundleHash to RuleVersion
-        saveRuleVersionWithBundleHash(rule, compileResponse, now);
 
         logger.info("Rule published successfully: ruleId={}, bundleHash={}, artifactSize={}",
                 rule.getId(), compileResponse.getBundleHash(), compileResponse.getArtifactSize());
-    }
-
-    private void saveRuleVersionWithBundleHash(Rule rule, CompileResponse compileResponse, Instant now) {
-        try {
-            // Determine version number
-            Integer versionNumber = determineRuleVersion(rule);
-
-            // Query existing RuleVersion or create new one
-            RuleVersion ruleVersion = ruleVersionPersistencePort
-                    .findByRuleIdAndVersion(rule.getId(), versionNumber)
-                    .orElseGet(() -> createNewRuleVersion(rule, versionNumber, now));
-
-            // Update compile info with bundleHash
-            RuleVersion.CompileInfo compileInfo = RuleVersion.CompileInfo.builder()
-                    .status(RuleVersion.CompileInfo.CompileStatus.SUCCESS)
-                    .compilerId("validation-engine")
-                    .bundleHash(compileResponse.getBundleHash())
-                    .logs(compileResponse.getErrors() != null ? compileResponse.getErrors() : List.of())
-                    .build();
-
-            // Update RuleVersion with compile info and published metadata
-            RuleVersion updatedRuleVersion = ruleVersion.toBuilder()
-                    .compile(compileInfo)
-                    .publishedAt(now)
-                    .publishedBy("rule-publishing-service")
-                    .updatedAt(now)
-                    .build();
-
-            ruleVersionPersistencePort.save(updatedRuleVersion);
-
-            logger.info("Saved bundleHash to RuleVersion: ruleId={}, version={}, bundleHash={}",
-                    rule.getId(), versionNumber, compileResponse.getBundleHash());
-
-        } catch (Exception e) {
-            logger.error("Failed to save bundleHash to RuleVersion: ruleId={}, error={}",
-                    rule.getId(), e.getMessage(), e);
-            // Don't fail the entire publish operation if version save fails
-        }
-    }
-
-    private RuleVersion createNewRuleVersion(Rule rule, Integer versionNumber, Instant now) {
-        return RuleVersion.builder()
-                .id(com.promix.platform.core.util.IdGenerator.generateId())
-                .ruleId(rule.getId())
-                .code(rule.getCode())
-                .version(versionNumber)
-                .logic(rule.getLogic() != null ? RuleVersion.LogicType.valueOf(rule.getLogic().name()) : null)
-                .nodes(convertNodesToMaps(rule.getNodes()))
-                .operatorsFingerprint(generateOperatorFingerprint(rule.getNodes()))
-                .dsl(rule.getDsl())
-                .createdAt(now)
-                .createdBy("rule-publishing-service")
-                .updatedAt(now)
-                .build();
-    }
-
-    private List<Map<String, Object>> convertNodesToMaps(List<RuleNode> nodes) {
-        if (nodes == null || nodes.isEmpty()) {
-            return List.of();
-        }
-
-        return nodes.stream()
-                .map(this::convertNodeToMap)
-                .toList();
-    }
-
-    private Map<String, Object> convertNodeToMap(RuleNode node) {
-        Map<String, Object> nodeMap = new java.util.HashMap<>();
-        nodeMap.put("id", node.getId());
-        nodeMap.put("type", node.getType() != null ? node.getType().name() : null);
-        nodeMap.put("operatorName", node.getOperatorName());
-        nodeMap.put("params", node.getParams());
-        nodeMap.put("reasonCode", node.getReasonCode());
-
-        if (node.getGroupLogic() != null) {
-            nodeMap.put("groupLogic", node.getGroupLogic().name());
-        }
-
-        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-            List<String> childIds = node.getChildren().stream()
-                    .map(RuleNode::getId)
-                    .toList();
-            nodeMap.put("children", childIds);
-        }
-
-        return nodeMap;
     }
 
     private RulePublishResult createSuccessfulPublishResult(String ruleId, CompileResponse compileResponse) {

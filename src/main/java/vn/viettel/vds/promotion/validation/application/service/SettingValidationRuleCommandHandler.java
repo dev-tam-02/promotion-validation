@@ -40,7 +40,6 @@ public class SettingValidationRuleCommandHandler {
     @SuppressWarnings("unused") // Reserved for future use
     private final ValidationEngineDeploymentService validationEngineClient;
     private final IdempotencyService idempotencyService;
-    private final vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort;
     private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
 
     public SettingValidationRuleCommandHandler(
@@ -50,7 +49,6 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleEventPublisher eventPublisher,
             ValidationEngineDeploymentService validationEngineClient,
             IdempotencyService idempotencyService,
-            vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort,
             vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
@@ -58,7 +56,6 @@ public class SettingValidationRuleCommandHandler {
         this.eventPublisher = eventPublisher;
         this.validationEngineClient = validationEngineClient;
         this.idempotencyService = idempotencyService;
-        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.rulePublishingService = rulePublishingService;
     }
 
@@ -544,31 +541,15 @@ public class SettingValidationRuleCommandHandler {
 
             var validationRule = validationRuleOpt.get();
 
-            // Determine rule version number
-            Long ruleVersionNumber = validationRule.getRuleVersion();
-            if (ruleVersionNumber == null) {
-                ruleVersionNumber = 1L;
-            }
-
             // Check if rule already has bundleHash
-            var ruleVersionOpt = ruleVersionPersistencePort.findByRuleIdAndVersion(
-                    ruleId,
-                    ruleVersionNumber.intValue()
-            );
+            boolean needsDeployment = (validationRule.getBundleHash() == null || validationRule.getBundleHash().isEmpty());
 
-            boolean needsDeployment = true;
-            if (ruleVersionOpt.isPresent()) {
-                var ruleVersion = ruleVersionOpt.get();
-                if (ruleVersion.getCompile() != null && ruleVersion.getCompile().getBundleHash() != null) {
-                    needsDeployment = false;
-                    logger.info("Rule already deployed with bundleHash: ruleId={}, version={}, bundleHash={}",
-                            ruleId, ruleVersionNumber, ruleVersion.getCompile().getBundleHash());
-                }
-            }
-
-            // Deploy rule if needed
-            if (needsDeployment) {
-                logger.info("Rule not yet deployed, deploying now: ruleId={}, version={}", ruleId, ruleVersionNumber);
+            if (!needsDeployment) {
+                logger.info("Rule already deployed with bundleHash: ruleId={}, bundleHash={}",
+                        ruleId, validationRule.getBundleHash());
+            } else {
+                // Deploy rule if needed
+                logger.info("Rule not yet deployed, deploying now: ruleId={}", ruleId);
 
                 vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult =
                         rulePublishingService.publishRule(ruleId);

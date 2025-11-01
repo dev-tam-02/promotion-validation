@@ -17,3 +17,5 @@ databaseChangeLog:
       file: db/changelog/changes/008-drop-duplicate-assignment-tables.yaml
   - include:
       file: db/changelog/changes/009-create-validation-rules-assignment-tables.yaml
+  - include:
+      file: db/changelog/changes/010-add-bundle-hash-to-validation-rules.yaml
