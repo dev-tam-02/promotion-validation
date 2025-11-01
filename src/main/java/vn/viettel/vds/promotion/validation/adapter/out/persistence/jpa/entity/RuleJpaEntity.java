@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * JPA entity for validation rules mapped to validation_rules table.
  * <p>
- * Schema columns (from 001-create-validation-rule-engine-schema.yaml):
+ * Schema columns:
  * - id: varchar(36) - Primary key
  * - code: varchar(100) - Rule code identifier
  * - name: varchar(200) - Rule name
@@ -27,6 +27,7 @@ import java.util.Map;
  * - dsl: text - DSL snapshot in JSON format
  * - published_at: timestamp - When rule was published
  * - published_by: varchar(50) - Who published the rule
+ * - bundle_hash: varchar(200) - Hash of compiled rule bundle (added in migration 010)
  * - created_at: timestamp - Creation timestamp
  * - updated_at: timestamp - Last update timestamp
  * - created_by: varchar(100) - Creator
@@ -71,6 +72,9 @@ public class RuleJpaEntity {
 
     @Column(name = "published_by", length = 50)
     private String publishedBy;
+
+    @Column(name = "bundle_hash", length = 200)
+    private String bundleHash;
 
     @ElementCollection
     @CollectionTable(

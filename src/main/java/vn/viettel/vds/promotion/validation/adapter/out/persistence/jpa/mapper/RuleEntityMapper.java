@@ -132,6 +132,9 @@ public interface RuleEntityMapper {
     @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
+    @Mapping(target = "bundleHash", source = "bundleHash")
+    @Mapping(target = "publishedAt", source = "publishedAt")
+    @Mapping(target = "publishedBy", source = "publishedBy")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
     @Mapping(target = "ruleCode", ignore = true)
@@ -152,6 +155,9 @@ public interface RuleEntityMapper {
     @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "objectMapToString")
+    @Mapping(target = "bundleHash", source = "bundleHash")
+    @Mapping(target = "publishedAt", source = "publishedAt")
+    @Mapping(target = "publishedBy", source = "publishedBy")
     RuleJpaEntity toEntity(Rule domain);
 
     List<Rule> toDomainList(List<RuleJpaEntity> entities);
