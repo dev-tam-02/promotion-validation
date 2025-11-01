@@ -11,6 +11,8 @@ import java.time.Duration;
 public class ValidationEngineProperties {
 
     private String serviceName = "promotion-validation-engine";
+    // Default service path - can be customized via application.yml:
+    // integration.validation-engine.service-path=/your/custom/path
     private String servicePath = "/promotion/promotion-validation-engine";
 
     @Positive

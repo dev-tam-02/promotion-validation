@@ -22,6 +22,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class ValidationAssignmentExceptionHandler {
 
+    private static final String STATUS_FIELD = "status";
+    private static final String SUCCESS_FIELD = "success";
+    private static final String MESSAGE_FIELD = "message";
+    private static final String TIMESTAMP_FIELD = "timestamp";
+
     /**
      * Handle ValidationRuleNotFoundException
      */
@@ -32,11 +37,11 @@ public class ValidationAssignmentExceptionHandler {
         log.warn("Validation rule not found: {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put(STATUS_FIELD, HttpStatus.NOT_FOUND.value());
         response.put("code", "VALIDATION_RULE_NOT_FOUND");
-        response.put("success", false);
-        response.put("message", ex.getMessage());
-        response.put("timestamp", OffsetDateTime.now());
+        response.put(SUCCESS_FIELD, false);
+        response.put(MESSAGE_FIELD, ex.getMessage());
+        response.put(TIMESTAMP_FIELD, OffsetDateTime.now());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
@@ -51,11 +56,11 @@ public class ValidationAssignmentExceptionHandler {
         log.warn("Assignment not found: {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.NOT_FOUND.value());
+        response.put(STATUS_FIELD, HttpStatus.NOT_FOUND.value());
         response.put("code", "ASSIGNMENT_VALIDATION_NOT_FOUND");
-        response.put("success", false);
-        response.put("message", ex.getMessage());
-        response.put("timestamp", OffsetDateTime.now());
+        response.put(SUCCESS_FIELD, false);
+        response.put(MESSAGE_FIELD, ex.getMessage());
+        response.put(TIMESTAMP_FIELD, OffsetDateTime.now());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
@@ -73,11 +78,11 @@ public class ValidationAssignmentExceptionHandler {
         log.warn("Assignment already deleted (optimistic locking): {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.CONFLICT.value());
+        response.put(STATUS_FIELD, HttpStatus.CONFLICT.value());
         response.put("code", "ASSIGNMENT_ALREADY_DELETED");
-        response.put("success", false);
-        response.put("message", "Assignment has been deleted by another process");
-        response.put("timestamp", OffsetDateTime.now());
+        response.put(SUCCESS_FIELD, false);
+        response.put(MESSAGE_FIELD, "Assignment has been deleted by another process");
+        response.put(TIMESTAMP_FIELD, OffsetDateTime.now());
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
@@ -102,11 +107,11 @@ public class ValidationAssignmentExceptionHandler {
         }
 
         Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put(STATUS_FIELD, HttpStatus.BAD_REQUEST.value());
         response.put("code", errorCode);
-        response.put("success", false);
-        response.put("message", message);
-        response.put("timestamp", OffsetDateTime.now());
+        response.put(SUCCESS_FIELD, false);
+        response.put(MESSAGE_FIELD, message);
+        response.put(TIMESTAMP_FIELD, OffsetDateTime.now());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }

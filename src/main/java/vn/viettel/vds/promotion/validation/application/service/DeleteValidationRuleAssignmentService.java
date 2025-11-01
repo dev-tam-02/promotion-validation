@@ -25,6 +25,8 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class DeleteValidationRuleAssignmentService implements DeleteValidationRuleAssignmentUseCase {
 
+    private static final String SYSTEM_USER = "system";
+
     private final ValidationRuleAssignmentPort assignmentPort;
     private final RuleService ruleService;
 
@@ -48,11 +50,10 @@ public class DeleteValidationRuleAssignmentService implements DeleteValidationRu
             ValidationRuleAssignment assignment = findAssignment(validationRuleId, objectId);
 
             // Step 4: Thực hiện soft delete
-            String currentUser = getCurrentUser();
-            ValidationRuleAssignment deletedAssignment = performSoftDelete(assignment, currentUser);
+            ValidationRuleAssignment deletedAssignment = performSoftDelete(assignment, SYSTEM_USER);
 
             // Step 5: Archive vào bảng deleted
-            archiveDeletedAssignment(deletedAssignment, currentUser);
+            archiveDeletedAssignment(deletedAssignment, SYSTEM_USER);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("[{}] Delete assignment completed successfully in {}ms",
@@ -159,16 +160,6 @@ public class DeleteValidationRuleAssignmentService implements DeleteValidationRu
         ValidationRuleAssignmentDeleted archived = assignmentPort.saveDeleted(deleted);
         log.info("Deleted assignment archived successfully: archiveId={}, assignmentId={}",
                 archived.getId(), archived.getAssignmentId());
-    }
-
-    /**
-     * Lấy current user.
-     * TODO: Integrate với Spring Security hoặc authentication mechanism khác nếu có.
-     */
-    private String getCurrentUser() {
-        // Tạm thời return "system" - có thể enhance sau
-        // Có thể lấy từ JWT token, request header, hoặc Spring Security context
-        return "system";
     }
 
     /**
