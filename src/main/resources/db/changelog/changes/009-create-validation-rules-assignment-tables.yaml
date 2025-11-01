@@ -1,0 +1,210 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-validation-rules-assignment-tables
+      author: harley.hoang.work@gmail.com
+      comment: Create validation_rules_assignment and validation_rules_assignment_deleted tables for managing validation rule assignments to objects
+      changes:
+        # Create validation_rules_assignment table
+        - createTable:
+            tableName: validation_rules_assignment
+            remarks: Table for storing validation rule assignments to objects (campaigns, vouchers, etc.)
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: Primary key - UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: VARCHAR(36)
+                  remarks: Foreign key to validation_rules table
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_id
+                  type: VARCHAR(36)
+                  remarks: ID of the object (campaign, voucher, etc.)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_type
+                  type: VARCHAR(50)
+                  remarks: Type of the object (CAMPAIGN, VOUCHER, etc.)
+                  defaultValue: CAMPAIGN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  remarks: Version for optimistic locking
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(100)
+                  remarks: User who created the assignment
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_modified_at
+                  type: TIMESTAMP
+                  remarks: Last modification timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+              - column:
+                  name: last_modified_by
+                  type: VARCHAR(100)
+                  remarks: User who last modified the assignment
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMP
+                  remarks: Soft delete timestamp
+              - column:
+                  name: deleted_by
+                  type: VARCHAR(100)
+                  remarks: User who deleted the assignment
+              - column:
+                  name: deleted
+                  type: BOOLEAN
+                  remarks: Soft delete flag
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+        # Create indexes for validation_rules_assignment
+        - createIndex:
+            indexName: idx_vra_validation_rule
+            tableName: validation_rules_assignment
+            columns:
+              - column:
+                  name: validation_rule_id
+
+        - createIndex:
+            indexName: idx_vra_object
+            tableName: validation_rules_assignment
+            columns:
+              - column:
+                  name: object_id
+
+        - createIndex:
+            indexName: idx_vra_deleted
+            tableName: validation_rules_assignment
+            columns:
+              - column:
+                  name: deleted
+
+        # Create unique constraint for validation_rule_id + object_id + deleted
+        - addUniqueConstraint:
+            constraintName: uk_vra_validation_object
+            tableName: validation_rules_assignment
+            columnNames: validation_rule_id, object_id, deleted
+
+        # Create validation_rules_assignment_deleted table (archive)
+        - createTable:
+            tableName: validation_rules_assignment_deleted
+            remarks: Archive table for deleted validation rule assignments
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  remarks: Primary key - UUID (new ID for archive record)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: VARCHAR(36)
+                  remarks: Original assignment ID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: VARCHAR(36)
+                  remarks: Validation rule ID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_id
+                  type: VARCHAR(36)
+                  remarks: Object ID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_type
+                  type: VARCHAR(50)
+                  remarks: Object type
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  remarks: Last version before deletion
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  remarks: Original creation timestamp
+              - column:
+                  name: created_by
+                  type: VARCHAR(100)
+                  remarks: Original creator
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMP
+                  remarks: Deletion timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_by
+                  type: VARCHAR(100)
+                  remarks: User who deleted
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reason
+                  type: TEXT
+                  remarks: Optional deletion reason
+
+        # Create indexes for validation_rules_assignment_deleted
+        - createIndex:
+            indexName: idx_vrad_assignment_id
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: assignment_id
+
+        - createIndex:
+            indexName: idx_vrad_validation_rule
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: validation_rule_id
+
+        - createIndex:
+            indexName: idx_vrad_object
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: object_id
+
+        - createIndex:
+            indexName: idx_vrad_deleted_at
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: deleted_at
+
+      rollback:
+        - dropTable:
+            tableName: validation_rules_assignment_deleted
+        - dropTable:
+            tableName: validation_rules_assignment
