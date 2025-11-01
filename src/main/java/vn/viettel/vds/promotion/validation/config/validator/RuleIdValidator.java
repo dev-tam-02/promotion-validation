@@ -49,7 +49,7 @@ public class RuleIdValidator implements ConstraintValidator<ValidRuleId, String>
         // If empty after trim, consider invalid
         if (trimmedValue.isEmpty()) {
             buildCustomViolation(context, "VALIDATION_RULE_ID_INVALID",
-                "ID quy tắc không được để trống");
+                    "ID quy tắc không được để trống");
             return false;
         }
 
@@ -59,7 +59,7 @@ public class RuleIdValidator implements ConstraintValidator<ValidRuleId, String>
             return true;
         } catch (IllegalArgumentException e) {
             buildCustomViolation(context, "VALIDATION_RULE_ID_INVALID",
-                "ID quy tắc không đúng định dạng UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)");
+                    "ID quy tắc không đúng định dạng UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)");
             return false;
         }
     }
@@ -67,8 +67,8 @@ public class RuleIdValidator implements ConstraintValidator<ValidRuleId, String>
     /**
      * Builds a custom constraint violation with specific error code and message.
      *
-     * @param context the constraint validator context
-     * @param errorCode the error code
+     * @param context      the constraint validator context
+     * @param errorCode    the error code
      * @param errorMessage the error message
      */
     private void buildCustomViolation(ConstraintValidatorContext context, String errorCode, String errorMessage) {

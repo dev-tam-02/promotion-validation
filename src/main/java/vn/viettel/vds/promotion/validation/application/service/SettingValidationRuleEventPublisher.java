@@ -117,22 +117,22 @@ public class SettingValidationRuleEventPublisher {
         // Build Assignment Result
         ValidationRuleSettingAppliedEventPayload.AssignmentResult assignmentResult =
                 ValidationRuleSettingAppliedEventPayload.AssignmentResult.builder()
-                .assignmentId(assignment.getId())
-                .ruleId(assignment.getRuleId())
-                .active(Boolean.TRUE.equals(assignment.getActive()))
-                .trafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
-                .priority(0) // Priority field can be added to assignment entity when needed
-                .build();
+                        .assignmentId(assignment.getId())
+                        .ruleId(assignment.getRuleId())
+                        .active(Boolean.TRUE.equals(assignment.getActive()))
+                        .trafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
+                        .priority(0) // Priority field can be added to assignment entity when needed
+                        .build();
 
         // Build Applicability Result
         ValidationRuleSettingAppliedEventPayload.ApplicabilityResult applicabilityResult =
                 ValidationRuleSettingAppliedEventPayload.ApplicabilityResult.builder()
-                .subjectType("PRODUCT") // Default subject type for applicability
-                .subjectKey("*") // Default to all products
-                .includedItemsCount(stats.getIncludedItemsCount())
-                .excludedItemsCount(stats.getExcludedItemsCount())
-                .includedAll(stats.isIncludedAll())
-                .build();
+                        .subjectType("PRODUCT") // Default subject type for applicability
+                        .subjectKey("*") // Default to all products
+                        .includedItemsCount(stats.getIncludedItemsCount())
+                        .excludedItemsCount(stats.getExcludedItemsCount())
+                        .includedAll(stats.isIncludedAll())
+                        .build();
 
         // Build Timeframe Result (if provided)
         ValidationRuleSettingAppliedEventPayload.TimeframeResult timeframeResult = buildTimeframeResultForApplied(result);
