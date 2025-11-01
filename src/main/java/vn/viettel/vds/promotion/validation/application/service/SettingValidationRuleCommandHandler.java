@@ -40,6 +40,8 @@ public class SettingValidationRuleCommandHandler {
     @SuppressWarnings("unused") // Reserved for future use
     private final ValidationEngineDeploymentService validationEngineClient;
     private final IdempotencyService idempotencyService;
+    private final vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort;
+    private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
 
     public SettingValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
@@ -47,13 +49,17 @@ public class SettingValidationRuleCommandHandler {
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
             ValidationEngineDeploymentService validationEngineClient,
-            IdempotencyService idempotencyService) {
+            IdempotencyService idempotencyService,
+            vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort ruleVersionPersistencePort,
+            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;
         this.validationEngineClient = validationEngineClient;
         this.idempotencyService = idempotencyService;
+        this.ruleVersionPersistencePort = ruleVersionPersistencePort;
+        this.rulePublishingService = rulePublishingService;
     }
 
     /**
@@ -518,27 +524,67 @@ public class SettingValidationRuleCommandHandler {
 
     /**
      * Deploy rule to validation-engine after successful assignment creation
+     * Checks if rule has bundleHash, if not, deploys it via RulePublishingService
      */
     private void deployRuleToEngine(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment, String ruleId) {
         try {
+            // Only deploy if assignment is active
+            if (assignment.getActive() == null || !assignment.getActive()) {
+                logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
+                        ruleId, assignment.getId());
+                return;
+            }
+
             // Get the validation rule details
-            var validationRule = validationRuleRepository.findById(ruleId);
-            if (validationRule.isEmpty()) {
+            var validationRuleOpt = validationRuleRepository.findById(ruleId);
+            if (validationRuleOpt.isEmpty()) {
                 logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
                 return;
             }
-            // Assignment result handled via publishSuccessEvent
 
-            // Only deploy if assignment is active
-            if (assignment.getActive() != null && assignment.getActive()) {
-                logger.info("Rule assignment created successfully: ruleId={}, assignmentId={}",
-                        ruleId, assignment.getId());
-                // Note: deployRule() is deprecated and does nothing.
-                // Actual rule deployment is handled by RulePublishingService.publishRule()
-            } else {
-                logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
-                        ruleId, assignment.getId());
+            var validationRule = validationRuleOpt.get();
+
+            // Determine rule version number
+            Long ruleVersionNumber = validationRule.getRuleVersion();
+            if (ruleVersionNumber == null) {
+                ruleVersionNumber = 1L;
             }
+
+            // Check if rule already has bundleHash
+            var ruleVersionOpt = ruleVersionPersistencePort.findByRuleIdAndVersion(
+                    ruleId,
+                    ruleVersionNumber.intValue()
+            );
+
+            boolean needsDeployment = true;
+            if (ruleVersionOpt.isPresent()) {
+                var ruleVersion = ruleVersionOpt.get();
+                if (ruleVersion.getCompile() != null && ruleVersion.getCompile().getBundleHash() != null) {
+                    needsDeployment = false;
+                    logger.info("Rule already deployed with bundleHash: ruleId={}, version={}, bundleHash={}",
+                            ruleId, ruleVersionNumber, ruleVersion.getCompile().getBundleHash());
+                }
+            }
+
+            // Deploy rule if needed
+            if (needsDeployment) {
+                logger.info("Rule not yet deployed, deploying now: ruleId={}, version={}", ruleId, ruleVersionNumber);
+
+                vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult =
+                        rulePublishingService.publishRule(ruleId);
+
+                if (publishResult.isSuccess()) {
+                    logger.info("Rule deployed successfully: ruleId={}, bundleHash={}, artifactSize={}",
+                            ruleId, publishResult.getBundleHash(), publishResult.getArtifactSize());
+                } else {
+                    logger.error("Failed to deploy rule: ruleId={}, error={}",
+                            ruleId, publishResult.getErrorMessage());
+                    // Don't fail the entire command - assignment is already created
+                }
+            }
+
+            logger.info("Rule deployment check completed: ruleId={}, assignmentId={}, needsDeployment={}",
+                    ruleId, assignment.getId(), needsDeployment);
 
         } catch (Exception e) {
             logger.error("Error deploying rule to validation-engine: ruleId={}, assignmentId={}",
