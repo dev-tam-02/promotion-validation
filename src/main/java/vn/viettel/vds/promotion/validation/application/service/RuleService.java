@@ -11,8 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleBundleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleBundleRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -31,17 +30,17 @@ public class RuleService {
     private final RulePersistencePort rulePersistencePort;
     private final AuditService auditService;
     private final AssignmentService assignmentService;
-    private final RuleBundleRepository ruleBundleRepository;
+    private final AssignmentJpaRepository assignmentRepository;
     private final RuleService self;
 
     public RuleService(RulePersistencePort rulePersistencePort, AuditService auditService,
                        @Lazy AssignmentService assignmentService,
-                       RuleBundleRepository ruleBundleRepository,
+                       AssignmentJpaRepository assignmentRepository,
                        @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
         this.auditService = auditService;
         this.assignmentService = assignmentService;
-        this.ruleBundleRepository = ruleBundleRepository;
+        this.assignmentRepository = assignmentRepository;
         this.self = self;
     }
 
@@ -401,28 +400,42 @@ public class RuleService {
     public BundleHashResponse getBundleHashForObject(String objectType, String objectId) {
         logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
 
-        // Query latest bundle by subject type and key
-        List<RuleBundleEntity> bundles = ruleBundleRepository.findBySubjectTypeAndKey(objectType, objectId);
-
-        if (bundles.isEmpty()) {
-            logger.warn("No bundle found for object: type={}, id={}", objectType, objectId);
+        // Find active assignment for object
+        var assignments = assignmentRepository.findByEntityTypeAndEntityIdAndActive(objectType, objectId, true);
+        if (assignments.isEmpty()) {
+            logger.warn("No active assignment found for object: type={}, id={}", objectType, objectId);
             throw new ResourceNotFoundException();
         }
 
-        // Get latest bundle (first in list ordered by version DESC)
-        RuleBundleEntity latestBundle = bundles.get(0);
+        // Get first assignment (there should only be one active)
+        var assignmentEntity = assignments.get(0);
+        String ruleId = assignmentEntity.getRuleId();
 
-        logger.debug("Found bundle hash {} for object {}:{} (ruleVersion={}, assignmentVersion={})",
-                latestBundle.getBundleHash(), objectType, objectId,
-                latestBundle.getRuleVersion(), latestBundle.getAssignmentVersion());
+        // Get rule
+        Optional<Rule> ruleOpt = rulePersistencePort.findById(ruleId);
+        if (ruleOpt.isEmpty()) {
+            logger.warn("Rule not found: ruleId={}", ruleId);
+            throw new ResourceNotFoundException();
+        }
+
+        Rule rule = ruleOpt.get();
+
+        // Check if rule has bundleHash
+        if (rule.getBundleHash() == null || rule.getBundleHash().isEmpty()) {
+            logger.warn("Rule has no bundleHash: ruleId={}", ruleId);
+            throw new ResourceNotFoundException();
+        }
+
+        logger.debug("Found bundle hash {} for object {}:{} (ruleVersion={})",
+                rule.getBundleHash(), objectType, objectId, rule.getRuleVersion());
 
         return BundleHashResponse.builder()
                 .objectType(objectType)
                 .objectId(objectId)
-                .bundleHash(latestBundle.getBundleHash())
-                .ruleVersion(latestBundle.getRuleVersion())
-                .assignmentVersion(latestBundle.getAssignmentVersion())
-                .compiledAt(latestBundle.getCreatedAt())
+                .bundleHash(rule.getBundleHash())
+                .ruleVersion(rule.getRuleVersion())
+                .assignmentVersion(1) // Assignment version not tracked in new model
+                .compiledAt(rule.getPublishedAt())
                 .build();
     }
 }
