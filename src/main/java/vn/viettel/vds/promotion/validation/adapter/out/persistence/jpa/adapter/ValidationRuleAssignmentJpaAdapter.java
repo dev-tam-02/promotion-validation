@@ -90,6 +90,24 @@ public class ValidationRuleAssignmentJpaAdapter implements ValidationRuleAssignm
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<ValidationRuleAssignment> findByObjectTypeAndObjectId(
+            String objectType,
+            String objectId) {
+
+        log.debug("Finding assignment by objectType={}, objectId={}", objectType, objectId);
+
+        return assignmentRepository
+                .findByObjectTypeAndObjectIdAndDeletedFalse(objectType, objectId)
+                .map(entity -> {
+                    ValidationRuleAssignment domain = assignmentMapper.toDomain(entity);
+                    log.debug("Found assignment for object: id={}, validationRuleId={}",
+                            domain.getId(), domain.getValidationRuleId());
+                    return domain;
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean exists(String validationRuleId, String objectId) {
         log.debug("Checking if assignment exists: validationRuleId={}, objectId={}",
                 validationRuleId, objectId);

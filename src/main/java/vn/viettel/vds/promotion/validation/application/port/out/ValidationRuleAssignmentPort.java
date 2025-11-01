@@ -54,4 +54,16 @@ public interface ValidationRuleAssignmentPort {
      * @return true nếu tồn tại, false nếu không
      */
     boolean exists(String validationRuleId, String objectId);
+
+    /**
+     * Tìm assignment theo object type và object ID.
+     *
+     * @param objectType Loại object (campaign, product, etc.)
+     * @param objectId   ID của object
+     * @return Optional chứa domain model nếu tìm thấy
+     */
+    Optional<ValidationRuleAssignment> findByObjectTypeAndObjectId(
+            String objectType,
+            String objectId
+    );
 }

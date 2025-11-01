@@ -46,4 +46,20 @@ public interface ValidationRuleAssignmentJpaRepository extends JpaRepository<Val
             @Param("validationRuleId") String validationRuleId,
             @Param("objectId") String objectId
     );
+
+    /**
+     * Tìm assignment theo object_type và object_id (chưa bị xóa).
+     *
+     * @param objectType Loại object (campaign, product, etc.)
+     * @param objectId   ID của object
+     * @return Optional chứa entity nếu tìm thấy
+     */
+    @Query("SELECT a FROM ValidationRuleAssignmentEntity a " +
+            "WHERE a.objectType = :objectType " +
+            "AND a.objectId = :objectId " +
+            "AND a.deleted = false")
+    Optional<ValidationRuleAssignmentEntity> findByObjectTypeAndObjectIdAndDeletedFalse(
+            @Param("objectType") String objectType,
+            @Param("objectId") String objectId
+    );
 }

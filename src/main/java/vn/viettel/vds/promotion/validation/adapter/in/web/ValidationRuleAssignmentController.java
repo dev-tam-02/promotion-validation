@@ -12,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationRuleAssignmentResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.DeleteValidationRuleAssignmentUseCase;
+import vn.viettel.vds.promotion.validation.application.port.in.GetValidationRuleAssignmentUseCase;
 import vn.viettel.vds.promotion.validation.config.validator.ValidRuleId;
 
 /**
@@ -29,6 +31,7 @@ import vn.viettel.vds.promotion.validation.config.validator.ValidRuleId;
 public class ValidationRuleAssignmentController {
 
     private final DeleteValidationRuleAssignmentUseCase deleteAssignmentUseCase;
+    private final GetValidationRuleAssignmentUseCase getAssignmentUseCase;
 
     /**
      * Xóa validation rule assignment.
@@ -73,5 +76,53 @@ public class ValidationRuleAssignmentController {
 
         log.info("Delete assignment completed: validationRuleId={}, objectId={}",
                 trimmedValidationRuleId, trimmedObjectId);
+    }
+
+    /**
+     * Lấy validation rule assignment details theo object type và object ID.
+     * GET /api/v1/validation-rules/assignments/{objectType}/{objectId}
+     *
+     * @param objectType Loại object (campaign, product, etc.)
+     * @param objectId   ID của object
+     * @return Response chứa đầy đủ thông tin assignment
+     */
+    @Operation(
+            summary = "Lấy validation rule assignment details",
+            description = "Lấy thông tin đầy đủ về validation rule assignment cho object cụ thể"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lấy thành công"),
+            @ApiResponse(responseCode = "400", description = "Invalid request - lỗi validation input"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy assignment cho object này")
+    })
+    @GetMapping("/assignments/{objectType}/{objectId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ValidationRuleAssignmentResponse getAssignment(
+            @Parameter(description = "Loại object (campaign, product, etc.)", required = true)
+            @PathVariable
+            @NotBlank(message = "OBJECT_TYPE_REQUIRED: object_type không được để trống")
+            String objectType,
+
+            @Parameter(description = "ID của object (UUID format)", required = true)
+            @PathVariable
+            @NotBlank(message = "OBJECT_ID_REQUIRED: object_id không được để trống")
+            String objectId) {
+
+        log.info("Received get assignment request: objectType={}, objectId={}", objectType, objectId);
+
+        // Trim whitespace
+        String trimmedObjectType = objectType.trim();
+        String trimmedObjectId = objectId.trim();
+
+        // Call use case
+        ValidationRuleAssignmentResponse response = getAssignmentUseCase.getAssignment(
+                trimmedObjectType,
+                trimmedObjectId
+        );
+
+        log.info("Get assignment completed: objectType={}, objectId={}, assignmentId={}",
+                trimmedObjectType, trimmedObjectId, response.assignmentId());
+
+        return response;
     }
 }
