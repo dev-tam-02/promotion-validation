@@ -10,10 +10,10 @@ import java.time.Duration;
 @ConfigurationProperties(prefix = "integration.validation-engine")
 public class ValidationEngineProperties {
 
-    private String serviceName = "promotion-validation-engine";
+    private String serviceName;
     // Default service path - can be customized via application.yml:
     // integration.validation-engine.service-path=/your/custom/path
-    private String servicePath = "/promotion/promotion-validation-engine";
+    private String servicePath;
 
     @Positive
     private int retryAttempts = 3;
@@ -21,7 +21,7 @@ public class ValidationEngineProperties {
     private CircuitBreakerConfig circuitBreaker = new CircuitBreakerConfig();
 
     public String getServiceName() {
-        return serviceName;
+        return serviceName == null ? "promotion-validation-engine" : serviceName;
     }
 
     public void setServiceName(String serviceName) {
@@ -29,7 +29,7 @@ public class ValidationEngineProperties {
     }
 
     public String getServicePath() {
-        return servicePath;
+        return servicePath == null ? "/promotion/promotion-validation-engine" : servicePath;
     }
 
     public void setServicePath(String servicePath) {
