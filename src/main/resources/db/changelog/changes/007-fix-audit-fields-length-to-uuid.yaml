@@ -98,16 +98,6 @@ databaseChangeLog:
             columnName: updated_by
             newDataType: VARCHAR(36)
 
-        # rule_bundles table
-        - modifyDataType:
-            tableName: rule_bundles
-            columnName: created_by
-            newDataType: VARCHAR(36)
-        - modifyDataType:
-            tableName: rule_bundles
-            columnName: updated_by
-            newDataType: VARCHAR(36)
-
         # resources table
         - modifyDataType:
             tableName: resources

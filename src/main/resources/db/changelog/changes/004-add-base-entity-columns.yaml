@@ -163,29 +163,6 @@ databaseChangeLog:
                     nullable: false
 
   - changeSet:
-      id: 004-add-base-entity-columns-to-rule-bundles
-      author: claude
-      changes:
-        - addColumn:
-            tableName: rule_bundles
-            columns:
-              - column:
-                  name: created_by
-                  type: varchar(50)
-                  remarks: Creator
-              - column:
-                  name: updated_by
-                  type: varchar(50)
-                  remarks: Last updater
-              - column:
-                  name: version
-                  type: bigint
-                  remarks: Optimistic locking version
-                  defaultValueNumeric: 0
-                  constraints:
-                    nullable: false
-
-  - changeSet:
       id: 004-add-base-entity-columns-to-resources
       author: claude
       changes:
