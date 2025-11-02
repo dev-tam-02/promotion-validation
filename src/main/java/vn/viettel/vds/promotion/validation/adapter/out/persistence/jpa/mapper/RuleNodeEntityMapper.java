@@ -46,44 +46,82 @@ public class RuleNodeEntityMapper {
     }
 
     /**
-     * Convert entity list to domain list, building tree structure
+     * Convert entity list to domain list, building tree structure.
+     *
+     * <p>This method builds the tree in two phases:
+     * <ol>
+     *   <li>Connect children to parents (set children lists in builders)</li>
+     *   <li>Build nodes bottom-up (leaf nodes first, then parents)</li>
+     * </ol>
      */
     public List<RuleNode> toDomainList(List<RuleNodeEntity> entities) {
         if (entities == null || entities.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // Create a map of nodeId -> RuleNode for easy lookup
+        // Phase 1: Create builders for all nodes
         Map<String, RuleNode.Builder> builderMap = entities.stream()
                 .collect(Collectors.toMap(
                         RuleNodeEntity::getNodeId,
                         this::toBuilder
                 ));
 
-        // Build tree structure by connecting children to parents
+        // Phase 2: Connect children to GROUP nodes (build relationships in builders)
+        // DON'T build nodes yet, just set children lists
         for (RuleNodeEntity entity : entities) {
             if (NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null) {
                 RuleNode.Builder parentBuilder = builderMap.get(entity.getNodeId());
-                List<RuleNode> children = entity.getChildrenIds().stream()
-                        .map(builderMap::get)
-                        .filter(b -> b != null)
-                        .map(RuleNode.Builder::build)
-                        .toList();
-                parentBuilder.children(children);
+                // Just store child node IDs, will build later
+                parentBuilder.children(new ArrayList<>()); // Initialize empty, will populate after building children
             }
         }
 
-        // Return only root nodes (nodes without parent or first node)
-        // Usually first node is root in ordered list
-        if (entities.get(0).getParent() == null) {
-            String rootNodeId = entities.get(0).getNodeId();
-            RuleNode.Builder rootBuilder = builderMap.get(rootNodeId);
-            return List.of(rootBuilder.build());
-        }
+        // Phase 3: Build nodes bottom-up using recursive helper
+        Map<String, RuleNode> builtNodes = new java.util.HashMap<>();
 
-        // Fallback: return all nodes as flat list
-        return builderMap.values().stream()
-                .map(RuleNode.Builder::build)
+        // Helper function to build node and its children recursively
+        java.util.function.Function<String, RuleNode> buildNode = new java.util.function.Function<String, RuleNode>() {
+            @Override
+            public RuleNode apply(String nodeId) {
+                // Check if already built
+                if (builtNodes.containsKey(nodeId)) {
+                    return builtNodes.get(nodeId);
+                }
+
+                RuleNode.Builder builder = builderMap.get(nodeId);
+                if (builder == null) {
+                    return null;
+                }
+
+                // Find entity to check if it's a GROUP node
+                RuleNodeEntity entity = entities.stream()
+                        .filter(e -> nodeId.equals(e.getNodeId()))
+                        .findFirst()
+                        .orElse(null);
+
+                if (entity != null && NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType())
+                        && entity.getChildrenIds() != null) {
+                    // Build children first (recursively)
+                    List<RuleNode> builtChildren = entity.getChildrenIds().stream()
+                            .map(this::apply)  // Recursive call
+                            .filter(n -> n != null)
+                            .toList();
+                    // Set built children to builder
+                    builder.children(builtChildren);
+                }
+
+                // Now build this node
+                RuleNode node = builder.build();
+                builtNodes.put(nodeId, node);
+                return node;
+            }
+        };
+
+        // Phase 4: Build and return root nodes
+        return entities.stream()
+                .filter(e -> e.getParent() == null)
+                .map(e -> buildNode.apply(e.getNodeId()))
+                .filter(n -> n != null)
                 .toList();
     }
 

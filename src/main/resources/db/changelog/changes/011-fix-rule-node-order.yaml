@@ -1,0 +1,40 @@
+databaseChangeLog:
+  # Fix missing node_order for rule nodes
+  # Issue: Child nodes in sample data were missing node_order, causing tree structure build issues
+  - changeSet:
+      id: 011-fix-rule-node-order
+      author: harley hoang
+      changes:
+        # Fix node_order for first rule (WEEKEND_VIP_500K) child nodes
+        - update:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+                  valueNumeric: 1
+            where: id = '01932b6f-0006-7000-8000-000000000003'
+
+        - update:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+                  valueNumeric: 2
+            where: id = '01932b6f-0006-7000-8000-000000000004'
+
+        # Fix node_order for second rule (BUSINESS_HOURS_PROMO) child nodes
+        - update:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+                  valueNumeric: 1
+            where: id = '01932b6f-0006-7000-8000-000000000006'
+
+        - update:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+                  valueNumeric: 2
+            where: id = '01932b6f-0006-7000-8000-000000000007'
