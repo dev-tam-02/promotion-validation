@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
@@ -116,7 +117,7 @@ public class RuleController {
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
             @Parameter(description = "Search query") @RequestParam(required = false) String q,
-            PageableRequest pageableRequest) {
+            @ParameterObject PageableRequest pageableRequest) {
 
         logger.info("Listing rules: page={}, size={}", pageableRequest.getPage(), pageableRequest.getSize());
 
