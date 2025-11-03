@@ -30,10 +30,6 @@ public class AssignmentService {
 
     private static final String ASSIGNMENT_ID_PREFIX = "asg_";
 
-    private static final String AUDIT_ACTION_KEY = "action";
-
-    private static final String AUDIT_VERSION_KEY = "version";
-
     private static final String ERROR_CODE_ASSIGNMENT_OVERLAP = "ASSIGNMENT_OVERLAP";
 
     private final AssignmentPersistencePort assignmentPersistencePort;
@@ -222,7 +218,7 @@ public class AssignmentService {
     /**
      * Deactivate assignment
      */
-    public Assignment deactivateAssignment(String assignmentId, String updatedBy) {
+    public Assignment deactivateAssignment(String assignmentId) {
         logger.info("Deactivating assignment: id={}", assignmentId);
 
         Assignment assignment = self.getAssignmentById(assignmentId);
