@@ -126,6 +126,9 @@ public class RuleController {
             pageableRequest.setSort(List.of("updatedAt,desc"));
         }
 
+        // Validate pagination parameters
+        pageableRequest.validate();
+
         Pageable pageable = pageableRequest.toPageable();
 
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
