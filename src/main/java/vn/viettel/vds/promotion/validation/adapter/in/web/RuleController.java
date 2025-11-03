@@ -1,6 +1,7 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
 import com.promix.platform.web.annotation.ResponseWrapper;
+import com.promix.platform.web.mvc.model.PageableRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -115,15 +116,16 @@ public class RuleController {
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
             @Parameter(description = "Search query") @RequestParam(required = false) String q,
-            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "Sort field") @RequestParam(defaultValue = "updatedAt") String sort,
-            @Parameter(description = "Sort direction") @RequestParam(defaultValue = "desc") String direction) {
+            PageableRequest pageableRequest) {
 
-        logger.info("Listing rules: page={}, size={}", page, size);
+        logger.info("Listing rules: page={}, size={}", pageableRequest.getPage(), pageableRequest.getSize());
 
-        Sort sortObj = Sort.by(Sort.Direction.fromString(direction), sort);
-        Pageable pageable = PageRequest.of(page, size, sortObj);
+        // Set default sort if not provided
+        if (pageableRequest.getSort() == null || pageableRequest.getSort().isEmpty()) {
+            pageableRequest.setSort(List.of("updatedAt,desc"));
+        }
+
+        Pageable pageable = pageableRequest.toPageable();
 
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
