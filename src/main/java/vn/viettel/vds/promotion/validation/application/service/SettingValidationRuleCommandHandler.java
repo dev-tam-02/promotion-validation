@@ -1,10 +1,15 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.core.exception.factory.ExceptionFactory;
 import com.promix.platform.core.util.IdGenerator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
@@ -23,6 +28,8 @@ import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingE
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service to handle SettingValidationRuleCommand processing
@@ -41,6 +48,8 @@ public class SettingValidationRuleCommandHandler {
     private final ValidationEngineDeploymentService validationEngineClient;
     private final IdempotencyService idempotencyService;
     private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
+    private final Validator validator;
+    private final SettingValidationRuleCommandDTOMapper dtoMapper;
 
     public SettingValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
@@ -49,7 +58,9 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleEventPublisher eventPublisher,
             ValidationEngineDeploymentService validationEngineClient,
             IdempotencyService idempotencyService,
-            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService) {
+            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService,
+            Validator validator,
+            SettingValidationRuleCommandDTOMapper dtoMapper) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
         this.validationRuleRepository = validationRuleRepository;
@@ -57,6 +68,8 @@ public class SettingValidationRuleCommandHandler {
         this.validationEngineClient = validationEngineClient;
         this.idempotencyService = idempotencyService;
         this.rulePublishingService = rulePublishingService;
+        this.validator = validator;
+        this.dtoMapper = dtoMapper;
     }
 
     /**
@@ -73,6 +86,9 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("Command already processed (idempotent check): commandId={}", commandId);
                 return true;
             }
+
+            // Step 1: Validate command using Bean Validation
+            validateCommand(command);
 
             // Extract command payload
             SettingValidationRuleCommandPayload payload = command.getPayload();
@@ -113,6 +129,63 @@ public class SettingValidationRuleCommandHandler {
             publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Validate command using Bean Validation annotations on DTO.
+     *
+     * Validation flow:
+     * 1. Check command and payload not null
+     * 2. Convert command to DTO
+     * 3. Run Bean Validation with group sequence
+     * 4. Throw ValidationException if validation fails
+     *
+     * @param command the command to validate
+     * @throws RuntimeException if validation fails with specific error codes
+     */
+    private void validateCommand(SettingValidationRuleCommand command) {
+        // Step 1: Null check
+        if (command == null || command.getPayload() == null) {
+            logger.error("Received null command or null payload");
+            throw ExceptionFactory.createValidationException(
+                "INVALID_COMMAND",
+                "Command or payload is null"
+            );
+        }
+
+        // Step 2: Convert to DTO
+        SettingValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
+        if (dto == null) {
+            logger.error("Failed to convert command to DTO: commandId={}", command.getId());
+            throw ExceptionFactory.createValidationException(
+                "INVALID_COMMAND",
+                "Failed to convert command to DTO"
+            );
+        }
+
+        // Step 3: Bean Validation
+        Set<ConstraintViolation<SettingValidationRuleCommandDTO>> violations = validator.validate(dto);
+
+        // Step 4: Handle validation errors
+        if (!violations.isEmpty()) {
+            // Build detailed error message with all violations
+            String errorMessages = violations.stream()
+                .map(violation -> String.format("%s: %s (invalid value: %s)",
+                    violation.getPropertyPath(),
+                    violation.getMessage(),
+                    violation.getInvalidValue()))
+                .collect(Collectors.joining("; "));
+
+            // Get first error code for exception
+            String errorCode = violations.iterator().next().getMessage();
+
+            logger.error("SettingValidationRuleCommand validation failed: commandId={}, errors={}",
+                command.getId(), errorMessages);
+
+            throw ExceptionFactory.createValidationException(errorCode, errorMessages);
+        }
+
+        logger.debug("SettingValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
     /**

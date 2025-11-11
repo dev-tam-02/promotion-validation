@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.SettingValidatio
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -73,13 +74,16 @@ public class SettingValidationCommandController {
             // Create a mock acknowledgment for the consumer (since we're not using Kafka)
             MockAcknowledgment acknowledgment = new MockAcknowledgment();
 
-            // Call the consumer directly with mock Kafka headers
+            // Wrap single command in List for batch consumer
+            List<SettingValidationRuleCommand> commands = List.of(command);
+            List<Long> offsets = List.of(0L);
+
+            // Call the consumer directly with mock Kafka headers (batch mode)
             commandConsumer.handleSettingValidationRuleCommand(
-                    command,
-                    "api-direct-call",  // Mock topic name
+                    commands,            // Batch of commands
+                    "api-direct-call",   // Mock topic name
                     0,                   // Mock partition
-                    0L,                  // Mock offset
-                    commandId,           // Use command ID as key
+                    offsets,             // List of offsets
                     acknowledgment
             );
 

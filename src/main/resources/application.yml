@@ -209,7 +209,7 @@ promix:
       # Consumer Configuration
       consumer:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
         group-id: validation-group
         auto-offset-reset: earliest
         enable-auto-commit: false
@@ -220,11 +220,19 @@ promix:
         fetch-max-wait: 500
         isolation-level: read_committed
         concurrency: 3
-        batch-listener: false
+        batch-listener: true
         ack-mode: MANUAL_IMMEDIATE
         session-timeout: 30000
         heartbeat-interval: 10000
         use-avro: false
+
+        # JSON Deserializer Configuration
+        properties:
+          # ErrorHandlingDeserializer wraps JsonDeserializer
+          spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+          spring.json.trusted.packages: "vn.viettel.vds.promotion.validation.command"
+          spring.json.use.type.headers: false
+          spring.json.add.type.headers: false
 
         # Retry Configuration
         retry:

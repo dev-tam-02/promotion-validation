@@ -1,9 +1,14 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.core.exception.factory.ExceptionFactory;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
@@ -14,6 +19,8 @@ import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service to handle RollbackValidationRuleCommand for saga compensation
@@ -31,18 +38,24 @@ public class RollbackValidationRuleCommandHandler {
     private final ValidationEngineDeploymentService validationEngineClient;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
+    private final Validator validator;
+    private final RollbackValidationRuleCommandDTOMapper dtoMapper;
 
     public RollbackValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             ValidationEngineDeploymentService validationEngineClient,
             SettingValidationRuleEventPublisher eventPublisher,
-            IdempotencyService idempotencyService) {
+            IdempotencyService idempotencyService,
+            Validator validator,
+            RollbackValidationRuleCommandDTOMapper dtoMapper) {
         this.assignmentRepository = assignmentRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.validationEngineClient = validationEngineClient;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
+        this.validator = validator;
+        this.dtoMapper = dtoMapper;
     }
 
     /**
@@ -62,6 +75,9 @@ public class RollbackValidationRuleCommandHandler {
                 logger.info("Rollback command already processed (idempotent check): commandId={}", commandId);
                 return true;
             }
+
+            // Step 1: Validate command using Bean Validation
+            validateCommand(command);
 
             // Extract command payload
             RollbackValidationRuleCommandPayload payload = command.getPayload();
@@ -104,6 +120,63 @@ public class RollbackValidationRuleCommandHandler {
             publishRollbackErrorEvent(commandId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Validate command using Bean Validation annotations on DTO.
+     *
+     * Validation flow:
+     * 1. Check command and payload not null
+     * 2. Convert command to DTO
+     * 3. Run Bean Validation with group sequence
+     * 4. Throw ValidationException if validation fails
+     *
+     * @param command the command to validate
+     * @throws RuntimeException if validation fails with specific error codes
+     */
+    private void validateCommand(RollbackValidationRuleCommand command) {
+        // Step 1: Null check
+        if (command == null || command.getPayload() == null) {
+            logger.error("Received null command or null payload");
+            throw ExceptionFactory.createValidationException(
+                "INVALID_COMMAND",
+                "Command or payload is null"
+            );
+        }
+
+        // Step 2: Convert to DTO
+        RollbackValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
+        if (dto == null) {
+            logger.error("Failed to convert command to DTO: commandId={}", command.getId());
+            throw ExceptionFactory.createValidationException(
+                "INVALID_COMMAND",
+                "Failed to convert command to DTO"
+            );
+        }
+
+        // Step 3: Bean Validation
+        Set<ConstraintViolation<RollbackValidationRuleCommandDTO>> violations = validator.validate(dto);
+
+        // Step 4: Handle validation errors
+        if (!violations.isEmpty()) {
+            // Build detailed error message with all violations
+            String errorMessages = violations.stream()
+                .map(violation -> String.format("%s: %s (invalid value: %s)",
+                    violation.getPropertyPath(),
+                    violation.getMessage(),
+                    violation.getInvalidValue()))
+                .collect(Collectors.joining("; "));
+
+            // Get first error code for exception
+            String errorCode = violations.iterator().next().getMessage();
+
+            logger.error("RollbackValidationRuleCommand validation failed: commandId={}, errors={}",
+                command.getId(), errorMessages);
+
+            throw ExceptionFactory.createValidationException(errorCode, errorMessages);
+        }
+
+        logger.debug("RollbackValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
     /**
