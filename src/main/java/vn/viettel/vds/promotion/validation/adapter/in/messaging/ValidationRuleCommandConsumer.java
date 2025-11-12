@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.application.service.SettingValidation
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingException;
 
 import java.util.List;
 
@@ -119,7 +120,7 @@ public class ValidationRuleCommandConsumer {
             if (!success) {
                 logger.error("Command processing returned false: commandId={}, type={}",
                     command.getId(), command.getType());
-                throw new RuntimeException("Command processing failed for commandId=" + command.getId());
+                throw new CommandProcessingException("Command processing failed for commandId=" + command.getId());
             }
 
             logger.debug("Successfully processed command {}/{}: commandId={}, offset={}",
