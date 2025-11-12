@@ -18,8 +18,8 @@ import java.util.Map;
  * @since 1.0.0
  */
 @FeignClient(
-        name = "${promix.validation.external.customer.name}",
-        path = "${promix.validation.external.customer.path}"
+        name = "${promix.validation.external.customer.name:promotion-customer}",
+        path = "${promix.validation.external.customer.path:/promotion/promotion-customer/api/v1/customers}"
 )
 public interface CustomerFeignClient {
 

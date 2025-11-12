@@ -78,8 +78,8 @@ public class ValidationRuleCommandConsumer {
      * @param acknowledgment Manual acknowledgment callback
      */
     @KafkaListener(
-            topics = "${kafka.topics.validation-command}",
-            groupId = "${kafka.consumer.group-id}",
+            topics = "${kafka.topics.validation-command:promotion_validation_command}",
+            groupId = "${kafka.consumer.group-id:promotion-validation-consumer}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consumeCommand(
@@ -162,8 +162,8 @@ public class ValidationRuleCommandConsumer {
      * Uses kafkaDlqListenerContainerFactory WITHOUT DLQ to prevent infinite loop.
      */
     @KafkaListener(
-            topics = "${kafka.topics.validation-command-dlq}",
-            groupId = "${kafka.consumer.group-id}-dlq",
+            topics = "${kafka.topics.validation-command-dlq:promotion_validation_command_dlq}",
+            groupId = "${kafka.consumer.group-id:promotion-validation-consumer}-dlq",
             containerFactory = "kafkaDlqListenerContainerFactory"
     )
     public void handleDeadLetterMessage(

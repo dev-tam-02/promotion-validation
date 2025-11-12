@@ -43,8 +43,8 @@ public class SettingValidationRuleCommandConsumer {
      * - Other exceptions → Retry logic then DLQ
      */
     @KafkaListener(
-            topics = "${kafka.topics.setting-validation-rule-events}",
-            groupId = "${kafka.consumer.group-id}-setting",
+            topics = "${kafka.topics.setting-validation-rule-events:promotion_validation_event}",
+            groupId = "${kafka.consumer.group-id:promotion-validation-consumer}-setting",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleSettingValidationRuleCommand(
@@ -97,8 +97,8 @@ public class SettingValidationRuleCommandConsumer {
      * Uses kafkaDlqListenerContainerFactory WITHOUT DLQ to prevent infinite loop.
      */
     @KafkaListener(
-            topics = "${kafka.topics.validation-command-dlq}",
-            groupId = "${kafka.consumer.group-id}-setting-dlq",
+            topics = "${kafka.topics.validation-command-dlq:promotion_validation_command_dlq}",
+            groupId = "${kafka.consumer.group-id:promotion-validation-consumer}-setting-dlq",
             containerFactory = "kafkaDlqListenerContainerFactory"
     )
     public void handleDeadLetterMessage(
