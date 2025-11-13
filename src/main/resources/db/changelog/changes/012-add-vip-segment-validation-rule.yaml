@@ -1,0 +1,98 @@
+databaseChangeLog:
+  # Create VIP segment validation rule
+  - changeSet:
+      id: 012-add-vip-segment-validation-rule
+      author: harley hoang
+      changes:
+        # Insert validation rule
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0005-7000-8000-000000000010
+              - column:
+                  name: code
+                  value: VIP_SEGMENT_ONLY
+              - column:
+                  name: name
+                  value: VIP Segment Only Validation
+              - column:
+                  name: description
+                  value: Allow only VIP segment customers, deny all others
+              - column:
+                  name: state
+                  value: DRAFT
+              - column:
+                  name: rule_version
+                  valueNumeric: 1
+              - column:
+                  name: logic
+                  value: ALL
+              - column:
+                  name: dsl
+                  value: '{}'
+              - column:
+                  name: created_by
+                  value: admin
+              - column:
+                  name: updated_by
+                  value: admin
+
+        # Insert root GROUP node (n1)
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000010
+              - column:
+                  name: node_id
+                  value: n1
+              - column:
+                  name: type
+                  value: GROUP
+              - column:
+                  name: group_logic
+                  value: ALL
+              - column:
+                  name: children_ids
+                  value: '["n2"]'
+              - column:
+                  name: node_order
+                  valueNumeric: 0
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000010
+
+        # Insert COND node for VIP segment check (n2)
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0006-7000-8000-000000000011
+              - column:
+                  name: node_id
+                  value: n2
+              - column:
+                  name: type
+                  value: COND
+              - column:
+                  name: operator_name
+                  value: customer.in_segment
+              - column:
+                  name: params
+                  value: '{"segments":["VIP"]}'
+              - column:
+                  name: reason_code
+                  value: AUDIENCE_SEGMENT
+              - column:
+                  name: validation_rule_id
+                  value: 01932b6f-0005-7000-8000-000000000010
+              - column:
+                  name: parent_id
+                  value: 01932b6f-0006-7000-8000-000000000010
+              - column:
+                  name: node_order
+                  valueNumeric: 0

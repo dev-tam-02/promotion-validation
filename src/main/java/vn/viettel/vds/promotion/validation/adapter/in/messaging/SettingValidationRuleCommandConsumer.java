@@ -18,8 +18,11 @@ import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingExc
  * NOTE: This consumer is deprecated in favor of ValidationRuleCommandConsumer
  * which uses polymorphic pattern matching. Keep this for backward compatibility
  * if needed, but ValidationRuleCommandConsumer is the recommended approach.
+ *
+ * DISABLED: This consumer had incorrect topic configuration (listening to event topic
+ * instead of command topic). The unified ValidationRuleCommandConsumer should be used instead.
  */
-@Component
+// @Component // DISABLED - Use ValidationRuleCommandConsumer instead
 public class SettingValidationRuleCommandConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandConsumer.class);
