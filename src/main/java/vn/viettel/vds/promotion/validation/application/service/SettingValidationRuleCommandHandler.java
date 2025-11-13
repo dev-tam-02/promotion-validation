@@ -15,10 +15,15 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingVa
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTimeFrameEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.TemporalPolicyJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
@@ -44,6 +49,8 @@ public class SettingValidationRuleCommandHandler {
 
     private final AssignmentJpaRepository assignmentRepository;
     private final RuleTimeFrameJpaRepository ruleTimeFrameRepository;
+    private final TemporalPolicyJpaRepository temporalPolicyRepository;
+    private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
     @SuppressWarnings("unused") // Reserved for future use
@@ -56,6 +63,8 @@ public class SettingValidationRuleCommandHandler {
     public SettingValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
             RuleTimeFrameJpaRepository ruleTimeFrameRepository,
+            TemporalPolicyJpaRepository temporalPolicyRepository,
+            RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
             ValidationEngineDeploymentService validationEngineClient,
@@ -65,6 +74,8 @@ public class SettingValidationRuleCommandHandler {
             SettingValidationRuleCommandDTOMapper dtoMapper) {
         this.assignmentRepository = assignmentRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
+        this.temporalPolicyRepository = temporalPolicyRepository;
+        this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;
         this.validationEngineClient = validationEngineClient;
@@ -547,13 +558,17 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * Process timeframe configuration
+     * Process timeframe configuration - ENHANCED version
+     * Creates TemporalPolicy, TemporalPolicyWindows, and RuleTemporalLink
      */
     private String processTimeframe(String ruleId, TimeFrame timeframeData) {
         try {
+            logger.info("Processing timeframe for ruleId={}", ruleId);
+
             // Extract timeframe components
             String timeFrameId = timeframeData.getTimeFrameId();
-            String mode = timeframeData.getMode().toString();
+            String mode = timeframeData.getMode() != null ? timeframeData.getMode().toString() : "ALLOW";
+            String timezone = timeframeData.getTimezone() != null ? timeframeData.getTimezone() : "UTC";
 
             // Generate timeFrame ID if not provided
             if (timeFrameId == null) {
@@ -564,24 +579,151 @@ public class SettingValidationRuleCommandHandler {
             ValidationRuleEntity validationRule = validationRuleRepository.findById(ruleId)
                     .orElseThrow(() -> new RuntimeException("Validation rule not found: " + ruleId));
 
-            // Create RuleTimeFrame entity
+            // Step 1: Create TemporalPolicy entity
+            TemporalPolicyEntity temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
+            temporalPolicy = temporalPolicyRepository.save(temporalPolicy);
+            logger.debug("Created temporal policy: policyId={}, name={}", temporalPolicy.getId(), temporalPolicy.getName());
+
+            // Step 2: Create TemporalPolicyWindow entities for validity hours
+            if (timeframeData.getValidityHoursPerDay() != null && !timeframeData.getValidityHoursPerDay().isEmpty()) {
+                createTemporalPolicyWindows(temporalPolicy, timeframeData.getValidityHoursPerDay());
+                logger.debug("Created {} validity hour windows", timeframeData.getValidityHoursPerDay().size());
+            }
+
+            // Step 3: Create RuleTemporalLink to link validation rule with temporal policy
+            RuleTemporalLinkEntity link = new RuleTemporalLinkEntity();
+            link.setId(IdGenerator.generateId());
+            link.setValidationRule(validationRule);
+            link.setTemporalPolicy(temporalPolicy);
+            link.setMode(mode);
+            link.setCreatedAt(Instant.now());
+            link.setUpdatedAt(Instant.now());
+            ruleTemporalLinkRepository.save(link);
+            logger.debug("Created rule temporal link: linkId={}, ruleId={}, policyId={}, mode={}",
+                    link.getId(), ruleId, temporalPolicy.getId(), mode);
+
+            // Step 4: Keep RuleTimeFrame for backward compatibility (legacy)
             RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
             ruleTimeFrame.setId(IdGenerator.generateId());
-            ruleTimeFrame.setValidationRule(validationRule); // Link to validation rule
+            ruleTimeFrame.setValidationRule(validationRule);
             ruleTimeFrame.setTimeFrameId(timeFrameId);
             ruleTimeFrame.setMode(mode);
-
+            ruleTimeFrame.setCreatedAt(Instant.now());
+            ruleTimeFrame.setUpdatedAt(Instant.now());
             ruleTimeFrameRepository.save(ruleTimeFrame);
 
-            // Complex timeframe logic (validity hours, days of week, etc.) is stored in mode field
-            // Additional entities or JSON storage in RuleTimeFrame can be added when needed
-
-            logger.debug("Created timeframe: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
+            logger.info("Successfully processed timeframe: ruleId={}, timeFrameId={}, policyId={}",
+                    ruleId, timeFrameId, temporalPolicy.getId());
             return timeFrameId;
 
         } catch (Exception e) {
+            logger.error("Failed to process timeframe for ruleId={}: {}", ruleId, e.getMessage(), e);
             throw new TimeframeProcessingException("Failed to process timeframe for ruleId=" + ruleId + " due to: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Create TemporalPolicy entity from TimeFrame data
+     */
+    private TemporalPolicyEntity createTemporalPolicy(String timeFrameId, String timezone, TimeFrame timeframeData) {
+        TemporalPolicyEntity policy = new TemporalPolicyEntity();
+        policy.setId(IdGenerator.generateId());
+        policy.setName("timeframe-" + timeFrameId); // Unique name based on timeFrameId
+        policy.setTz(timezone);
+
+        // Set validity timeframe (startDate and expirationDate)
+        if (timeframeData.getValidityTimeframe() != null) {
+            var validity = timeframeData.getValidityTimeframe();
+            policy.setStartTs(validity.getStartDate());
+            policy.setEndTs(validity.getExpirationDate());
+
+            // Store interval, duration, activityDurationAfterPublishing in metadata
+            if (validity.getInterval() != null || validity.getDuration() != null || validity.getActivityDurationAfterPublishing() != null) {
+                java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+                if (validity.getInterval() != null) {
+                    metadata.put("interval", validity.getInterval());
+                }
+                if (validity.getDuration() != null) {
+                    metadata.put("duration", validity.getDuration());
+                }
+                if (validity.getActivityDurationAfterPublishing() != null) {
+                    metadata.put("activityDurationAfterPublishing", validity.getActivityDurationAfterPublishing());
+                }
+                policy.setMetadata(metadata);
+            }
+        }
+
+        // Convert validityDaysOfWeek to RRULE (RFC 5545 format)
+        if (timeframeData.getValidityDaysOfWeek() != null && !timeframeData.getValidityDaysOfWeek().isEmpty()) {
+            String rrule = buildRRuleFromDaysOfWeek(timeframeData.getValidityDaysOfWeek());
+            policy.setRrule(rrule);
+            logger.debug("Built RRULE from daysOfWeek: {}", rrule);
+        }
+
+        policy.setCreatedAt(Instant.now());
+        policy.setUpdatedAt(Instant.now());
+
+        return policy;
+    }
+
+    /**
+     * Build RRULE string from validityDaysOfWeek
+     * Example: [1, 3, 5] -> "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+     */
+    private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
+        // Map integers to RFC 5545 day codes: 1=MO, 2=TU, 3=WE, 4=TH, 5=FR, 6=SA, 7=SU
+        String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
+
+        String byDay = daysOfWeek.stream()
+                .filter(day -> day >= 1 && day <= 7)
+                .map(day -> dayCodes[day - 1])
+                .collect(Collectors.joining(","));
+
+        return "FREQ=WEEKLY;BYDAY=" + byDay;
+    }
+
+    /**
+     * Create TemporalPolicyWindow entities for validity hours per day
+     */
+    private void createTemporalPolicyWindows(TemporalPolicyEntity temporalPolicy,
+                                            List<SettingValidationRuleCommand.ValidityHoursPerDay> validityHours) {
+        for (var hours : validityHours) {
+            TemporalPolicyWindowEntity window = new TemporalPolicyWindowEntity();
+            window.setId(IdGenerator.generateId());
+            window.setTemporalPolicy(temporalPolicy);
+
+            // Parse startTime and endTime (format: "HH:mm:ss+07:00" or "HH:mm")
+            window.setStart(extractTimeOnly(hours.getStartTime()));
+            window.setEnd(extractTimeOnly(hours.getExpirationTime()));
+
+            window.setCreatedAt(Instant.now());
+            window.setUpdatedAt(Instant.now());
+
+            // Add to temporal policy's windows collection
+            temporalPolicy.getTimeOfDayWindows().add(window);
+
+            logger.debug("Created temporal policy window: dayOfWeek={}, start={}, end={}",
+                    hours.getDayOfWeek(), window.getStart(), window.getEnd());
+        }
+    }
+
+    /**
+     * Extract time portion from time string (e.g., "09:00:00+07:00" -> "09:00")
+     */
+    private String extractTimeOnly(String timeString) {
+        if (timeString == null) {
+            return null;
+        }
+        // Remove timezone offset and seconds if present
+        // "09:00:00+07:00" -> "09:00"
+        // "09:00+07:00" -> "09:00"
+        // "09:00" -> "09:00"
+        String time = timeString.split("\\+")[0].split("-")[0]; // Remove timezone
+        String[] parts = time.split(":");
+        if (parts.length >= 2) {
+            return parts[0] + ":" + parts[1]; // HH:mm
+        }
+        return time;
     }
 
     /**
