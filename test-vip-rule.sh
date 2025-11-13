@@ -8,27 +8,26 @@ echo "Testing VIP Segment Validation Rule"
 echo "=========================================="
 echo ""
 
-BASE_URL="http://localhost:16014/promotion/promotion-validation"
+BASE_URL="http://localhost:16014"
 RULE_ID="01932b6f-0005-7000-8000-000000000010"
 
 # 1. Check if service is healthy
 echo "1. Checking service health..."
-curl -s "$BASE_URL/../actuator/health" | python3 -m json.tool
+curl -s "$BASE_URL/actuator/health" | python3 -m json.tool
 echo ""
 
 # 2. Get rule details
 echo "2. Getting rule details..."
-curl -s "$BASE_URL/api/v1/rules/$RULE_ID" | python3 -m json.tool
+curl -s "$BASE_URL/promotion/promotion-validation/v1/rules/$RULE_ID" | python3 -m json.tool
 echo ""
 
-# 3. Get rule nodes to verify structure
-echo "3. Getting rule nodes to verify structure..."
-curl -s "$BASE_URL/api/v1/rules/$RULE_ID/nodes" | python3 -m json.tool
+# 3. Skip node endpoint (not available)
+echo "3. Nodes are embedded in rule details above"
 echo ""
 
 # 4. Verify no missing child references
 echo "4. Verifying node structure..."
-NODES_JSON=$(curl -s "$BASE_URL/api/v1/rules/$RULE_ID/nodes")
+NODES_JSON=$(curl -s "$BASE_URL/promotion/promotion-validation/v1/rules/$RULE_ID")
 echo "$NODES_JSON" | python3 << 'EOF'
 import json
 import sys
