@@ -6,6 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.BundleWarmupException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleCompilationException;
@@ -30,23 +34,30 @@ public class RulePublishingService {
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
+    private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
-                                 vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties) {
+                                 vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties,
+                                 RuleTemporalLinkJpaRepository ruleTemporalLinkRepository) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.tenantProperties = tenantProperties;
+        this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
     }
 
     public RulePublishResult publishRule(String ruleId) {
-        logger.info("Publishing rule: ruleId={}", ruleId);
+        return publishRule(ruleId, null);
+    }
+
+    public RulePublishResult publishRule(String ruleId, String assignmentId) {
+        logger.info("Publishing rule: ruleId={}, assignmentId={}", ruleId, assignmentId);
 
         try {
             Rule rule = loadRuleForPublishing(ruleId);
             validateRuleForPublishing(rule);
 
-            CompileResponse compileResponse = compileRuleInEngine(rule);
+            CompileResponse compileResponse = compileRuleInEngine(rule, assignmentId);
             if (!compileResponse.isOk()) {
                 return handleCompilationFailure(ruleId, compileResponse);
             }
@@ -56,7 +67,7 @@ public class RulePublishingService {
             return createSuccessfulPublishResult(ruleId, compileResponse);
 
         } catch (Exception e) {
-            logger.error("Failed to publish rule: ruleId={}", ruleId, e);
+            logger.error("Failed to publish rule: ruleId={}, assignmentId={}", ruleId, assignmentId, e);
             return RulePublishResult.failed(ruleId, "Publishing failed: " + e.getMessage());
         }
     }
@@ -241,7 +252,7 @@ public class RulePublishingService {
         }
     }
 
-    private CompileResponse compileRuleInEngine(Rule rule) {
+    private CompileResponse compileRuleInEngine(Rule rule, String assignmentId) {
         // Convert nodes to DTOs using new API
         List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
@@ -249,10 +260,7 @@ public class RulePublishingService {
         Integer version = determineRuleVersion(rule);
         String logic = determineRootLogic(rule);
 
-        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, nodeDtos);
-
-        // Note: Removed compilerId, Source, Limits, timeLinks - not part of new simplified API
-        // These are business logic concerns, not compilation concerns
+        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, nodeDtos, assignmentId);
 
         com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
         if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
@@ -275,7 +283,7 @@ public class RulePublishingService {
         return rule.getLogic() != null ? rule.getLogic().name() : "ALL";
     }
 
-    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos) {
+    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos, String assignmentId) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(rule.getId());
@@ -283,7 +291,56 @@ public class RulePublishingService {
         compileRequest.setLogic(logic);
         compileRequest.setNodes(nodeDtos);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
+
+        // Add temporal policy data if assignmentId is provided
+        if (assignmentId != null) {
+            List<RuleTemporalLinkEntity> temporalLinks = ruleTemporalLinkRepository.findByAssignmentId(assignmentId);
+
+            if (!temporalLinks.isEmpty()) {
+                logger.info("Found {} temporal links for assignmentId={}", temporalLinks.size(), assignmentId);
+
+                RuleTemporalLinkEntity link = temporalLinks.get(0); // Assumption: 1 policy per assignment
+                TemporalPolicyEntity policy = link.getTemporalPolicy();
+
+                // Build TemporalPolicyData
+                CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
+
+                // Create TimeLink and add to compile request
+                CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
+                        policy.getId(),
+                        link.getMode(),
+                        temporalData
+                );
+
+                compileRequest.setTimeLinks(List.of(timeLink));
+
+                logger.debug("Added temporal policy to compile request: policyId={}, mode={}, timezone={}",
+                        policy.getId(), link.getMode(), policy.getTz());
+            } else {
+                logger.debug("No temporal links found for assignmentId={}", assignmentId);
+            }
+        }
+
         return compileRequest;
+    }
+
+    private CompileRequest.TemporalPolicyData buildTemporalPolicyData(TemporalPolicyEntity policy) {
+        CompileRequest.TemporalPolicyData data = new CompileRequest.TemporalPolicyData();
+        data.setTimezone(policy.getTz());
+        data.setRrule(policy.getRrule());
+        data.setStartTs(policy.getStartTs() != null ? policy.getStartTs().toString() : null);
+        data.setEndTs(policy.getEndTs() != null ? policy.getEndTs().toString() : null);
+
+        // Convert time-of-day windows
+        List<CompileRequest.TimeWindow> windowDtos = policy.getTimeOfDayWindows().stream()
+                .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd()))
+                .toList();
+        data.setWindows(windowDtos);
+
+        logger.debug("Built temporal policy data: timezone={}, rrule={}, windowsCount={}",
+                policy.getTz(), policy.getRrule(), windowDtos.size());
+
+        return data;
     }
 
     private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {

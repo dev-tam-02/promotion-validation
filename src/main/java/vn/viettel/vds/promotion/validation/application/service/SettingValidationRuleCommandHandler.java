@@ -785,18 +785,19 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("Rule already deployed with bundleHash: ruleId={}, bundleHash={}",
                         ruleId, validationRule.getBundleHash());
             } else {
-                // Deploy rule if needed
-                logger.info("Rule not yet deployed, deploying now: ruleId={}", ruleId);
+                // Deploy rule if needed - pass assignmentId to include temporal policy data
+                logger.info("Rule not yet deployed, deploying now: ruleId={}, assignmentId={}",
+                        ruleId, assignment.getId());
 
                 vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult =
-                        rulePublishingService.publishRule(ruleId);
+                        rulePublishingService.publishRule(ruleId, assignment.getId());
 
                 if (publishResult.isSuccess()) {
-                    logger.info("Rule deployed successfully: ruleId={}, bundleHash={}, artifactSize={}",
-                            ruleId, publishResult.getBundleHash(), publishResult.getArtifactSize());
+                    logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}, artifactSize={}",
+                            ruleId, assignment.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize());
                 } else {
-                    logger.error("Failed to deploy rule: ruleId={}, error={}",
-                            ruleId, publishResult.getErrorMessage());
+                    logger.error("Failed to deploy rule: ruleId={}, assignmentId={}, error={}",
+                            ruleId, assignment.getId(), publishResult.getErrorMessage());
                     // Don't fail the entire command - assignment is already created
                 }
             }
