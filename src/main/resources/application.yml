@@ -174,8 +174,6 @@ promix:
 
       # JSON Serialization/Deserialization Configuration
       # Use default values from promix-messaging (add-type-info: true, use-type-info-headers: true)
-      json:
-        trusted-packages: "*"
 
       # Security Configuration
       security:
@@ -220,19 +218,11 @@ promix:
         fetch-max-wait: 500
         isolation-level: read_committed
         concurrency: 3
-        batch-listener: true
+        batch-listener: false
         ack-mode: MANUAL_IMMEDIATE
         session-timeout: 30000
         heartbeat-interval: 10000
         use-avro: false
-
-        # JSON Deserializer Configuration
-        properties:
-          # ErrorHandlingDeserializer wraps JsonDeserializer
-          spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-          spring.json.trusted.packages: "vn.viettel.vds.promotion.validation.command"
-          spring.json.use.type.headers: false
-          spring.json.add.type.headers: false
 
         # Retry Configuration
         retry:

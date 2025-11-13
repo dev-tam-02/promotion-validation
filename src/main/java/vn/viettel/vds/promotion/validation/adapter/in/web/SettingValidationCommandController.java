@@ -74,16 +74,12 @@ public class SettingValidationCommandController {
             // Create a mock acknowledgment for the consumer (since we're not using Kafka)
             MockAcknowledgment acknowledgment = new MockAcknowledgment();
 
-            // Wrap single command in List for batch consumer
-            List<SettingValidationRuleCommand> commands = List.of(command);
-            List<Long> offsets = List.of(0L);
-
-            // Call the consumer directly with mock Kafka headers (batch mode)
+            // Call the consumer directly with mock Kafka headers (single message mode)
             commandConsumer.handleSettingValidationRuleCommand(
-                    commands,            // Batch of commands
+                    command,             // Single command
                     "api-direct-call",   // Mock topic name
                     0,                   // Mock partition
-                    offsets,             // List of offsets
+                    0L,                  // Single offset
                     acknowledgment
             );
 

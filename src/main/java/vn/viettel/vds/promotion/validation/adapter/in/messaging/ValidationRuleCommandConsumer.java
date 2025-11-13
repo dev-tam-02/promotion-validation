@@ -15,8 +15,6 @@ import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingException;
 
-import java.util.List;
-
 /**
  * Unified Kafka consumer for ValidationRuleCommand with type-based routing.
  * <p>
@@ -54,7 +52,7 @@ public class ValidationRuleCommandConsumer {
     }
 
     /**
-     * Unified consumer for all ValidationRuleCommand types with batch processing.
+     * Unified consumer for all ValidationRuleCommand types with single message processing.
      *
      * <p>Uses Java 21 pattern matching switch to route commands to appropriate handlers:</p>
      * <pre>{@code
@@ -71,10 +69,10 @@ public class ValidationRuleCommandConsumer {
      * - ValidationException → DLQ immediately (non-retryable)
      * - Other exceptions → Retry logic then DLQ
      *
-     * @param commands       Batch of deserialized commands (polymorphic type)
+     * @param command        Single deserialized command (polymorphic type)
      * @param topic          Kafka topic name
      * @param partition      Partition number
-     * @param offsets        List of offsets for each message
+     * @param offset         Message offset
      * @param acknowledgment Manual acknowledgment callback
      */
     @KafkaListener(
@@ -83,53 +81,44 @@ public class ValidationRuleCommandConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consumeCommand(
-            List<ValidationRuleCommand> commands,
+            @Payload ValidationRuleCommand command,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) List<Long> offsets,
+            @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
 
-        logger.info("Received batch of {} commands from topic={}, partition={}, offsets=[{}-{}]",
-            commands.size(), topic, partition,
-            offsets.isEmpty() ? "N/A" : offsets.get(0),
-            offsets.isEmpty() ? "N/A" : offsets.get(offsets.size() - 1));
+        logger.info("Received command from topic={}, partition={}, offset={}",
+            topic, partition, offset);
 
-        // Process each command in batch
-        for (int i = 0; i < commands.size(); i++) {
-            ValidationRuleCommand command = commands.get(i);
-            long offset = offsets.get(i);
-
-            // Null check - deserialization can fail and return null
-            if (command == null) {
-                logger.error("Received null command at index {}/{}, offset={}",
-                    i + 1, commands.size(), offset);
-                throw new IllegalArgumentException("Received null command from Kafka");
-            }
-
-            logger.debug("Processing command {}/{}: commandId={}, type={}, offset={}",
-                i + 1, commands.size(), command.getId(), command.getType(), offset);
-
-            // Type-based routing using Java 21 pattern matching
-            // Let exceptions propagate - no try-catch
-            boolean success = switch (command) {
-                case SettingValidationRuleCommand c -> handleSettingCommand(c);
-                case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
-                default -> handleUnknownCommand(command);
-            };
-
-            if (!success) {
-                logger.error("Command processing returned false: commandId={}, type={}",
-                    command.getId(), command.getType());
-                throw new CommandProcessingException("Command processing failed for commandId=" + command.getId());
-            }
-
-            logger.debug("Successfully processed command {}/{}: commandId={}, offset={}",
-                i + 1, commands.size(), command.getId(), offset);
+        // Null check - deserialization can fail and return null
+        if (command == null) {
+            logger.error("Received null command at offset={}", offset);
+            throw new IllegalArgumentException("Received null command from Kafka");
         }
 
-        // Acknowledge entire batch after successful processing
+        logger.debug("Processing command: commandId={}, type={}, offset={}",
+            command.getId(), command.getType(), offset);
+
+        // Type-based routing using Java 21 pattern matching
+        // Let exceptions propagate - no try-catch
+        boolean success = switch (command) {
+            case SettingValidationRuleCommand c -> handleSettingCommand(c);
+            case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
+            default -> handleUnknownCommand(command);
+        };
+
+        if (!success) {
+            logger.error("Command processing returned false: commandId={}, type={}",
+                command.getId(), command.getType());
+            throw new CommandProcessingException("Command processing failed for commandId=" + command.getId());
+        }
+
+        logger.debug("Successfully processed command: commandId={}, offset={}",
+            command.getId(), offset);
+
+        // Acknowledge message after successful processing
         acknowledgment.acknowledge();
-        logger.info("Acknowledged batch of {} commands successfully", commands.size());
+        logger.info("Acknowledged command successfully: commandId={}", command.getId());
     }
 
     /**
@@ -158,7 +147,7 @@ public class ValidationRuleCommandConsumer {
     }
 
     /**
-     * Consumer for dead letter topic with batch processing.
+     * Consumer for dead letter topic with single message processing.
      * Uses kafkaDlqListenerContainerFactory WITHOUT DLQ to prevent infinite loop.
      */
     @KafkaListener(
@@ -167,53 +156,45 @@ public class ValidationRuleCommandConsumer {
             containerFactory = "kafkaDlqListenerContainerFactory"
     )
     public void handleDeadLetterMessage(
-            List<ValidationRuleCommand> commands,
+            @Payload ValidationRuleCommand command,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) List<Long> offsets,
+            @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
 
-        logger.warn("Received batch of {} messages from dead letter queue: topic={}, partition={}, offsets=[{}-{}]",
-            commands.size(), topic, partition,
-            offsets.isEmpty() ? "N/A" : offsets.get(0),
-            offsets.isEmpty() ? "N/A" : offsets.get(offsets.size() - 1));
+        logger.warn("Received message from dead letter queue: topic={}, partition={}, offset={}",
+            topic, partition, offset);
 
-        // Process each command in batch
-        for (int i = 0; i < commands.size(); i++) {
-            ValidationRuleCommand command = commands.get(i);
-            long offset = offsets.get(i);
+        // Skip null/tombstone messages in DLQ
+        if (command == null) {
+            logger.warn("Received null/tombstone message in DLQ at offset={} - Skipping", offset);
+            acknowledgment.acknowledge();
+            return;
+        }
 
-            // Skip null/tombstone messages in DLQ
-            if (command == null) {
-                logger.warn("Received null/tombstone message in DLQ at index {}/{}, offset={} - Skipping",
-                    i + 1, commands.size(), offset);
-                continue;
+        logger.warn("Processing DLQ message: commandId={}, type={}, offset={}",
+            command.getId(), command.getType(), offset);
+
+        try {
+            // Log the failed command for manual investigation
+            logger.error("Dead letter command details: commandId={}, type={}, source={}",
+                    command.getId(),
+                    command.getType(),
+                    command.getSource());
+
+            // Route to appropriate DLQ handler based on command type
+            switch (command) {
+                case SettingValidationRuleCommand c -> settingCommandHandler.handleDeadLetterCommand(c);
+                case RollbackValidationRuleCommand c -> rollbackCommandHandler.handleDeadLetterCommand(c);
+                default -> logger.error("Unknown command type in DLQ: {}", command.getType());
             }
 
-            logger.warn("Processing DLQ message {}/{}: commandId={}, type={}, offset={}",
-                i + 1, commands.size(), command.getId(), command.getType(), offset);
-
-            try {
-                // Log the failed command for manual investigation
-                logger.error("Dead letter command details: commandId={}, type={}, source={}",
-                        command.getId(),
-                        command.getType(),
-                        command.getSource());
-
-                // Route to appropriate DLQ handler based on command type
-                switch (command) {
-                    case SettingValidationRuleCommand c -> settingCommandHandler.handleDeadLetterCommand(c);
-                    case RollbackValidationRuleCommand c -> rollbackCommandHandler.handleDeadLetterCommand(c);
-                    default -> logger.error("Unknown command type in DLQ: {}", command.getType());
-                }
-
-            } catch (Exception e) {
-                logger.error("Error processing dead letter message {}/{}: {}", i + 1, commands.size(), e.getMessage(), e);
-            }
+        } catch (Exception e) {
+            logger.error("Error processing dead letter message: {}", e.getMessage(), e);
         }
 
         // Always acknowledge DLQ messages
         acknowledgment.acknowledge();
-        logger.info("Acknowledged batch of {} DLQ messages", commands.size());
+        logger.info("Acknowledged DLQ message: commandId={}", command.getId());
     }
 }
