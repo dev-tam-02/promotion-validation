@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.core.error.ErrorDetail;
+import com.promix.platform.core.exception.BusinessException;
 import com.promix.platform.core.exception.factory.ExceptionFactory;
 import com.promix.platform.core.util.IdGenerator;
 import jakarta.validation.ConstraintViolation;
@@ -122,6 +124,12 @@ public class SettingValidationRuleCommandHandler {
                 return false;
             }
 
+        } catch (BusinessException e) {
+            // Re-throw BusinessException (validation errors) to let promix-messaging handle it
+            // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
+            logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
+                commandId, e.getMessage());
+            throw e;
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
             // Try to extract campaignId from command for error event
@@ -168,21 +176,27 @@ public class SettingValidationRuleCommandHandler {
 
         // Step 4: Handle validation errors
         if (!violations.isEmpty()) {
-            // Build detailed error message with all violations
-            String errorMessages = violations.stream()
-                .map(violation -> String.format("%s: %s (invalid value: %s)",
-                    violation.getPropertyPath(),
-                    violation.getMessage(),
-                    violation.getInvalidValue()))
-                .collect(Collectors.joining("; "));
+            // Build ErrorDetail list from all violations
+            List<ErrorDetail> errorDetails = violations.stream()
+                .map(violation -> ErrorDetail.of(
+                    violation.getPropertyPath().toString(),  // field
+                    violation.getMessage(),                  // errorCode (from annotation)
+                    String.format("Invalid value: %s", violation.getInvalidValue()),  // message
+                    violation.getInvalidValue()             // details
+                ))
+                .toList();
 
-            // Get first error code for exception
-            String errorCode = violations.iterator().next().getMessage();
+            // Build summary error message
+            String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
 
-            logger.error("SettingValidationRuleCommand validation failed: commandId={}, errors={}",
-                command.getId(), errorMessages);
+            logger.error("SettingValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
+                command.getId(), violations.size(), errorDetails);
 
-            throw ExceptionFactory.createValidationException(errorCode, errorMessages);
+            throw ExceptionFactory.createValidationException(
+                "METHOD_ARGUMENT_NOT_VALID",
+                errorMessage,
+                errorDetails.toArray(new ErrorDetail[0])
+            );
         }
 
         logger.debug("SettingValidationRuleCommand validation passed: commandId={}", command.getId());
