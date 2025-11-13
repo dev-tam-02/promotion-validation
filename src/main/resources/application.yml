@@ -224,6 +224,14 @@ promix:
         heartbeat-interval: 10000
         use-avro: false
 
+        # JSON deserializer configuration with error handling
+        properties:
+          # ErrorHandlingDeserializer wraps JsonDeserializer to catch and log deserialization errors
+          spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+          spring.json.trusted.packages: "vn.viettel.vds.promotion.validation.command,vn.viettel.vds.promotion.validation.adapter.in.messaging.dto"
+          spring.json.use.type.headers: true
+          spring.json.add.type.headers: true
+
         # Retry Configuration
         retry:
           enabled: true
