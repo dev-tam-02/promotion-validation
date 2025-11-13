@@ -33,12 +33,13 @@ import json
 import sys
 
 try:
-    data = json.load(sys.stdin)
+    response = json.load(sys.stdin)
 
-    if "data" in data:
-        nodes = data["data"]
-    elif isinstance(data, list):
-        nodes = data
+    # Extract nodes from response structure
+    if "data" in response and "nodes" in response["data"]:
+        nodes = response["data"]["nodes"]
+    elif isinstance(response, list):
+        nodes = response
     else:
         print("✗ Unexpected response format")
         sys.exit(1)
@@ -50,8 +51,8 @@ try:
     errors = []
     for node in nodes:
         node_id = node.get("nodeId") or node.get("id")
-        if node.get("type") == "GROUP" and node.get("childrenIds"):
-            for child_id in node.get("childrenIds", []):
+        if node.get("type") == "GROUP" and node.get("children"):
+            for child_id in node.get("children", []):
                 if child_id not in node_map:
                     errors.append(f"Node {node_id} references non-existent child: {child_id}")
 
@@ -67,7 +68,7 @@ try:
             node_id = node.get("nodeId") or node.get("id")
             node_type = node.get("type")
             if node_type == "GROUP":
-                children = node.get("childrenIds", [])
+                children = node.get("children", [])
                 print(f"  - Node {node_id} ({node_type}) -> children: {children}")
             else:
                 operator = node.get("operatorName", "N/A")

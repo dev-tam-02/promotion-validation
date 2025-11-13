@@ -206,13 +206,33 @@ public class RuleResponseMapper {
 
     /**
      * Converts a list of RuleNode domain models to a list of RuleNodeDto.
+     * <p>This method flattens the tree structure into a flat list containing all nodes.</p>
      */
     @Nullable
     private List<RuleNodeDto> ruleNodesToDto(@Nullable List<RuleNode> nodes) {
         if (nodes == null) return null;
-        return nodes.stream()
-                .map(this::toRuleNodeDto)
-                .toList();
+
+        // Flatten tree to list using recursive helper
+        List<RuleNodeDto> result = new java.util.ArrayList<>();
+        for (RuleNode node : nodes) {
+            flattenNode(node, result);
+        }
+        return result;
+    }
+
+    /**
+     * Recursively flattens a node and its children into a flat list.
+     */
+    private void flattenNode(RuleNode node, List<RuleNodeDto> result) {
+        // Add current node
+        result.add(toRuleNodeDto(node));
+
+        // Recursively add children
+        if (node.getChildren() != null) {
+            for (RuleNode child : node.getChildren()) {
+                flattenNode(child, result);
+            }
+        }
     }
 
     /**

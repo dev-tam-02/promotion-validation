@@ -18,11 +18,12 @@ import java.util.Optional;
 public interface ValidationRuleJpaRepository extends JpaRepository<ValidationRuleEntity, String> {
 
     /**
-     * Find validation rule by ID with nodes eagerly loaded.
+     * Find validation rule by ID with nodes eagerly loaded using JOIN FETCH.
+     * This ensures ALL nodes (including children) are loaded in a single query.
      */
     @Override
-    @EntityGraph(attributePaths = {"nodes"})
-    Optional<ValidationRuleEntity> findById(String id);
+    @Query("SELECT DISTINCT r FROM ValidationRuleEntity r LEFT JOIN FETCH r.nodes WHERE r.id = :id")
+    Optional<ValidationRuleEntity> findById(@Param("id") String id);
 
     /**
      * Find validation rule by code.
