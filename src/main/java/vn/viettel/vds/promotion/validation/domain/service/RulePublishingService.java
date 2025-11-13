@@ -199,10 +199,21 @@ public class RulePublishingService {
     private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
         Map<String, RuleNode> nodeMap = new HashMap<>();
         for (RuleNode node : nodes) {
-            validateNode(node);
-            nodeMap.put(node.getId(), node);
+            collectAllNodes(node, nodeMap);
         }
         return nodeMap;
+    }
+
+    private void collectAllNodes(RuleNode node, Map<String, RuleNode> nodeMap) {
+        validateNode(node);
+        nodeMap.put(node.getId(), node);
+
+        // Recursively collect children
+        if (node.getChildren() != null) {
+            for (RuleNode child : node.getChildren()) {
+                collectAllNodes(child, nodeMap);
+            }
+        }
     }
 
     private void validateNode(RuleNode node) {
