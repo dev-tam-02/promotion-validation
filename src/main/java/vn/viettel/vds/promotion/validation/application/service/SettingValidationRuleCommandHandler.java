@@ -276,12 +276,15 @@ public class SettingValidationRuleCommandHandler {
 
             // Process timeframe if provided
             String timeFrameId = null;
+            boolean hasTemporalPolicy = false;
             if (components.timeframeData() != null) {
                 timeFrameId = processTimeframe(assignmentEntity, components.timeframeData());
+                hasTemporalPolicy = true;
             }
 
             // Deploy rule to validation-engine
-            deployRuleToEngine(assignment, components.ruleId());
+            // Pass hasTemporalPolicy flag directly instead of querying DB (avoids @Transactional timing issues)
+            deployRuleToEngine(assignment, components.ruleId(), hasTemporalPolicy);
 
             // Create processing result
             return CommandProcessingResult.success(
@@ -760,8 +763,14 @@ public class SettingValidationRuleCommandHandler {
      * Deploy rule to validation-engine after successful assignment creation
      * Checks if rule has bundleHash, if not, deploys it via RulePublishingService
      * ENHANCED: Also re-deploys if assignment has temporal policy to ensure temporal constraints are sent to validation-engine
+     *
+     * @param assignment Assignment object
+     * @param ruleId Rule identifier
+     * @param hasTemporalPolicy Whether assignment has temporal policy (passed directly to avoid @Transactional timing issues)
      */
-    private void deployRuleToEngine(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment, String ruleId) {
+    private void deployRuleToEngine(vn.viettel.vds.promotion.validation.domain.model.Assignment assignment,
+                                    String ruleId,
+                                    boolean hasTemporalPolicy) {
         try {
             // Only deploy if assignment is active
             if (assignment.getActive() == null || !assignment.getActive()) {
@@ -778,9 +787,6 @@ public class SettingValidationRuleCommandHandler {
             }
 
             var validationRule = validationRuleOpt.get();
-
-            // Check if assignment has temporal policy
-            boolean hasTemporalPolicy = hasTemporalPolicyForAssignment(assignment.getId());
 
             // Check if rule already has bundleHash
             boolean ruleNotYetDeployed = (validationRule.getBundleHash() == null || validationRule.getBundleHash().isEmpty());
@@ -818,27 +824,6 @@ public class SettingValidationRuleCommandHandler {
             logger.error("Error deploying rule to validation-engine: ruleId={}, assignmentId={}",
                     ruleId, assignment.getId(), e);
             // Don't fail the entire command processing for deployment issues
-        }
-    }
-
-    /**
-     * Check if assignment has associated temporal policy
-     * Used to determine if rule needs re-deployment to include temporal constraints in validation-engine
-     */
-    private boolean hasTemporalPolicyForAssignment(String assignmentId) {
-        try {
-            List<RuleTemporalLinkEntity> temporalLinks = ruleTemporalLinkRepository.findByAssignmentId(assignmentId);
-            boolean hasTemporal = !temporalLinks.isEmpty();
-
-            if (hasTemporal) {
-                logger.debug("Assignment has temporal policy: assignmentId={}, temporalLinkCount={}",
-                        assignmentId, temporalLinks.size());
-            }
-
-            return hasTemporal;
-        } catch (Exception e) {
-            logger.error("Error checking temporal policy for assignment: assignmentId={}", assignmentId, e);
-            return false;
         }
     }
 
