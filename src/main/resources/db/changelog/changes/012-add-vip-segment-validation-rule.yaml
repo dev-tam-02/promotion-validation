@@ -18,9 +18,6 @@ databaseChangeLog:
                   name: name
                   value: VIP Segment Only Validation
               - column:
-                  name: description
-                  value: Allow only VIP segment customers, deny all others
-              - column:
                   name: state
                   value: DRAFT
               - column:
