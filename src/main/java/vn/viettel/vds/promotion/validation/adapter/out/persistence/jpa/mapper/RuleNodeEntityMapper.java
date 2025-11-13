@@ -59,6 +59,11 @@ public class RuleNodeEntityMapper {
             return new ArrayList<>();
         }
 
+        // DEBUG: Log input entities
+        System.out.println("[DEBUG] toDomainList called with " + entities.size() + " entities");
+        entities.forEach(e -> System.out.println("[DEBUG]   Entity: nodeId=" + e.getNodeId() +
+                ", type=" + e.getType() + ", childrenIds=" + e.getChildrenIds()));
+
         // Phase 1: Create builders for all nodes
         Map<String, RuleNode.Builder> builderMap = entities.stream()
                 .collect(Collectors.toMap(
