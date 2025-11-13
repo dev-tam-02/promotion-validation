@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/changes/012-add-vip-segment-validation-rule.yaml
   - include:
       file: db/changelog/changes/013-fix-rule-temporal-links-to-assignment.yaml
+  - include:
+      file: db/changelog/changes/014-add-temporal-bundle-hash-to-assignments.yaml

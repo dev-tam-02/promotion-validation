@@ -19,6 +19,7 @@ public class Assignment {
     private String id;
     private String ruleId;
     private Integer ruleVersionPinned;
+    private String temporalBundleHash;  // Compiled temporal DRL bundle hash for this assignment
     private Subject subject;
     private Integer assignmentVersion;
     private Boolean active;

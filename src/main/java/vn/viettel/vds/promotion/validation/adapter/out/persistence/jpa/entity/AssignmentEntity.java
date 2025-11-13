@@ -54,6 +54,9 @@ public class AssignmentEntity {
     @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "temporal_bundle_hash", length = 255)
+    private String temporalBundleHash;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

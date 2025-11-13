@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-add-temporal-bundle-hash-to-assignments
+      author: system
+      comment: |
+        Add temporal_bundle_hash column to assignments table for storing temporal DRL bundle hash.
+
+        Design rationale:
+        - Each assignment has its own temporal bundle (timeframe.drl) compiled from temporal_policy_windows
+        - Separate from rule bundle (validation-rule.drl) for business logic
+        - Execution flow:
+          1. Check temporal bundle first (fail-fast if timeframe not valid)
+          2. If temporal passes → enrich data → check rule bundle
+        - temporal_bundle_hash is nullable because not all assignments have temporal constraints
+      changes:
+        - addColumn:
+            tableName: assignments
+            columns:
+              - column:
+                  name: temporal_bundle_hash
+                  type: varchar(255)
+                  remarks: "SHA-256 hash of the compiled temporal DRL bundle (timeframe.drl) for this assignment"
+                  constraints:
+                    nullable: true
