@@ -62,6 +62,11 @@ public class AssignmentEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // One-to-many relationship with temporal links (ADDED after migration 013)
+    // Temporal policies are assignment-specific, not rule-specific
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<RuleTemporalLinkEntity> temporalLinks = new java.util.ArrayList<>();
+
     @PrePersist
     public void prePersist() {
         if (id == null) {

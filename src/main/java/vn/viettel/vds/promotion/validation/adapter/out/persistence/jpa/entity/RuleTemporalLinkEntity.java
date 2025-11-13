@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "rule_temporal_links", indexes = {
-        @Index(name = "idx_rule_temporal_links_rule_id", columnList = "validation_rule_id"),
+        @Index(name = "idx_temporal_links_assignment_id", columnList = "assignment_id"),
         @Index(name = "idx_rule_temporal_links_policy_id", columnList = "temporal_policy_id")
 })
 public class RuleTemporalLinkEntity extends BaseEntity {
@@ -17,10 +17,12 @@ public class RuleTemporalLinkEntity extends BaseEntity {
     @Column(name = "mode", nullable = false, length = 20)
     private String mode; // "ALLOW" | "DENY"
 
-    // Many-to-one relationship with validation rule
+    // Many-to-one relationship with assignment (FIXED: was validationRule)
+    // Temporal constraints are assignment-specific, not rule-specific
+    // Multiple campaigns can use the same rule but have different timeframes
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "validation_rule_id", nullable = false)
-    private ValidationRuleEntity validationRule;
+    @JoinColumn(name = "assignment_id", nullable = false)
+    private AssignmentEntity assignment;
 
     // Many-to-one relationship with temporal policy
     @ManyToOne(fetch = FetchType.LAZY)

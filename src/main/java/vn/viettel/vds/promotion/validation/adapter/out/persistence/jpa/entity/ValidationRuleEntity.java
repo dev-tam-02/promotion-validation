@@ -58,10 +58,11 @@ public class ValidationRuleEntity extends BaseEntity {
     @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private List<RuleNodeEntity> nodes = new ArrayList<>();
 
-    // One-to-many relationship with rule temporal links
-    @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
-    private List<RuleTemporalLinkEntity> temporalLinks = new ArrayList<>();
+    // REMOVED: temporalLinks relationship
+    // After migration 013, rule_temporal_links now links to assignments, not validation_rules
+    // Temporal policy relationships are assignment-specific, not rule-specific
+    // If you need to find temporal policies for a rule, query via assignments:
+    // assignment -> rule (FK) AND assignment -> temporal_policy (via rule_temporal_links)
 
     // One-to-many relationship with rule time frames
     @OneToMany(mappedBy = "validationRule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

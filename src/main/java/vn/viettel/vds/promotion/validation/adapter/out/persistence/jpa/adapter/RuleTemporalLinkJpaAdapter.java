@@ -37,8 +37,8 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
     }
 
     @Override
-    public List<RuleTemporalLink> findByRuleId(String ruleId) {
-        return repository.findByValidationRuleId(ruleId).stream()
+    public List<RuleTemporalLink> findByAssignmentId(String assignmentId) {
+        return repository.findByAssignmentId(assignmentId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
@@ -51,24 +51,24 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
     }
 
     @Override
-    public Optional<RuleTemporalLink> findByRuleIdAndPolicyId(String ruleId, String policyId) {
-        return repository.findByValidationRuleIdAndTemporalPolicyId(ruleId, policyId)
+    public Optional<RuleTemporalLink> findByAssignmentIdAndPolicyId(String assignmentId, String policyId) {
+        return repository.findByAssignmentIdAndTemporalPolicyId(assignmentId, policyId)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public void deleteByRuleIdAndPolicyId(String ruleId, String policyId) {
-        repository.deleteByValidationRuleIdAndTemporalPolicyId(ruleId, policyId);
+    public void deleteByAssignmentIdAndPolicyId(String assignmentId, String policyId) {
+        repository.deleteByAssignmentIdAndTemporalPolicyId(assignmentId, policyId);
     }
 
     @Override
-    public boolean existsByRuleIdAndPolicyId(String ruleId, String policyId) {
-        return repository.existsByValidationRuleIdAndTemporalPolicyId(ruleId, policyId);
+    public boolean existsByAssignmentIdAndPolicyId(String assignmentId, String policyId) {
+        return repository.existsByAssignmentIdAndTemporalPolicyId(assignmentId, policyId);
     }
 
     @Override
-    public long countByRuleId(String ruleId) {
-        return repository.countByValidationRuleId(ruleId);
+    public long countByAssignmentId(String assignmentId) {
+        return repository.countByAssignmentId(assignmentId);
     }
 
     @Override

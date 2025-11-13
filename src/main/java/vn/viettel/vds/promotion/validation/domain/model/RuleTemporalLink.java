@@ -6,8 +6,11 @@ import lombok.Value;
 import java.time.Instant;
 
 /**
- * Domain model representing a link between a validation rule and a temporal policy.
+ * Domain model representing a link between an assignment and a temporal policy.
  * This is a pure domain object without persistence concerns.
+ *
+ * FIXED: Changed from linking validation rules to linking assignments
+ * Rationale: Temporal constraints are assignment-specific, not rule-specific
  */
 @Value
 @Builder(toBuilder = true)
@@ -16,7 +19,7 @@ public class RuleTemporalLink {
     String mode; // "ALLOW" | "DENY"
 
     // Relationships
-    String validationRuleId;
+    String assignmentId;  // FIXED: was validationRuleId
     String temporalPolicyId;
 
     // Audit fields

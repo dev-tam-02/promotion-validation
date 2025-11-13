@@ -558,25 +558,28 @@ databaseChangeLog:
                   valueNumeric: 200
 
   # Sample rule temporal link
-  - changeSet:
-      id: 002-insert-sample-temporal-links
-      author: harley hoang
-      changes:
-        - insert:
-            tableName: rule_temporal_links
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0008-7000-8000-000000000001
-              - column:
-                  name: validation_rule_id
-                  value: 01932b6f-0005-7000-8000-000000000001
-              - column:
-                  name: temporal_policy_id
-                  value: 01932b6f-0002-7000-8000-000000000001
-              - column:
-                  name: mode
-                  value: ALLOW
+  # DISABLED: This changeset was inserting with validation_rule_id FK
+  # After migration 013, rule_temporal_links now links to assignments, not validation_rules
+  # Temporal policies will be created dynamically via Kafka commands, not seeded
+  #- changeSet:
+  #    id: 002-insert-sample-temporal-links
+  #    author: harley hoang
+  #    changes:
+  #      - insert:
+  #          tableName: rule_temporal_links
+  #          columns:
+  #            - column:
+  #                name: id
+  #                value: 01932b6f-0008-7000-8000-000000000001
+  #            - column:
+  #                name: validation_rule_id
+  #                value: 01932b6f-0005-7000-8000-000000000001
+  #            - column:
+  #                name: temporal_policy_id
+  #                value: 01932b6f-0002-7000-8000-000000000001
+  #            - column:
+  #                name: mode
+  #                value: ALLOW
 
   # Sample rule assignment
   - changeSet:

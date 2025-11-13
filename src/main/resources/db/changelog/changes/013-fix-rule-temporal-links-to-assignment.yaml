@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-fix-rule-temporal-links-to-assignment
+      author: system
+      comment: |
+        Fix rule_temporal_links to link temporal_policies with assignments instead of validation_rules.
+
+        Rationale:
+        - Temporal constraints belong to assignments (campaign-specific), not rules (reusable logic)
+        - Multiple campaigns can use the same validation rule but have different time constraints
+        - Example: Campaign A (Mon-Fri 9-17h) and Campaign B (Sat-Sun 17-21h) use same rule
+      changes:
+        # Step 1: Drop existing foreign key constraint
+        - dropForeignKeyConstraint:
+            baseTableName: rule_temporal_links
+            constraintName: fk_temporal_links_rule
+
+        # Step 2: Drop existing index on validation_rule_id
+        - dropIndex:
+            indexName: idx_temporal_links_rule_id
+            tableName: rule_temporal_links
+
+        # Step 3: Rename validation_rule_id column to assignment_id
+        # Note: No need to delete data - sample data insert was disabled in 002 changeset
+        - renameColumn:
+            tableName: rule_temporal_links
+            oldColumnName: validation_rule_id
+            newColumnName: assignment_id
+            columnDataType: varchar(36)
+            remarks: Foreign key to assignments table
+
+        # Step 4: Add new foreign key constraint to assignments table
+        - addForeignKeyConstraint:
+            baseTableName: rule_temporal_links
+            baseColumnNames: assignment_id
+            constraintName: fk_temporal_links_assignment
+            referencedTableName: assignments
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: RESTRICT
+
+        # Step 5: Create new index on assignment_id
+        - createIndex:
+            indexName: idx_temporal_links_assignment_id
+            tableName: rule_temporal_links
+            columns:
+              - column:
+                  name: assignment_id
+
+        # Step 6: Add table comment
+        - sql:
+            comment: Update table comment to reflect new relationship
+            sql: |
+              ALTER TABLE rule_temporal_links
+              COMMENT = 'Links between assignments and temporal policies (assignment-specific time constraints)';
+
+      rollback:
+        # Rollback: Revert all changes
+        - dropForeignKeyConstraint:
+            baseTableName: rule_temporal_links
+            constraintName: fk_temporal_links_assignment
+        - dropIndex:
+            indexName: idx_temporal_links_assignment_id
+            tableName: rule_temporal_links
+        - renameColumn:
+            tableName: rule_temporal_links
+            oldColumnName: assignment_id
+            newColumnName: validation_rule_id
+            columnDataType: varchar(36)
+        - addForeignKeyConstraint:
+            baseTableName: rule_temporal_links
+            baseColumnNames: validation_rule_id
+            constraintName: fk_temporal_links_rule
+            referencedTableName: validation_rules
+            referencedColumnNames: id
+        - createIndex:
+            indexName: idx_temporal_links_rule_id
+            tableName: rule_temporal_links
+            columns:
+              - column:
+                  name: validation_rule_id

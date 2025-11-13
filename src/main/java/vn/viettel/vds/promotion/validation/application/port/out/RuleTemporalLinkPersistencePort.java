@@ -7,6 +7,9 @@ import java.util.Optional;
 
 /**
  * Outbound port for RuleTemporalLink persistence operations.
+ *
+ * IMPORTANT: After migration 013, temporal links are assignment-specific, not rule-specific
+ * Methods have been updated to use assignmentId instead of ruleId
  */
 public interface RuleTemporalLinkPersistencePort {
 
@@ -14,17 +17,22 @@ public interface RuleTemporalLinkPersistencePort {
 
     Optional<RuleTemporalLink> findById(String id);
 
-    List<RuleTemporalLink> findByRuleId(String ruleId);
+    // UPDATED: Changed from findByRuleId to findByAssignmentId
+    List<RuleTemporalLink> findByAssignmentId(String assignmentId);
 
     List<RuleTemporalLink> findByPolicyId(String policyId);
 
-    Optional<RuleTemporalLink> findByRuleIdAndPolicyId(String ruleId, String policyId);
+    // UPDATED: Changed from findByRuleIdAndPolicyId to findByAssignmentIdAndPolicyId
+    Optional<RuleTemporalLink> findByAssignmentIdAndPolicyId(String assignmentId, String policyId);
 
-    void deleteByRuleIdAndPolicyId(String ruleId, String policyId);
+    // UPDATED: Changed from deleteByRuleIdAndPolicyId to deleteByAssignmentIdAndPolicyId
+    void deleteByAssignmentIdAndPolicyId(String assignmentId, String policyId);
 
-    boolean existsByRuleIdAndPolicyId(String ruleId, String policyId);
+    // UPDATED: Changed from existsByRuleIdAndPolicyId to existsByAssignmentIdAndPolicyId
+    boolean existsByAssignmentIdAndPolicyId(String assignmentId, String policyId);
 
-    long countByRuleId(String ruleId);
+    // UPDATED: Changed from countByRuleId to countByAssignmentId
+    long countByAssignmentId(String assignmentId);
 
     void delete(RuleTemporalLink ruleTemporalLink);
 

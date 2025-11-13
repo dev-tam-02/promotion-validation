@@ -277,7 +277,7 @@ public class SettingValidationRuleCommandHandler {
             // Process timeframe if provided
             String timeFrameId = null;
             if (components.timeframeData() != null) {
-                timeFrameId = processTimeframe(components.ruleId(), components.timeframeData());
+                timeFrameId = processTimeframe(assignmentEntity, components.timeframeData());
             }
 
             // Deploy rule to validation-engine
@@ -560,10 +560,14 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Process timeframe configuration - ENHANCED version
      * Creates TemporalPolicy, TemporalPolicyWindows, and RuleTemporalLink
+     *
+     * FIXED: Link temporal policy with assignment instead of validation rule
+     * Rationale: Temporal constraints are assignment-specific, not rule-specific
      */
-    private String processTimeframe(String ruleId, TimeFrame timeframeData) {
+    private String processTimeframe(AssignmentEntity assignment, TimeFrame timeframeData) {
         try {
-            logger.info("Processing timeframe for ruleId={}", ruleId);
+            logger.info("Processing timeframe for assignmentId={}, ruleId={}",
+                    assignment.getId(), assignment.getRuleId());
 
             // Extract timeframe components
             String timeFrameId = timeframeData.getTimeFrameId();
@@ -575,9 +579,9 @@ public class SettingValidationRuleCommandHandler {
                 timeFrameId = IdGenerator.generateId();
             }
 
-            // Get validation rule entity
-            ValidationRuleEntity validationRule = validationRuleRepository.findById(ruleId)
-                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + ruleId));
+            // Get validation rule entity for backward compatibility (legacy)
+            ValidationRuleEntity validationRule = validationRuleRepository.findById(assignment.getRuleId())
+                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + assignment.getRuleId()));
 
             // Step 1: Create TemporalPolicy entity
             TemporalPolicyEntity temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
@@ -590,17 +594,18 @@ public class SettingValidationRuleCommandHandler {
                 logger.debug("Created {} validity hour windows", timeframeData.getValidityHoursPerDay().size());
             }
 
-            // Step 3: Create RuleTemporalLink to link validation rule with temporal policy
+            // Step 3: Create RuleTemporalLink to link assignment with temporal policy
+            // FIXED: Link with assignment instead of validationRule
             RuleTemporalLinkEntity link = new RuleTemporalLinkEntity();
             link.setId(IdGenerator.generateId());
-            link.setValidationRule(validationRule);
+            link.setAssignment(assignment);  // FIXED: was setValidationRule
             link.setTemporalPolicy(temporalPolicy);
             link.setMode(mode);
             link.setCreatedAt(Instant.now());
             link.setUpdatedAt(Instant.now());
             ruleTemporalLinkRepository.save(link);
-            logger.debug("Created rule temporal link: linkId={}, ruleId={}, policyId={}, mode={}",
-                    link.getId(), ruleId, temporalPolicy.getId(), mode);
+            logger.debug("Created assignment temporal link: linkId={}, assignmentId={}, policyId={}, mode={}",
+                    link.getId(), assignment.getId(), temporalPolicy.getId(), mode);
 
             // Step 4: Keep RuleTimeFrame for backward compatibility (legacy)
             RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
@@ -612,13 +617,16 @@ public class SettingValidationRuleCommandHandler {
             ruleTimeFrame.setUpdatedAt(Instant.now());
             ruleTimeFrameRepository.save(ruleTimeFrame);
 
-            logger.info("Successfully processed timeframe: ruleId={}, timeFrameId={}, policyId={}",
-                    ruleId, timeFrameId, temporalPolicy.getId());
+            logger.info("Successfully processed timeframe: assignmentId={}, ruleId={}, timeFrameId={}, policyId={}",
+                    assignment.getId(), assignment.getRuleId(), timeFrameId, temporalPolicy.getId());
             return timeFrameId;
 
         } catch (Exception e) {
-            logger.error("Failed to process timeframe for ruleId={}: {}", ruleId, e.getMessage(), e);
-            throw new TimeframeProcessingException("Failed to process timeframe for ruleId=" + ruleId + " due to: " + e.getMessage(), e);
+            logger.error("Failed to process timeframe for assignmentId={}, ruleId={}: {}",
+                    assignment.getId(), assignment.getRuleId(), e.getMessage(), e);
+            throw new TimeframeProcessingException(
+                    "Failed to process timeframe for assignmentId=" + assignment.getId() +
+                    ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
         }
     }
 
