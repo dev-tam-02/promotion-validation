@@ -306,7 +306,12 @@ public class RulePublishingService {
     private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos, String assignmentId) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
-        compileRequest.setRuleId(rule.getId());
+
+        // IMPORTANT: Use assignmentId as ruleId (not rule.getId())
+        // Each assignment = rule template + campaign context (applicableTo + timeframe)
+        // Different assignments need different bundles even if using same rule template
+        compileRequest.setRuleId(assignmentId != null ? assignmentId : rule.getId());
+
         compileRequest.setVersion(version);
         compileRequest.setLogic(logic);
         compileRequest.setNodes(nodeDtos);
