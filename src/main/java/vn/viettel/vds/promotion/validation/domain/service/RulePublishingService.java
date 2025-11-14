@@ -540,8 +540,8 @@ public class RulePublishingService {
             dto.setOperatorVersion(1);
         }
 
-        // Only set params if not null (avoid empty {} for GROUP nodes)
-        if (node.getParams() != null) {
+        // Only set params if not null AND not empty (avoid empty {} for GROUP nodes)
+        if (node.getParams() != null && !node.getParams().isEmpty()) {
             dto.setParams(node.getParams());
         }
 
