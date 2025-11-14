@@ -383,7 +383,7 @@ public class SettingValidationRuleCommandHandler {
 
             // Extract timeframe components
             String timeFrameId = timeframeData.getTimeFrameId();
-            String mode = timeframeData.getMode() != null ? timeframeData.getMode().toString() : "ALLOW";
+            String mode = timeframeData.getMode() != null ? timeframeData.getMode().toString() : "REQUIRED";
             String timezone = timeframeData.getTimezone() != null ? timeframeData.getTimezone() : "UTC";
 
             // Generate timeFrame ID if not provided

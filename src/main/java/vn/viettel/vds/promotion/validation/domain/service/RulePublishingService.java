@@ -313,10 +313,13 @@ public class RulePublishingService {
                 // Build TemporalPolicyData
                 CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
 
+                // Map mode: validation-engine expects "REQUIRED" for mandatory timeframe validation
+                String mappedMode = mapTemporalMode(link.getMode());
+
                 // Create TimeLink and add to compile request
                 CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
                         policy.getId(),
-                        link.getMode(),
+                        mappedMode,
                         temporalData
                 );
 
@@ -332,6 +335,21 @@ public class RulePublishingService {
         return compileRequest;
     }
 
+    /**
+     * Map temporal mode from validation DB to validation-engine format
+     * validation-engine expects "REQUIRED" for mandatory timeframe validation
+     */
+    private String mapTemporalMode(String mode) {
+        if (mode == null || mode.isEmpty()) {
+            return "REQUIRED";  // Default to REQUIRED
+        }
+        // Map ALLOW → REQUIRED (for promotion context, timeframe is always required)
+        if ("ALLOW".equalsIgnoreCase(mode)) {
+            return "REQUIRED";
+        }
+        return mode;
+    }
+
     private CompileRequest.TemporalPolicyData buildTemporalPolicyData(TemporalPolicyEntity policy) {
         CompileRequest.TemporalPolicyData data = new CompileRequest.TemporalPolicyData();
         data.setTimezone(policy.getTz());
@@ -340,9 +358,16 @@ public class RulePublishingService {
         data.setEndTs(policy.getEndTs() != null ? policy.getEndTs().toString() : null);
 
         // Convert time-of-day windows
-        List<CompileRequest.TimeWindow> windowDtos = policy.getTimeOfDayWindows().stream()
-                .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd()))
-                .toList();
+        List<CompileRequest.TimeWindow> windowDtos;
+        if (policy.getTimeOfDayWindows() != null && !policy.getTimeOfDayWindows().isEmpty()) {
+            windowDtos = policy.getTimeOfDayWindows().stream()
+                    .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd()))
+                    .toList();
+        } else {
+            // Default to full-day window (00:00-23:59) if no specific hours defined
+            windowDtos = List.of(new CompileRequest.TimeWindow("00:00", "23:59"));
+            logger.debug("No validity hours defined, using default full-day window: 00:00-23:59");
+        }
         data.setWindows(windowDtos);
 
         logger.debug("Built temporal policy data: timezone={}, rrule={}, windowsCount={}",
@@ -408,23 +433,27 @@ public class RulePublishingService {
         if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
             params.put("includeAll", true);
         } else {
+            params.put("includeAll", false);
+
             // Extract included product IDs
             if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
                 List<String> includedIds = applicableToData.getIncluded().stream()
                         .map(vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule::getId)
                         .toList();
                 params.put("include", includedIds);
+            } else {
+                params.put("include", new ArrayList<>());
             }
 
-            // Extract excluded product IDs
+            // Extract excluded product IDs (ALWAYS include exclude field, even if empty)
             if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
                 List<String> excludedIds = applicableToData.getExcluded().stream()
                         .map(vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule::getId)
                         .toList();
                 params.put("exclude", excludedIds);
+            } else {
+                params.put("exclude", new ArrayList<>());
             }
-
-            params.put("includeAll", false);
         }
 
         dto.setParams(params);
@@ -505,8 +534,17 @@ public class RulePublishingService {
         dto.setType(node.getType() != null ? node.getType().name() : null);
         dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
         dto.setOperatorName(node.getOperatorName());
-        dto.setOperatorVersion(null); // Not available in current model
-        dto.setParams(node.getParams());
+
+        // Set operatorVersion = 1 for COND nodes (required by validation-engine)
+        if (node.getType() == RuleNode.NodeType.COND && node.getOperatorName() != null) {
+            dto.setOperatorVersion(1);
+        }
+
+        // Only set params if not null (avoid empty {} for GROUP nodes)
+        if (node.getParams() != null) {
+            dto.setParams(node.getParams());
+        }
+
         dto.setReasonCode(node.getReasonCode());
         dto.setChildren(childIds);
         dto.setOrder(null); // Not available in current model
