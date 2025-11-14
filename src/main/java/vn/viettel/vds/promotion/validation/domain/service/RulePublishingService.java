@@ -465,17 +465,24 @@ public class RulePublishingService {
         }
     }
 
+    /**
+     * Convert RuleNode tree to flat list of RuleNodeDto
+     * IMPORTANT: Must flatten the tree recursively to include ALL nodes
+     */
     private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {
         List<RuleNodeDto> dtos = new ArrayList<>();
 
         for (RuleNode node : nodes) {
-            // Convert children nodes to IDs
+            // Add current node
             List<String> childIds = convertChildrenToIds(node);
-
-            // Create RuleNodeDto using setters (it's a class, not a record)
             RuleNodeDto dto = createRuleNodeDto(node, childIds);
-
             dtos.add(dto);
+
+            // Recursively add all children nodes (FLATTEN TREE)
+            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+                List<RuleNodeDto> childDtos = convertToNodeDtos(node.getChildren());
+                dtos.addAll(childDtos);
+            }
         }
 
         return dtos;
