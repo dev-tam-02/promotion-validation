@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.domain.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -36,15 +37,18 @@ public class RulePublishingService {
     private final RulePersistencePort rulePersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
     private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
+    private final ObjectMapper objectMapper;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
                                  vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties,
-                                 RuleTemporalLinkJpaRepository ruleTemporalLinkRepository) {
+                                 RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
+                                 ObjectMapper objectMapper) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.tenantProperties = tenantProperties;
         this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
+        this.objectMapper = objectMapper;
     }
 
     public RulePublishResult publishRule(String ruleId) {
@@ -269,6 +273,14 @@ public class RulePublishingService {
         String logic = determineRootLogic(rule);
 
         CompileRequest compileRequest = buildCompileRequest(rule, version, logic, fullNodeDtos, assignmentId);
+
+        // Log full compile request as JSON for debugging
+        try {
+            String requestJson = objectMapper.writeValueAsString(compileRequest);
+            logger.info("Calling validation-engine /v1/compiler/compile with request: {}", requestJson);
+        } catch (Exception e) {
+            logger.warn("Failed to serialize CompileRequest to JSON: {}", e.getMessage());
+        }
 
         com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
         if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
