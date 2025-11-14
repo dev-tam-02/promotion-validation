@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -47,17 +48,23 @@ public class RulePublishingService {
     }
 
     public RulePublishResult publishRule(String ruleId) {
-        return publishRule(ruleId, null);
+        return publishRule(ruleId, null, null);
     }
 
     public RulePublishResult publishRule(String ruleId, String assignmentId) {
-        logger.info("Publishing rule: ruleId={}, assignmentId={}", ruleId, assignmentId);
+        return publishRule(ruleId, assignmentId, null);
+    }
+
+    public RulePublishResult publishRule(String ruleId, String assignmentId,
+                                        vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+        logger.info("Publishing rule: ruleId={}, assignmentId={}, hasApplicability={}",
+                ruleId, assignmentId, applicableToData != null);
 
         try {
             Rule rule = loadRuleForPublishing(ruleId);
             validateRuleForPublishing(rule);
 
-            CompileResponse compileResponse = compileRuleInEngine(rule, assignmentId);
+            CompileResponse compileResponse = compileRuleInEngine(rule, assignmentId, applicableToData);
             if (!compileResponse.isOk()) {
                 return handleCompilationFailure(ruleId, compileResponse);
             }
@@ -252,15 +259,16 @@ public class RulePublishingService {
         }
     }
 
-    private CompileResponse compileRuleInEngine(Rule rule, String assignmentId) {
-        // Convert nodes to DTOs using new API
-        List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
+    private CompileResponse compileRuleInEngine(Rule rule, String assignmentId,
+                                                vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+        // Build full nodes list: existing nodes + dynamic product applicability node
+        List<RuleNodeDto> fullNodeDtos = buildFullNodeList(rule, applicableToData);
 
         // Determine version and logic
         Integer version = determineRuleVersion(rule);
         String logic = determineRootLogic(rule);
 
-        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, nodeDtos, assignmentId);
+        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, fullNodeDtos, assignmentId);
 
         com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
         if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
@@ -341,6 +349,120 @@ public class RulePublishingService {
                 policy.getTz(), policy.getRrule(), windowDtos.size());
 
         return data;
+    }
+
+    /**
+     * Build full node list by merging existing nodes + dynamic product applicability node
+     *
+     * @param rule Rule entity with existing nodes
+     * @param applicableToData Applicability scope data (can be null)
+     * @return Full list of RuleNodeDto including dynamic nodes
+     */
+    private List<RuleNodeDto> buildFullNodeList(Rule rule,
+                                                 vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+        // Convert existing nodes to DTOs
+        List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
+
+        // If no applicability data, return existing nodes as-is
+        if (applicableToData == null) {
+            logger.debug("No applicability data provided, using existing nodes only");
+            return nodeDtos;
+        }
+
+        logger.info("Creating dynamic product applicability node for rule: ruleId={}", rule.getId());
+
+        // Create product applicability node DTO
+        RuleNodeDto productNode = createProductApplicabilityNodeDto(applicableToData);
+
+        // Add product node to the list
+        nodeDtos.add(productNode);
+
+        // Find root node and add product node to its children
+        addProductNodeToRootChildren(nodeDtos, productNode.getId());
+
+        logger.info("Built full node list: ruleId={}, totalNodes={}, productNodeId={}",
+                rule.getId(), nodeDtos.size(), productNode.getId());
+
+        return nodeDtos;
+    }
+
+    /**
+     * Create product applicability node DTO from ApplicabilityScope
+     *
+     * @param applicableToData Applicability scope with included/excluded products
+     * @return RuleNodeDto for product.applicability.in operator
+     */
+    private RuleNodeDto createProductApplicabilityNodeDto(
+            vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+
+        RuleNodeDto dto = new RuleNodeDto();
+        dto.setId(com.promix.platform.core.util.IdGenerator.generateId());
+        dto.setType("COND");
+        dto.setOperatorName("order.item.product.applicable");
+        dto.setOperatorVersion(1);
+        dto.setReasonCode("PRODUCT_NOT_APPLICABLE");
+
+        // Build params map
+        Map<String, Object> params = new HashMap<>();
+
+        if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
+            params.put("includeAll", true);
+        } else {
+            // Extract included product IDs
+            if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
+                List<String> includedIds = applicableToData.getIncluded().stream()
+                        .map(vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule::getId)
+                        .toList();
+                params.put("include", includedIds);
+            }
+
+            // Extract excluded product IDs
+            if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
+                List<String> excludedIds = applicableToData.getExcluded().stream()
+                        .map(vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule::getId)
+                        .toList();
+                params.put("exclude", excludedIds);
+            }
+
+            params.put("includeAll", false);
+        }
+
+        dto.setParams(params);
+
+        logger.debug("Created product applicability node: nodeId={}, params={}", dto.getId(), params);
+
+        return dto;
+    }
+
+    /**
+     * Add product node ID to root node's children list
+     *
+     * @param nodeDtos List of all nodes
+     * @param productNodeId ID of the product applicability node to add
+     */
+    private void addProductNodeToRootChildren(List<RuleNodeDto> nodeDtos, String productNodeId) {
+        // Find root node (node that is not a child of any other node)
+        Set<String> childIds = nodeDtos.stream()
+                .filter(n -> n.getChildren() != null)
+                .flatMap(n -> n.getChildren().stream())
+                .collect(java.util.stream.Collectors.toSet());
+
+        RuleNodeDto rootNode = nodeDtos.stream()
+                .filter(n -> !childIds.contains(n.getId()))
+                .findFirst()
+                .orElse(null);
+
+        if (rootNode != null && "GROUP".equals(rootNode.getType())) {
+            // Add product node to root's children
+            if (rootNode.getChildren() == null) {
+                rootNode.setChildren(new ArrayList<>());
+            }
+            rootNode.getChildren().add(productNodeId);
+            logger.debug("Added product node to root children: rootId={}, productNodeId={}",
+                    rootNode.getId(), productNodeId);
+        } else {
+            logger.warn("Root node not found or not a GROUP node, product node added to list but not to tree");
+        }
     }
 
     private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {

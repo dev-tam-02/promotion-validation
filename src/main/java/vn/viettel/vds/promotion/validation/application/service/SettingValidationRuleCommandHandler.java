@@ -231,28 +231,9 @@ public class SettingValidationRuleCommandHandler {
 
             ComponentsData components = componentsResult.getValue();
 
-            // ✅ ENHANCED: Auto-create product.applicability.in node if applicableTo provided
-            if (components.applicableToData() != null) {
-                boolean hasNode = validateRuleHasProductApplicabilityNode(
-                        components.ruleId()
-                );
-                if (!hasNode) {
-                    if (logger.isInfoEnabled()) {
-                        logger.info("Rule does not have product.applicability.in node. Auto-creating it for ruleId={}", components.ruleId());
-                    }
-                    // Auto-create the node instead of failing
-                    boolean created = createProductApplicabilityNode(
-                            components.ruleId(),
-                            components.applicableToData()
-                    );
-                    if (!created) {
-                        return CommandProcessingResult.failure(
-                                ErrorCode.RULE_MISSING_APPLICABILITY_NODE.name(),
-                                "Failed to create product.applicability.in node for rule"
-                        );
-                    }
-                }
-            }
+            // ✅ REMOVED: No longer create node in DB
+            // Product applicability node will be created dynamically during compilation
+            // by RulePublishingService based on applicableToData
 
             // ✅ Create rule assignment with objectType + objectId
             vn.viettel.vds.promotion.validation.domain.model.Assignment assignment =
@@ -285,7 +266,8 @@ public class SettingValidationRuleCommandHandler {
             // Deploy rule to validation-engine
             // Pass hasTemporalPolicy flag directly instead of querying DB (avoids @Transactional timing issues)
             // Pass assignmentEntity to update temporal_bundle_hash after deployment
-            deployRuleToEngine(assignmentEntity, components.ruleId(), hasTemporalPolicy);
+            // Pass applicableToData to create product applicability node dynamically
+            deployRuleToEngine(assignmentEntity, components.ruleId(), hasTemporalPolicy, components.applicableToData());
 
             // Create processing result
             return CommandProcessingResult.success(
@@ -348,180 +330,6 @@ public class SettingValidationRuleCommandHandler {
                 priority,
                 notes
         ));
-    }
-
-
-    /**
-     * ✅ NEW: Validate that rule contains product.applicability.in node
-     * This ensures consistency between rule definition and applicableTo data
-     */
-    private boolean validateRuleHasProductApplicabilityNode(
-            String ruleId) {
-
-        try {
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
-                handleMissingRule(ruleId);
-                return false;
-            }
-
-            var rule = ruleOpt.get();
-
-            // Check if rule has nodes
-            if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
-                handleEmptyRuleNodes(ruleId);
-                return false;
-            }
-
-            // Search for product.applicability.in operator in rule tree
-            boolean hasApplicabilityNode = findProductApplicabilityNode(rule.getNodes());
-
-            if (!hasApplicabilityNode) {
-                handleMissingApplicabilityNode(ruleId);
-                return false;
-            }
-
-            logger.info("Validated rule contains product.applicability.in node: ruleId={}", ruleId);
-            return true;
-
-        } catch (Exception e) {
-            handleValidationException(e, ruleId);
-            return false;
-        }
-    }
-
-    private void handleMissingRule(String ruleId) {
-        logger.error("Rule not found during validation: ruleId={}", ruleId);
-    }
-
-    private void handleEmptyRuleNodes(String ruleId) {
-        logger.warn("Rule has no nodes: ruleId={}", ruleId);
-    }
-
-    private void handleMissingApplicabilityNode(String ruleId) {
-        logger.error("Rule does not contain product.applicability.in node: ruleId={}", ruleId);
-    }
-
-    private void handleValidationException(Exception e, String ruleId) {
-        logger.error("Error validating rule applicability node: ruleId={}", ruleId, e);
-    }
-
-    /**
-     * ✅ NEW: Create product.applicability.in condition node in rule
-     * Adds the node to rule's nodes if it doesn't exist
-     */
-    private boolean createProductApplicabilityNode(
-            String ruleId,
-            ApplicabilityScope applicableToData) {
-        try {
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
-                handleMissingRuleForCreation(ruleId);
-                return false;
-            }
-
-            ValidationRuleEntity rule = ruleOpt.get();
-
-            // Create new COND node for product.applicability.in
-            RuleNodeEntity productNode = createProductApplicabilityNodeEntity(rule);
-
-            // Build params map for RuleNodeEntity from applicableToData
-            java.util.Map<String, Object> params = buildApplicabilityParams(applicableToData);
-
-            productNode.setParams(params);
-            productNode.setCreatedAt(Instant.now());
-            productNode.setUpdatedAt(Instant.now());
-
-            // Add node to rule
-            if (rule.getNodes() == null) {
-                rule.setNodes(new java.util.ArrayList<>());
-            }
-            rule.getNodes().add(productNode);
-
-            // Save rule with new node
-            validationRuleRepository.save(rule);
-
-            logger.info("Created product.applicability.in node for rule: ruleId={}, nodeId={}, params={}",
-                    ruleId, productNode.getId(), params);
-            return true;
-
-        } catch (Exception e) {
-            handleCreationException(e, ruleId);
-            return false;
-        }
-    }
-
-    private void handleMissingRuleForCreation(String ruleId) {
-        logger.error("Rule not found when creating applicability node: ruleId={}", ruleId);
-    }
-
-    private RuleNodeEntity createProductApplicabilityNodeEntity(ValidationRuleEntity rule) {
-        RuleNodeEntity productNode = new RuleNodeEntity();
-        String generatedId = IdGenerator.generateId();
-        productNode.setId(generatedId);
-        productNode.setNodeId(generatedId);
-        productNode.setType("COND");
-        productNode.setOperatorName("product.applicability.in");
-        productNode.setValidationRule(rule);
-        return productNode;
-    }
-
-    private java.util.Map<String, Object> buildApplicabilityParams(ApplicabilityScope applicableToData) {
-        java.util.Map<String, Object> params = new java.util.HashMap<>();
-
-        if (Boolean.TRUE.equals(applicableToData.getIncludedAll())) {
-            params.put("includedAll", true);
-        } else {
-            addIncludedItems(params, applicableToData);
-            addExcludedItems(params, applicableToData);
-        }
-        return params;
-    }
-
-    private void addIncludedItems(java.util.Map<String, Object> params, ApplicabilityScope applicableToData) {
-        if (applicableToData.getIncluded() != null && !applicableToData.getIncluded().isEmpty()) {
-            // Extract IDs from ApplicabilityRule objects
-            List<String> includedIds = applicableToData.getIncluded().stream()
-                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                    .toList();
-            params.put("included", includedIds);
-        }
-    }
-
-    private void addExcludedItems(java.util.Map<String, Object> params, ApplicabilityScope applicableToData) {
-        if (applicableToData.getExcluded() != null && !applicableToData.getExcluded().isEmpty()) {
-            // Extract IDs from ApplicabilityRule objects
-            List<String> excludedIds = applicableToData.getExcluded().stream()
-                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                    .toList();
-            params.put("excluded", excludedIds);
-        }
-    }
-
-    private void handleCreationException(Exception e, String ruleId) {
-        logger.error("Error creating product applicability node: ruleId={}", ruleId, e);
-    }
-
-    /**
-     * ✅ NEW: Recursively search for product.applicability.in node in rule tree
-     * Works with ValidationRuleEntity JPA entity nodes
-     */
-    private boolean findProductApplicabilityNode(List<RuleNodeEntity> nodes) {
-
-        if (nodes == null || nodes.isEmpty()) {
-            return false;
-        }
-
-        // Search through all nodes for product.applicability.in operator
-        for (RuleNodeEntity node : nodes) {
-            // Check if this is a COND node with product.applicability.in operator
-            if ("COND".equals(node.getType()) &&
-                    "product.applicability.in".equals(node.getOperatorName())) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -768,10 +576,12 @@ public class SettingValidationRuleCommandHandler {
      * @param assignmentEntity Assignment entity (to update temporal_bundle_hash after deployment)
      * @param ruleId Rule identifier
      * @param hasTemporalPolicy Whether assignment has temporal policy (passed directly to avoid @Transactional timing issues)
+     * @param applicableToData Applicability scope data to create product applicability node dynamically
      */
     private void deployRuleToEngine(AssignmentEntity assignmentEntity,
                                     String ruleId,
-                                    boolean hasTemporalPolicy) {
+                                    boolean hasTemporalPolicy,
+                                    ApplicabilityScope applicableToData) {
         try {
             // Only deploy if assignment is active
             if (assignmentEntity.getActive() == null || !assignmentEntity.getActive()) {
@@ -804,9 +614,9 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("Deploying rule: ruleId={}, assignmentId={}, reason={}",
                         ruleId, assignmentEntity.getId(), deploymentReason);
 
-                // Deploy rule - pass assignmentId to include temporal policy data
+                // Deploy rule - pass assignmentId to include temporal policy data and applicableToData for product applicability node
                 vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult =
-                        rulePublishingService.publishRule(ruleId, assignmentEntity.getId());
+                        rulePublishingService.publishRule(ruleId, assignmentEntity.getId(), applicableToData);
 
                 if (publishResult.isSuccess()) {
                     String deployedBundleHash = publishResult.getBundleHash();
