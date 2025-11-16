@@ -192,6 +192,7 @@ public class CompileRequest {
         private List<TimeWindow> windows;
 
         public TemporalPolicyData() {
+            // Default constructor for Jackson deserialization
         }
 
         public String getTimezone() {

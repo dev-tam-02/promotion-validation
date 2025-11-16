@@ -12,7 +12,6 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.SettingValidatio
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 

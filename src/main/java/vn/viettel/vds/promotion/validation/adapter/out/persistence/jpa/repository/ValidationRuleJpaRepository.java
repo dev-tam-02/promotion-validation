@@ -2,7 +2,6 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.reposito
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

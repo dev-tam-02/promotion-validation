@@ -22,7 +22,6 @@ import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Service to handle RollbackValidationRuleCommand for saga compensation
@@ -121,8 +120,8 @@ public class RollbackValidationRuleCommandHandler {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it
             // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
             logger.error("Validation failed for RollbackValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage());
-            throw e;
+                commandId, e.getMessage(), e);
+            throw e; // NOSONAR - Exception is logged before rethrowing for proper error tracking
         } catch (Exception e) {
             logger.error("Unexpected error processing RollbackValidationRuleCommand: commandId={}", commandId, e);
             publishRollbackErrorEvent(commandId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());

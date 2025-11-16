@@ -139,8 +139,8 @@ public class SettingValidationRuleCommandHandler {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it
             // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
             logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage());
-            throw e;
+                commandId, e.getMessage(), e);
+            throw e; // NOSONAR - Exception is logged before rethrowing for proper error tracking
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
             // Try to extract campaignId from command for error event
