@@ -3,7 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleTemporalLinkEntityMapper;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleTemporalLinkMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
@@ -16,10 +16,10 @@ import java.util.Optional;
 public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePort {
 
     private final RuleTemporalLinkJpaRepository repository;
-    private final RuleTemporalLinkEntityMapper mapper;
+    private final RuleTemporalLinkMapper mapper;
 
     public RuleTemporalLinkJpaAdapter(RuleTemporalLinkJpaRepository repository,
-                                      RuleTemporalLinkEntityMapper mapper) {
+                                      RuleTemporalLinkMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
