@@ -33,11 +33,14 @@ public class TemporalPolicyService {
     );
 
     private final TemporalPolicyPersistencePort temporalPolicyPersistencePort;
+    private final vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort;
     private final TemporalPolicyService self;
 
     public TemporalPolicyService(TemporalPolicyPersistencePort temporalPolicyPersistencePort,
+                                 vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort ruleTemporalLinkPersistencePort,
                                  @org.springframework.context.annotation.Lazy TemporalPolicyService self) {
         this.temporalPolicyPersistencePort = temporalPolicyPersistencePort;
+        this.ruleTemporalLinkPersistencePort = ruleTemporalLinkPersistencePort;
         this.self = self;
     }
 
@@ -302,6 +305,45 @@ public class TemporalPolicyService {
         return false;
     }
 
+    /**
+     * Get temporal policies by object type and object ID.
+     * This method retrieves all temporal policies associated with a specific entity/object
+     * through the assignment-temporal_policy relationship.
+     *
+     * @param objectType The type of the object/entity (e.g., "CAMPAIGN", "DISCOUNT")
+     * @param objectId The ID of the object/entity
+     * @return List of temporal policies associated with the object
+     */
+    @Transactional(readOnly = true)
+    public List<TemporalPolicyWithMode> getTemporalPoliciesByObjectTypeAndId(String objectType, String objectId) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Getting temporal policies for objectType={}, objectId={}", objectType, objectId);
+        }
+
+        // Find all temporal links for this object through assignments
+        List<vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink> temporalLinks =
+                ruleTemporalLinkPersistencePort.findByEntityTypeAndEntityId(objectType, objectId);
+
+        if (temporalLinks.isEmpty()) {
+            logger.info("No temporal policies found for objectType={}, objectId={}", objectType, objectId);
+            return List.of();
+        }
+
+        // Map to TemporalPolicyWithMode by fetching each temporal policy
+        List<TemporalPolicyWithMode> result = new java.util.ArrayList<>();
+        for (vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink link : temporalLinks) {
+            try {
+                TemporalPolicy policy = self.getTemporalPolicyById(link.getTemporalPolicyId());
+                result.add(new TemporalPolicyWithMode(policy, link.getMode()));
+            } catch (Exception e) {
+                logger.warn("Failed to fetch temporal policy id={}, skipping", link.getTemporalPolicyId(), e);
+            }
+        }
+
+        logger.info("Found {} temporal policies for objectType={}, objectId={}", result.size(), objectType, objectId);
+        return result;
+    }
+
     // Time window class for preview results
     public static class TimeWindow {
         private final Instant start;
@@ -318,6 +360,27 @@ public class TemporalPolicyService {
 
         public Instant getEnd() {
             return end;
+        }
+    }
+
+    /**
+     * DTO class to represent a temporal policy with its link mode
+     */
+    public static class TemporalPolicyWithMode {
+        private final TemporalPolicy temporalPolicy;
+        private final String mode; // "ALLOW" or "DENY"
+
+        public TemporalPolicyWithMode(TemporalPolicy temporalPolicy, String mode) {
+            this.temporalPolicy = temporalPolicy;
+            this.mode = mode;
+        }
+
+        public TemporalPolicy getTemporalPolicy() {
+            return temporalPolicy;
+        }
+
+        public String getMode() {
+            return mode;
         }
     }
 }

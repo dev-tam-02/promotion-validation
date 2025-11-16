@@ -80,4 +80,11 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
     public void deleteById(String id) {
         repository.deleteById(id);
     }
+
+    @Override
+    public List<RuleTemporalLink> findByEntityTypeAndEntityId(String entityType, String entityId) {
+        return repository.findTemporalPoliciesByEntityTypeAndEntityId(entityType, entityId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

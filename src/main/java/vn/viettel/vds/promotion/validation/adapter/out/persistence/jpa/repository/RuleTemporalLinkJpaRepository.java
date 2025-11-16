@@ -40,4 +40,22 @@ public interface RuleTemporalLinkJpaRepository extends JpaRepository<RuleTempora
     // UPDATED: Changed from validationRule.id to assignment.id
     @Query("SELECT COUNT(rtl) FROM RuleTemporalLinkEntity rtl WHERE rtl.assignment.id = :assignmentId")
     long countByAssignmentId(@Param("assignmentId") String assignmentId);
+
+    /**
+     * Find temporal policies by entity type and entity ID through assignments.
+     * This query joins: rule_temporal_links -> assignments -> temporal_policies
+     * to get all temporal policies associated with a specific object (entity).
+     *
+     * @param entityType The type of the entity (e.g., "CAMPAIGN", "DISCOUNT")
+     * @param entityId The ID of the entity
+     * @return List of RuleTemporalLinkEntity objects with temporal policies loaded
+     */
+    @Query("SELECT rtl FROM RuleTemporalLinkEntity rtl " +
+            "JOIN FETCH rtl.temporalPolicy " +
+            "WHERE rtl.assignment.entityType = :entityType " +
+            "AND rtl.assignment.entityId = :entityId")
+    List<RuleTemporalLinkEntity> findTemporalPoliciesByEntityTypeAndEntityId(
+            @Param("entityType") String entityType,
+            @Param("entityId") String entityId
+    );
 }

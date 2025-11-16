@@ -37,4 +37,14 @@ public interface RuleTemporalLinkPersistencePort {
     void delete(RuleTemporalLink ruleTemporalLink);
 
     void deleteById(String id);
+
+    /**
+     * Find temporal links by entity type and entity ID.
+     * This method retrieves all temporal policy links associated with a specific entity/object.
+     *
+     * @param entityType The type of the entity (e.g., "CAMPAIGN", "DISCOUNT")
+     * @param entityId The ID of the entity
+     * @return List of RuleTemporalLink objects with temporal policies
+     */
+    List<RuleTemporalLink> findByEntityTypeAndEntityId(String entityType, String entityId);
 }
