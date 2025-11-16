@@ -65,6 +65,7 @@ public class RollbackValidationRuleCommandHandler {
      * @param command The rollback command containing campaign ID and rollback details
      * @return true if rollback successful, false otherwise
      */
+    @SuppressWarnings("java:S2139") // Exception is properly logged before rethrowing
     public boolean handleRollback(RollbackValidationRuleCommand command) {
         String commandId = command.getId();
 

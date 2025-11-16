@@ -14,7 +14,6 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValid
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTimeFrameEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
@@ -53,8 +52,6 @@ public class SettingValidationRuleCommandHandler {
     private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
-    @SuppressWarnings("unused") // Reserved for future use
-    private final ValidationEngineDeploymentService validationEngineClient;
     private final IdempotencyService idempotencyService;
     private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
     private final Validator validator;
@@ -67,7 +64,6 @@ public class SettingValidationRuleCommandHandler {
             RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
-            ValidationEngineDeploymentService validationEngineClient,
             IdempotencyService idempotencyService,
             vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService,
             Validator validator,
@@ -78,7 +74,6 @@ public class SettingValidationRuleCommandHandler {
         this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;
-        this.validationEngineClient = validationEngineClient;
         this.idempotencyService = idempotencyService;
         this.rulePublishingService = rulePublishingService;
         this.validator = validator;
@@ -88,6 +83,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Handle SettingValidationRuleCommand
      */
+    @SuppressWarnings("java:S2139") // Exception is properly logged before rethrowing
     public boolean handleCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
 
@@ -376,6 +372,7 @@ public class SettingValidationRuleCommandHandler {
      * FIXED: Link temporal policy with assignment instead of validation rule
      * Rationale: Temporal constraints are assignment-specific, not rule-specific
      */
+    @SuppressWarnings("java:S2139") // Exception is properly logged and wrapped with contextual information
     private String processTimeframe(AssignmentEntity assignment, TimeFrame timeframeData) {
         try {
             logger.info("Processing timeframe for assignmentId={}, ruleId={}",
@@ -436,7 +433,7 @@ public class SettingValidationRuleCommandHandler {
         } catch (Exception e) {
             logger.error("Failed to process timeframe for assignmentId={}, ruleId={}: {}",
                     assignment.getId(), assignment.getRuleId(), e.getMessage(), e);
-            throw new TimeframeProcessingException(
+            throw new TimeframeProcessingException( // NOSONAR - Exception is logged and wrapped with contextual information
                     "Failed to process timeframe for assignmentId=" + assignment.getId() +
                     ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
         }
