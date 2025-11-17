@@ -401,7 +401,7 @@ public class RuleController {
         }
 
         // Get the rule
-        Rule rule = ruleService.getRuleById(assignment.get().getId());
+        Rule rule = ruleService.getRuleById(assignment.get().getRuleId());
 
         // Build response with rule and assignment details
         RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
@@ -451,7 +451,7 @@ public class RuleController {
         return assignments.stream()
                 .map(assignment -> {
                     try {
-                        Rule rule = ruleService.getRuleById(assignment.getId());
+                        Rule rule = ruleService.getRuleById(assignment.getRuleId());
 
                         RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
                         response.setRule(ruleMapper.toRuleResponse(rule));
