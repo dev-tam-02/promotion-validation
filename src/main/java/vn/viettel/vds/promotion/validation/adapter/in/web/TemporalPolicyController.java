@@ -16,7 +16,6 @@ import vn.viettel.vds.promotion.validation.domain.model.TimeOfDayWindow;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("${spring.application.context-path}/v1/temporal-policies")
@@ -57,7 +56,7 @@ public class TemporalPolicyController {
 
         List<TemporalPolicyResponse> response = policiesWithMode.stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         logger.info("Successfully retrieved {} temporal policies for objectType={}, objectId={}",
                 response.size(), objectType, objectId);

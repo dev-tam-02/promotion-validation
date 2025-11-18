@@ -22,6 +22,7 @@ public class RuleTemporalLinkEntity extends BaseEntity {
     // Multiple campaigns can use the same rule but have different timeframes
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignment_id", nullable = false)
+    @SuppressWarnings("java:S1948") // JPA managed relationship, not serialized directly
     private AssignmentEntity assignment;
 
     // Many-to-one relationship with temporal policy
