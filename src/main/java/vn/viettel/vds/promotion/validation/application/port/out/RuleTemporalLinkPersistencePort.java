@@ -47,4 +47,15 @@ public interface RuleTemporalLinkPersistencePort {
      * @return List of RuleTemporalLink objects with temporal policies
      */
     List<RuleTemporalLink> findByEntityTypeAndEntityId(String entityType, String entityId);
+
+    /**
+     * Find entity IDs by entity type and time range.
+     * Returns distinct entity IDs that have temporal policies overlapping with the specified time range.
+     *
+     * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
+     * @param startTs Start timestamp of the query range (nullable)
+     * @param endTs End timestamp of the query range (nullable)
+     * @return List of distinct entity IDs
+     */
+    List<String> findEntityIdsByEntityTypeAndTimeRange(String entityType, java.time.Instant startTs, java.time.Instant endTs);
 }

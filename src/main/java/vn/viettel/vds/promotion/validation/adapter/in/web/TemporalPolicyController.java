@@ -8,12 +8,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.TemporalPolicyResponse;
 import vn.viettel.vds.promotion.validation.application.service.TemporalPolicyService;
 import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
 import vn.viettel.vds.promotion.validation.domain.model.TimeOfDayWindow;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,6 +64,40 @@ public class TemporalPolicyController {
                 response.size(), objectType, objectId);
 
         return response;
+    }
+
+    @Operation(
+            summary = "Find entity IDs by time range",
+            description = "Retrieves distinct entity IDs (e.g., campaign IDs) that have temporal policies " +
+                    "overlapping with the specified time range. This is used for filtering entities by their validity timeframe."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved entity IDs"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/search-entities")
+    public List<String> findEntityIdsByTimeRange(
+            @Parameter(description = "Type of the entity/object (e.g., CASHBACK, DISCOUNT_COUPON)", required = true)
+            @RequestParam String objectType,
+            @Parameter(description = "Start timestamp of the query range (ISO-8601 format)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startFrom,
+            @Parameter(description = "End timestamp of the query range (ISO-8601 format)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endTo) {
+
+        logger.info("GET /v1/temporal-policies/search-entities - objectType={}, startFrom={}, endTo={}",
+                objectType, startFrom, endTo);
+
+        List<String> entityIds = temporalPolicyService.findEntityIdsByTypeAndTimeRange(
+                objectType,
+                startFrom != null ? startFrom.toInstant() : null,
+                endTo != null ? endTo.toInstant() : null
+        );
+
+        logger.info("Found {} entities for objectType={} with time range startFrom={}, endTo={}",
+                entityIds.size(), objectType, startFrom, endTo);
+
+        return entityIds;
     }
 
     /**

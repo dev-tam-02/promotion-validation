@@ -58,4 +58,30 @@ public interface RuleTemporalLinkJpaRepository extends JpaRepository<RuleTempora
             @Param("entityType") String entityType,
             @Param("entityId") String entityId
     );
+
+    /**
+     * Find distinct entity IDs by entity type and time range.
+     * This query finds all entities (campaigns/discounts) that have temporal policies
+     * overlapping with the specified time range.
+     *
+     * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
+     * @param startTs Start timestamp of the query range (nullable)
+     * @param endTs End timestamp of the query range (nullable)
+     * @return List of distinct entity IDs that match the criteria
+     */
+    @Query("SELECT DISTINCT rtl.assignment.entityId FROM RuleTemporalLinkEntity rtl " +
+            "JOIN rtl.temporalPolicy tp " +
+            "WHERE rtl.assignment.entityType = :entityType " +
+            "AND rtl.assignment.active = true " +
+            "AND (" +
+            "    (:startTs IS NULL AND :endTs IS NULL) " +
+            "    OR (:startTs IS NULL AND tp.startTs <= :endTs) " +
+            "    OR (:endTs IS NULL AND tp.endTs >= :startTs) " +
+            "    OR (tp.startTs <= :endTs AND tp.endTs >= :startTs)" +
+            ")")
+    List<String> findEntityIdsByEntityTypeAndTimeRange(
+            @Param("entityType") String entityType,
+            @Param("startTs") java.time.Instant startTs,
+            @Param("endTs") java.time.Instant endTs
+    );
 }

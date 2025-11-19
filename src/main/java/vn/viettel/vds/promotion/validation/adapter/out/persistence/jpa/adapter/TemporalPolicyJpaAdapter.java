@@ -46,7 +46,7 @@ public class TemporalPolicyJpaAdapter implements TemporalPolicyPersistencePort {
 
     @Override
     public Optional<TemporalPolicy> findById(String id) {
-        return repository.findById(id).map(mapper::toDomain);
+        return repository.findByIdWithTimeWindows(id).map(mapper::toDomain);
     }
 
     @Override

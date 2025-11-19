@@ -395,33 +395,23 @@ public class RuleService {
 
         // Get first assignment (there should only be one active)
         var assignmentEntity = assignments.get(0);
-        String ruleId = assignmentEntity.getRuleId();
 
-        // Get rule
-        Optional<Rule> ruleOpt = rulePersistencePort.findById(ruleId);
-        if (ruleOpt.isEmpty()) {
-            logger.warn("Rule not found: ruleId={}", ruleId);
+        // Check if assignment has temporalBundleHash
+        if (assignmentEntity.getTemporalBundleHash() == null || assignmentEntity.getTemporalBundleHash().isEmpty()) {
+            logger.warn("Assignment has no temporalBundleHash: assignmentId={}", assignmentEntity.getId());
             throw new ResourceNotFoundException();
         }
 
-        Rule rule = ruleOpt.get();
-
-        // Check if rule has bundleHash
-        if (rule.getBundleHash() == null || rule.getBundleHash().isEmpty()) {
-            logger.warn("Rule has no bundleHash: ruleId={}", ruleId);
-            throw new ResourceNotFoundException();
-        }
-
-        logger.debug("Found bundle hash {} for object {}:{} (ruleVersion={})",
-                rule.getBundleHash(), objectType, objectId, rule.getRuleVersion());
+        logger.debug("Found temporal bundle hash {} for object {}:{}",
+                assignmentEntity.getTemporalBundleHash(), objectType, objectId);
 
         return BundleHashResponse.builder()
                 .objectType(objectType)
                 .objectId(objectId)
-                .bundleHash(rule.getBundleHash())
-                .ruleVersion(rule.getRuleVersion())
-                .assignmentVersion(1) // Assignment version not tracked in new model
-                .compiledAt(rule.getPublishedAt())
+                .bundleHash(assignmentEntity.getTemporalBundleHash())
+                .ruleVersion(null)
+                .assignmentVersion(1)
+                .compiledAt(assignmentEntity.getUpdatedAt())
                 .build();
     }
 }

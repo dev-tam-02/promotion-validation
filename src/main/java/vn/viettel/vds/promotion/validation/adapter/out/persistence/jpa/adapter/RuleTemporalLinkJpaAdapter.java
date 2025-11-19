@@ -87,4 +87,9 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<String> findEntityIdsByEntityTypeAndTimeRange(String entityType, java.time.Instant startTs, java.time.Instant endTs) {
+        return repository.findEntityIdsByEntityTypeAndTimeRange(entityType, startTs, endTs);
+    }
 }

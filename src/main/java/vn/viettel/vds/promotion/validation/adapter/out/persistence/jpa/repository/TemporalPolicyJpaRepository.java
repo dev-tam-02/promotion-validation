@@ -39,4 +39,13 @@ public interface TemporalPolicyJpaRepository extends JpaRepository<TemporalPolic
      * Find policies with RRULE.
      */
     List<TemporalPolicyEntity> findByRruleIsNotNull();
+
+    /**
+     * Find temporal policy by ID with time windows eagerly loaded.
+     * Uses JOIN FETCH to avoid N+1 query problem and LazyInitializationException.
+     */
+    @Query("SELECT tp FROM TemporalPolicyEntity tp " +
+            "LEFT JOIN FETCH tp.timeOfDayWindows " +
+            "WHERE tp.id = :id")
+    Optional<TemporalPolicyEntity> findByIdWithTimeWindows(@Param("id") String id);
 }

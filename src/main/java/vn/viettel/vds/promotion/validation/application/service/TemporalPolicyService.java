@@ -364,6 +364,28 @@ public class TemporalPolicyService {
     }
 
     /**
+     * Find entity IDs by entity type and time range.
+     * Delegates to the repository to find all entities that have temporal policies
+     * overlapping with the specified time range.
+     *
+     * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
+     * @param startTs Start timestamp of the query range (nullable)
+     * @param endTs End timestamp of the query range (nullable)
+     * @return List of distinct entity IDs
+     */
+    @Transactional(readOnly = true)
+    public List<String> findEntityIdsByTypeAndTimeRange(String entityType, Instant startTs, Instant endTs) {
+        logger.info("Finding entity IDs by type and time range: entityType={}, startTs={}, endTs={}",
+                entityType, startTs, endTs);
+
+        List<String> entityIds = ruleTemporalLinkPersistencePort.findEntityIdsByEntityTypeAndTimeRange(
+                entityType, startTs, endTs);
+
+        logger.info("Found {} entity IDs for entityType={}", entityIds.size(), entityType);
+        return entityIds;
+    }
+
+    /**
      * DTO class to represent a temporal policy with its link mode
      */
     public static class TemporalPolicyWithMode {
