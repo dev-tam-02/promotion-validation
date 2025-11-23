@@ -67,6 +67,46 @@ public class TemporalPolicyController {
     }
 
     @Operation(
+            summary = "Get temporal policies for multiple objects (batch)",
+            description = "Retrieves temporal policies for multiple objects at once. " +
+                    "Returns a map of objectId to their associated temporal policies."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved temporal policies"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/batch")
+    public java.util.Map<String, List<TemporalPolicyResponse>> getTemporalPoliciesBatch(
+            @Parameter(description = "Type of the object/entity (e.g., CASHBACK, DISCOUNT)", required = true)
+            @RequestParam String objectType,
+            @Parameter(description = "Comma-separated list of object IDs", required = true)
+            @RequestParam String objectIds) {
+
+        logger.info("GET /v1/temporal-policies/batch - objectType={}, objectIds={}", objectType, objectIds);
+
+        String[] ids = objectIds.split(",");
+        java.util.Map<String, List<TemporalPolicyResponse>> result = new java.util.HashMap<>();
+
+        for (String objectId : ids) {
+            String trimmedId = objectId.trim();
+            if (!trimmedId.isEmpty()) {
+                List<TemporalPolicyService.TemporalPolicyWithMode> policiesWithMode =
+                        temporalPolicyService.getTemporalPoliciesByObjectTypeAndId(objectType, trimmedId);
+
+                List<TemporalPolicyResponse> responses = policiesWithMode.stream()
+                        .map(this::mapToResponse)
+                        .toList();
+
+                result.put(trimmedId, responses);
+            }
+        }
+
+        logger.info("Successfully retrieved temporal policies for {} objects", result.size());
+        return result;
+    }
+
+    @Operation(
             summary = "Find entity IDs by time range",
             description = "Retrieves distinct entity IDs (e.g., campaign IDs) that have temporal policies " +
                     "overlapping with the specified time range. This is used for filtering entities by their validity timeframe."
