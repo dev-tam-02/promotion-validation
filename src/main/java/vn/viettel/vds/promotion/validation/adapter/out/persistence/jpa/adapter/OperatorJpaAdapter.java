@@ -73,6 +73,10 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
 
         // Manual pagination
         int start = (int) pageable.getOffset();
+        // Handle case when start is beyond the list size (return empty page)
+        if (start >= entities.size()) {
+            return new PageImpl<>(List.of(), pageable, entities.size());
+        }
         int end = Math.min((start + pageable.getPageSize()), entities.size());
         List<Operator> pageContent = entities.subList(start, end)
                 .stream()
@@ -109,6 +113,10 @@ public class OperatorJpaAdapter implements OperatorPersistencePort {
                 .toList();
 
         int start = (int) pageable.getOffset();
+        // Handle case when start is beyond the list size (return empty page)
+        if (start >= filtered.size()) {
+            return new PageImpl<>(List.of(), pageable, filtered.size());
+        }
         int end = Math.min((start + pageable.getPageSize()), filtered.size());
         List<Operator> pageContent = filtered.subList(start, end)
                 .stream()

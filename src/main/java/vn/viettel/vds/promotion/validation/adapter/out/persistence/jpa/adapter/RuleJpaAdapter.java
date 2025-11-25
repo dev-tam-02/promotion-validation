@@ -239,6 +239,10 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {
         int start = (int) pageable.getOffset();
+        // Handle case when start is beyond the list size (return empty page)
+        if (start >= entities.size()) {
+            return new PageImpl<>(List.of(), pageable, entities.size());
+        }
         int end = Math.min((start + pageable.getPageSize()), entities.size());
         List<Rule> pageContent = entities.subList(start, end)
                 .stream()
