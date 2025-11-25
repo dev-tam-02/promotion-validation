@@ -207,7 +207,10 @@ public class RuleService {
         Rule rule = rulePersistencePort.findById(ruleId)
                 .orElseThrow(() -> {
                     logger.warn("[RULE_SERVICE] Rule not found: ruleId={}", ruleId);
-                    return new ResourceNotFoundException();
+                    return new BusinessException(new ResponseInfo(
+                            "VALIDATION_RULE_NOT_FOUND",
+                            "Validation rule not found: " + ruleId,
+                            404));
                 });
         logger.debug("[RULE_SERVICE] Rule retrieved: id={}, code={}, state={}, nodeCount={}",
                 rule.getId(), rule.getCode(), rule.getState(),
