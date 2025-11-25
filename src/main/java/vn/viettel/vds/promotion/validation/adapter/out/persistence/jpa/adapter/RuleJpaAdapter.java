@@ -238,17 +238,94 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {
+        // Apply sorting from pageable
+        List<RuleJpaEntity> sortedEntities = applySorting(entities, pageable);
+
         int start = (int) pageable.getOffset();
         // Handle case when start is beyond the list size (return empty page)
-        if (start >= entities.size()) {
-            return new PageImpl<>(List.of(), pageable, entities.size());
+        if (start >= sortedEntities.size()) {
+            return new PageImpl<>(List.of(), pageable, sortedEntities.size());
         }
-        int end = Math.min((start + pageable.getPageSize()), entities.size());
-        List<Rule> pageContent = entities.subList(start, end)
+        int end = Math.min((start + pageable.getPageSize()), sortedEntities.size());
+        List<Rule> pageContent = sortedEntities.subList(start, end)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
-        return new PageImpl<>(pageContent, pageable, entities.size());
+        return new PageImpl<>(pageContent, pageable, sortedEntities.size());
+    }
+
+    /**
+     * Apply sorting from Pageable to the entity list.
+     * Supports sorting by entity fields: id, code, name, state, ruleVersion,
+     * logic, publishedAt, publishedBy, createdAt, updatedAt, createdBy, updatedBy.
+     */
+    private List<RuleJpaEntity> applySorting(List<RuleJpaEntity> entities, Pageable pageable) {
+        if (pageable.getSort().isUnsorted() || entities.isEmpty()) {
+            return entities;
+        }
+
+        java.util.Comparator<RuleJpaEntity> comparator = null;
+
+        for (org.springframework.data.domain.Sort.Order order : pageable.getSort()) {
+            java.util.Comparator<RuleJpaEntity> fieldComparator = getFieldComparator(order.getProperty());
+
+            if (fieldComparator == null) {
+                logger.warn("Unknown sort field: {}, skipping", order.getProperty());
+                continue;
+            }
+
+            if (order.isDescending()) {
+                fieldComparator = fieldComparator.reversed();
+            }
+
+            if (comparator == null) {
+                comparator = fieldComparator;
+            } else {
+                comparator = comparator.thenComparing(fieldComparator);
+            }
+        }
+
+        if (comparator == null) {
+            return entities;
+        }
+
+        return entities.stream()
+                .sorted(comparator)
+                .toList();
+    }
+
+    /**
+     * Get comparator for a specific field.
+     * Returns null for unknown fields.
+     */
+    private java.util.Comparator<RuleJpaEntity> getFieldComparator(String field) {
+        return switch (field) {
+            case "id" -> java.util.Comparator.comparing(RuleJpaEntity::getId,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "code" -> java.util.Comparator.comparing(RuleJpaEntity::getCode,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "name" -> java.util.Comparator.comparing(RuleJpaEntity::getName,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "state" -> java.util.Comparator.comparing(RuleJpaEntity::getState,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "ruleVersion" -> java.util.Comparator.comparing(RuleJpaEntity::getRuleVersion,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "logic" -> java.util.Comparator.comparing(RuleJpaEntity::getLogic,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "publishedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedAt,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "publishedBy" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedBy,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "createdAt" -> java.util.Comparator.comparing(RuleJpaEntity::getCreatedAt,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "updatedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getUpdatedAt,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "createdBy" -> java.util.Comparator.comparing(RuleJpaEntity::getCreatedBy,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "updatedBy" -> java.util.Comparator.comparing(RuleJpaEntity::getUpdatedBy,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            default -> null;
+        };
     }
 
     /**
