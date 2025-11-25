@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @Validated
@@ -39,6 +40,16 @@ import java.util.Optional;
 public class RuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleController.class);
+
+    /**
+     * Allowed sort fields for rules list endpoint.
+     * These fields map to columns in the validation_rules table.
+     */
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id", "code", "name", "state", "ruleVersion",
+            "logic", "publishedAt", "publishedBy",
+            "createdAt", "updatedAt", "createdBy", "updatedBy"
+    );
 
     private final RuleService ruleService;
     private final RuleResponseMapper ruleMapper;
@@ -124,8 +135,8 @@ public class RuleController {
             pageableRequest.setSort(List.of("updatedAt,desc"));
         }
 
-        // Validate pagination parameters
-        pageableRequest.validate();
+        // Validate pagination parameters including sort field validation
+        pageableRequest.validate(ALLOWED_SORT_FIELDS);
 
         Pageable pageable = pageableRequest.toPageable();
 
