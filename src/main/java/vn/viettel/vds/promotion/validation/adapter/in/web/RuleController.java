@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -103,8 +104,9 @@ public class RuleController {
     public RuleResponse getRuleById(
             @Parameter(description = "Rule ID (UUID format, max 36 characters, alphanumeric and hyphens only)")
             @PathVariable
+            @NotBlank(message = "VALIDATION_RULE_ID_REQUIRED")
+            @Size(max = 36, message = "VALIDATION_RULE_ID_LENGTH_EXCEEDED")
             @Id(errorCode = "VALIDATION_RULE_ID_INVALID", description = "ID quy tắc không đúng định dạng UUID")
-            @NotBlank(message = "VALIDATION_RULE_ID_REQUIRED: ID quy tắc không được để trống")
             String ruleId) {
 
         // Trim whitespace from rule ID
