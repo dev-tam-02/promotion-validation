@@ -203,8 +203,16 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Rule getRuleById(String ruleId) {
-        return rulePersistencePort.findById(ruleId)
-                .orElseThrow(ResourceNotFoundException::new);
+        logger.debug("[RULE_SERVICE] getRuleById called: ruleId={}", ruleId);
+        Rule rule = rulePersistencePort.findById(ruleId)
+                .orElseThrow(() -> {
+                    logger.warn("[RULE_SERVICE] Rule not found: ruleId={}", ruleId);
+                    return new ResourceNotFoundException();
+                });
+        logger.debug("[RULE_SERVICE] Rule retrieved: id={}, code={}, state={}, nodeCount={}",
+                rule.getId(), rule.getCode(), rule.getState(),
+                rule.getNodes() != null ? rule.getNodes().size() : 0);
+        return rule;
     }
 
     /**
@@ -212,7 +220,17 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public Optional<Rule> getRuleByCode(String code) {
-        return rulePersistencePort.findByCode(code);
+        logger.debug("[RULE_SERVICE] getRuleByCode called: code={}", code);
+        Optional<Rule> ruleOpt = rulePersistencePort.findByCode(code);
+        if (ruleOpt.isPresent()) {
+            Rule rule = ruleOpt.get();
+            logger.debug("[RULE_SERVICE] Rule found by code: id={}, code={}, state={}, nodeCount={}",
+                    rule.getId(), rule.getCode(), rule.getState(),
+                    rule.getNodes() != null ? rule.getNodes().size() : 0);
+        } else {
+            logger.debug("[RULE_SERVICE] Rule not found by code: {}", code);
+        }
+        return ruleOpt;
     }
 
     /**

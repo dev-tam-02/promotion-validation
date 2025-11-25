@@ -1,6 +1,8 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,8 @@ import java.util.Optional;
 @ConditionalOnPromixJpa
 public class RuleJpaAdapter implements RulePersistencePort {
 
+    private static final Logger logger = LoggerFactory.getLogger(RuleJpaAdapter.class);
+
     private final RuleJpaRepository repository;
     private final RuleEntityMapper mapper;
     private final RuleNodeRepository nodeRepository;
@@ -37,35 +41,95 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public Rule save(Rule rule) {
+        logger.debug("[RULE_SAVE] Starting save rule: id={}, code={}", rule.getId(), rule.getCode());
         RuleJpaEntity entity = mapper.toEntity(rule);
+        logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, state={}", entity.getId(), entity.getState());
         RuleJpaEntity saved = repository.save(entity);
+        logger.info("[RULE_SAVE] Rule saved successfully: id={}, code={}", saved.getId(), saved.getCode());
         return mapper.toDomain(saved);
     }
 
     @Override
     public Optional<Rule> findById(String id) {
-        return repository.findById(id).map(entity -> {
+        logger.debug("[RULE_LOAD] Starting load rule by ID: {}", id);
+        long startTime = System.currentTimeMillis();
+
+        Optional<RuleJpaEntity> entityOpt = repository.findById(id);
+        if (entityOpt.isEmpty()) {
+            logger.warn("[RULE_LOAD] Rule not found by ID: {}", id);
+            return Optional.empty();
+        }
+
+        return entityOpt.map(entity -> {
+            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}, state={}",
+                    entity.getId(), entity.getCode(), entity.getState());
+
             Rule rule = mapper.toDomain(entity);
+            logger.trace("[RULE_LOAD] Mapped entity to domain: id={}, code={}", rule.getId(), rule.getCode());
+
             // Load nodes from rule_nodes table
+            logger.debug("[RULE_LOAD] Loading nodes for rule: {}", id);
             List<RuleNodeEntity> nodeEntities = nodeRepository.findByValidationRuleIdOrderByOrder(id);
+
             if (nodeEntities != null && !nodeEntities.isEmpty()) {
+                logger.info("[RULE_LOAD] Found {} node entities for rule: {}", nodeEntities.size(), id);
+                logNodeEntities(nodeEntities);
+
                 List<RuleNode> nodes = nodeMapper.toDomainList(nodeEntities);
+                logger.debug("[RULE_LOAD] Converted to {} domain nodes (root level)", nodes.size());
                 rule.setNodes(nodes);
+            } else {
+                logger.debug("[RULE_LOAD] No nodes found for rule: {}", id);
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("[RULE_LOAD] Rule loaded successfully: id={}, code={}, nodeCount={}, duration={}ms",
+                    rule.getId(), rule.getCode(),
+                    rule.getNodes() != null ? rule.getNodes().size() : 0,
+                    duration);
             return rule;
         });
     }
 
     @Override
     public Optional<Rule> findByCode(String code) {
-        return repository.findByCode(code).map(entity -> {
+        logger.debug("[RULE_LOAD] Starting load rule by code: {}", code);
+        long startTime = System.currentTimeMillis();
+
+        Optional<RuleJpaEntity> entityOpt = repository.findByCode(code);
+        if (entityOpt.isEmpty()) {
+            logger.warn("[RULE_LOAD] Rule not found by code: {}", code);
+            return Optional.empty();
+        }
+
+        return entityOpt.map(entity -> {
+            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}, state={}",
+                    entity.getId(), entity.getCode(), entity.getState());
+
             Rule rule = mapper.toDomain(entity);
+            logger.trace("[RULE_LOAD] Mapped entity to domain: id={}, code={}", rule.getId(), rule.getCode());
+
             // Load nodes from rule_nodes table
+            logger.debug("[RULE_LOAD] Loading nodes for rule: {} (code={})", rule.getId(), code);
             List<RuleNodeEntity> nodeEntities = nodeRepository.findByValidationRuleIdOrderByOrder(rule.getId());
+
             if (nodeEntities != null && !nodeEntities.isEmpty()) {
+                logger.info("[RULE_LOAD] Found {} node entities for rule: {} (code={})",
+                        nodeEntities.size(), rule.getId(), code);
+                logNodeEntities(nodeEntities);
+
                 List<RuleNode> nodes = nodeMapper.toDomainList(nodeEntities);
+                logger.debug("[RULE_LOAD] Converted to {} domain nodes (root level)", nodes.size());
                 rule.setNodes(nodes);
+            } else {
+                logger.debug("[RULE_LOAD] No nodes found for rule: {} (code={})", rule.getId(), code);
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("[RULE_LOAD] Rule loaded successfully: id={}, code={}, nodeCount={}, duration={}ms",
+                    rule.getId(), rule.getCode(),
+                    rule.getNodes() != null ? rule.getNodes().size() : 0,
+                    duration);
             return rule;
         });
     }
@@ -181,5 +245,46 @@ public class RuleJpaAdapter implements RulePersistencePort {
                 .map(mapper::toDomain)
                 .toList();
         return new PageImpl<>(pageContent, pageable, entities.size());
+    }
+
+    /**
+     * Log detailed information about node entities for debugging purposes.
+     */
+    private void logNodeEntities(List<RuleNodeEntity> nodeEntities) {
+        if (!logger.isDebugEnabled()) {
+            return;
+        }
+
+        logger.debug("[NODE_LOAD] === Node Entities Summary ===");
+        for (RuleNodeEntity node : nodeEntities) {
+            String parentId = node.getParent() != null ? node.getParent().getNodeId() : "null (root)";
+            String childrenIds = node.getChildrenIds() != null
+                    ? String.join(", ", node.getChildrenIds())
+                    : "none";
+
+            if ("GROUP".equalsIgnoreCase(node.getType())) {
+                logger.debug("[NODE_LOAD] GROUP Node: nodeId={}, groupLogic={}, parentId={}, childrenIds=[{}], order={}",
+                        node.getNodeId(),
+                        node.getGroupLogic(),
+                        parentId,
+                        childrenIds,
+                        node.getOrder());
+            } else if ("COND".equalsIgnoreCase(node.getType())) {
+                logger.debug("[NODE_LOAD] COND Node: nodeId={}, operator={}, reasonCode={}, parentId={}, order={}, params={}",
+                        node.getNodeId(),
+                        node.getOperatorName(),
+                        node.getReasonCode(),
+                        parentId,
+                        node.getOrder(),
+                        node.getParams() != null ? node.getParams().toString() : "null");
+            } else {
+                logger.debug("[NODE_LOAD] UNKNOWN Node: nodeId={}, type={}, parentId={}, order={}",
+                        node.getNodeId(),
+                        node.getType(),
+                        parentId,
+                        node.getOrder());
+            }
+        }
+        logger.debug("[NODE_LOAD] === End Node Entities Summary ===");
     }
 }
