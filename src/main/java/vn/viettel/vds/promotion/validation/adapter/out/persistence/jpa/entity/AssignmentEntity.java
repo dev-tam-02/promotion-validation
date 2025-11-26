@@ -57,6 +57,9 @@ public class AssignmentEntity {
     @Column(name = "temporal_bundle_hash", length = 255)
     private String temporalBundleHash;
 
+    @Column(name = "included_all")
+    private Boolean includedAll = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -70,6 +73,11 @@ public class AssignmentEntity {
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private java.util.List<RuleTemporalLinkEntity> temporalLinks = new java.util.ArrayList<>();
 
+    // One-to-many relationship with applicability rules (ADDED after migration 015)
+    // Stores included/excluded products, collections, SKUs for this assignment
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private java.util.List<AssignmentApplicabilityRuleEntity> applicabilityRules = new java.util.ArrayList<>();
+
     @PrePersist
     public void prePersist() {
         if (id == null) {
@@ -77,6 +85,9 @@ public class AssignmentEntity {
         }
         if (active == null) {
             active = true;
+        }
+        if (includedAll == null) {
+            includedAll = false;
         }
     }
 }
