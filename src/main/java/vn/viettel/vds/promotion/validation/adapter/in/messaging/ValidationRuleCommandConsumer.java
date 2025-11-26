@@ -10,8 +10,10 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.application.service.RollbackValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.SettingValidationRuleCommandHandler;
+import vn.viettel.vds.promotion.validation.application.service.UpdateValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
 
 /**
@@ -24,6 +26,7 @@ import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
  * <p>Supported command types:</p>
  * <ul>
  *   <li>{@link SettingValidationRuleCommand} - Assign validation rules to campaigns</li>
+ *   <li>{@link UpdateValidationRuleCommand} - Update existing validation rule assignments</li>
  *   <li>{@link RollbackValidationRuleCommand} - Rollback validation rule assignments</li>
  * </ul>
  *
@@ -33,6 +36,7 @@ import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
  *
  * @see ValidationRuleCommand
  * @see SettingValidationRuleCommandHandler
+ * @see UpdateValidationRuleCommandHandler
  * @see RollbackValidationRuleCommandHandler
  */
 @Component
@@ -41,12 +45,15 @@ public class ValidationRuleCommandConsumer {
     private static final Logger logger = LoggerFactory.getLogger(ValidationRuleCommandConsumer.class);
 
     private final SettingValidationRuleCommandHandler settingCommandHandler;
+    private final UpdateValidationRuleCommandHandler updateCommandHandler;
     private final RollbackValidationRuleCommandHandler rollbackCommandHandler;
 
     public ValidationRuleCommandConsumer(
             SettingValidationRuleCommandHandler settingCommandHandler,
+            UpdateValidationRuleCommandHandler updateCommandHandler,
             RollbackValidationRuleCommandHandler rollbackCommandHandler) {
         this.settingCommandHandler = settingCommandHandler;
+        this.updateCommandHandler = updateCommandHandler;
         this.rollbackCommandHandler = rollbackCommandHandler;
     }
 
@@ -103,6 +110,7 @@ public class ValidationRuleCommandConsumer {
         // Let exceptions propagate naturally to promix-messaging for proper error handling
         switch (command) {
             case SettingValidationRuleCommand c -> handleSettingCommand(c);
+            case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
             case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
             default -> handleUnknownCommand(command);
         }
@@ -122,6 +130,15 @@ public class ValidationRuleCommandConsumer {
     private void handleSettingCommand(SettingValidationRuleCommand command) {
         logger.debug("Routing to SettingValidationRuleCommandHandler: commandId={}", command.getId());
         settingCommandHandler.handleCommand(command);
+    }
+
+    /**
+     * Handle UpdateValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
+     */
+    private void handleUpdateCommand(UpdateValidationRuleCommand command) {
+        logger.debug("Routing to UpdateValidationRuleCommandHandler: commandId={}", command.getId());
+        updateCommandHandler.handleCommand(command);
     }
 
     /**
@@ -182,6 +199,7 @@ public class ValidationRuleCommandConsumer {
             // Route to appropriate DLQ handler based on command type
             switch (command) {
                 case SettingValidationRuleCommand c -> settingCommandHandler.handleDeadLetterCommand(c);
+                case UpdateValidationRuleCommand c -> updateCommandHandler.handleDeadLetterCommand(c);
                 case RollbackValidationRuleCommand c -> rollbackCommandHandler.handleDeadLetterCommand(c);
                 default -> logger.error("Unknown command type in DLQ: {}", command.getType());
             }
