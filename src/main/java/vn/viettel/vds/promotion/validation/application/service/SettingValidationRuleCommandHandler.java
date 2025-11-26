@@ -331,6 +331,12 @@ public class SettingValidationRuleCommandHandler {
             return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
         }
 
+        // Check duplicate assignment for same objectType and objectId
+        if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, objectId)) {
+            return Result.failure(ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+                    "Assignment already exists for objectType=" + objectType + ", objectId=" + objectId);
+        }
+
         // Return validated components
         return Result.success(new ComponentsData(
                 ruleId,
