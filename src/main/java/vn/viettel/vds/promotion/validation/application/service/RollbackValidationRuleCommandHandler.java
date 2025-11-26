@@ -100,22 +100,25 @@ public class RollbackValidationRuleCommandHandler {
             // Execute rollback logic
             boolean success = executeRollback(campaignId, validationRuleId, rollbackAll);
 
-            if (success) {
-                // Mark as processed after successful rollback
-                idempotencyService.markAsProcessed(commandId, "Rollback completed successfully");
-
-                // Publish success event
-                publishRollbackSuccessEvent(commandId, campaignId, validationRuleId);
-
-                logger.info("Successfully processed RollbackValidationRuleCommand: commandId={}, campaignId={}",
-                        commandId, campaignId);
-                return true;
-            } else {
-                publishRollbackErrorEvent(commandId, "ROLLBACK_FAILED", "Failed to rollback validation rule assignment");
-                logger.error("Failed to process RollbackValidationRuleCommand: commandId={}, campaignId={}",
-                        commandId, campaignId);
-                return false;
+            // Handle failure - throw BusinessException with specific error code
+            if (!success) {
+                String errorCode = "ROLLBACK_FAILED";
+                String errorMessage = "Failed to rollback validation rule assignment";
+                publishRollbackErrorEvent(commandId, errorCode, errorMessage);
+                logger.error("Failed to process RollbackValidationRuleCommand: commandId={}, campaignId={}, errorCode={}",
+                        commandId, campaignId, errorCode);
+                throw ExceptionFactory.createValidationException(errorCode, errorMessage);
             }
+
+            // Mark as processed after successful rollback
+            idempotencyService.markAsProcessed(commandId, "Rollback completed successfully");
+
+            // Publish success event
+            publishRollbackSuccessEvent(commandId, campaignId, validationRuleId);
+
+            logger.info("Successfully processed RollbackValidationRuleCommand: commandId={}, campaignId={}",
+                    commandId, campaignId);
+            return true;
 
         } catch (BusinessException e) {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it

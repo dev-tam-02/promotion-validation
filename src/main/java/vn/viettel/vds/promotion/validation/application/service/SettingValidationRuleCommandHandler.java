@@ -113,23 +113,24 @@ public class SettingValidationRuleCommandHandler {
             // Process the command
             CommandProcessingResult result = processCommand(commandId, payload);
 
-            // Publish success/failure event
-            if (result.isSuccess()) {
-                publishSuccessEvent(commandId, result);
-
-                // Mark as processed after successful processing
-                // Convert to serializable DTO to avoid Avro Schema serialization issues
-                IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
-                idempotencyService.markAsProcessed(commandId, idempotencyDto);
-
-                logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
-                return true;
-            } else {
+            // Handle failure - throw BusinessException with specific error code
+            if (!result.isSuccess()) {
                 publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
-                logger.error("Failed to process SettingValidationRuleCommand: commandId={}, error={}",
-                        commandId, result.getErrorMessage());
-                return false;
+                logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
+                        commandId, result.getErrorCode(), result.getErrorMessage());
+                throw ExceptionFactory.createValidationException(result.getErrorCode(), result.getErrorMessage());
             }
+
+            // Publish success event
+            publishSuccessEvent(commandId, result);
+
+            // Mark as processed after successful processing
+            // Convert to serializable DTO to avoid Avro Schema serialization issues
+            IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
+            idempotencyService.markAsProcessed(commandId, idempotencyDto);
+
+            logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
+            return true;
 
         } catch (BusinessException e) {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it

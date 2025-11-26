@@ -13,7 +13,6 @@ import vn.viettel.vds.promotion.validation.application.service.SettingValidation
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingException;
 
 /**
  * Unified Kafka consumer for ValidationRuleCommand with type-based routing.
@@ -100,17 +99,12 @@ public class ValidationRuleCommandConsumer {
             command.getId(), command.getType(), offset);
 
         // Type-based routing using Java 21 pattern matching
-        // Let exceptions propagate - no try-catch
-        boolean success = switch (command) {
+        // Handlers now throw BusinessException with error code if processing fails
+        // Let exceptions propagate naturally to promix-messaging for proper error handling
+        switch (command) {
             case SettingValidationRuleCommand c -> handleSettingCommand(c);
             case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
             default -> handleUnknownCommand(command);
-        };
-
-        if (!success) {
-            logger.error("Command processing returned false: commandId={}, type={}",
-                command.getId(), command.getType());
-            throw new CommandProcessingException("Command processing failed for commandId=" + command.getId());
         }
 
         logger.debug("Successfully processed command: commandId={}, offset={}",
@@ -123,24 +117,27 @@ public class ValidationRuleCommandConsumer {
 
     /**
      * Handle SettingValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
      */
-    private boolean handleSettingCommand(SettingValidationRuleCommand command) {
+    private void handleSettingCommand(SettingValidationRuleCommand command) {
         logger.debug("Routing to SettingValidationRuleCommandHandler: commandId={}", command.getId());
-        return settingCommandHandler.handleCommand(command);
+        settingCommandHandler.handleCommand(command);
     }
 
     /**
      * Handle RollbackValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
      */
-    private boolean handleRollbackCommand(RollbackValidationRuleCommand command) {
+    private void handleRollbackCommand(RollbackValidationRuleCommand command) {
         logger.debug("Routing to RollbackValidationRuleCommandHandler: commandId={}", command.getId());
-        return rollbackCommandHandler.handleCommand(command);
+        rollbackCommandHandler.handleCommand(command);
     }
 
     /**
      * Handle unknown command types (fallback).
+     * Always throws IllegalArgumentException.
      */
-    private boolean handleUnknownCommand(ValidationRuleCommand command) {
+    private void handleUnknownCommand(ValidationRuleCommand command) {
         logger.error("Unknown command type received: commandId={}, type={} - No handler available",
                 command.getId(), command.getType());
         throw new IllegalArgumentException("Unknown command type: " + command.getType());

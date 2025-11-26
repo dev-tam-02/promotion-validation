@@ -73,7 +73,7 @@ public class SettingValidationRuleCommandDTO {
 
     @NotNull(message = "OBJECT_TYPE_REQUIRED", groups = RequiredCheck.class)
     @NotBlank(message = "OBJECT_TYPE_EMPTY", groups = EmptyCheck.class)
-    @Size(max = 50, message = "OBJECT_TYPE_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    @Size(max = 10, message = "OBJECT_TYPE_LENGTH_EXCEEDED", groups = LengthCheck.class)
     private String objectType;
 
     @NotNull(message = "OBJECT_ID_REQUIRED", groups = RequiredCheck.class)
