@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 
 import com.promix.platform.validation.annotations.Id;
 import jakarta.validation.GroupSequence;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -97,4 +98,14 @@ public class SettingValidationRuleCommandDTO {
     // ============= Optional Fields (No validation) =============
 
     private String notes;
+
+    // ============= TimeFrame Fields (Nested validation) =============
+
+    /**
+     * Timeframe configuration for the validation rule.
+     * Contains validityTimeframe (start/expiration dates) and validityHoursPerDay.
+     * Validation cascades to nested DTOs.
+     */
+    @Valid
+    private TimeFrameDTO timeframe;
 }
