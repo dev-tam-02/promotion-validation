@@ -10,10 +10,11 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.application.service.RollbackValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.SettingValidationRuleCommandHandler;
+import vn.viettel.vds.promotion.validation.application.service.UpdateValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingException;
 
 /**
  * Unified Kafka consumer for ValidationRuleCommand with type-based routing.
@@ -25,6 +26,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingExc
  * <p>Supported command types:</p>
  * <ul>
  *   <li>{@link SettingValidationRuleCommand} - Assign validation rules to campaigns</li>
+ *   <li>{@link UpdateValidationRuleCommand} - Update existing validation rule assignments</li>
  *   <li>{@link RollbackValidationRuleCommand} - Rollback validation rule assignments</li>
  * </ul>
  *
@@ -34,6 +36,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.CommandProcessingExc
  *
  * @see ValidationRuleCommand
  * @see SettingValidationRuleCommandHandler
+ * @see UpdateValidationRuleCommandHandler
  * @see RollbackValidationRuleCommandHandler
  */
 @Component
@@ -42,12 +45,15 @@ public class ValidationRuleCommandConsumer {
     private static final Logger logger = LoggerFactory.getLogger(ValidationRuleCommandConsumer.class);
 
     private final SettingValidationRuleCommandHandler settingCommandHandler;
+    private final UpdateValidationRuleCommandHandler updateCommandHandler;
     private final RollbackValidationRuleCommandHandler rollbackCommandHandler;
 
     public ValidationRuleCommandConsumer(
             SettingValidationRuleCommandHandler settingCommandHandler,
+            UpdateValidationRuleCommandHandler updateCommandHandler,
             RollbackValidationRuleCommandHandler rollbackCommandHandler) {
         this.settingCommandHandler = settingCommandHandler;
+        this.updateCommandHandler = updateCommandHandler;
         this.rollbackCommandHandler = rollbackCommandHandler;
     }
 
@@ -100,17 +106,13 @@ public class ValidationRuleCommandConsumer {
             command.getId(), command.getType(), offset);
 
         // Type-based routing using Java 21 pattern matching
-        // Let exceptions propagate - no try-catch
-        boolean success = switch (command) {
+        // Handlers now throw BusinessException with error code if processing fails
+        // Let exceptions propagate naturally to promix-messaging for proper error handling
+        switch (command) {
             case SettingValidationRuleCommand c -> handleSettingCommand(c);
+            case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
             case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
             default -> handleUnknownCommand(command);
-        };
-
-        if (!success) {
-            logger.error("Command processing returned false: commandId={}, type={}",
-                command.getId(), command.getType());
-            throw new CommandProcessingException("Command processing failed for commandId=" + command.getId());
         }
 
         logger.debug("Successfully processed command: commandId={}, offset={}",
@@ -123,24 +125,36 @@ public class ValidationRuleCommandConsumer {
 
     /**
      * Handle SettingValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
      */
-    private boolean handleSettingCommand(SettingValidationRuleCommand command) {
+    private void handleSettingCommand(SettingValidationRuleCommand command) {
         logger.debug("Routing to SettingValidationRuleCommandHandler: commandId={}", command.getId());
-        return settingCommandHandler.handleCommand(command);
+        settingCommandHandler.handleCommand(command);
+    }
+
+    /**
+     * Handle UpdateValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
+     */
+    private void handleUpdateCommand(UpdateValidationRuleCommand command) {
+        logger.debug("Routing to UpdateValidationRuleCommandHandler: commandId={}", command.getId());
+        updateCommandHandler.handleCommand(command);
     }
 
     /**
      * Handle RollbackValidationRuleCommand.
+     * Throws BusinessException with error code if processing fails.
      */
-    private boolean handleRollbackCommand(RollbackValidationRuleCommand command) {
+    private void handleRollbackCommand(RollbackValidationRuleCommand command) {
         logger.debug("Routing to RollbackValidationRuleCommandHandler: commandId={}", command.getId());
-        return rollbackCommandHandler.handleCommand(command);
+        rollbackCommandHandler.handleCommand(command);
     }
 
     /**
      * Handle unknown command types (fallback).
+     * Always throws IllegalArgumentException.
      */
-    private boolean handleUnknownCommand(ValidationRuleCommand command) {
+    private void handleUnknownCommand(ValidationRuleCommand command) {
         logger.error("Unknown command type received: commandId={}, type={} - No handler available",
                 command.getId(), command.getType());
         throw new IllegalArgumentException("Unknown command type: " + command.getType());
@@ -185,6 +199,7 @@ public class ValidationRuleCommandConsumer {
             // Route to appropriate DLQ handler based on command type
             switch (command) {
                 case SettingValidationRuleCommand c -> settingCommandHandler.handleDeadLetterCommand(c);
+                case UpdateValidationRuleCommand c -> updateCommandHandler.handleDeadLetterCommand(c);
                 case RollbackValidationRuleCommand c -> rollbackCommandHandler.handleDeadLetterCommand(c);
                 default -> logger.error("Unknown command type in DLQ: {}", command.getType());
             }

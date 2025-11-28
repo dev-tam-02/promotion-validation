@@ -3,12 +3,10 @@ package vn.viettel.vds.promotion.validation.adapter.in.web;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.web.bind.annotation.*;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.SettingValidationRuleCommandConsumer;
+import vn.viettel.vds.promotion.validation.application.service.SettingValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 
 import java.util.HashMap;
@@ -16,8 +14,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * REST API Controller to directly invoke SettingValidationRuleCommand consumer
- * This controller allows manual triggering of validation command processing via HTTP
+ * REST API Controller to directly invoke SettingValidationRuleCommand processing.
+ * This controller allows manual triggering of validation command processing via HTTP.
+ *
+ * Uses SettingValidationRuleCommandHandler directly instead of going through Kafka consumer.
  */
 @RestController
 @ResponseWrapper
@@ -29,21 +29,15 @@ public class SettingValidationCommandController {
     private static final String MESSAGE_KEY = "message";
     private static final String COMMAND_ID_KEY = "commandId";
 
-    private SettingValidationRuleCommandConsumer commandConsumer;
+    private final SettingValidationRuleCommandHandler commandHandler;
 
-    public SettingValidationCommandController() {
-        // Default constructor for Spring
-    }
-
-    // Optional setter injection to avoid circular dependency
-    @Autowired(required = false)
-    public void setCommandConsumer(SettingValidationRuleCommandConsumer commandConsumer) {
-        this.commandConsumer = commandConsumer;
+    public SettingValidationCommandController(SettingValidationRuleCommandHandler commandHandler) {
+        this.commandHandler = commandHandler;
     }
 
     /**
-     * Process SettingValidationRuleCommand via REST API
-     * This endpoint directly calls the Kafka consumer method without going through Kafka
+     * Process SettingValidationRuleCommand via REST API.
+     * This endpoint directly calls the command handler without going through Kafka.
      *
      * @param command The SettingValidationRuleCommand to process
      * @return Response indicating success or failure of command processing
@@ -59,31 +53,11 @@ public class SettingValidationCommandController {
 
         Map<String, Object> response = new HashMap<>();
 
-        // Check if consumer is available
-        if (commandConsumer == null) {
-            response.put(STATUS_KEY, "ERROR");
-            response.put(MESSAGE_KEY, "SettingValidationRuleCommandConsumer not available");
-            response.put(COMMAND_ID_KEY, commandId);
-
-            logger.error("REST API: SettingValidationRuleCommandConsumer is null, cannot process command");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-
         try {
-            // Create a mock acknowledgment for the consumer (since we're not using Kafka)
-            MockAcknowledgment acknowledgment = new MockAcknowledgment();
+            // Call the handler directly
+            boolean success = commandHandler.handleCommand(command);
 
-            // Call the consumer directly with mock Kafka headers (single message mode)
-            commandConsumer.handleSettingValidationRuleCommand(
-                    command,             // Single command
-                    "api-direct-call",   // Mock topic name
-                    0,                   // Mock partition
-                    0L,                  // Single offset
-                    acknowledgment
-            );
-
-            // Check if the command was acknowledged (successfully processed)
-            if (acknowledgment.isAcknowledged()) {
+            if (success) {
                 response.put(STATUS_KEY, "SUCCESS");
                 response.put(MESSAGE_KEY, "Command processed successfully");
                 response.put(COMMAND_ID_KEY, commandId);
@@ -93,7 +67,7 @@ public class SettingValidationCommandController {
                 return ResponseEntity.ok(response);
             } else {
                 response.put(STATUS_KEY, "FAILED");
-                response.put(MESSAGE_KEY, "Command processing failed - not acknowledged");
+                response.put(MESSAGE_KEY, "Command processing failed");
                 response.put(COMMAND_ID_KEY, commandId);
                 response.put("commandType", command.getType());
 
@@ -115,7 +89,7 @@ public class SettingValidationCommandController {
     }
 
     /**
-     * Health check endpoint for the command processing API
+     * Health check endpoint for the command processing API.
      */
     @GetMapping("/settings/health")
     public ResponseEntity<Map<String, String>> healthCheck() {
@@ -124,32 +98,5 @@ public class SettingValidationCommandController {
         health.put("service", "SettingValidationCommandController");
         health.put("timestamp", String.valueOf(System.currentTimeMillis()));
         return ResponseEntity.ok(health);
-    }
-
-    /**
-     * Mock implementation of Kafka Acknowledgment for direct API calls
-     */
-    private static class MockAcknowledgment implements Acknowledgment {
-        private boolean acknowledged = false;
-
-        @Override
-        public void acknowledge() {
-            this.acknowledged = true;
-            logger.debug("Mock acknowledgment: Command has been acknowledged");
-        }
-
-        public void nack(long sleep) {
-            this.acknowledged = false;
-            logger.debug("Mock acknowledgment: Command has been negatively acknowledged with sleep: {}", sleep);
-        }
-
-        public void nack(int index, long sleep) {
-            this.acknowledged = false;
-            logger.debug("Mock acknowledgment: Command has been negatively acknowledged at index {} with sleep: {}", index, sleep);
-        }
-
-        public boolean isAcknowledged() {
-            return acknowledged;
-        }
     }
 }

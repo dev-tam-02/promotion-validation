@@ -25,3 +25,5 @@ databaseChangeLog:
       file: db/changelog/changes/013-fix-rule-temporal-links-to-assignment.yaml
   - include:
       file: db/changelog/changes/014-add-temporal-bundle-hash-to-assignments.yaml
+  - include:
+      file: db/changelog/changes/015-create-assignment-applicability-rules.yaml

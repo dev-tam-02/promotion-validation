@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.validation.annotations.Id;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import com.promix.platform.web.mvc.model.PageableRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -23,13 +25,13 @@ import vn.viettel.vds.promotion.validation.application.service.AssignmentService
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
-import vn.viettel.vds.promotion.validation.config.validator.ValidRuleId;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @Validated
@@ -39,6 +41,16 @@ import java.util.Optional;
 public class RuleController {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleController.class);
+
+    /**
+     * Allowed sort fields for rules list endpoint.
+     * These fields map to columns in the validation_rules table.
+     */
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id", "code", "name", "state", "ruleVersion",
+            "logic", "publishedAt", "publishedBy",
+            "createdAt", "updatedAt", "createdBy", "updatedBy"
+    );
 
     private final RuleService ruleService;
     private final RuleResponseMapper ruleMapper;
@@ -92,8 +104,9 @@ public class RuleController {
     public RuleResponse getRuleById(
             @Parameter(description = "Rule ID (UUID format, max 36 characters, alphanumeric and hyphens only)")
             @PathVariable
-            @ValidRuleId
-            @NotBlank(message = "VALIDATION_RULE_ID_REQUIRED: ID quy tắc không được để trống")
+            @NotBlank(message = "VALIDATION_RULE_ID_REQUIRED")
+            @Size(max = 36, message = "VALIDATION_RULE_ID_LENGTH_EXCEEDED")
+            @Id(errorCode = "VALIDATION_RULE_ID_INVALID", description = "ID quy tắc không đúng định dạng UUID")
             String ruleId) {
 
         // Trim whitespace from rule ID
@@ -124,8 +137,8 @@ public class RuleController {
             pageableRequest.setSort(List.of("updatedAt,desc"));
         }
 
-        // Validate pagination parameters
-        pageableRequest.validate();
+        // Validate pagination parameters including sort field validation
+        pageableRequest.validate(ALLOWED_SORT_FIELDS);
 
         Pageable pageable = pageableRequest.toPageable();
 

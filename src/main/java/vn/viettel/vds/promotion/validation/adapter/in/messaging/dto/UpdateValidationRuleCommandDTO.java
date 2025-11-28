@@ -2,7 +2,6 @@ package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 
 import com.promix.platform.validation.annotations.Id;
 import jakarta.validation.GroupSequence;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +17,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Lengt
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.RequiredCheck;
 
 /**
- * DTO for validating SettingValidationRuleCommand in validation service.
+ * DTO for validating UpdateValidationRuleCommand in validation service.
  * Contains validation rules specific to validation service processing requirements.
  *
  * Validation order:
@@ -36,9 +35,9 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
     EmptyCheck.class,
     LengthCheck.class,
     FormatCheck.class,
-    SettingValidationRuleCommandDTO.class
+    UpdateValidationRuleCommandDTO.class
 })
-public class SettingValidationRuleCommandDTO {
+public class UpdateValidationRuleCommandDTO {
 
     // ============= Command Envelope Fields =============
 
@@ -66,32 +65,29 @@ public class SettingValidationRuleCommandDTO {
 
     // ============= Payload Fields =============
 
-    @NotNull(message = "RULE_ID_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "RULE_ID_EMPTY", groups = EmptyCheck.class)
+    @NotNull(message = "ASSIGNMENT_ID_REQUIRED", groups = RequiredCheck.class)
+    @NotBlank(message = "ASSIGNMENT_ID_EMPTY", groups = EmptyCheck.class)
+    @Size(max = 36, message = "ASSIGNMENT_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    @Id(errorCode = "ASSIGNMENT_ID_INVALID", groups = FormatCheck.class)
+    private String assignmentId;
+
     @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "RULE_ID_INVALID", groups = FormatCheck.class)
     private String ruleId;
 
-    @NotNull(message = "OBJECT_TYPE_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "OBJECT_TYPE_EMPTY", groups = EmptyCheck.class)
-    @Size(max = 10, message = "OBJECT_TYPE_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    @Size(max = 50, message = "OBJECT_TYPE_LENGTH_EXCEEDED", groups = LengthCheck.class)
     private String objectType;
 
-    @NotNull(message = "OBJECT_ID_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "OBJECT_ID_EMPTY", groups = EmptyCheck.class)
     @Size(max = 36, message = "OBJECT_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "OBJECT_ID_INVALID", groups = FormatCheck.class)
     private String objectId;
 
-    @NotNull(message = "ACTIVE_REQUIRED", groups = RequiredCheck.class)
     private Boolean active;
 
-    @NotNull(message = "TRAFFIC_PERCENT_REQUIRED", groups = RequiredCheck.class)
     @Min(value = 0, message = "TRAFFIC_PERCENT_INVALID", groups = FormatCheck.class)
     @Max(value = 100, message = "TRAFFIC_PERCENT_INVALID", groups = FormatCheck.class)
     private Integer trafficPercent;
 
-    @NotNull(message = "PRIORITY_REQUIRED", groups = RequiredCheck.class)
     @Min(value = 0, message = "PRIORITY_INVALID", groups = FormatCheck.class)
     private Integer priority;
 
@@ -99,13 +95,11 @@ public class SettingValidationRuleCommandDTO {
 
     private String notes;
 
-    // ============= TimeFrame Fields (Nested validation) =============
+    @NotNull(message = "UPDATED_BY_REQUIRED", groups = RequiredCheck.class)
+    @NotBlank(message = "UPDATED_BY_EMPTY", groups = EmptyCheck.class)
+    @Size(max = 255, message = "UPDATED_BY_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    private String updatedBy;
 
-    /**
-     * Timeframe configuration for the validation rule.
-     * Contains validityTimeframe (start/expiration dates) and validityHoursPerDay.
-     * Validation cascades to nested DTOs.
-     */
-    @Valid
-    private TimeFrameDTO timeframe;
+    @Size(max = 500, message = "REASON_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    private String reason;
 }

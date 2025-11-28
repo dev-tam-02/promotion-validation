@@ -1,0 +1,114 @@
+databaseChangeLog:
+  # Add included_all column to assignments table
+  - changeSet:
+      id: 015-add-included-all-to-assignments
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: assignments
+            columns:
+              - column:
+                  name: included_all
+                  type: boolean
+                  remarks: Whether applicability applies to all products
+                  defaultValueBoolean: false
+
+  # Create assignment_applicability_rules table
+  - changeSet:
+      id: 015-create-assignment-applicability-rules-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: assignment_applicability_rules
+            remarks: Applicability rules for assignments (included/excluded products, collections, SKUs)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: varchar(36)
+                  remarks: Foreign key to assignments table
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_applicability_rules_assignment
+                    references: assignments(id)
+              - column:
+                  name: rule_type
+                  type: varchar(20)
+                  remarks: Rule type (INCLUDED or EXCLUDED)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_type
+                  type: varchar(20)
+                  remarks: Object type (COLLECTION, PRODUCT, SKU)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: object_id
+                  type: varchar(100)
+                  remarks: Object identifier (collection/product/SKU ID)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: effect
+                  type: varchar(30)
+                  remarks: Effect type (APPLY_TO_EVERY, APPLY_TO_CHEAPEST, APPLY_TO_MOST_EXPENSIVE)
+                  defaultValue: APPLY_TO_EVERY
+              - column:
+                  name: target
+                  type: varchar(20)
+                  remarks: Target type (ITEM, ORDER, CUSTOMER)
+                  defaultValue: ITEM
+              - column:
+                  name: skip_initially
+                  type: int
+                  remarks: Number of items to skip initially
+                  defaultValueNumeric: 0
+              - column:
+                  name: repeat_count
+                  type: int
+                  remarks: Number of times to repeat application
+                  defaultValueNumeric: 1
+              - column:
+                  name: created_at
+                  type: timestamp
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  remarks: Last update timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_applicability_rules_assignment_id
+            tableName: assignment_applicability_rules
+            columns:
+              - column:
+                  name: assignment_id
+
+        - createIndex:
+            indexName: idx_applicability_rules_type
+            tableName: assignment_applicability_rules
+            columns:
+              - column:
+                  name: rule_type
+
+        - createIndex:
+            indexName: idx_applicability_rules_object
+            tableName: assignment_applicability_rules
+            columns:
+              - column:
+                  name: object_type
+              - column:
+                  name: object_id

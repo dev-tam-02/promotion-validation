@@ -19,6 +19,8 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentApplicabilityRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
@@ -47,6 +49,7 @@ public class SettingValidationRuleCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
     private final AssignmentJpaRepository assignmentRepository;
+    private final AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository;
     private final RuleTimeFrameJpaRepository ruleTimeFrameRepository;
     private final TemporalPolicyJpaRepository temporalPolicyRepository;
     private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
@@ -59,6 +62,7 @@ public class SettingValidationRuleCommandHandler {
 
     public SettingValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
+            AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository,
             RuleTimeFrameJpaRepository ruleTimeFrameRepository,
             TemporalPolicyJpaRepository temporalPolicyRepository,
             RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
@@ -69,6 +73,7 @@ public class SettingValidationRuleCommandHandler {
             Validator validator,
             SettingValidationRuleCommandDTOMapper dtoMapper) {
         this.assignmentRepository = assignmentRepository;
+        this.applicabilityRuleRepository = applicabilityRuleRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
         this.temporalPolicyRepository = temporalPolicyRepository;
         this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
@@ -113,23 +118,24 @@ public class SettingValidationRuleCommandHandler {
             // Process the command
             CommandProcessingResult result = processCommand(commandId, payload);
 
-            // Publish success/failure event
-            if (result.isSuccess()) {
-                publishSuccessEvent(commandId, result);
-
-                // Mark as processed after successful processing
-                // Convert to serializable DTO to avoid Avro Schema serialization issues
-                IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
-                idempotencyService.markAsProcessed(commandId, idempotencyDto);
-
-                logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
-                return true;
-            } else {
+            // Handle failure - throw BusinessException with specific error code
+            if (!result.isSuccess()) {
                 publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
-                logger.error("Failed to process SettingValidationRuleCommand: commandId={}, error={}",
-                        commandId, result.getErrorMessage());
-                return false;
+                logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
+                        commandId, result.getErrorCode(), result.getErrorMessage());
+                throw ExceptionFactory.createValidationException(result.getErrorCode(), result.getErrorMessage());
             }
+
+            // Publish success event
+            publishSuccessEvent(commandId, result);
+
+            // Mark as processed after successful processing
+            // Convert to serializable DTO to avoid Avro Schema serialization issues
+            IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
+            idempotencyService.markAsProcessed(commandId, idempotencyDto);
+
+            logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
+            return true;
 
         } catch (BusinessException e) {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it
@@ -243,12 +249,23 @@ public class SettingValidationRuleCommandHandler {
 
             // Convert to JPA entity and save
             AssignmentEntity assignmentEntity = toAssignmentEntity(assignment);
+
+            // Set includedAll from applicability data
+            if (components.applicableToData() != null && Boolean.TRUE.equals(components.applicableToData().getIncludedAll())) {
+                assignmentEntity.setIncludedAll(true);
+            }
+
             assignmentEntity = assignmentRepository.save(assignmentEntity);
             assignment.setId(assignmentEntity.getId());
 
             if (logger.isInfoEnabled()) {
                 logger.info("Created assignment: objectType={}, objectId={}, ruleId={}, assignmentId={}",
                         components.objectType(), components.objectId(), components.ruleId(), assignment.getId());
+            }
+
+            // Process applicability rules (included/excluded products, collections, SKUs)
+            if (components.applicableToData() != null) {
+                saveApplicabilityRules(assignmentEntity, components.applicableToData());
             }
 
             // Process timeframe if provided
@@ -312,6 +329,12 @@ public class SettingValidationRuleCommandHandler {
         // Validate rule exists
         if (!validationRuleRepository.existsById(ruleId)) {
             return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
+        }
+
+        // Check duplicate assignment for same objectType and objectId
+        if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, objectId)) {
+            return Result.failure(ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+                    "Assignment already exists for objectType=" + objectType + ", objectId=" + objectId);
         }
 
         // Return validated components
@@ -437,6 +460,95 @@ public class SettingValidationRuleCommandHandler {
                     "Failed to process timeframe for assignmentId=" + assignment.getId() +
                     ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Save applicability rules (included/excluded products, collections, SKUs) for an assignment.
+     * Persists ApplicabilityScope data to assignment_applicability_rules table.
+     *
+     * @param assignmentEntity The assignment entity
+     * @param applicabilityScope The applicability scope containing included/excluded rules
+     */
+    private void saveApplicabilityRules(AssignmentEntity assignmentEntity, ApplicabilityScope applicabilityScope) {
+        if (applicabilityScope == null) {
+            return;
+        }
+
+        String assignmentId = assignmentEntity.getId();
+        logger.info("Saving applicability rules for assignmentId={}", assignmentId);
+
+        int savedCount = 0;
+
+        // Process included rules
+        if (applicabilityScope.getIncluded() != null && !applicabilityScope.getIncluded().isEmpty()) {
+            for (var rule : applicabilityScope.getIncluded()) {
+                AssignmentApplicabilityRuleEntity entity = createApplicabilityRuleEntity(
+                        assignmentEntity,
+                        AssignmentApplicabilityRuleEntity.RuleType.INCLUDED.name(),
+                        rule
+                );
+                applicabilityRuleRepository.save(entity);
+                savedCount++;
+            }
+            logger.debug("Saved {} included applicability rules for assignmentId={}",
+                    applicabilityScope.getIncluded().size(), assignmentId);
+        }
+
+        // Process excluded rules
+        if (applicabilityScope.getExcluded() != null && !applicabilityScope.getExcluded().isEmpty()) {
+            for (var rule : applicabilityScope.getExcluded()) {
+                AssignmentApplicabilityRuleEntity entity = createApplicabilityRuleEntity(
+                        assignmentEntity,
+                        AssignmentApplicabilityRuleEntity.RuleType.EXCLUDED.name(),
+                        rule
+                );
+                applicabilityRuleRepository.save(entity);
+                savedCount++;
+            }
+            logger.debug("Saved {} excluded applicability rules for assignmentId={}",
+                    applicabilityScope.getExcluded().size(), assignmentId);
+        }
+
+        logger.info("Successfully saved {} applicability rules for assignmentId={}", savedCount, assignmentId);
+    }
+
+    /**
+     * Create AssignmentApplicabilityRuleEntity from ApplicabilityRule command data
+     */
+    private AssignmentApplicabilityRuleEntity createApplicabilityRuleEntity(
+            AssignmentEntity assignment,
+            String ruleType,
+            SettingValidationRuleCommand.ApplicabilityRule rule) {
+
+        AssignmentApplicabilityRuleEntity entity = new AssignmentApplicabilityRuleEntity();
+        entity.setId(IdGenerator.generateId());
+        entity.setAssignment(assignment);
+        entity.setRuleType(ruleType);
+
+        // Set object type and ID
+        if (rule.getObject() != null) {
+            entity.setObjectType(rule.getObject().name());
+        }
+        entity.setObjectId(rule.getId());
+
+        // Set effect
+        if (rule.getEffect() != null) {
+            entity.setEffect(rule.getEffect().name());
+        }
+
+        // Set target
+        if (rule.getTarget() != null) {
+            entity.setTarget(rule.getTarget().name());
+        }
+
+        // Set skipInitially and repeat
+        entity.setSkipInitially(rule.getSkipInitially() != null ? rule.getSkipInitially() : 0);
+        entity.setRepeatCount(rule.getRepeat() != null ? rule.getRepeat() : 1);
+
+        entity.setCreatedAt(Instant.now());
+        entity.setUpdatedAt(Instant.now());
+
+        return entity;
     }
 
     /**

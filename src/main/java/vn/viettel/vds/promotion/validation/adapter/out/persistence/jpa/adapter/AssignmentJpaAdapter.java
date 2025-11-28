@@ -158,6 +158,10 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
 
     private Page<Assignment> convertToPage(List<AssignmentEntity> entities, Pageable pageable) {
         int start = (int) pageable.getOffset();
+        // Handle case when start is beyond the list size (return empty page)
+        if (start >= entities.size()) {
+            return new PageImpl<>(List.of(), pageable, entities.size());
+        }
         int end = Math.min((start + pageable.getPageSize()), entities.size());
         List<Assignment> pageContent = entities.subList(start, end)
                 .stream()

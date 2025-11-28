@@ -45,6 +45,9 @@ public interface AssignmentJpaRepository extends JpaRepository<AssignmentEntity,
     // Simplified to only check ruleId
     boolean existsByRuleId(String ruleId);
 
+    // Check duplicate assignment by entityType and entityId
+    boolean existsByEntityTypeAndEntityId(String entityType, String entityId);
+
     // Removed tenantId parameter
     @Query("SELECT COUNT(a) FROM AssignmentEntity a WHERE a.active = :active")
     long countByActive(@Param("active") Boolean active);

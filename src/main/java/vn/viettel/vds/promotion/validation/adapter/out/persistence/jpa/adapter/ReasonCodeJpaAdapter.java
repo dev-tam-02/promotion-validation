@@ -113,6 +113,10 @@ public class ReasonCodeJpaAdapter implements ReasonCodePersistencePort {
 
     private Page<ReasonCode> convertToPage(List<ReasonCodeEntity> entities, Pageable pageable) {
         int start = (int) pageable.getOffset();
+        // Handle case when start is beyond the list size (return empty page)
+        if (start >= entities.size()) {
+            return new PageImpl<>(List.of(), pageable, entities.size());
+        }
         int end = Math.min((start + pageable.getPageSize()), entities.size());
         List<ReasonCode> pageContent = entities.subList(start, end)
                 .stream()
