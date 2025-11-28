@@ -105,42 +105,62 @@ public class ObjectValidityService {
             return ValidationResult.success();
         }
 
-        // For ALLOW mode: current time must be within [startTs, endTs]
+        // Validate based on mode
         if ("ALLOW".equalsIgnoreCase(mode)) {
-            // Check if not yet started
-            if (startTs != null && currentInstant.isBefore(startTs)) {
-                String message = String.format("Object is not yet active. Start time: %s", startTs);
-                log.info("Validation FAILED - not started yet: {}", message);
-                return ValidationResult.failure("OBJECT_NOT_STARTED", message);
-            }
-
-            // Check if already expired
-            if (endTs != null && currentInstant.isAfter(endTs)) {
-                String message = String.format("Object has expired. End time: %s", endTs);
-                log.info("Validation FAILED - expired: {}", message);
-                return ValidationResult.failure("OBJECT_EXPIRED", message);
-            }
+            return validateAllowMode(startTs, endTs, currentInstant);
         }
 
-        // For DENY mode: current time must NOT be within [startTs, endTs]
-        // (This is for blackout periods)
         if ("DENY".equalsIgnoreCase(mode)) {
-            boolean withinDenyPeriod = true;
-
-            if (startTs != null && currentInstant.isBefore(startTs)) {
-                withinDenyPeriod = false;
-            }
-            if (endTs != null && currentInstant.isAfter(endTs)) {
-                withinDenyPeriod = false;
-            }
-
-            if (withinDenyPeriod) {
-                String message = String.format("Object is in blackout period: %s to %s", startTs, endTs);
-                log.info("Validation FAILED - in blackout period: {}", message);
-                return ValidationResult.failure("OBJECT_IN_BLACKOUT", message);
-            }
+            return validateDenyMode(startTs, endTs, currentInstant);
         }
 
         return ValidationResult.success();
+    }
+
+    /**
+     * Validate for ALLOW mode: current time must be within [startTs, endTs].
+     */
+    private ValidationResult validateAllowMode(Instant startTs, Instant endTs, Instant currentInstant) {
+        // Check if not yet started
+        if (startTs != null && currentInstant.isBefore(startTs)) {
+            String message = String.format("Object is not yet active. Start time: %s", startTs);
+            log.info("Validation FAILED - not started yet: {}", message);
+            return ValidationResult.failure("OBJECT_NOT_STARTED", message);
+        }
+
+        // Check if already expired
+        if (endTs != null && currentInstant.isAfter(endTs)) {
+            String message = String.format("Object has expired. End time: %s", endTs);
+            log.info("Validation FAILED - expired: {}", message);
+            return ValidationResult.failure("OBJECT_EXPIRED", message);
+        }
+
+        return ValidationResult.success();
+    }
+
+    /**
+     * Validate for DENY mode: current time must NOT be within [startTs, endTs].
+     * This is for blackout periods.
+     */
+    private ValidationResult validateDenyMode(Instant startTs, Instant endTs, Instant currentInstant) {
+        boolean withinDenyPeriod = isWithinPeriod(startTs, endTs, currentInstant);
+
+        if (withinDenyPeriod) {
+            String message = String.format("Object is in blackout period: %s to %s", startTs, endTs);
+            log.info("Validation FAILED - in blackout period: {}", message);
+            return ValidationResult.failure("OBJECT_IN_BLACKOUT", message);
+        }
+
+        return ValidationResult.success();
+    }
+
+    /**
+     * Check if current time is within the period [startTs, endTs].
+     */
+    private boolean isWithinPeriod(Instant startTs, Instant endTs, Instant currentInstant) {
+        if (startTs != null && currentInstant.isBefore(startTs)) {
+            return false;
+        }
+        return endTs == null || !currentInstant.isAfter(endTs);
     }
 }

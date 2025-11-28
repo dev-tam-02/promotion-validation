@@ -13,7 +13,6 @@ import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ValidityTimeframe;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Mapper to convert SettingValidationRuleCommand to SettingValidationRuleCommandDTO for validation.
@@ -113,12 +112,12 @@ public class SettingValidationRuleCommandDTOMapper {
      */
     private List<ValidityHoursPerDayDTO> mapValidityHoursPerDay(List<ValidityHoursPerDay> validityHoursPerDayList) {
         if (validityHoursPerDayList == null || validityHoursPerDayList.isEmpty()) {
-            return null;
+            return List.of();
         }
 
         return validityHoursPerDayList.stream()
             .map(this::mapSingleValidityHoursPerDay)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     /**

@@ -78,106 +78,143 @@ public class RuleNodeEntityMapper {
         }
 
         // Phase 1: Create builders for all nodes
+        Map<String, RuleNode.Builder> builderMap = createBuilderMap(entities);
+
+        // Phase 2: Connect children to GROUP nodes
+        initializeGroupNodeChildren(entities, builderMap);
+
+        // Phase 3: Build nodes bottom-up using recursive helper
+        Map<String, RuleNode> builtNodes = new java.util.HashMap<>();
+        Map<String, RuleNodeEntity> entityMap = entities.stream()
+                .collect(Collectors.toMap(RuleNodeEntity::getNodeId, e -> e));
+
+        // Phase 4: Build and return root nodes
+        List<RuleNode> result = buildRootNodes(entities, builderMap, builtNodes, entityMap);
+
+        logger.info("[NODE_MAP_TREE] === toDomainList complete: {} root nodes, {} total nodes built ===",
+                result.size(), builtNodes.size());
+
+        logTreeStructure(result, 0);
+        return result;
+    }
+
+    /**
+     * Phase 1: Create builders for all nodes.
+     */
+    private Map<String, RuleNode.Builder> createBuilderMap(List<RuleNodeEntity> entities) {
         logger.debug("[NODE_MAP_TREE] Phase 1: Creating builders for all nodes");
         Map<String, RuleNode.Builder> builderMap = entities.stream()
-                .collect(Collectors.toMap(
-                        RuleNodeEntity::getNodeId,
-                        this::toBuilder
-                ));
+                .collect(Collectors.toMap(RuleNodeEntity::getNodeId, this::toBuilder));
         logger.debug("[NODE_MAP_TREE] Phase 1 complete: Created {} builders", builderMap.size());
+        return builderMap;
+    }
 
-        // Phase 2: Connect children to GROUP nodes (build relationships in builders)
-        // DON'T build nodes yet, just set children lists
+    /**
+     * Phase 2: Initialize children lists for GROUP nodes.
+     */
+    private void initializeGroupNodeChildren(List<RuleNodeEntity> entities, Map<String, RuleNode.Builder> builderMap) {
         logger.debug("[NODE_MAP_TREE] Phase 2: Connecting children to GROUP nodes");
         int groupNodeCount = 0;
         for (RuleNodeEntity entity : entities) {
-            if (NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null) {
+            if (isGroupNodeWithChildren(entity)) {
                 RuleNode.Builder parentBuilder = builderMap.get(entity.getNodeId());
-                // Just store child node IDs, will build later
-                parentBuilder.children(new ArrayList<>()); // Initialize empty, will populate after building children
+                parentBuilder.children(new ArrayList<>());
                 groupNodeCount++;
-                logger.trace("[NODE_MAP_TREE] GROUP node '{}' has {} children IDs: [{}]",
-                        entity.getNodeId(),
-                        entity.getChildrenIds().size(),
-                        String.join(", ", entity.getChildrenIds()));
+                logGroupNodeChildren(entity);
             }
         }
         logger.debug("[NODE_MAP_TREE] Phase 2 complete: Found {} GROUP nodes with children", groupNodeCount);
+    }
 
-        // Phase 3: Build nodes bottom-up using recursive helper
-        logger.debug("[NODE_MAP_TREE] Phase 3: Building nodes bottom-up (recursive)");
-        Map<String, RuleNode> builtNodes = new java.util.HashMap<>();
+    /**
+     * Check if entity is a GROUP node with children.
+     */
+    private boolean isGroupNodeWithChildren(RuleNodeEntity entity) {
+        return NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null;
+    }
 
-        // Helper function to build node and its children recursively
-        java.util.function.Function<String, RuleNode> buildNode = new java.util.function.Function<String, RuleNode>() {
-            @Override
-            public RuleNode apply(String nodeId) {
-                // Check if already built
-                if (builtNodes.containsKey(nodeId)) {
-                    logger.trace("[NODE_MAP_TREE] Node '{}' already built, returning cached", nodeId);
-                    return builtNodes.get(nodeId);
-                }
+    /**
+     * Log GROUP node children for tracing.
+     */
+    private void logGroupNodeChildren(RuleNodeEntity entity) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("[NODE_MAP_TREE] GROUP node '{}' has {} children IDs: [{}]",
+                    entity.getNodeId(),
+                    entity.getChildrenIds().size(),
+                    String.join(", ", entity.getChildrenIds()));
+        }
+    }
 
-                RuleNode.Builder builder = builderMap.get(nodeId);
-                if (builder == null) {
-                    logger.warn("[NODE_MAP_TREE] Builder not found for nodeId: {}", nodeId);
-                    return null;
-                }
-
-                // Find entity to check if it's a GROUP node
-                RuleNodeEntity entity = entities.stream()
-                        .filter(e -> nodeId.equals(e.getNodeId()))
-                        .findFirst()
-                        .orElse(null);
-
-                if (entity != null && NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType())
-                        && entity.getChildrenIds() != null) {
-                    logger.debug("[NODE_MAP_TREE] Building GROUP node '{}' with {} children",
-                            nodeId, entity.getChildrenIds().size());
-                    // Build children first (recursively)
-                    List<RuleNode> builtChildren = entity.getChildrenIds().stream()
-                            .map(this::apply)  // Recursive call
-                            .filter(n -> n != null)
-                            .toList();
-                    // Set built children to builder
-                    builder.children(builtChildren);
-                    logger.debug("[NODE_MAP_TREE] GROUP node '{}' built with {} children nodes",
-                            nodeId, builtChildren.size());
-                } else {
-                    logger.trace("[NODE_MAP_TREE] Building leaf COND node: {}", nodeId);
-                }
-
-                // Now build this node
-                RuleNode node = builder.build();
-                builtNodes.put(nodeId, node);
-                logger.trace("[NODE_MAP_TREE] Node '{}' built and cached (type={})", nodeId, node.getType());
-                return node;
-            }
-        };
-
-        // Phase 4: Build and return root nodes
+    /**
+     * Phase 4: Build and return root nodes.
+     */
+    private List<RuleNode> buildRootNodes(List<RuleNodeEntity> entities,
+                                           Map<String, RuleNode.Builder> builderMap,
+                                           Map<String, RuleNode> builtNodes,
+                                           Map<String, RuleNodeEntity> entityMap) {
         logger.debug("[NODE_MAP_TREE] Phase 4: Building root nodes (parent=null)");
         List<RuleNodeEntity> rootEntities = entities.stream()
                 .filter(e -> e.getParent() == null)
                 .toList();
         logger.debug("[NODE_MAP_TREE] Found {} root entities", rootEntities.size());
 
-        List<RuleNode> result = rootEntities.stream()
+        return rootEntities.stream()
                 .map(e -> {
-                    logger.debug("[NODE_MAP_TREE] Building root node: nodeId={}, type={}",
-                            e.getNodeId(), e.getType());
-                    return buildNode.apply(e.getNodeId());
+                    logger.debug("[NODE_MAP_TREE] Building root node: nodeId={}, type={}", e.getNodeId(), e.getType());
+                    return buildNodeRecursively(e.getNodeId(), builderMap, builtNodes, entityMap);
                 })
                 .filter(n -> n != null)
                 .toList();
+    }
 
-        logger.info("[NODE_MAP_TREE] === toDomainList complete: {} root nodes, {} total nodes built ===",
-                result.size(), builtNodes.size());
+    /**
+     * Build node and its children recursively.
+     */
+    private RuleNode buildNodeRecursively(String nodeId,
+                                           Map<String, RuleNode.Builder> builderMap,
+                                           Map<String, RuleNode> builtNodes,
+                                           Map<String, RuleNodeEntity> entityMap) {
+        if (builtNodes.containsKey(nodeId)) {
+            logger.trace("[NODE_MAP_TREE] Node '{}' already built, returning cached", nodeId);
+            return builtNodes.get(nodeId);
+        }
 
-        // Log tree structure summary
-        logTreeStructure(result, 0);
+        RuleNode.Builder builder = builderMap.get(nodeId);
+        if (builder == null) {
+            logger.warn("[NODE_MAP_TREE] Builder not found for nodeId: {}", nodeId);
+            return null;
+        }
 
-        return result;
+        RuleNodeEntity entity = entityMap.get(nodeId);
+        if (isGroupNodeWithChildren(entity)) {
+            buildGroupNodeChildren(entity, builder, builderMap, builtNodes, entityMap);
+        } else {
+            logger.trace("[NODE_MAP_TREE] Building leaf COND node: {}", nodeId);
+        }
+
+        RuleNode node = builder.build();
+        builtNodes.put(nodeId, node);
+        logger.trace("[NODE_MAP_TREE] Node '{}' built and cached (type={})", nodeId, node.getType());
+        return node;
+    }
+
+    /**
+     * Build children for a GROUP node.
+     */
+    private void buildGroupNodeChildren(RuleNodeEntity entity,
+                                         RuleNode.Builder builder,
+                                         Map<String, RuleNode.Builder> builderMap,
+                                         Map<String, RuleNode> builtNodes,
+                                         Map<String, RuleNodeEntity> entityMap) {
+        logger.debug("[NODE_MAP_TREE] Building GROUP node '{}' with {} children",
+                entity.getNodeId(), entity.getChildrenIds().size());
+        List<RuleNode> builtChildren = entity.getChildrenIds().stream()
+                .map(childId -> buildNodeRecursively(childId, builderMap, builtNodes, entityMap))
+                .filter(n -> n != null)
+                .toList();
+        builder.children(builtChildren);
+        logger.debug("[NODE_MAP_TREE] GROUP node '{}' built with {} children nodes",
+                entity.getNodeId(), builtChildren.size());
     }
 
     /**

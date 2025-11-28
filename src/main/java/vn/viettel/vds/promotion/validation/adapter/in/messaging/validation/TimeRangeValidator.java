@@ -81,7 +81,10 @@ public class TimeRangeValidator implements ConstraintValidator<ValidTimeRange, O
     private <T> T getFieldValue(Object object, String fieldName, Class<T> type) {
         try {
             Field field = object.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
+            if (!field.canAccess(object) && !field.trySetAccessible()) {
+                logger.error("Cannot access field '{}' - security restriction", fieldName);
+                return null;
+            }
             Object fieldValue = field.get(object);
             if (fieldValue == null) {
                 return null;

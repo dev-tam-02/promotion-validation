@@ -84,7 +84,9 @@ public class UpdateValidationRuleCommandHandler {
     }
 
     /**
-     * Handle UpdateValidationRuleCommand
+     * Handle UpdateValidationRuleCommand.
+     * Returns true if successfully processed, false if already processed (idempotent).
+     * Throws exception on validation or processing errors.
      */
     @SuppressWarnings("java:S2139")
     public boolean handleCommand(UpdateValidationRuleCommand command) {
@@ -93,10 +95,10 @@ public class UpdateValidationRuleCommandHandler {
         try {
             logger.info("Processing UpdateValidationRuleCommand: commandId={}", commandId);
 
-            // Check idempotency
+            // Check idempotency - return false to indicate already processed
             if (idempotencyService.isProcessed(commandId)) {
                 logger.info("Command already processed (idempotent check): commandId={}", commandId);
-                return true;
+                return false;
             }
 
             // Step 1: Validate command
