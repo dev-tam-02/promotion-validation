@@ -1,13 +1,11 @@
 package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 
 import jakarta.validation.GroupSequence;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.RequiredCheck;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidTimeRange;
 
 import java.time.Instant;
@@ -18,15 +16,14 @@ import java.time.Instant;
  *
  * <p>Validation order:</p>
  * <ol>
- *   <li>RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors)</li>
  *   <li>FormatCheck: @ValidTimeRange validates startDate < expirationDate (TIME_RANGE_INVALID error)</li>
  * </ol>
  *
  * <p>Business rules:</p>
  * <ul>
- *   <li>startDate is required when validityTimeframe is provided</li>
- *   <li>expirationDate is required when validityTimeframe is provided</li>
- *   <li>startDate must be strictly before expirationDate</li>
+ *   <li>startDate is optional - if not provided, no date-based validation applies</li>
+ *   <li>expirationDate is optional - if not provided, no date-based validation applies</li>
+ *   <li>If both are provided, startDate must be strictly before expirationDate</li>
  * </ul>
  */
 @Data
@@ -34,7 +31,6 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    RequiredCheck.class,
     FormatCheck.class,
     ValidityTimeframeDTO.class
 })
@@ -48,16 +44,14 @@ public class ValidityTimeframeDTO {
 
     /**
      * Start date of the validity period.
-     * Must be before expirationDate.
+     * Optional - if provided along with expirationDate, must be before expirationDate.
      */
-    @NotNull(message = "START_DATE_REQUIRED", groups = RequiredCheck.class)
     private Instant startDate;
 
     /**
      * Expiration date of the validity period.
-     * Must be after startDate.
+     * Optional - if provided along with startDate, must be after startDate.
      */
-    @NotNull(message = "EXPIRATION_DATE_REQUIRED", groups = RequiredCheck.class)
     private Instant expirationDate;
 
     /**
