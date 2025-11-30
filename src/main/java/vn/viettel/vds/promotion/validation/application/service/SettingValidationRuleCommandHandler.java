@@ -314,10 +314,6 @@ public class SettingValidationRuleCommandHandler {
         String notes = payload.getNotes();
 
         // Validate required fields
-        if (ruleId == null || ruleId.isEmpty()) {
-            return Result.failure(ErrorCode.MISSING_ASSIGN_RULE, "ruleId is required in payload");
-        }
-
         if (objectType == null || objectType.isEmpty()) {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectType is required in payload");
         }
@@ -326,8 +322,8 @@ public class SettingValidationRuleCommandHandler {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectId is required in payload");
         }
 
-        // Validate rule exists
-        if (!validationRuleRepository.existsById(ruleId)) {
+        // Validate rule exists (only if ruleId is provided)
+        if (ruleId != null && !ruleId.isEmpty() && !validationRuleRepository.existsById(ruleId)) {
             return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
         }
 
