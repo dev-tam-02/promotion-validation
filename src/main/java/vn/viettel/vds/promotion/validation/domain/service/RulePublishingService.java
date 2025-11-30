@@ -83,6 +83,135 @@ public class RulePublishingService {
         }
     }
 
+    /**
+     * Publish assignment bundle WITHOUT business rule (ruleId is null).
+     * Creates DRL bundle containing only:
+     * - Product applicability node (from applicableToData)
+     * - Temporal policy constraints (from timeframe linked to assignment)
+     *
+     * Use case: Campaign assigns applicableTo + timeframe but no validation rule
+     *
+     * @param assignmentId Assignment identifier (used as bundle key)
+     * @param applicableToData Applicability scope with included/excluded products (can be null)
+     * @param hasTemporalPolicy Whether assignment has temporal policy
+     * @return RulePublishResult with bundleHash if successful
+     */
+    public RulePublishResult publishAssignmentBundle(String assignmentId,
+                                                     vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData,
+                                                     boolean hasTemporalPolicy) {
+        logger.info("Publishing assignment bundle (no ruleId): assignmentId={}, hasApplicability={}, hasTemporalPolicy={}",
+                assignmentId, applicableToData != null, hasTemporalPolicy);
+
+        // Validate that at least one condition exists
+        if (applicableToData == null && !hasTemporalPolicy) {
+            logger.warn("Skipping bundle creation - no applicability data and no temporal policy: assignmentId={}",
+                    assignmentId);
+            return RulePublishResult.failed(assignmentId, "No applicability or temporal policy to deploy");
+        }
+
+        try {
+            // Build nodes list (only product applicability node if present)
+            List<RuleNodeDto> nodeDtos = new ArrayList<>();
+
+            // Create root GROUP node with ALL logic
+            RuleNodeDto rootNode = new RuleNodeDto();
+            rootNode.setId(com.promix.platform.core.util.IdGenerator.generateId());
+            rootNode.setType("GROUP");
+            rootNode.setGroupLogic("ALL");
+            rootNode.setChildren(new ArrayList<>());
+            nodeDtos.add(rootNode);
+
+            // Add product applicability node if data provided
+            if (applicableToData != null) {
+                RuleNodeDto productNode = createProductApplicabilityNodeDto(applicableToData);
+                nodeDtos.add(productNode);
+                rootNode.getChildren().add(productNode.getId());
+                logger.debug("Added product applicability node to bundle: nodeId={}", productNode.getId());
+            }
+
+            // Build compile request
+            CompileRequest compileRequest = buildAssignmentBundleCompileRequest(assignmentId, nodeDtos);
+
+            // Log full compile request as JSON for debugging
+            try {
+                String requestJson = objectMapper.writeValueAsString(compileRequest);
+                logger.info("Calling validation-engine /v1/compiler/compile with assignment bundle request: {}", requestJson);
+            } catch (Exception e) {
+                logger.warn("Failed to serialize CompileRequest to JSON: {}", e.getMessage());
+            }
+
+            // Compile the bundle
+            com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate =
+                    validationEngineClient.compile(compileRequest);
+            if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+                throw new RuleCompilationException("Failed to compile assignment bundle: " +
+                        (responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE));
+            }
+
+            CompileResponse compileResponse = responseTemplate.getData();
+            if (!compileResponse.isOk()) {
+                List<String> errors = compileResponse.getErrors();
+                String errorMessage = (errors != null && !errors.isEmpty())
+                        ? String.join(", ", errors)
+                        : "Unknown compilation error";
+                logger.error("Assignment bundle compilation failed: assignmentId={}, errors={}", assignmentId, errorMessage);
+                return RulePublishResult.failed(assignmentId, "Compilation failed: " + errorMessage);
+            }
+
+            // Warmup the bundle
+            warmup(compileResponse);
+
+            // No rule state update needed (no business rule exists)
+            logger.info("Assignment bundle published successfully: assignmentId={}, bundleHash={}, artifactSize={}",
+                    assignmentId, compileResponse.getBundleHash(), compileResponse.getArtifactSize());
+
+            return RulePublishResult.success(assignmentId, compileResponse.getBundleHash(), compileResponse.getArtifactSize());
+
+        } catch (Exception e) {
+            logger.error("Failed to publish assignment bundle: assignmentId={}", assignmentId, e);
+            return RulePublishResult.failed(assignmentId, "Publishing failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Build CompileRequest for assignment bundle (no business rule)
+     */
+    private CompileRequest buildAssignmentBundleCompileRequest(String assignmentId, List<RuleNodeDto> nodeDtos) {
+        CompileRequest compileRequest = new CompileRequest();
+        compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
+        compileRequest.setRuleId(assignmentId);  // Use assignmentId as bundle key
+        compileRequest.setVersion(1);
+        compileRequest.setLogic("ALL");
+        compileRequest.setNodes(nodeDtos);
+        compileRequest.setOperatorsFingerprint("assignment-bundle-" + assignmentId);
+
+        // Add temporal policy data
+        List<RuleTemporalLinkEntity> temporalLinks = ruleTemporalLinkRepository.findByAssignmentId(assignmentId);
+
+        if (!temporalLinks.isEmpty()) {
+            logger.info("Found {} temporal links for assignment bundle: assignmentId={}", temporalLinks.size(), assignmentId);
+
+            RuleTemporalLinkEntity link = temporalLinks.get(0);
+            TemporalPolicyEntity policy = link.getTemporalPolicy();
+
+            CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
+            String mappedMode = mapTemporalMode(link.getMode());
+
+            CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
+                    policy.getId(),
+                    mappedMode,
+                    temporalData
+            );
+
+            compileRequest.setTimeLinks(List.of(timeLink));
+
+            logger.debug("Added temporal policy to assignment bundle: policyId={}, mode={}, timezone={}",
+                    policy.getId(), link.getMode(), policy.getTz());
+        }
+
+        return compileRequest;
+    }
+
     private Rule loadRuleForPublishing(String ruleId) {
         return rulePersistencePort.findById(ruleId)
                 .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
