@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.DeleteAssignmentRequest;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.DeleteAssignmentResponse;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationGroups;
 import vn.viettel.vds.promotion.validation.application.service.AssignmentService;
 
 /**
@@ -66,7 +66,7 @@ public class AssignmentController {
     @DeleteMapping
     @ResponseStatus(HttpStatus.OK)
     public DeleteAssignmentResponse deleteAssignment(
-            @Valid @RequestBody DeleteAssignmentRequest request,
+            @Validated(ValidationGroups.OrderedChecks.class) @RequestBody DeleteAssignmentRequest request,
             @Parameter(description = "User making the request")
             @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
 
