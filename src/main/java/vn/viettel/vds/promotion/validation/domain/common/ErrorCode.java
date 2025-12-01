@@ -43,6 +43,10 @@ public enum ErrorCode {
     ASSIGNMENT_INVALID_CONFIG("VAL-2202", "Assignment configuration is invalid", 400),
     MISSING_CAMPAIGN_ID("VAL-2203", "Campaign ID is required", 400),
     MISSING_ASSIGN_RULE("VAL-2204", "Assignment rule data is required", 400),
+    ASSIGNMENT_VALIDATION_NOT_FOUND("VAL-2205", "Validation rule assignment not found for this object", 404),
+    OBJECT_NOT_FOUND("VAL-2206", "Object (campaign) not found", 404),
+    VALIDATION_RULE_NOT_FOUND("VAL-2207", "Validation rule not found", 404),
+    DELETED_ASSIGNMENT_VALIDATION_SUCCESS("VAL-2208", "Validation rule assignment deleted successfully", 200),
 
     // Command processing errors (23xx)
     COMMAND_PROCESSING_ERROR("VAL-2300", "Command processing failed", 500),

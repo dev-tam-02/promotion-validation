@@ -6,13 +6,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ApplicabilityRuleResponse;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentApplicabilityRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Service for managing applicability rules.
- * Provides methods to query applicability rules by object type and object ID.
+ * Provides methods to query applicability rules by assignment's entity type and entity ID.
  */
 @Service
 @Transactional(readOnly = true)
@@ -20,31 +22,54 @@ public class ApplicabilityRuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicabilityRuleService.class);
 
-    private final AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository;
+    private final AssignmentJpaRepository assignmentRepository;
 
-    public ApplicabilityRuleService(AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository) {
-        this.applicabilityRuleRepository = applicabilityRuleRepository;
+    public ApplicabilityRuleService(AssignmentJpaRepository assignmentRepository) {
+        this.assignmentRepository = assignmentRepository;
     }
 
     /**
-     * Find all applicability rules by object type and object ID.
+     * Find all applicability rules by assignment's entity type and entity ID.
+     * Flow:
+     * 1. Find assignments by entityType (objectType) and entityId (objectId)
+     * 2. Get applicability rules from each assignment
      *
-     * @param objectType the object type (COLLECTION, PRODUCT, SKU)
-     * @param objectId   the object identifier
+     * @param objectType the assignment's entity type (e.g., CAMPAIGN, PROMOTION)
+     * @param objectId   the assignment's entity identifier
      * @return list of applicability rule responses
      */
     public List<ApplicabilityRuleResponse> findByObjectTypeAndObjectId(String objectType, String objectId) {
-        logger.debug("Finding applicability rules for objectType={}, objectId={}", objectType, objectId);
+        logger.debug("Finding applicability rules for assignment with entityType={}, entityId={}", objectType, objectId);
 
-        List<AssignmentApplicabilityRuleEntity> entities = applicabilityRuleRepository
-                .findByObjectTypeAndObjectId(objectType, objectId);
+        // Step 1: Find assignments by entityType and entityId
+        List<AssignmentEntity> assignments = assignmentRepository
+                .findByEntityTypeAndEntityId(objectType, objectId);
 
-        logger.debug("Found {} applicability rules for objectType={}, objectId={}",
-                entities.size(), objectType, objectId);
+        if (assignments.isEmpty()) {
+            logger.debug("No assignments found for entityType={}, entityId={}", objectType, objectId);
+            return List.of();
+        }
 
-        return entities.stream()
-                .map(this::toResponse)
-                .toList();
+        logger.debug("Found {} assignments for entityType={}, entityId={}",
+                assignments.size(), objectType, objectId);
+
+        // Step 2: Collect all applicability rules from all assignments
+        List<ApplicabilityRuleResponse> result = new ArrayList<>();
+        for (AssignmentEntity assignment : assignments) {
+            List<AssignmentApplicabilityRuleEntity> rules = assignment.getApplicabilityRules();
+            if (rules != null && !rules.isEmpty()) {
+                logger.debug("Assignment {} has {} applicability rules",
+                        assignment.getId(), rules.size());
+                for (AssignmentApplicabilityRuleEntity rule : rules) {
+                    result.add(toResponse(rule));
+                }
+            }
+        }
+
+        logger.info("Found {} total applicability rules for entityType={}, entityId={}",
+                result.size(), objectType, objectId);
+
+        return result;
     }
 
     /**

@@ -21,7 +21,12 @@ import java.util.List;
 
 /**
  * Controller for managing applicability rules.
- * Provides endpoints to query applicability rules by object type and object ID.
+ * Provides endpoints to query applicability rules by assignment's entity type and entity ID.
+ *
+ * Flow:
+ * 1. Input: objectType (assignment's entityType), objectId (assignment's entityId)
+ * 2. Find assignment(s) matching entityType and entityId
+ * 3. Return all applicability rules (included/excluded products, collections, SKUs) from those assignments
  */
 @RestController
 @Validated
@@ -29,23 +34,26 @@ import java.util.List;
 @RequestMapping("${spring.application.context-path}/api/v1/applicability-rules")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Applicability Rules", description = "API for querying applicability rules")
+@Tag(name = "Applicability Rules", description = "API for querying applicability rules by assignment")
 public class ApplicabilityRuleController {
 
     private final ApplicabilityRuleService applicabilityRuleService;
 
     /**
-     * Get applicability rules by object type and object ID.
-     * Returns a list of applicability rules (included/excluded products, collections, SKUs)
-     * that match the given object type and object ID.
+     * Get applicability rules by assignment's entity type and entity ID.
      *
-     * @param objectType the object type (COLLECTION, PRODUCT, SKU)
-     * @param objectId   the object identifier
-     * @return list of applicability rules
+     * Flow:
+     * 1. Find assignment(s) by entityType (objectType) and entityId (objectId)
+     * 2. Return all applicability rules from those assignments
+     *
+     * @param objectType the assignment's entity type (e.g., CAMPAIGN, PROMOTION, VOUCHER)
+     * @param objectId   the assignment's entity identifier (e.g., campaign ID)
+     * @return list of applicability rules (included/excluded products, collections, SKUs)
      */
     @Operation(
-            summary = "Get applicability rules by object",
-            description = "Retrieve all applicability rules (included/excluded) for a specific object type and ID"
+            summary = "Get applicability rules by assignment",
+            description = "Retrieve all applicability rules (included/excluded products, collections, SKUs) " +
+                    "for assignments matching the given entity type and entity ID"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved applicability rules"),
@@ -53,22 +61,24 @@ public class ApplicabilityRuleController {
     })
     @GetMapping
     public List<ApplicabilityRuleResponse> getApplicabilityRules(
-            @Parameter(description = "Object type (COLLECTION, PRODUCT, SKU)", example = "PRODUCT", required = true)
+            @Parameter(description = "Assignment's entity type (e.g., CAMPAIGN, PROMOTION, VOUCHER)",
+                    example = "CAMPAIGN", required = true)
             @RequestParam
             @NotBlank(message = "objectType is required")
             String objectType,
 
-            @Parameter(description = "Object identifier", example = "PROD-001", required = true)
+            @Parameter(description = "Assignment's entity identifier (e.g., campaign ID)",
+                    example = "CAMP-001", required = true)
             @RequestParam
             @NotBlank(message = "objectId is required")
             String objectId) {
 
-        log.info("Getting applicability rules for objectType={}, objectId={}", objectType, objectId);
+        log.info("Getting applicability rules for assignment: entityType={}, entityId={}", objectType, objectId);
 
         List<ApplicabilityRuleResponse> rules = applicabilityRuleService
                 .findByObjectTypeAndObjectId(objectType.toUpperCase(), objectId);
 
-        log.info("Found {} applicability rules for objectType={}, objectId={}",
+        log.info("Found {} applicability rules for assignment: entityType={}, entityId={}",
                 rules.size(), objectType, objectId);
 
         return rules;

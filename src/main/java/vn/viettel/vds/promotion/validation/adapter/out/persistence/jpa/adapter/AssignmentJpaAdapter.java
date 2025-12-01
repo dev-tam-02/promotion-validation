@@ -5,8 +5,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentDeletedEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.AssignmentEntityMapper;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentDeletedJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
@@ -20,10 +23,14 @@ import java.util.Optional;
 public class AssignmentJpaAdapter implements AssignmentPersistencePort {
 
     private final AssignmentJpaRepository repository;
+    private final AssignmentDeletedJpaRepository deletedRepository;
     private final AssignmentEntityMapper mapper;
 
-    public AssignmentJpaAdapter(AssignmentJpaRepository repository, AssignmentEntityMapper mapper) {
+    public AssignmentJpaAdapter(AssignmentJpaRepository repository,
+                                AssignmentDeletedJpaRepository deletedRepository,
+                                AssignmentEntityMapper mapper) {
         this.repository = repository;
+        this.deletedRepository = deletedRepository;
         this.mapper = mapper;
     }
 
@@ -154,6 +161,36 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
     @Override
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public Optional<Assignment> findByRuleIdAndEntityId(String ruleId, String entityId) {
+        return repository.findByRuleIdAndEntityId(ruleId, entityId)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public String softDeleteAssignment(Assignment assignment, String deletedBy) {
+        // Get the entity for creating deleted record
+        Optional<AssignmentEntity> entityOpt = repository.findById(assignment.getId());
+        if (entityOpt.isEmpty()) {
+            throw new IllegalStateException("Assignment not found: " + assignment.getId());
+        }
+
+        AssignmentEntity entity = entityOpt.get();
+
+        // Calculate new version (increment by 1)
+        int newVersion = 1; // Default if no previous version tracking
+
+        // Create deleted entity record
+        AssignmentDeletedEntity deletedEntity = AssignmentDeletedEntity.fromAssignment(entity, deletedBy, newVersion);
+        deletedRepository.save(deletedEntity);
+
+        // Delete from assignments table
+        repository.delete(entity);
+
+        return assignment.getId();
     }
 
     private Page<Assignment> convertToPage(List<AssignmentEntity> entities, Pageable pageable) {

@@ -48,4 +48,23 @@ public interface AssignmentPersistencePort {
     void delete(Assignment assignment);
 
     void deleteById(String id);
+
+    /**
+     * Find assignment by rule ID and entity ID (object_id).
+     * Used for delete assignment operation (SRS PRM_KBNV_API_VALD008).
+     */
+    Optional<Assignment> findByRuleIdAndEntityId(String ruleId, String entityId);
+
+    /**
+     * Soft delete assignment: save to deleted table and remove from assignments table.
+     * According to SRS PRM_KBNV_API_VALD008:
+     * - Update deleted_at, deleted_by, version+1
+     * - Insert into validation_rules_assignment_deleted
+     * - Delete from assignments table
+     *
+     * @param assignment the assignment to delete
+     * @param deletedBy the user performing the deletion
+     * @return the ID of the deleted assignment
+     */
+    String softDeleteAssignment(Assignment assignment, String deletedBy);
 }

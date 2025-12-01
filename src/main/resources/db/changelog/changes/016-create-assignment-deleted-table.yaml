@@ -1,0 +1,106 @@
+databaseChangeLog:
+  # Create validation_rules_assignment_deleted table for soft delete audit trail
+  # Implements SRS PRM_KBNV_API_VALD008 - Delete validation rule assignment from object
+  - changeSet:
+      id: 016-create-assignment-deleted-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: validation_rules_assignment_deleted
+            remarks: Stores soft-deleted assignment records for audit purposes (SRS PRM_KBNV_API_VALD008)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID for deleted record
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: original_assignment_id
+                  type: varchar(36)
+                  remarks: Original assignment ID from assignments table
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: varchar(100)
+                  remarks: Entity type (e.g., CAMPAIGN, VOUCHER)
+              - column:
+                  name: entity_id
+                  type: varchar(100)
+                  remarks: Entity identifier (object_id from SRS)
+              - column:
+                  name: rule_id
+                  type: varchar(100)
+                  remarks: Rule identifier (validation_rule_id from SRS)
+              - column:
+                  name: priority
+                  type: int
+                  remarks: Assignment priority at time of deletion
+              - column:
+                  name: was_active
+                  type: boolean
+                  remarks: Whether assignment was active before deletion
+              - column:
+                  name: temporal_bundle_hash
+                  type: varchar(255)
+                  remarks: Temporal bundle hash at time of deletion
+              - column:
+                  name: included_all
+                  type: boolean
+                  remarks: Was included_all flag set
+              - column:
+                  name: original_created_at
+                  type: timestamp
+                  remarks: Original creation timestamp
+              - column:
+                  name: original_updated_at
+                  type: timestamp
+                  remarks: Original last update timestamp
+              - column:
+                  name: deleted_at
+                  type: timestamp
+                  remarks: Timestamp when assignment was deleted (DD/MM/YYYY HH:MM:SS as per SRS)
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_by
+                  type: varchar(100)
+                  remarks: User who deleted this assignment
+              - column:
+                  name: version
+                  type: int
+                  remarks: Version number (incremented from original on delete)
+
+        # Indexes for efficient querying
+        - createIndex:
+            indexName: idx_assignment_deleted_original_id
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: original_assignment_id
+
+        - createIndex:
+            indexName: idx_assignment_deleted_rule
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: rule_id
+
+        - createIndex:
+            indexName: idx_assignment_deleted_entity
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_id
+
+        - createIndex:
+            indexName: idx_assignment_deleted_at
+            tableName: validation_rules_assignment_deleted
+            columns:
+              - column:
+                  name: deleted_at
