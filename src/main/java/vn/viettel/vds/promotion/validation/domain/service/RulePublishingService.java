@@ -133,12 +133,7 @@ public class RulePublishingService {
             CompileRequest compileRequest = buildAssignmentBundleCompileRequest(assignmentId, nodeDtos);
 
             // Log full compile request as JSON for debugging
-            try {
-                String requestJson = objectMapper.writeValueAsString(compileRequest);
-                logger.info("Calling validation-engine /v1/compiler/compile with assignment bundle request: {}", requestJson);
-            } catch (Exception e) {
-                logger.warn("Failed to serialize CompileRequest to JSON: {}", e.getMessage());
-            }
+            logCompileRequestAsJson(compileRequest, "assignment bundle");
 
             // Compile the bundle
             com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate =
@@ -210,6 +205,15 @@ public class RulePublishingService {
         }
 
         return compileRequest;
+    }
+
+    private void logCompileRequestAsJson(CompileRequest compileRequest, String requestType) {
+        try {
+            String requestJson = objectMapper.writeValueAsString(compileRequest);
+            logger.info("Calling validation-engine /v1/compiler/compile with {} request: {}", requestType, requestJson);
+        } catch (Exception e) {
+            logger.warn("Failed to serialize CompileRequest to JSON: {}", e.getMessage());
+        }
     }
 
     private Rule loadRuleForPublishing(String ruleId) {
