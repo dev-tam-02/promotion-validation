@@ -8,7 +8,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.As
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repository for deleted assignment records.

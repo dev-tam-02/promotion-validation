@@ -57,8 +57,11 @@ public class ApplicabilityRuleResponse {
     @JsonProperty("updatedAt")
     private Instant updatedAt;
 
-    // Constructors
+    /**
+     * Default constructor required for JSON deserialization (Jackson).
+     */
     public ApplicabilityRuleResponse() {
+        // Required by Jackson for JSON deserialization
     }
 
     // Getters and setters
