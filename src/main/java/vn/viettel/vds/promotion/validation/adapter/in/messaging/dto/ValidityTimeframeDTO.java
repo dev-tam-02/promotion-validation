@@ -37,7 +37,7 @@ import java.time.Instant;
 @ValidTimeRange(
     startField = "startDate",
     endField = "expirationDate",
-    message = "TIME_RANGE_INVALID",
+    message = "CAMPAIGN_START_DATE_BEFORE_NOW",
     groups = FormatCheck.class
 )
 public class ValidityTimeframeDTO {
