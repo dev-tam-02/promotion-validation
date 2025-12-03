@@ -29,3 +29,7 @@ databaseChangeLog:
       file: db/changelog/changes/015-create-assignment-applicability-rules.yaml
   - include:
       file: db/changelog/changes/016-create-assignment-deleted-table.yaml
+  - include:
+      file: db/changelog/changes/017-create-validation-rule-snapshots.yaml
+  - include:
+      file: db/changelog/changes/018-create-assignment-snapshots.yaml
