@@ -27,3 +27,5 @@ databaseChangeLog:
       file: db/changelog/changes/014-add-temporal-bundle-hash-to-assignments.yaml
   - include:
       file: db/changelog/changes/015-create-assignment-applicability-rules.yaml
+  - include:
+      file: db/changelog/changes/016-create-assignment-deleted-table.yaml

@@ -314,10 +314,6 @@ public class SettingValidationRuleCommandHandler {
         String notes = payload.getNotes();
 
         // Validate required fields
-        if (ruleId == null || ruleId.isEmpty()) {
-            return Result.failure(ErrorCode.MISSING_ASSIGN_RULE, "ruleId is required in payload");
-        }
-
         if (objectType == null || objectType.isEmpty()) {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectType is required in payload");
         }
@@ -326,10 +322,8 @@ public class SettingValidationRuleCommandHandler {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectId is required in payload");
         }
 
-        // Validate rule exists
-        if (!validationRuleRepository.existsById(ruleId)) {
-            return Result.failure(ErrorCode.RULE_NOT_FOUND, "Validation rule not found: " + ruleId);
-        }
+        // NOTE: ruleId validation removed - ruleId can be null/empty
+        // When ruleId is not provided, only create bundle with applicableTo and timeframe
 
         // Check duplicate assignment for same objectType and objectId
         if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, objectId)) {
@@ -411,9 +405,8 @@ public class SettingValidationRuleCommandHandler {
                 timeFrameId = IdGenerator.generateId();
             }
 
-            // Get validation rule entity for backward compatibility (legacy)
-            ValidationRuleEntity validationRule = validationRuleRepository.findById(assignment.getRuleId())
-                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + assignment.getRuleId()));
+            // Get ruleId from assignment (can be null)
+            String ruleId = assignment.getRuleId();
 
             // Step 1: Create TemporalPolicy entity
             TemporalPolicyEntity temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
@@ -440,14 +433,25 @@ public class SettingValidationRuleCommandHandler {
                     link.getId(), assignment.getId(), temporalPolicy.getId(), mode);
 
             // Step 4: Keep RuleTimeFrame for backward compatibility (legacy)
-            RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
-            ruleTimeFrame.setId(IdGenerator.generateId());
-            ruleTimeFrame.setValidationRule(validationRule);
-            ruleTimeFrame.setTimeFrameId(timeFrameId);
-            ruleTimeFrame.setMode(mode);
-            ruleTimeFrame.setCreatedAt(Instant.now());
-            ruleTimeFrame.setUpdatedAt(Instant.now());
-            ruleTimeFrameRepository.save(ruleTimeFrame);
+            // Only create RuleTimeFrame if ruleId exists and is found in DB
+            if (ruleId != null && !ruleId.isEmpty()) {
+                var validationRuleOpt = validationRuleRepository.findById(ruleId);
+                if (validationRuleOpt.isPresent()) {
+                    RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
+                    ruleTimeFrame.setId(IdGenerator.generateId());
+                    ruleTimeFrame.setValidationRule(validationRuleOpt.get());
+                    ruleTimeFrame.setTimeFrameId(timeFrameId);
+                    ruleTimeFrame.setMode(mode);
+                    ruleTimeFrame.setCreatedAt(Instant.now());
+                    ruleTimeFrame.setUpdatedAt(Instant.now());
+                    ruleTimeFrameRepository.save(ruleTimeFrame);
+                    logger.debug("Created legacy RuleTimeFrame: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
+                } else {
+                    logger.debug("Skipping legacy RuleTimeFrame creation - ruleId not found in DB: {}", ruleId);
+                }
+            } else {
+                logger.debug("Skipping legacy RuleTimeFrame creation - ruleId is null/empty");
+            }
 
             logger.info("Successfully processed timeframe: assignmentId={}, ruleId={}, timeFrameId={}, policyId={}",
                     assignment.getId(), assignment.getRuleId(), timeFrameId, temporalPolicy.getId());
@@ -681,9 +685,10 @@ public class SettingValidationRuleCommandHandler {
      * Deploy rule to validation-engine after successful assignment creation
      * Checks if rule has bundleHash, if not, deploys it via RulePublishingService
      * ENHANCED: Also re-deploys if assignment has temporal policy to ensure temporal constraints are sent to validation-engine
+     * FIXED: When ruleId is null/empty but has applicableTo or timeframe, still deploy bundle with these constraints
      *
      * @param assignmentEntity Assignment entity (to update temporal_bundle_hash after deployment)
-     * @param ruleId Rule identifier
+     * @param ruleId Rule identifier (can be null)
      * @param hasTemporalPolicy Whether assignment has temporal policy (passed directly to avoid @Transactional timing issues)
      * @param applicableToData Applicability scope data to create product applicability node dynamically
      */
@@ -692,67 +697,109 @@ public class SettingValidationRuleCommandHandler {
                                     boolean hasTemporalPolicy,
                                     ApplicabilityScope applicableToData) {
         try {
-            // Only deploy if assignment is active
-            if (assignmentEntity.getActive() == null || !assignmentEntity.getActive()) {
-                logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
-                        ruleId, assignmentEntity.getId());
+            if (!isAssignmentActive(assignmentEntity, ruleId)) {
                 return;
             }
 
-            // Get the validation rule details
-            var validationRuleOpt = validationRuleRepository.findById(ruleId);
-            if (validationRuleOpt.isEmpty()) {
-                logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
+            if (ruleId == null || ruleId.isEmpty()) {
+                deployAssignmentBundleWithoutRule(assignmentEntity, hasTemporalPolicy, applicableToData);
                 return;
             }
 
-            var validationRule = validationRuleOpt.get();
-
-            // Check if rule already has bundleHash
-            boolean ruleNotYetDeployed = (validationRule.getBundleHash() == null || validationRule.getBundleHash().isEmpty());
-
-            // Deploy if: rule not deployed YET OR assignment has temporal policy (need to send temporal constraints to engine)
-            boolean needsDeployment = ruleNotYetDeployed || hasTemporalPolicy;
-
-            if (!needsDeployment) {
-                logger.info("Rule already deployed and no temporal policy: ruleId={}, bundleHash={}",
-                        ruleId, validationRule.getBundleHash());
-            } else {
-                // Log deployment reason
-                String deploymentReason = ruleNotYetDeployed ? "rule not yet deployed" : "temporal policy present";
-                logger.info("Deploying rule: ruleId={}, assignmentId={}, reason={}",
-                        ruleId, assignmentEntity.getId(), deploymentReason);
-
-                // Deploy rule - pass assignmentId to include temporal policy data and applicableToData for product applicability node
-                vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult =
-                        rulePublishingService.publishRule(ruleId, assignmentEntity.getId(), applicableToData);
-
-                if (publishResult.isSuccess()) {
-                    String deployedBundleHash = publishResult.getBundleHash();
-
-                    // Update assignment with bundleHash (especially important when hasTemporalPolicy=true)
-                    // This bundleHash contains both business rule + temporal policy
-                    assignmentEntity.setTemporalBundleHash(deployedBundleHash);
-                    // No need to call assignmentRepository.save() - JPA will auto-flush in @Transactional
-
-                    logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}, artifactSize={}, hasTemporalPolicy={}",
-                            ruleId, assignmentEntity.getId(), deployedBundleHash, publishResult.getArtifactSize(), hasTemporalPolicy);
-                    logger.info("Updated assignment.temporal_bundle_hash: assignmentId={}, bundleHash={}",
-                            assignmentEntity.getId(), deployedBundleHash);
-                } else {
-                    logger.error("Failed to deploy rule: ruleId={}, assignmentId={}, error={}",
-                            ruleId, assignmentEntity.getId(), publishResult.getErrorMessage());
-                    // Don't fail the entire command - assignment is already created
-                }
-            }
-
-            logger.info("Rule deployment check completed: ruleId={}, assignmentId={}, needsDeployment={}, hasTemporalPolicy={}",
-                    ruleId, assignmentEntity.getId(), needsDeployment, hasTemporalPolicy);
+            deployBusinessRuleBundle(assignmentEntity, ruleId, hasTemporalPolicy, applicableToData);
 
         } catch (Exception e) {
             logger.error("Error deploying rule to validation-engine: ruleId={}, assignmentId={}",
                     ruleId, assignmentEntity.getId(), e);
-            // Don't fail the entire command processing for deployment issues
+        }
+    }
+
+    private boolean isAssignmentActive(AssignmentEntity assignmentEntity, String ruleId) {
+        if (assignmentEntity.getActive() == null || !assignmentEntity.getActive()) {
+            logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
+                    ruleId, assignmentEntity.getId());
+            return false;
+        }
+        return true;
+    }
+
+    private void deployAssignmentBundleWithoutRule(AssignmentEntity assignmentEntity,
+                                                   boolean hasTemporalPolicy,
+                                                   ApplicabilityScope applicableToData) {
+        boolean hasApplicability = applicableToData != null;
+
+        if (!hasApplicability && !hasTemporalPolicy) {
+            logger.info("Skipping deployment - ruleId is null/empty and no applicableTo or timeframe: assignmentId={}",
+                    assignmentEntity.getId());
+            return;
+        }
+
+        logger.info("Deploying assignment bundle (no ruleId): assignmentId={}, hasApplicability={}, hasTemporalPolicy={}",
+                assignmentEntity.getId(), hasApplicability, hasTemporalPolicy);
+
+        var publishResult = rulePublishingService.publishAssignmentBundle(
+                assignmentEntity.getId(), applicableToData, hasTemporalPolicy);
+
+        handleAssignmentBundlePublishResult(assignmentEntity, publishResult);
+    }
+
+    private void handleAssignmentBundlePublishResult(AssignmentEntity assignmentEntity,
+                                                     vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult) {
+        if (publishResult.isSuccess()) {
+            assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
+            logger.info("Assignment bundle deployed successfully: assignmentId={}, bundleHash={}, artifactSize={}",
+                    assignmentEntity.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize());
+        } else {
+            logger.error("Failed to deploy assignment bundle: assignmentId={}, error={}",
+                    assignmentEntity.getId(), publishResult.getErrorMessage());
+        }
+    }
+
+    private void deployBusinessRuleBundle(AssignmentEntity assignmentEntity,
+                                          String ruleId,
+                                          boolean hasTemporalPolicy,
+                                          ApplicabilityScope applicableToData) {
+        var validationRuleOpt = validationRuleRepository.findById(ruleId);
+        if (validationRuleOpt.isEmpty()) {
+            logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
+            return;
+        }
+
+        var validationRule = validationRuleOpt.get();
+        boolean ruleNotYetDeployed = validationRule.getBundleHash() == null || validationRule.getBundleHash().isEmpty();
+        boolean needsDeployment = ruleNotYetDeployed || hasTemporalPolicy;
+
+        if (!needsDeployment) {
+            logger.info("Rule already deployed and no temporal policy: ruleId={}, bundleHash={}",
+                    ruleId, validationRule.getBundleHash());
+        } else {
+            executeRuleDeployment(assignmentEntity, ruleId, hasTemporalPolicy, applicableToData, ruleNotYetDeployed);
+        }
+
+        logger.info("Rule deployment check completed: ruleId={}, assignmentId={}, needsDeployment={}, hasTemporalPolicy={}",
+                ruleId, assignmentEntity.getId(), needsDeployment, hasTemporalPolicy);
+    }
+
+    private void executeRuleDeployment(AssignmentEntity assignmentEntity,
+                                       String ruleId,
+                                       boolean hasTemporalPolicy,
+                                       ApplicabilityScope applicableToData,
+                                       boolean ruleNotYetDeployed) {
+        String deploymentReason = ruleNotYetDeployed ? "rule not yet deployed" : "temporal policy present";
+        logger.info("Deploying rule: ruleId={}, assignmentId={}, reason={}",
+                ruleId, assignmentEntity.getId(), deploymentReason);
+
+        var publishResult = rulePublishingService.publishRule(ruleId, assignmentEntity.getId(), applicableToData);
+
+        if (publishResult.isSuccess()) {
+            assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
+            logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}, artifactSize={}, hasTemporalPolicy={}",
+                    ruleId, assignmentEntity.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize(), hasTemporalPolicy);
+            logger.info("Updated assignment.temporal_bundle_hash: assignmentId={}, bundleHash={}",
+                    assignmentEntity.getId(), publishResult.getBundleHash());
+        } else {
+            logger.error("Failed to deploy rule: ruleId={}, assignmentId={}, error={}",
+                    ruleId, assignmentEntity.getId(), publishResult.getErrorMessage());
         }
     }
 

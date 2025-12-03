@@ -3,7 +3,6 @@ package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 import jakarta.validation.GroupSequence;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -22,17 +21,17 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Valid
  *
  * <p>Validation order:</p>
  * <ol>
- *   <li>RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors)</li>
- *   <li>EmptyCheck: @NotBlank validations ({FIELD}_EMPTY errors)</li>
+ *   <li>RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors) - only for dayOfWeek</li>
  *   <li>LengthCheck: @Size validations ({FIELD}_LENGTH_EXCEEDED errors)</li>
  *   <li>FormatCheck: @ValidTimeOfDayRange validates startTime < expirationTime (TIME_OF_DAY_RANGE_INVALID error)</li>
  * </ol>
  *
  * <p>Business rules:</p>
  * <ul>
- *   <li>dayOfWeek must be between 1 (Monday) and 7 (Sunday)</li>
- *   <li>startTime and expirationTime must be in valid time format (HH:mm or HH:mm:ss)</li>
- *   <li>startTime must be strictly before expirationTime</li>
+ *   <li>dayOfWeek must be between 1 (Monday) and 7 (Sunday) - REQUIRED</li>
+ *   <li>startTime and expirationTime are OPTIONAL</li>
+ *   <li>If provided, startTime and expirationTime must be in valid time format (HH:mm or HH:mm:ss)</li>
+ *   <li>If both provided, startTime must be strictly before expirationTime</li>
  * </ul>
  */
 @Data
@@ -67,9 +66,8 @@ public class ValidityHoursPerDayDTO {
      * Start time of the validity window.
      * Supported formats: "HH:mm", "HH:mm:ss", "HH:mm:ss+TZ"
      * Example: "09:00", "09:00:00", "09:00:00+07:00"
+     * Optional field - if not provided, defaults to start of day.
      */
-    @NotNull(message = "START_TIME_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "START_TIME_EMPTY", groups = EmptyCheck.class)
     @Size(max = 20, message = "START_TIME_LENGTH_EXCEEDED", groups = LengthCheck.class)
     private String startTime;
 
@@ -77,9 +75,8 @@ public class ValidityHoursPerDayDTO {
      * Expiration time of the validity window.
      * Supported formats: "HH:mm", "HH:mm:ss", "HH:mm:ss+TZ"
      * Example: "18:00", "18:00:00", "18:00:00+07:00"
+     * Optional field - if not provided, defaults to end of day.
      */
-    @NotNull(message = "EXPIRATION_TIME_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "EXPIRATION_TIME_EMPTY", groups = EmptyCheck.class)
     @Size(max = 20, message = "EXPIRATION_TIME_LENGTH_EXCEEDED", groups = LengthCheck.class)
     private String expirationTime;
 }

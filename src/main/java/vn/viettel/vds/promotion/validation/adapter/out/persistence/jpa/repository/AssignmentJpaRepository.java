@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AssignmentJpaRepository extends JpaRepository<AssignmentEntity, String> {
@@ -51,4 +52,22 @@ public interface AssignmentJpaRepository extends JpaRepository<AssignmentEntity,
     // Removed tenantId parameter
     @Query("SELECT COUNT(a) FROM AssignmentEntity a WHERE a.active = :active")
     long countByActive(@Param("active") Boolean active);
+
+    /**
+     * Find assignment by rule ID and entity ID.
+     * Used for delete assignment operation (SRS PRM_KBNV_API_VALD008).
+     */
+    @Query("SELECT a FROM AssignmentEntity a WHERE a.ruleId = :ruleId AND a.entityId = :entityId")
+    Optional<AssignmentEntity> findByRuleIdAndEntityId(
+            @Param("ruleId") String ruleId,
+            @Param("entityId") String entityId);
+
+    /**
+     * Find all assignments by rule ID and entity ID.
+     * May return multiple assignments if duplicates exist.
+     */
+    @Query("SELECT a FROM AssignmentEntity a WHERE a.ruleId = :ruleId AND a.entityId = :entityId ORDER BY a.createdAt DESC")
+    List<AssignmentEntity> findAllByRuleIdAndEntityId(
+            @Param("ruleId") String ruleId,
+            @Param("entityId") String entityId);
 }

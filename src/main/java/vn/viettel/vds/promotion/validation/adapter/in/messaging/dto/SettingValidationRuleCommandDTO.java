@@ -66,8 +66,9 @@ public class SettingValidationRuleCommandDTO {
 
     // ============= Payload Fields =============
 
-    @NotNull(message = "RULE_ID_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "RULE_ID_EMPTY", groups = EmptyCheck.class)
+    /**
+     * Rule ID is optional. If provided, validates format (UUID) and max length.
+     */
     @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "RULE_ID_INVALID", groups = FormatCheck.class)
     private String ruleId;
