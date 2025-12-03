@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidISO8601Duration;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidTimeRange;
 
 import java.time.Instant;
@@ -58,17 +59,20 @@ public class ValidityTimeframeDTO {
      * Optional interval specification (e.g., "P1D" for 1 day).
      * ISO 8601 duration format.
      */
+    @ValidISO8601Duration(message = "INTERVAL_INVALID_FORMAT", groups = FormatCheck.class)
     private String interval;
 
     /**
      * Optional duration specification (e.g., "PT1H" for 1 hour).
      * ISO 8601 duration format.
      */
+    @ValidISO8601Duration(message = "DURATION_INVALID_FORMAT", groups = FormatCheck.class)
     private String duration;
 
     /**
      * Optional activity duration after publishing (e.g., "P7D" for 7 days).
      * ISO 8601 duration format.
      */
+    @ValidISO8601Duration(message = "ACTIVITY_DURATION_INVALID_FORMAT", groups = FormatCheck.class)
     private String activityDurationAfterPublishing;
 }
