@@ -11,12 +11,12 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleSnapshotRepository;
 import vn.viettel.vds.promotion.validation.application.service.dto.ValidationRuleSnapshotData;
+import vn.viettel.vds.promotion.validation.domain.exception.SnapshotSerializationException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Service for managing validation rule snapshots.
@@ -88,7 +88,7 @@ public class ValidationRuleSnapshotService {
             snapshotJson = objectMapper.writeValueAsString(snapshotData);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize snapshot data for rule: {}", validationRuleId, e);
-            throw new RuntimeException("Failed to serialize snapshot data", e);
+            throw new SnapshotSerializationException("Failed to serialize snapshot data", e);
         }
 
         // Create snapshot entity
@@ -137,7 +137,7 @@ public class ValidationRuleSnapshotService {
                     snapshot.getSnapshotData(), ValidationRuleSnapshotData.class);
         } catch (JsonProcessingException e) {
             log.error("Failed to deserialize snapshot data for rule: {}", validationRuleId, e);
-            throw new RuntimeException("Failed to deserialize snapshot data", e);
+            throw new SnapshotSerializationException("Failed to deserialize snapshot data", e);
         }
 
         // Load current entity
@@ -241,7 +241,7 @@ public class ValidationRuleSnapshotService {
         if (rule.getNodes() != null) {
             List<ValidationRuleSnapshotData.NodeSnapshot> nodes = rule.getNodes().stream()
                     .map(this::toNodeSnapshot)
-                    .collect(Collectors.toList());
+                    .toList();
             data.setNodes(nodes);
         }
 
@@ -249,7 +249,7 @@ public class ValidationRuleSnapshotService {
         if (rule.getTimeFrames() != null) {
             List<ValidationRuleSnapshotData.TimeFrameSnapshot> timeFrames = rule.getTimeFrames().stream()
                     .map(this::toTimeFrameSnapshot)
-                    .collect(Collectors.toList());
+                    .toList();
             data.setTimeFrames(timeFrames);
         }
 

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.*;
 import vn.viettel.vds.promotion.validation.application.service.dto.AssignmentSnapshotData;
+import vn.viettel.vds.promotion.validation.domain.exception.SnapshotSerializationException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -72,7 +73,7 @@ public class AssignmentSnapshotService {
             snapshotJson = objectMapper.writeValueAsString(snapshotData);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize snapshot data for assignment: {}", assignmentId, e);
-            throw new RuntimeException("Failed to serialize snapshot data", e);
+            throw new SnapshotSerializationException("Failed to serialize snapshot data", e);
         }
 
         // Get next version number
@@ -125,7 +126,7 @@ public class AssignmentSnapshotService {
                     snapshot.getSnapshotData(), AssignmentSnapshotData.class);
         } catch (JsonProcessingException e) {
             log.error("Failed to deserialize snapshot data for assignment: {}", assignmentId, e);
-            throw new RuntimeException("Failed to deserialize snapshot data", e);
+            throw new SnapshotSerializationException("Failed to deserialize snapshot data", e);
         }
 
         // Load current entity
