@@ -130,15 +130,41 @@ public class UpdateValidationRuleCommandHandler {
             }
 
             // Step 2: Find existing assignment
-            String assignmentId = payload.getAssignmentId();
-            AssignmentEntity assignmentEntity = assignmentRepository.findById(assignmentId)
-                    .orElseThrow(() -> {
-                        logger.error("Assignment not found: assignmentId={}", assignmentId);
-                        return ExceptionFactory.createValidationException(
-                                ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
-                                "Assignment not found: " + assignmentId
-                        );
-                    });
+            // Priority: assignmentId > (objectType + objectId)
+            AssignmentEntity assignmentEntity;
+            String assignmentId;
+            String payloadAssignmentId = payload.getAssignmentId();
+
+            if (payloadAssignmentId != null && !payloadAssignmentId.isBlank()) {
+                // Find by assignmentId
+                assignmentEntity = assignmentRepository.findById(payloadAssignmentId)
+                        .orElseThrow(() -> {
+                            logger.error("Assignment not found: assignmentId={}", payloadAssignmentId);
+                            return ExceptionFactory.createValidationException(
+                                    ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                                    "Assignment not found: " + payloadAssignmentId
+                            );
+                        });
+                assignmentId = payloadAssignmentId;
+            } else {
+                // Find by objectType and objectId
+                String objectType = payload.getObjectType();
+                String objectId = payload.getObjectId();
+
+                List<AssignmentEntity> assignments = assignmentRepository.findByEntityTypeAndEntityId(objectType, objectId);
+                if (assignments.isEmpty()) {
+                    logger.error("Assignment not found: objectType={}, objectId={}", objectType, objectId);
+                    throw ExceptionFactory.createValidationException(
+                            ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                            "Assignment not found: objectType=" + objectType + ", objectId=" + objectId
+                    );
+                }
+                // Take the first one (latest by default query ordering)
+                assignmentEntity = assignments.get(0);
+                assignmentId = assignmentEntity.getId();
+                logger.info("Found assignment by objectReference: objectType={}, objectId={}, assignmentId={}",
+                        objectType, objectId, assignmentId);
+            }
 
             // Step 3: Create snapshots BEFORE update for compensation
             String sagaId = command.getMetadata() != null ? command.getMetadata().get("sagaId") : null;
