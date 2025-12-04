@@ -67,6 +67,18 @@ public class ValidationRuleSnapshotService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Validation rule not found: " + validationRuleId));
 
+        Long currentVersion = rule.getRuleVersion();
+
+        // Check if snapshot already exists for this rule and version
+        Optional<ValidationRuleSnapshotEntity> existingSnapshot =
+                snapshotRepository.findByValidationRuleIdAndVersion(validationRuleId, currentVersion);
+
+        if (existingSnapshot.isPresent()) {
+            log.info("Snapshot already exists for rule: {} version: {}, returning existing snapshot: {}",
+                    validationRuleId, currentVersion, existingSnapshot.get().getId());
+            return existingSnapshot.get();
+        }
+
         // Convert to snapshot data
         ValidationRuleSnapshotData snapshotData = toSnapshotData(rule);
 
@@ -83,7 +95,7 @@ public class ValidationRuleSnapshotService {
         ValidationRuleSnapshotEntity snapshot = ValidationRuleSnapshotEntity.builder()
                 .id(IdGenerator.generateId())
                 .validationRuleId(validationRuleId)
-                .version(rule.getRuleVersion())
+                .version(currentVersion)
                 .snapshotData(snapshotJson)
                 .sagaId(sagaId)
                 .correlationId(correlationId)
@@ -94,7 +106,7 @@ public class ValidationRuleSnapshotService {
 
         ValidationRuleSnapshotEntity saved = snapshotRepository.save(snapshot);
         log.info("Created snapshot: {} for rule: {} version: {}",
-                saved.getId(), validationRuleId, rule.getRuleVersion());
+                saved.getId(), validationRuleId, currentVersion);
 
         return saved;
     }
