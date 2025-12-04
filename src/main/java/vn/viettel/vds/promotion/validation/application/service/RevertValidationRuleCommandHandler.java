@@ -94,10 +94,33 @@ public class RevertValidationRuleCommandHandler {
                                 "Validation rule not found: " + validationRuleId);
                     });
 
-            // Validate current version matches (optimistic check)
+            // Validate current version matches (optimistic lock check)
+            // This prevents reverting if the rule was modified after the compensation was triggered
             if (currentVersion != null && !currentVersion.equals(rule.getRuleVersion())) {
-                log.warn("Version mismatch: expected={}, actual={}, ruleId={}. Proceeding with revert anyway.",
-                        currentVersion, rule.getRuleVersion(), validationRuleId);
+                Long actualVersion = rule.getRuleVersion();
+                log.warn("Version mismatch detected: expected={}, actual={}, ruleId={}",
+                        currentVersion, actualVersion, validationRuleId);
+
+                // If actual version is LESS than expected, rule may have already been reverted
+                if (actualVersion != null && actualVersion < currentVersion) {
+                    log.info("Rule appears to already be reverted or at earlier version. " +
+                                    "actualVersion={} < expectedVersion={}. Skipping revert.",
+                            actualVersion, currentVersion);
+                    // Mark as processed to prevent retry loops
+                    idempotencyService.markAsProcessed(commandId, Map.of(
+                            "validationRuleId", validationRuleId,
+                            "status", "SKIPPED_ALREADY_REVERTED",
+                            "actualVersion", actualVersion.toString(),
+                            "expectedVersion", currentVersion.toString()
+                    ));
+                    return true;
+                }
+
+                // If actual version is GREATER than expected, rule was modified after compensation triggered
+                // This is a conflict - log warning but proceed with revert as saga compensation takes priority
+                log.warn("Rule was modified after compensation triggered. " +
+                                "actualVersion={} > expectedVersion={}. Proceeding with revert as saga compensation takes priority.",
+                        actualVersion, currentVersion);
             }
 
             // Check if snapshot exists for target version

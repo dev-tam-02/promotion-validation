@@ -13,6 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentSnapshotEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleSnapshotEntity;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.UpdateValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.UpdateValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
@@ -65,6 +66,7 @@ public class UpdateValidationRuleCommandHandler {
     private final Validator validator;
     private final UpdateValidationRuleCommandDTOMapper dtoMapper;
     private final AssignmentSnapshotService assignmentSnapshotService;
+    private final ValidationRuleSnapshotService validationRuleSnapshotService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${kafka.topics.validation-event:promotion_validation_event}")
@@ -82,6 +84,7 @@ public class UpdateValidationRuleCommandHandler {
             Validator validator,
             UpdateValidationRuleCommandDTOMapper dtoMapper,
             AssignmentSnapshotService assignmentSnapshotService,
+            ValidationRuleSnapshotService validationRuleSnapshotService,
             KafkaTemplate<String, Object> kafkaTemplate) {
         this.assignmentRepository = assignmentRepository;
         this.applicabilityRuleRepository = applicabilityRuleRepository;
@@ -94,6 +97,7 @@ public class UpdateValidationRuleCommandHandler {
         this.validator = validator;
         this.dtoMapper = dtoMapper;
         this.assignmentSnapshotService = assignmentSnapshotService;
+        this.validationRuleSnapshotService = validationRuleSnapshotService;
         this.kafkaTemplate = kafkaTemplate;
     }
 
@@ -136,14 +140,33 @@ public class UpdateValidationRuleCommandHandler {
                         );
                     });
 
-            // Step 3: Create snapshot BEFORE update for compensation
+            // Step 3: Create snapshots BEFORE update for compensation
             String sagaId = command.getMetadata() != null ? command.getMetadata().get("sagaId") : null;
-            AssignmentSnapshotEntity snapshot = assignmentSnapshotService.createSnapshot(
+
+            // 3a. Create Assignment snapshot
+            AssignmentSnapshotEntity assignmentSnapshot = assignmentSnapshotService.createSnapshot(
                     assignmentId, sagaId, commandId, AssignmentSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
-            Long previousVersion = snapshot.getSnapshotVersion() - 1; // Version before this snapshot
-            if (previousVersion < 1) {
-                previousVersion = 1L;
+
+            // 3b. Create ValidationRule snapshot if ruleId exists (for RevertValidationRuleCommand support)
+            String existingRuleId = assignmentEntity.getRuleId();
+            Long ruleVersionBeforeUpdate = null;
+            if (existingRuleId != null && !existingRuleId.isEmpty()) {
+                var ruleOpt = validationRuleRepository.findById(existingRuleId);
+                if (ruleOpt.isPresent()) {
+                    ValidationRuleEntity rule = ruleOpt.get();
+                    ruleVersionBeforeUpdate = rule.getRuleVersion();
+                    validationRuleSnapshotService.createSnapshot(
+                            existingRuleId, sagaId, commandId,
+                            ValidationRuleSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
+                    logger.info("Created ValidationRule snapshot: ruleId={}, version={}",
+                            existingRuleId, ruleVersionBeforeUpdate);
+                }
             }
+
+            // Calculate versions for event publishing
+            // snapshotVersion = version of the snapshot we just created (state BEFORE update)
+            // This is the version to revert to if saga compensation is needed
+            Long snapshotVersionToRevertTo = assignmentSnapshot.getSnapshotVersion();
 
             // Step 4: Process update
             UpdateProcessingResult result = processUpdate(commandId, assignmentEntity, payload);
@@ -158,12 +181,15 @@ public class UpdateValidationRuleCommandHandler {
             idempotencyService.markAsProcessed(commandId, result.toIdempotencyDto());
 
             // Step 5: Publish success event with version info
+            // currentVersion = snapshot version after update (next version = snapshotVersionToRevertTo + 1)
+            // previousVersion = snapshot version to revert to (the snapshot we just created)
+            Long currentVersion = snapshotVersionToRevertTo + 1;
             publishUpdateSuccessEvent(command, assignmentId, result.getRuleId(),
-                    snapshot.getSnapshotVersion(), previousVersion);
+                    currentVersion, snapshotVersionToRevertTo);
 
             logger.info("Successfully processed UpdateValidationRuleCommand: commandId={}, assignmentId={}, " +
-                            "currentVersion={}, previousVersion={}",
-                    commandId, assignmentId, snapshot.getSnapshotVersion(), previousVersion);
+                            "currentVersion={}, snapshotVersionToRevertTo={}, ruleVersionBeforeUpdate={}",
+                    commandId, assignmentId, currentVersion, snapshotVersionToRevertTo, ruleVersionBeforeUpdate);
             return true;
 
         } catch (BusinessException e) {
@@ -399,10 +425,6 @@ public class UpdateValidationRuleCommandHandler {
                 timeFrameId = IdGenerator.generateId();
             }
 
-            // Get validation rule for backward compatibility
-            ValidationRuleEntity validationRule = validationRuleRepository.findById(assignment.getRuleId())
-                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + assignment.getRuleId()));
-
             // Create TemporalPolicy
             TemporalPolicyEntity temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
             temporalPolicy = temporalPolicyRepository.save(temporalPolicy);
@@ -422,15 +444,26 @@ public class UpdateValidationRuleCommandHandler {
             link.setUpdatedAt(Instant.now());
             ruleTemporalLinkRepository.save(link);
 
-            // Create RuleTimeFrame for backward compatibility
-            RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
-            ruleTimeFrame.setId(IdGenerator.generateId());
-            ruleTimeFrame.setValidationRule(validationRule);
-            ruleTimeFrame.setTimeFrameId(timeFrameId);
-            ruleTimeFrame.setMode(mode);
-            ruleTimeFrame.setCreatedAt(Instant.now());
-            ruleTimeFrame.setUpdatedAt(Instant.now());
-            ruleTimeFrameRepository.save(ruleTimeFrame);
+            // Create RuleTimeFrame for backward compatibility (only if ruleId exists)
+            String ruleId = assignment.getRuleId();
+            if (ruleId != null && !ruleId.isEmpty()) {
+                var validationRuleOpt = validationRuleRepository.findById(ruleId);
+                if (validationRuleOpt.isPresent()) {
+                    RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
+                    ruleTimeFrame.setId(IdGenerator.generateId());
+                    ruleTimeFrame.setValidationRule(validationRuleOpt.get());
+                    ruleTimeFrame.setTimeFrameId(timeFrameId);
+                    ruleTimeFrame.setMode(mode);
+                    ruleTimeFrame.setCreatedAt(Instant.now());
+                    ruleTimeFrame.setUpdatedAt(Instant.now());
+                    ruleTimeFrameRepository.save(ruleTimeFrame);
+                    logger.debug("Created legacy RuleTimeFrame: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
+                } else {
+                    logger.debug("Skipping legacy RuleTimeFrame - rule not found: ruleId={}", ruleId);
+                }
+            } else {
+                logger.debug("Skipping legacy RuleTimeFrame - ruleId is null/empty for assignmentId={}", assignmentId);
+            }
 
             logger.info("Successfully updated timeframe: assignmentId={}, timeFrameId={}, policyId={}",
                     assignmentId, timeFrameId, temporalPolicy.getId());
