@@ -278,11 +278,8 @@ public class RollbackValidationRuleCommandHandler {
      * @return List of assignments for the campaign
      */
     private List<AssignmentEntity> findAssignmentsByCampaignId(String campaignId) {
-        // Query assignments where entityType = "campaign" AND entityId = campaignId
-        return assignmentRepository.findAll().stream()
-                .filter(a -> "campaign".equalsIgnoreCase(a.getEntityType()))
-                .filter(a -> campaignId.equals(a.getEntityId()))
-                .toList();
+        // Use optimized query method instead of findAll() + filter in memory
+        return assignmentRepository.findByEntityTypeAndEntityId("campaign", campaignId);
     }
 
     /**
