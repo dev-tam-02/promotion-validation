@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repositor
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand.RevertValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertFailedEvent;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -232,28 +233,30 @@ public class RevertValidationRuleCommandHandler {
             metadata.put("source", SOURCE);
             metadata.put("errorMessage", errorMessage);
 
-            // Create a simple failure event structure
-            Map<String, Object> failureEvent = new HashMap<>();
-            failureEvent.put("id", eventId);
-            failureEvent.put("type", "ValidationRuleRevertFailedEvent");
-            failureEvent.put("source", SOURCE);
-            failureEvent.put("subject", payload != null ? payload.getValidationRuleId() : null);
-            failureEvent.put("occurredAt", Instant.now().toString());
-            failureEvent.put("version", 1);
-            failureEvent.put("metadata", metadata);
+            // Build typed failure event payload
+            ValidationRuleRevertFailedEvent.ValidationRuleRevertFailedPayload failurePayload =
+                    ValidationRuleRevertFailedEvent.ValidationRuleRevertFailedPayload.builder()
+                            .validationRuleId(payload != null ? payload.getValidationRuleId() : null)
+                            .campaignId(payload != null ? payload.getCampaignId() : null)
+                            .sagaId(payload != null ? payload.getSagaId() : null)
+                            .correlationId(payload != null ? payload.getCorrelationId() : null)
+                            .targetVersion(payload != null ? payload.getTargetVersion() : null)
+                            .currentVersion(payload != null ? payload.getCurrentVersion() : null)
+                            .errorMessage(errorMessage)
+                            .failedAt(Instant.now())
+                            .build();
 
-            Map<String, Object> failurePayload = new HashMap<>();
-            if (payload != null) {
-                failurePayload.put("validationRuleId", payload.getValidationRuleId());
-                failurePayload.put("campaignId", payload.getCampaignId());
-                failurePayload.put("sagaId", payload.getSagaId());
-                failurePayload.put("correlationId", payload.getCorrelationId());
-                failurePayload.put("targetVersion", payload.getTargetVersion());
-                failurePayload.put("currentVersion", payload.getCurrentVersion());
-            }
-            failurePayload.put("errorMessage", errorMessage);
-            failurePayload.put("failedAt", Instant.now().toString());
-            failureEvent.put("payload", failurePayload);
+            // Build typed failure event
+            ValidationRuleRevertFailedEvent failureEvent = ValidationRuleRevertFailedEvent.builder()
+                    .id(eventId)
+                    .type("ValidationRuleRevertFailedEvent")
+                    .source(SOURCE)
+                    .subject(payload != null ? payload.getValidationRuleId() : null)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(failurePayload)
+                    .metadata(metadata)
+                    .build();
 
             String key = payload != null ? payload.getValidationRuleId() : command.getId();
             kafkaTemplate.send(validationEventTopic, key, failureEvent)
