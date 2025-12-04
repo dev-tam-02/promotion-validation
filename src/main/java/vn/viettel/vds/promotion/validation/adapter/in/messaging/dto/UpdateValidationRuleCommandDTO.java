@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Empty
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.LengthCheck;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.RequiredCheck;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidAssignmentIdOrObjectReference;
 
 /**
  * DTO for validating UpdateValidationRuleCommand in validation service.
@@ -37,6 +38,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
     FormatCheck.class,
     UpdateValidationRuleCommandDTO.class
 })
+@ValidAssignmentIdOrObjectReference(groups = RequiredCheck.class)
 public class UpdateValidationRuleCommandDTO {
 
     // ============= Command Envelope Fields =============
@@ -65,8 +67,10 @@ public class UpdateValidationRuleCommandDTO {
 
     // ============= Payload Fields =============
 
-    @NotNull(message = "ASSIGNMENT_ID_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "ASSIGNMENT_ID_EMPTY", groups = EmptyCheck.class)
+    // assignmentId is conditionally required:
+    // - Required if objectId or objectType is missing
+    // - Optional if both objectId AND objectType are provided
+    // Validation is handled by @ValidAssignmentIdOrObjectReference at class level
     @Size(max = 36, message = "ASSIGNMENT_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "ASSIGNMENT_ID_INVALID", groups = FormatCheck.class)
     private String assignmentId;

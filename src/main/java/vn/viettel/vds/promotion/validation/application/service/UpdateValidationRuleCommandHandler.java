@@ -8,8 +8,12 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentSnapshotEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleSnapshotEntity;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.UpdateValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.UpdateValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
@@ -31,6 +35,7 @@ import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.T
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.UpdateValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
 import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingException;
+import vn.viettel.vds.promotion.validation.event.ValidationSettingUpdateResultEvent;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -48,6 +53,7 @@ import java.util.stream.Collectors;
 public class UpdateValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UpdateValidationRuleCommandHandler.class);
+    private static final String SOURCE = "validation-service";
 
     private final AssignmentJpaRepository assignmentRepository;
     private final AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository;
@@ -59,6 +65,12 @@ public class UpdateValidationRuleCommandHandler {
     private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
     private final Validator validator;
     private final UpdateValidationRuleCommandDTOMapper dtoMapper;
+    private final AssignmentSnapshotService assignmentSnapshotService;
+    private final ValidationRuleSnapshotService validationRuleSnapshotService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Value("${kafka.topics.validation-event:promotion_validation_event}")
+    private String validationEventTopic;
 
     public UpdateValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
@@ -70,7 +82,10 @@ public class UpdateValidationRuleCommandHandler {
             IdempotencyService idempotencyService,
             vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService,
             Validator validator,
-            UpdateValidationRuleCommandDTOMapper dtoMapper) {
+            UpdateValidationRuleCommandDTOMapper dtoMapper,
+            AssignmentSnapshotService assignmentSnapshotService,
+            ValidationRuleSnapshotService validationRuleSnapshotService,
+            KafkaTemplate<String, Object> kafkaTemplate) {
         this.assignmentRepository = assignmentRepository;
         this.applicabilityRuleRepository = applicabilityRuleRepository;
         this.ruleTimeFrameRepository = ruleTimeFrameRepository;
@@ -81,6 +96,9 @@ public class UpdateValidationRuleCommandHandler {
         this.rulePublishingService = rulePublishingService;
         this.validator = validator;
         this.dtoMapper = dtoMapper;
+        this.assignmentSnapshotService = assignmentSnapshotService;
+        this.validationRuleSnapshotService = validationRuleSnapshotService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     /**
@@ -112,17 +130,71 @@ public class UpdateValidationRuleCommandHandler {
             }
 
             // Step 2: Find existing assignment
-            String assignmentId = payload.getAssignmentId();
-            AssignmentEntity assignmentEntity = assignmentRepository.findById(assignmentId)
-                    .orElseThrow(() -> {
-                        logger.error("Assignment not found: assignmentId={}", assignmentId);
-                        return ExceptionFactory.createValidationException(
-                                ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
-                                "Assignment not found: " + assignmentId
-                        );
-                    });
+            // Priority: assignmentId > (objectType + objectId)
+            AssignmentEntity assignmentEntity;
+            String assignmentId;
+            String payloadAssignmentId = payload.getAssignmentId();
 
-            // Step 3: Process update
+            if (payloadAssignmentId != null && !payloadAssignmentId.isBlank()) {
+                // Find by assignmentId
+                assignmentEntity = assignmentRepository.findById(payloadAssignmentId)
+                        .orElseThrow(() -> {
+                            logger.error("Assignment not found: assignmentId={}", payloadAssignmentId);
+                            return ExceptionFactory.createValidationException(
+                                    ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                                    "Assignment not found: " + payloadAssignmentId
+                            );
+                        });
+                assignmentId = payloadAssignmentId;
+            } else {
+                // Find by objectType and objectId
+                String objectType = payload.getObjectType();
+                String objectId = payload.getObjectId();
+
+                List<AssignmentEntity> assignments = assignmentRepository.findByEntityTypeAndEntityId(objectType, objectId);
+                if (assignments.isEmpty()) {
+                    logger.error("Assignment not found: objectType={}, objectId={}", objectType, objectId);
+                    throw ExceptionFactory.createValidationException(
+                            ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                            "Assignment not found: objectType=" + objectType + ", objectId=" + objectId
+                    );
+                }
+                // Take the first one (latest by default query ordering)
+                assignmentEntity = assignments.get(0);
+                assignmentId = assignmentEntity.getId();
+                logger.info("Found assignment by objectReference: objectType={}, objectId={}, assignmentId={}",
+                        objectType, objectId, assignmentId);
+            }
+
+            // Step 3: Create snapshots BEFORE update for compensation
+            String sagaId = command.getMetadata() != null ? command.getMetadata().get("sagaId") : null;
+
+            // 3a. Create Assignment snapshot
+            AssignmentSnapshotEntity assignmentSnapshot = assignmentSnapshotService.createSnapshot(
+                    assignmentId, sagaId, commandId, AssignmentSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
+
+            // 3b. Create ValidationRule snapshot if ruleId exists (for RevertValidationRuleCommand support)
+            String existingRuleId = assignmentEntity.getRuleId();
+            Long ruleVersionBeforeUpdate = null;
+            if (existingRuleId != null && !existingRuleId.isEmpty()) {
+                var ruleOpt = validationRuleRepository.findById(existingRuleId);
+                if (ruleOpt.isPresent()) {
+                    ValidationRuleEntity rule = ruleOpt.get();
+                    ruleVersionBeforeUpdate = rule.getRuleVersion();
+                    validationRuleSnapshotService.createSnapshot(
+                            existingRuleId, sagaId, commandId,
+                            ValidationRuleSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
+                    logger.info("Created ValidationRule snapshot: ruleId={}, version={}",
+                            existingRuleId, ruleVersionBeforeUpdate);
+                }
+            }
+
+            // Calculate versions for event publishing
+            // snapshotVersion = version of the snapshot we just created (state BEFORE update)
+            // This is the version to revert to if saga compensation is needed
+            Long snapshotVersionToRevertTo = assignmentSnapshot.getSnapshotVersion();
+
+            // Step 4: Process update
             UpdateProcessingResult result = processUpdate(commandId, assignmentEntity, payload);
 
             if (!result.isSuccess()) {
@@ -134,8 +206,16 @@ public class UpdateValidationRuleCommandHandler {
             // Mark as processed
             idempotencyService.markAsProcessed(commandId, result.toIdempotencyDto());
 
-            logger.info("Successfully processed UpdateValidationRuleCommand: commandId={}, assignmentId={}",
-                    commandId, assignmentId);
+            // Step 5: Publish success event with version info
+            // currentVersion = snapshot version after update (next version = snapshotVersionToRevertTo + 1)
+            // previousVersion = snapshot version to revert to (the snapshot we just created)
+            Long currentVersion = snapshotVersionToRevertTo + 1;
+            publishUpdateSuccessEvent(command, assignmentId, result.getRuleId(),
+                    currentVersion, snapshotVersionToRevertTo);
+
+            logger.info("Successfully processed UpdateValidationRuleCommand: commandId={}, assignmentId={}, " +
+                            "currentVersion={}, snapshotVersionToRevertTo={}, ruleVersionBeforeUpdate={}",
+                    commandId, assignmentId, currentVersion, snapshotVersionToRevertTo, ruleVersionBeforeUpdate);
             return true;
 
         } catch (BusinessException e) {
@@ -371,10 +451,6 @@ public class UpdateValidationRuleCommandHandler {
                 timeFrameId = IdGenerator.generateId();
             }
 
-            // Get validation rule for backward compatibility
-            ValidationRuleEntity validationRule = validationRuleRepository.findById(assignment.getRuleId())
-                    .orElseThrow(() -> new RuntimeException("Validation rule not found: " + assignment.getRuleId()));
-
             // Create TemporalPolicy
             TemporalPolicyEntity temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
             temporalPolicy = temporalPolicyRepository.save(temporalPolicy);
@@ -394,15 +470,26 @@ public class UpdateValidationRuleCommandHandler {
             link.setUpdatedAt(Instant.now());
             ruleTemporalLinkRepository.save(link);
 
-            // Create RuleTimeFrame for backward compatibility
-            RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
-            ruleTimeFrame.setId(IdGenerator.generateId());
-            ruleTimeFrame.setValidationRule(validationRule);
-            ruleTimeFrame.setTimeFrameId(timeFrameId);
-            ruleTimeFrame.setMode(mode);
-            ruleTimeFrame.setCreatedAt(Instant.now());
-            ruleTimeFrame.setUpdatedAt(Instant.now());
-            ruleTimeFrameRepository.save(ruleTimeFrame);
+            // Create RuleTimeFrame for backward compatibility (only if ruleId exists)
+            String ruleId = assignment.getRuleId();
+            if (ruleId != null && !ruleId.isEmpty()) {
+                var validationRuleOpt = validationRuleRepository.findById(ruleId);
+                if (validationRuleOpt.isPresent()) {
+                    RuleTimeFrameEntity ruleTimeFrame = new RuleTimeFrameEntity();
+                    ruleTimeFrame.setId(IdGenerator.generateId());
+                    ruleTimeFrame.setValidationRule(validationRuleOpt.get());
+                    ruleTimeFrame.setTimeFrameId(timeFrameId);
+                    ruleTimeFrame.setMode(mode);
+                    ruleTimeFrame.setCreatedAt(Instant.now());
+                    ruleTimeFrame.setUpdatedAt(Instant.now());
+                    ruleTimeFrameRepository.save(ruleTimeFrame);
+                    logger.debug("Created legacy RuleTimeFrame: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
+                } else {
+                    logger.debug("Skipping legacy RuleTimeFrame - rule not found: ruleId={}", ruleId);
+                }
+            } else {
+                logger.debug("Skipping legacy RuleTimeFrame - ruleId is null/empty for assignmentId={}", assignmentId);
+            }
 
             logger.info("Successfully updated timeframe: assignmentId={}, timeFrameId={}, policyId={}",
                     assignmentId, timeFrameId, temporalPolicy.getId());
@@ -662,6 +749,14 @@ public class UpdateValidationRuleCommandHandler {
             return errorMessage;
         }
 
+        public String getAssignmentId() {
+            return assignmentId;
+        }
+
+        public String getRuleId() {
+            return ruleId;
+        }
+
         public IdempotencyDto toIdempotencyDto() {
             return new IdempotencyDto(success, assignmentId, ruleId);
         }
@@ -691,6 +786,72 @@ public class UpdateValidationRuleCommandHandler {
 
         public String getRuleId() {
             return ruleId;
+        }
+    }
+
+    /**
+     * Publish success event with version info for saga correlation.
+     */
+    private void publishUpdateSuccessEvent(UpdateValidationRuleCommand command, String assignmentId,
+                                            String ruleId, Long currentVersion, Long previousVersion) {
+        try {
+            String eventId = IdGenerator.generateId();
+            UpdateValidationRuleCommandPayload commandPayload = command.getPayload();
+
+            Map<String, String> metadata = new HashMap<>();
+            if (command.getMetadata() != null) {
+                metadata.putAll(command.getMetadata());
+            }
+            metadata.put("commandId", command.getId());
+            metadata.put("source", SOURCE);
+
+            // Build update result with version info
+            ValidationSettingUpdateResultEvent.UpdateResult updateResult =
+                    ValidationSettingUpdateResultEvent.UpdateResult.builder()
+                            .assignmentId(assignmentId)
+                            .ruleId(ruleId)
+                            .currentVersion(currentVersion)
+                            .previousVersion(previousVersion)
+                            .build();
+
+            // Build payload
+            ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload eventPayload =
+                    ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload.builder()
+                            .commandId(command.getId())
+                            .isSuccess(true)
+                            .updateResult(updateResult)
+                            .processedBy(SOURCE)
+                            .processedAt(Instant.now())
+                            .build();
+
+            ValidationSettingUpdateResultEvent event = ValidationSettingUpdateResultEvent.builder()
+                    .id(eventId)
+                    .type("ValidationSettingUpdateResultEvent")
+                    .source(SOURCE)
+                    .subject(commandPayload != null ? commandPayload.getObjectId() : assignmentId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(eventPayload)
+                    .assignmentId(assignmentId)
+                    .ruleId(ruleId)
+                    .metadata(metadata)
+                    .build();
+
+            String key = commandPayload != null ? commandPayload.getObjectId() : assignmentId;
+            kafkaTemplate.send(validationEventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            logger.error("Failed to publish ValidationSettingUpdateResultEvent: assignmentId={}",
+                                    assignmentId, ex);
+                        } else {
+                            logger.info("Published ValidationSettingUpdateResultEvent: eventId={}, " +
+                                            "assignmentId={}, currentVersion={}, previousVersion={}",
+                                    eventId, assignmentId, currentVersion, previousVersion);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing ValidationSettingUpdateResultEvent: assignmentId={}", assignmentId, e);
         }
     }
 }

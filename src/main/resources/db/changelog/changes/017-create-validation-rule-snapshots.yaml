@@ -1,0 +1,83 @@
+databaseChangeLog:
+  - changeSet:
+      id: 017-create-validation-rule-snapshots
+      author: harley.hoang
+      comment: Create table for storing validation rule snapshots for saga compensation
+      changes:
+        - createTable:
+            tableName: validation_rule_snapshots
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: validation_rule_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: snapshot_data
+                  type: longtext
+                  constraints:
+                    nullable: false
+                  remarks: JSON containing full aggregate state (rule + nodes + limits + timeframes)
+              - column:
+                  name: saga_id
+                  type: varchar(100)
+                  remarks: Saga ID that triggered the snapshot
+              - column:
+                  name: correlation_id
+                  type: varchar(100)
+                  remarks: Correlation ID for tracing
+              - column:
+                  name: snapshot_reason
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+                  remarks: Reason for snapshot - BEFORE_UPDATE, BEFORE_DELETE, MANUAL
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(50)
+              - column:
+                  name: expires_at
+                  type: timestamp
+                  remarks: Optional expiration time for auto-cleanup
+
+        - createIndex:
+            tableName: validation_rule_snapshots
+            indexName: idx_snapshot_rule_version
+            columns:
+              - column:
+                  name: validation_rule_id
+              - column:
+                  name: version
+            unique: true
+
+        - createIndex:
+            tableName: validation_rule_snapshots
+            indexName: idx_snapshot_saga_id
+            columns:
+              - column:
+                  name: saga_id
+
+        - createIndex:
+            tableName: validation_rule_snapshots
+            indexName: idx_snapshot_created_at
+            columns:
+              - column:
+                  name: created_at
+            remarks: For cleanup queries
