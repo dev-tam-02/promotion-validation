@@ -4,7 +4,7 @@
 -- ============================================================================
 -- Note: COLLATE utf8mb4_unicode_ci is set for name and description fields only
 -- ============================================================================
-
+use promotion_validation;
 -- ============================================================================
 -- 1. validation_rules - Core validation rules table
 -- ============================================================================
@@ -25,7 +25,7 @@ CREATE TABLE validation_rules (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Validation rules with state management and versioning';
+) ENGINE=InnoDB COMMENT='Validation rules with state management and versioning';
 
 CREATE INDEX idx_validation_rules_state_version ON validation_rules (state, rule_version DESC);
 CREATE UNIQUE INDEX idx_validation_rules_code ON validation_rules (code);
@@ -54,7 +54,7 @@ CREATE TABLE rule_nodes (
     PRIMARY KEY (id),
     CONSTRAINT fk_rule_nodes_validation_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id),
     CONSTRAINT fk_rule_nodes_parent FOREIGN KEY (parent_id) REFERENCES rule_nodes(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Rule nodes forming tree structure for complex rules';
+) ENGINE=InnoDB COMMENT='Rule nodes forming tree structure for complex rules';
 
 CREATE INDEX idx_rule_nodes_validation_rule_id ON rule_nodes (validation_rule_id);
 CREATE INDEX idx_rule_nodes_parent_id ON rule_nodes (parent_id);
@@ -76,7 +76,7 @@ CREATE TABLE rule_usage_limits (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_usage_limits_validation_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Usage limits for validation rules';
+) ENGINE=InnoDB COMMENT='Usage limits for validation rules';
 
 -- ============================================================================
 -- 4. operators - Operator registry with JSON schemas
@@ -95,7 +95,7 @@ CREATE TABLE operators (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Operator registry with JSON schemas';
+) ENGINE=InnoDB COMMENT='Operator registry with JSON schemas';
 
 CREATE UNIQUE INDEX idx_operators_name_version ON operators (name, operator_version);
 CREATE INDEX idx_operators_context_status ON operators (context, status);
@@ -120,7 +120,7 @@ CREATE TABLE temporal_policies (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Temporal policies using RRULE format';
+) ENGINE=InnoDB COMMENT='Temporal policies using RRULE format';
 
 -- ============================================================================
 -- 6. temporal_policy_windows - Time of day windows for temporal policies
@@ -137,7 +137,7 @@ CREATE TABLE temporal_policy_windows (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_policy_windows_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Time of day windows for temporal policies';
+) ENGINE=InnoDB COMMENT='Time of day windows for temporal policies';
 
 CREATE INDEX idx_policy_windows_policy_id ON temporal_policy_windows (temporal_policy_id);
 
@@ -158,7 +158,7 @@ CREATE TABLE time_exceptions (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_time_exceptions_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Time exceptions for temporal policies';
+) ENGINE=InnoDB COMMENT='Time exceptions for temporal policies';
 
 CREATE INDEX idx_time_exceptions_policy_id ON time_exceptions (temporal_policy_id);
 
@@ -180,7 +180,7 @@ CREATE TABLE assignments (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Alternative assignment structure';
+) ENGINE=InnoDB COMMENT='Alternative assignment structure';
 
 CREATE INDEX idx_assignments_entity ON assignments (entity_type, entity_id);
 
@@ -200,7 +200,7 @@ CREATE TABLE rule_temporal_links (
     PRIMARY KEY (id),
     CONSTRAINT fk_temporal_links_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
     CONSTRAINT fk_temporal_links_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Links between assignments and temporal policies (assignment-specific time constraints)';
+) ENGINE=InnoDB COMMENT='Links between assignments and temporal policies (assignment-specific time constraints)';
 
 CREATE INDEX idx_temporal_links_assignment_id ON rule_temporal_links (assignment_id);
 CREATE INDEX idx_temporal_links_policy_id ON rule_temporal_links (temporal_policy_id);
@@ -227,7 +227,7 @@ CREATE TABLE resources (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='External resources for selector options';
+) ENGINE=InnoDB COMMENT='External resources for selector options';
 
 -- ============================================================================
 -- 11. operator_resources - Link between operators and resources
@@ -243,7 +243,7 @@ CREATE TABLE operator_resources (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_operator_resources_resource FOREIGN KEY (resource_id) REFERENCES resources(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Link between operators and resources';
+) ENGINE=InnoDB COMMENT='Link between operators and resources';
 
 CREATE INDEX idx_operator_resources_operator ON operator_resources (operator_name);
 CREATE INDEX idx_operator_resources_resource ON operator_resources (resource_id);
@@ -263,7 +263,7 @@ CREATE TABLE operator_registry (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Registry of available operators with contexts';
+) ENGINE=InnoDB COMMENT='Registry of available operators with contexts';
 
 CREATE INDEX idx_operator_registry_context ON operator_registry (context);
 
@@ -284,7 +284,7 @@ CREATE TABLE reason_codes (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Reason codes for validation failures';
+) ENGINE=InnoDB COMMENT='Reason codes for validation failures';
 
 CREATE INDEX idx_reason_codes_category ON reason_codes (category);
 
@@ -305,7 +305,7 @@ CREATE TABLE publish_jobs (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_publish_jobs_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Asynchronous publish job tracking';
+) ENGINE=InnoDB COMMENT='Asynchronous publish job tracking';
 
 CREATE INDEX idx_publish_jobs_status ON publish_jobs (status);
 CREATE INDEX idx_publish_jobs_rule_id ON publish_jobs (validation_rule_id);
@@ -326,7 +326,7 @@ CREATE TABLE rule_versions (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_rule_versions_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Historical versions of rules';
+) ENGINE=InnoDB COMMENT='Historical versions of rules';
 
 CREATE UNIQUE INDEX idx_rule_versions_rule_version ON rule_versions (validation_rule_id, version_number DESC);
 
@@ -349,7 +349,7 @@ CREATE TABLE rule_time_frames (
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id),
     CONSTRAINT fk_rule_time_frames_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Time frames for rules';
+) ENGINE=InnoDB COMMENT='Time frames for rules';
 
 CREATE INDEX idx_rule_time_frames_rule_id ON rule_time_frames (validation_rule_id);
 CREATE INDEX idx_rule_time_frames_frame_id ON rule_time_frames (time_frame_id);
@@ -369,7 +369,7 @@ CREATE TABLE time_links (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Links between entities and time frames';
+) ENGINE=InnoDB COMMENT='Links between entities and time frames';
 
 CREATE INDEX idx_time_links_entity ON time_links (entity_type, entity_id);
 
@@ -381,7 +381,7 @@ CREATE TABLE rule_configuration (
     config_key VARCHAR(255) NOT NULL COMMENT 'Configuration key',
     config_value TEXT COMMENT 'Configuration value',
     PRIMARY KEY (rule_id, config_key)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Configuration key-value pairs for rules (from RuleJpaEntity)';
+) ENGINE=InnoDB COMMENT='Configuration key-value pairs for rules (from RuleJpaEntity)';
 
 -- ============================================================================
 -- 19. rule_target_segments - Target segments for rules
@@ -390,7 +390,7 @@ CREATE TABLE rule_target_segments (
     rule_id VARCHAR(36) NOT NULL COMMENT 'Foreign key to validation_rules',
     segment VARCHAR(255) NOT NULL COMMENT 'Segment identifier',
     PRIMARY KEY (rule_id, segment)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Target segments for rules';
+) ENGINE=InnoDB COMMENT='Target segments for rules';
 
 -- ============================================================================
 -- 20. outbox_events - Transactional outbox pattern with Spring Batch
@@ -413,7 +413,7 @@ CREATE TABLE outbox_events (
     published_at TIMESTAMP NULL COMMENT 'When event was published',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Transactional outbox events for transactional outbox pattern with Spring Batch';
+) ENGINE=InnoDB COMMENT='Transactional outbox events for transactional outbox pattern with Spring Batch';
 
 CREATE INDEX idx_outbox_status ON outbox_events (status);
 CREATE INDEX idx_outbox_created_at ON outbox_events (created_at);
@@ -439,7 +439,7 @@ CREATE TABLE assignment_applicability_rules (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
     PRIMARY KEY (id),
     CONSTRAINT fk_applicability_rules_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Applicability rules for assignments (included/excluded products, collections, SKUs)';
+) ENGINE=InnoDB COMMENT='Applicability rules for assignments (included/excluded products, collections, SKUs)';
 
 CREATE INDEX idx_applicability_rules_assignment_id ON assignment_applicability_rules (assignment_id);
 CREATE INDEX idx_applicability_rules_type ON assignment_applicability_rules (rule_type);
@@ -464,7 +464,7 @@ CREATE TABLE validation_rules_assignment_deleted (
     deleted_by VARCHAR(100) COMMENT 'User who deleted this assignment',
     version INT COMMENT 'Version number (incremented from original on delete)',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stores soft-deleted assignment records for audit purposes (SRS PRM_KBNV_API_VALD008)';
+) ENGINE=InnoDB COMMENT='Stores soft-deleted assignment records for audit purposes (SRS PRM_KBNV_API_VALD008)';
 
 CREATE INDEX idx_assignment_deleted_original_id ON validation_rules_assignment_deleted (original_assignment_id);
 CREATE INDEX idx_assignment_deleted_rule ON validation_rules_assignment_deleted (rule_id);
@@ -486,7 +486,7 @@ CREATE TABLE validation_rule_snapshots (
     created_by VARCHAR(50) COMMENT 'Creator',
     expires_at TIMESTAMP NULL COMMENT 'Optional expiration time for auto-cleanup',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Validation rule snapshots for saga compensation';
+) ENGINE=InnoDB COMMENT='Validation rule snapshots for saga compensation';
 
 CREATE UNIQUE INDEX idx_snapshot_rule_version ON validation_rule_snapshots (validation_rule_id, version);
 CREATE INDEX idx_snapshot_saga_id ON validation_rule_snapshots (saga_id);
@@ -507,7 +507,7 @@ CREATE TABLE assignment_snapshots (
     created_by VARCHAR(50) COMMENT 'Creator',
     expires_at TIMESTAMP NULL COMMENT 'Optional expiration time for auto-cleanup',
     PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Assignment snapshots for saga compensation';
+) ENGINE=InnoDB COMMENT='Assignment snapshots for saga compensation';
 
 CREATE UNIQUE INDEX idx_assignment_snapshot_version ON assignment_snapshots (assignment_id, snapshot_version);
 CREATE INDEX idx_assignment_snapshot_saga_id ON assignment_snapshots (saga_id);
