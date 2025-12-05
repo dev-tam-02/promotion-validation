@@ -231,15 +231,184 @@ mysql -h promotion-mariadb -P 3306 -u root -p validation
 | `per_customer` | INT | Số lần/khách hàng |
 | `per_day` | INT | Số lần/ngày |
 
-### 4.3 Danh Sách Operators Có Sẵn
+### 4.3 Giải Thích Chi Tiết Các Giá Trị
 
-| Operator Name | Context | Params | Mô Tả |
-|---------------|---------|--------|-------|
-| `order.total.gte` | order | `{"amount": 500000, "currency": "VND"}` | Đơn hàng >= số tiền |
-| `order.total.lte` | order | `{"amount": 1000000, "currency": "VND"}` | Đơn hàng <= số tiền |
-| `customer.in_segment` | customer | `{"segments": ["VIP", "GOLD"]}` | Khách thuộc segment |
-| `time.window.active` | time | `{"startTime": "09:00:00", "endTime": "17:00:00", ...}` | Trong khung giờ |
-| `order.item.product.applicable` | order | `{"include": [...], "exclude": [...]}` | Sản phẩm áp dụng |
+#### 4.3.1 Bảng `validation_rules` - Giá Trị Các Cột
+
+| Cột | Giá Trị | Khi Nào Chọn | Ví Dụ |
+|-----|---------|--------------|-------|
+| **state** | `DRAFT` | Rule mới tạo, chưa active | Luôn dùng khi insert mới |
+| | `PUBLISHED` | Rule đã được activate và publish | Chỉ set qua API, KHÔNG insert trực tiếp |
+| | `ARCHIVED` | Rule đã lưu trữ, không dùng nữa | Chỉ set qua API |
+| **logic** | `ALL` | Tất cả điều kiện con phải đúng (AND) | Khách VIP **VÀ** đơn >= 500k |
+| | `ANY` | Ít nhất 1 điều kiện đúng (OR) | Khách VIP **HOẶC** khách mới |
+| | `NONE` | Tất cả điều kiện phải sai (NOT) | KHÔNG thuộc blacklist |
+| **rule_version** | `1` | Phiên bản đầu tiên | Luôn bắt đầu từ 1 |
+
+**⚠️ Lưu ý quan trọng về `state`:**
+- Khi insert mới: **LUÔN dùng `DRAFT`**
+- Không bao giờ insert trực tiếp `PUBLISHED` - phải qua API activate + publish
+- Quy trình: `DRAFT` → (API activate) → `PUBLISHED`
+
+---
+
+#### 4.3.2 Bảng `rule_nodes` - Giá Trị Cột `type`
+
+| Giá Trị | Mô Tả | Khi Nào Chọn | Các Cột Bắt Buộc |
+|---------|-------|--------------|------------------|
+| **`GROUP`** | Node nhóm, chứa các node con | Khi cần **nhóm nhiều điều kiện** với logic AND/OR/NOT | `group_logic`, `children_ids` |
+| **`COND`** | Node điều kiện, thực hiện kiểm tra | Khi cần **kiểm tra 1 điều kiện cụ thể** | `operator_name`, `params`, `reason_code` |
+
+**Quy tắc:**
+- Mỗi rule **phải có ít nhất 1 ROOT node** loại `GROUP`
+- ROOT node **không có `parent_id`** (NULL)
+- `COND` node **luôn là con** của `GROUP` node
+
+**Ví dụ trực quan:**
+```
+Rule: Khách VIP + (Đơn >= 500k HOẶC khách mới)
+
+ROOT (GROUP, logic=ALL)           ← type='GROUP', parent_id=NULL
+  ├── COND: customer.in_segment   ← type='COND', parent_id=ROOT
+  └── GROUP (logic=ANY)           ← type='GROUP', parent_id=ROOT
+        ├── COND: order.total.gte ← type='COND', parent_id=GROUP_ANY
+        └── COND: customer.is_new ← type='COND', parent_id=GROUP_ANY
+```
+
+---
+
+#### 4.3.3 Bảng `rule_nodes` - Giá Trị Cột `group_logic`
+
+**Chỉ áp dụng cho node type = `GROUP`**
+
+| Giá Trị | Logic | Khi Nào Chọn | Ví Dụ |
+|---------|-------|--------------|-------|
+| **`ALL`** | AND - Tất cả con phải TRUE | Khi **tất cả điều kiện** đều phải thỏa mãn | VIP **VÀ** đơn >= 500k **VÀ** cuối tuần |
+| **`ANY`** | OR - Ít nhất 1 con TRUE | Khi **chỉ cần 1** điều kiện thỏa mãn | VIP **HOẶC** GOLD **HOẶC** PLATINUM |
+| **`NONE`** | NOT - Tất cả con phải FALSE | Khi **không được phép** thỏa mãn bất kỳ điều kiện nào | KHÔNG blacklist **VÀ** KHÔNG fraud |
+
+**Bảng truth table:**
+```
+ALL (AND):
+  - TRUE + TRUE = TRUE
+  - TRUE + FALSE = FALSE
+  - FALSE + FALSE = FALSE
+
+ANY (OR):
+  - TRUE + TRUE = TRUE
+  - TRUE + FALSE = TRUE
+  - FALSE + FALSE = FALSE
+
+NONE (NOT):
+  - TRUE + TRUE = FALSE
+  - TRUE + FALSE = FALSE
+  - FALSE + FALSE = TRUE
+```
+
+---
+
+#### 4.3.4 Danh Sách Operators (`operator_name`)
+
+**Chỉ áp dụng cho node type = `COND`**
+
+##### A. Order Operators (Kiểm tra đơn hàng)
+
+| Operator | Mô Tả | Params | Khi Nào Dùng |
+|----------|-------|--------|--------------|
+| `order.total.gte` | Tổng đơn >= giá trị | `{"amount": 500000, "currency": "VND"}` | Đơn hàng tối thiểu |
+| `order.total.lte` | Tổng đơn <= giá trị | `{"amount": 1000000, "currency": "VND"}` | Đơn hàng tối đa |
+| `order.total.between` | Tổng đơn trong khoảng | `{"min": 100000, "max": 500000, "currency": "VND"}` | Đơn trong khoảng giá |
+| `order.item.count.gte` | Số lượng item >= | `{"count": 3}` | Mua ít nhất X sản phẩm |
+| `order.item.product.applicable` | Sản phẩm áp dụng | `{"include": ["P1","P2"], "exclude": ["P3"]}` | Giới hạn sản phẩm |
+
+##### B. Customer Operators (Kiểm tra khách hàng)
+
+| Operator | Mô Tả | Params | Khi Nào Dùng |
+|----------|-------|--------|--------------|
+| `customer.in_segment` | Thuộc segment | `{"segments": ["VIP", "GOLD"]}` | Khách VIP/GOLD/... |
+| `customer.not_in_segment` | KHÔNG thuộc segment | `{"segments": ["BLACKLIST"]}` | Loại trừ blacklist |
+| `customer.is_new` | Khách hàng mới | `{}` | Ưu đãi khách mới |
+| `customer.order_count.gte` | Số đơn >= | `{"count": 5}` | Khách thân thiết (>= 5 đơn) |
+| `customer.order_count.lte` | Số đơn <= | `{"count": 2}` | Khách mới (<= 2 đơn) |
+| `customer.tier.in` | Thuộc tier | `{"tiers": [1, 2, 3]}` | Tier membership |
+
+##### C. Time Operators (Kiểm tra thời gian)
+
+| Operator | Mô Tả | Params | Khi Nào Dùng |
+|----------|-------|--------|--------------|
+| `time.window.active` | Trong khung giờ | Xem chi tiết bên dưới | Flash sale, giờ vàng |
+| `time.day.in` | Ngày trong tuần | `{"days": ["SATURDAY", "SUNDAY"]}` | Promo cuối tuần |
+| `time.date.between` | Trong khoảng ngày | `{"start": "2024-01-01", "end": "2024-12-31"}` | Campaign theo mùa |
+
+**Chi tiết `time.window.active` params:**
+```json
+{
+  "startTime": "09:00:00",        // Giờ bắt đầu (HH:mm:ss)
+  "endTime": "17:00:00",          // Giờ kết thúc
+  "timezone": "Asia/Bangkok",     // Timezone
+  "daysOfWeek": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
+  "spansMidnight": false          // true nếu qua đêm (22:00-06:00)
+}
+```
+
+**Giá trị `daysOfWeek`:**
+- `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`, `SUNDAY`
+
+##### D. Product Operators (Kiểm tra sản phẩm)
+
+| Operator | Mô Tả | Params | Khi Nào Dùng |
+|----------|-------|--------|--------------|
+| `product.in_category` | Thuộc category | `{"categories": ["FOOD", "DRINK"]}` | Promo theo danh mục |
+| `product.in_brand` | Thuộc brand | `{"brands": ["NIKE", "ADIDAS"]}` | Promo theo brand |
+| `product.sku.in` | SKU cụ thể | `{"skus": ["SKU001", "SKU002"]}` | Promo SKU cụ thể |
+
+---
+
+#### 4.3.5 Reason Codes (`reason_code`)
+
+**Mã lỗi trả về khi điều kiện KHÔNG thỏa mãn**
+
+| Reason Code | Mô Tả | Dùng Với Operator |
+|-------------|-------|-------------------|
+| `ORDER_TOTAL_MIN` | Đơn hàng chưa đạt tối thiểu | `order.total.gte` |
+| `ORDER_TOTAL_MAX` | Đơn hàng vượt tối đa | `order.total.lte` |
+| `AUDIENCE_SEGMENT` | Không thuộc segment | `customer.in_segment` |
+| `CUSTOMER_BLACKLIST` | Khách trong blacklist | `customer.not_in_segment` |
+| `NOT_NEW_CUSTOMER` | Không phải khách mới | `customer.is_new` |
+| `TIME_WINDOW` | Ngoài khung giờ | `time.window.active` |
+| `NOT_WEEKEND` | Không phải cuối tuần | `time.day.in` |
+| `PRODUCT_NOT_APPLICABLE` | Sản phẩm không áp dụng | `order.item.product.applicable` |
+| `USAGE_LIMIT_EXCEEDED` | Vượt giới hạn sử dụng | Usage limits |
+
+**⚠️ Có thể tự định nghĩa reason_code mới**, miễn là:
+- Viết UPPER_CASE
+- Không có dấu cách
+- Mô tả rõ ràng lý do fail
+
+---
+
+#### 4.3.6 Bảng `rule_usage_limits` - Giải Thích
+
+| Cột | Mô Tả | Giá Trị | Ví Dụ |
+|-----|-------|---------|-------|
+| `per_code_total` | Tổng số lần sử dụng của rule | Số nguyên > 0, hoặc NULL (không giới hạn) | `1000` = tối đa 1000 lần |
+| `per_customer` | Số lần mỗi khách được dùng | Số nguyên > 0, hoặc NULL | `3` = mỗi khách tối đa 3 lần |
+| `per_day` | Số lần sử dụng mỗi ngày | Số nguyên > 0, hoặc NULL | `200` = tối đa 200 lần/ngày |
+
+**Ví dụ:**
+```sql
+-- Rule chỉ cho 1000 người đầu tiên, mỗi người 1 lần
+per_code_total = 1000
+per_customer = 1
+per_day = NULL  -- không giới hạn theo ngày
+
+-- Flash sale 100 suất mỗi ngày, không giới hạn tổng
+per_code_total = NULL
+per_customer = 1
+per_day = 100
+```
+
+---
 
 ### 4.4 Quy Tắc Đặt ID
 
