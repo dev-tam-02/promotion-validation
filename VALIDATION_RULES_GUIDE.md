@@ -141,30 +141,39 @@ public boolean canTransitionTo(RuleStatus newStatus) {
 
 ---
 
-## 4. Quy Trình Khai Báo Rule Mới (Database)
+## 4. Quy Trình Khai Báo Rule Mới (Database - Dành cho Vận Hành)
 
-Khai báo validation rule trực tiếp vào database thông qua **Liquibase migration files**.
+Hướng dẫn này dành cho **đội vận hành** để khai báo validation rule trực tiếp vào database bằng SQL.
 
 ### 4.1 Tổng Quan Quy Trình
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  BƯỚC 1: Tạo Liquibase Migration File                          │
-│  ├─→ Đặt tên: XXX-add-[rule-name]-validation-rule.yaml        │
-│  └─→ Vị trí: src/main/resources/db/changelog/changes/          │
+│  BƯỚC 1: Insert vào bảng validation_rules                      │
+│  └─→ Khai báo thông tin cơ bản của rule (code, name, logic)    │
 ├────────────────────────────────────────────────────────────────┤
-│  BƯỚC 2: Insert vào bảng validation_rules                      │
-│  └─→ Khai báo thông tin cơ bản của rule                        │
+│  BƯỚC 2: Insert ROOT node vào bảng rule_nodes                  │
+│  └─→ Node gốc loại GROUP, chứa danh sách children              │
 ├────────────────────────────────────────────────────────────────┤
-│  BƯỚC 3: Insert vào bảng rule_nodes                            │
-│  ├─→ Insert ROOT node (GROUP) đầu tiên                         │
-│  └─→ Insert các COND nodes (điều kiện con)                     │
+│  BƯỚC 3: Insert các COND nodes vào bảng rule_nodes             │
+│  └─→ Các điều kiện con với operator và params                  │
 ├────────────────────────────────────────────────────────────────┤
 │  BƯỚC 4: (Tùy chọn) Insert rule_usage_limits                   │
 │  └─→ Giới hạn sử dụng rule                                     │
 ├────────────────────────────────────────────────────────────────┤
-│  BƯỚC 5: Thêm migration vào db.changelog-master.yaml           │
+│  BƯỚC 5: Verify dữ liệu đã insert                              │
+│  └─→ Chạy query kiểm tra                                       │
 └────────────────────────────────────────────────────────────────┘
+```
+
+### 4.1.1 Kết Nối Database
+
+```bash
+# MariaDB connection
+mysql -h <HOST> -P 3306 -u <USER> -p validation
+
+# Ví dụ môi trường dev
+mysql -h promotion-mariadb -P 3306 -u root -p validation
 ```
 
 ### 4.2 Cấu Trúc Dữ Liệu Cần Insert
@@ -250,441 +259,510 @@ Base prefix: 01932b6f-XXXX-7000-8000-XXXXXXXXXXXX
 - Kiểm tra ID không trùng với existing data
 - Có thể dùng UUID generator: https://www.uuidtools.com/v7
 
-### 4.5 Template Liquibase Migration
+### 4.5 SQL Template - Tạo Rule Mới
 
-**File:** `src/main/resources/db/changelog/changes/XXX-add-[rule-name]-validation-rule.yaml`
+#### Template Chuẩn (Copy và thay thế các giá trị)
 
-```yaml
-databaseChangeLog:
-  # ============================================================
-  # Rule: [TÊN RULE]
-  # Description: [MÔ TẢ NGẮN]
-  # Author: [TÊN NGƯỜI TẠO]
-  # Date: [NGÀY TẠO]
-  # ============================================================
+```sql
+-- ============================================================
+-- VALIDATION RULE: [TÊN RULE]
+-- Mô tả: [MÔ TẢ NGẮN]
+-- Ngày tạo: [NGÀY]
+-- Người tạo: [TÊN]
+-- ============================================================
 
-  # BƯỚC 1: Insert validation_rules
-  - changeSet:
-      id: XXX-add-[rule-code]-validation-rule
-      author: [author-name]
-      changes:
-        - insert:
-            tableName: validation_rules
-            columns:
-              - column:
-                  name: id
-                  value: [UUID-RULE]
-              - column:
-                  name: code
-                  value: [RULE_CODE]
-              - column:
-                  name: name
-                  value: [Rule Display Name]
-              - column:
-                  name: state
-                  value: DRAFT
-              - column:
-                  name: rule_version
-                  valueNumeric: 1
-              - column:
-                  name: logic
-                  value: ALL
-              - column:
-                  name: dsl
-                  value: '{}'
-              - column:
-                  name: created_by
-                  value: admin
-              - column:
-                  name: updated_by
-                  value: admin
+-- Bắt đầu transaction
+START TRANSACTION;
 
-  # BƯỚC 2: Insert ROOT GROUP node
-  - changeSet:
-      id: XXX-add-[rule-code]-root-node
-      author: [author-name]
-      changes:
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column:
-                  name: id
-                  value: [UUID-ROOT-NODE]
-              - column:
-                  name: node_id
-                  value: n1
-              - column:
-                  name: type
-                  value: GROUP
-              - column:
-                  name: group_logic
-                  value: ALL
-              - column:
-                  name: children_ids
-                  value: '["n2", "n3"]'  # List các child node_ids
-              - column:
-                  name: node_order
-                  valueNumeric: 0
-              - column:
-                  name: validation_rule_id
-                  value: [UUID-RULE]
-              # parent_id = NULL cho root node
+-- BƯỚC 1: Insert validation_rules
+INSERT INTO validation_rules (
+    id, code, name, state, rule_version, logic, dsl,
+    created_at, updated_at, created_by, updated_by, version
+) VALUES (
+    '[UUID-RULE]',           -- id: UUID duy nhất
+    '[RULE_CODE]',           -- code: mã rule (unique)
+    '[Rule Display Name]',   -- name: tên hiển thị
+    'DRAFT',                 -- state: luôn bắt đầu với DRAFT
+    1,                       -- rule_version
+    'ALL',                   -- logic: ALL, ANY, hoặc NONE
+    '{}',                    -- dsl: để trống
+    NOW(),                   -- created_at
+    NOW(),                   -- updated_at
+    'admin',                 -- created_by
+    'admin',                 -- updated_by
+    0                        -- version (optimistic locking)
+);
 
-  # BƯỚC 3: Insert COND nodes
-  - changeSet:
-      id: XXX-add-[rule-code]-cond-nodes
-      author: [author-name]
-      changes:
-        # Condition 1: Order total >= 500k
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column:
-                  name: id
-                  value: [UUID-COND-1]
-              - column:
-                  name: node_id
-                  value: n2
-              - column:
-                  name: type
-                  value: COND
-              - column:
-                  name: operator_name
-                  value: order.total.gte
-              - column:
-                  name: params
-                  value: '{"amount":500000,"currency":"VND"}'
-              - column:
-                  name: reason_code
-                  value: ORDER_TOTAL_MIN
-              - column:
-                  name: validation_rule_id
-                  value: [UUID-RULE]
-              - column:
-                  name: parent_id
-                  value: [UUID-ROOT-NODE]
-              - column:
-                  name: node_order
-                  valueNumeric: 0
+-- BƯỚC 2: Insert ROOT GROUP node
+INSERT INTO rule_nodes (
+    id, node_id, type, group_logic, children_ids, node_order,
+    validation_rule_id, parent_id, created_at, updated_at, version
+) VALUES (
+    '[UUID-ROOT-NODE]',      -- id: UUID duy nhất
+    'n1',                    -- node_id: identifier ngắn
+    'GROUP',                 -- type: GROUP cho root
+    'ALL',                   -- group_logic: ALL, ANY, NONE
+    '["n2","n3"]',           -- children_ids: JSON array các node_id con
+    0,                       -- node_order
+    '[UUID-RULE]',           -- validation_rule_id: FK đến rule
+    NULL,                    -- parent_id: NULL cho root
+    NOW(), NOW(), 0
+);
 
-        # Condition 2: Customer in VIP segment
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column:
-                  name: id
-                  value: [UUID-COND-2]
-              - column:
-                  name: node_id
-                  value: n3
-              - column:
-                  name: type
-                  value: COND
-              - column:
-                  name: operator_name
-                  value: customer.in_segment
-              - column:
-                  name: params
-                  value: '{"segments":["VIP","GOLD"]}'
-              - column:
-                  name: reason_code
-                  value: AUDIENCE_SEGMENT
-              - column:
-                  name: validation_rule_id
-                  value: [UUID-RULE]
-              - column:
-                  name: parent_id
-                  value: [UUID-ROOT-NODE]
-              - column:
-                  name: node_order
-                  valueNumeric: 1
+-- BƯỚC 3: Insert COND nodes
+-- Condition 1
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '[UUID-COND-1]',         -- id
+    'n2',                    -- node_id: phải khớp với children_ids ở trên
+    'COND',                  -- type
+    'order.total.gte',       -- operator_name
+    '{"amount":500000,"currency":"VND"}',  -- params: JSON
+    'ORDER_TOTAL_MIN',       -- reason_code: mã lỗi khi fail
+    '[UUID-RULE]',           -- validation_rule_id
+    '[UUID-ROOT-NODE]',      -- parent_id: trỏ đến root
+    0,                       -- node_order
+    NOW(), NOW(), 0
+);
 
-  # BƯỚC 4 (Tùy chọn): Insert usage limits
-  - changeSet:
-      id: XXX-add-[rule-code]-usage-limits
-      author: [author-name]
-      changes:
-        - insert:
-            tableName: rule_usage_limits
-            columns:
-              - column:
-                  name: id
-                  value: [UUID-LIMITS]
-              - column:
-                  name: validation_rule_id
-                  value: [UUID-RULE]
-              - column:
-                  name: per_code_total
-                  valueNumeric: 1000
-              - column:
-                  name: per_customer
-                  valueNumeric: 3
-              - column:
-                  name: per_day
-                  valueNumeric: 200
+-- Condition 2
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '[UUID-COND-2]',
+    'n3',
+    'COND',
+    'customer.in_segment',
+    '{"segments":["VIP","GOLD"]}',
+    'AUDIENCE_SEGMENT',
+    '[UUID-RULE]',
+    '[UUID-ROOT-NODE]',
+    1,
+    NOW(), NOW(), 0
+);
+
+-- BƯỚC 4 (Tùy chọn): Insert usage limits
+INSERT INTO rule_usage_limits (
+    id, validation_rule_id, per_code_total, per_customer, per_day,
+    created_at, updated_at
+) VALUES (
+    '[UUID-LIMITS]',
+    '[UUID-RULE]',
+    1000,    -- per_code_total: tổng số lần sử dụng
+    3,       -- per_customer: số lần/khách hàng
+    200,     -- per_day: số lần/ngày
+    NOW(), NOW()
+);
+
+-- Commit transaction
+COMMIT;
 ```
 
-### 4.6 Ví Dụ Thực Tế: Rule "VIP Segment Only"
+### 4.6 Ví Dụ 1: Rule Đơn Giản - "VIP Segment Only"
 
-**File:** `012-add-vip-segment-validation-rule.yaml`
+**Yêu cầu:** Chỉ khách hàng VIP mới được áp dụng
 
-```yaml
-databaseChangeLog:
-  # Create VIP segment validation rule
-  - changeSet:
-      id: 012-add-vip-segment-validation-rule
-      author: harley hoang
-      changes:
-        # Insert validation rule
-        - insert:
-            tableName: validation_rules
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0005-7000-8000-000000000010
-              - column:
-                  name: code
-                  value: VIP_SEGMENT_ONLY
-              - column:
-                  name: name
-                  value: VIP Segment Only Validation
-              - column:
-                  name: state
-                  value: DRAFT
-              - column:
-                  name: rule_version
-                  valueNumeric: 1
-              - column:
-                  name: logic
-                  value: ALL
-              - column:
-                  name: dsl
-                  value: '{}'
-              - column:
-                  name: created_by
-                  value: admin
-              - column:
-                  name: updated_by
-                  value: admin
+```sql
+-- ============================================================
+-- VALIDATION RULE: VIP_SEGMENT_ONLY
+-- Mô tả: Chỉ cho phép khách hàng thuộc segment VIP
+-- ============================================================
 
-        # Insert root GROUP node (n1)
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0006-7000-8000-000000000010
-              - column:
-                  name: node_id
-                  value: n1
-              - column:
-                  name: type
-                  value: GROUP
-              - column:
-                  name: group_logic
-                  value: ALL
-              - column:
-                  name: children_ids
-                  value: '["n2"]'
-              - column:
-                  name: node_order
-                  valueNumeric: 0
-              - column:
-                  name: validation_rule_id
-                  value: 01932b6f-0005-7000-8000-000000000010
+START TRANSACTION;
 
-        # Insert COND node for VIP segment check (n2)
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0006-7000-8000-000000000011
-              - column:
-                  name: node_id
-                  value: n2
-              - column:
-                  name: type
-                  value: COND
-              - column:
-                  name: operator_name
-                  value: customer.in_segment
-              - column:
-                  name: params
-                  value: '{"segments":["VIP"]}'
-              - column:
-                  name: reason_code
-                  value: AUDIENCE_SEGMENT
-              - column:
-                  name: validation_rule_id
-                  value: 01932b6f-0005-7000-8000-000000000010
-              - column:
-                  name: parent_id
-                  value: 01932b6f-0006-7000-8000-000000000010
-              - column:
-                  name: node_order
-                  valueNumeric: 0
+-- Insert rule
+INSERT INTO validation_rules (
+    id, code, name, state, rule_version, logic, dsl,
+    created_at, updated_at, created_by, updated_by, version
+) VALUES (
+    '01932b6f-0005-7000-8000-000000000010',
+    'VIP_SEGMENT_ONLY',
+    'VIP Segment Only Validation',
+    'DRAFT',
+    1,
+    'ALL',
+    '{}',
+    NOW(), NOW(), 'admin', 'admin', 0
+);
+
+-- Insert ROOT GROUP node
+INSERT INTO rule_nodes (
+    id, node_id, type, group_logic, children_ids, node_order,
+    validation_rule_id, parent_id, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000010',
+    'n1',
+    'GROUP',
+    'ALL',
+    '["n2"]',
+    0,
+    '01932b6f-0005-7000-8000-000000000010',
+    NULL,
+    NOW(), NOW(), 0
+);
+
+-- Insert COND node: VIP segment check
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000011',
+    'n2',
+    'COND',
+    'customer.in_segment',
+    '{"segments":["VIP"]}',
+    'AUDIENCE_SEGMENT',
+    '01932b6f-0005-7000-8000-000000000010',
+    '01932b6f-0006-7000-8000-000000000010',
+    0,
+    NOW(), NOW(), 0
+);
+
+COMMIT;
+
+-- Verify
+SELECT * FROM validation_rules WHERE code = 'VIP_SEGMENT_ONLY';
+SELECT * FROM rule_nodes WHERE validation_rule_id = '01932b6f-0005-7000-8000-000000000010';
 ```
 
-### 4.7 Ví Dụ: Rule Phức Tạp với Nested Groups
+### 4.7 Ví Dụ 2: Rule Nhiều Điều Kiện - "Weekend VIP 500k"
+
+**Yêu cầu:** Khách VIP + Đơn hàng >= 500k + Cuối tuần
+
+```sql
+-- ============================================================
+-- VALIDATION RULE: WEEKEND_VIP_500K
+-- Mô tả: VIP + Đơn >= 500k + Cuối tuần
+-- Structure:
+--   ROOT (ALL)
+--     ├── n2: order.total.gte (500k)
+--     ├── n3: customer.in_segment (VIP)
+--     └── n4: time.window.active (weekend)
+-- ============================================================
+
+START TRANSACTION;
+
+-- Insert rule
+INSERT INTO validation_rules (
+    id, code, name, state, rule_version, logic, dsl,
+    created_at, updated_at, created_by, updated_by, version
+) VALUES (
+    '01932b6f-0005-7000-8000-000000000001',
+    'WEEKEND_VIP_500K',
+    'Weekend VIP ≥500k, HCM express',
+    'DRAFT',
+    1,
+    'ALL',
+    '{}',
+    NOW(), NOW(), 'admin', 'admin', 0
+);
+
+-- Insert ROOT GROUP node
+INSERT INTO rule_nodes (
+    id, node_id, type, group_logic, children_ids, node_order,
+    validation_rule_id, parent_id, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000001',
+    'n1',
+    'GROUP',
+    'ALL',
+    '["n2","n3","n4"]',
+    0,
+    '01932b6f-0005-7000-8000-000000000001',
+    NULL,
+    NOW(), NOW(), 0
+);
+
+-- COND 1: Order >= 500k
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000002',
+    'n2',
+    'COND',
+    'order.total.gte',
+    '{"amount":500000,"currency":"VND"}',
+    'ORDER_TOTAL_MIN',
+    '01932b6f-0005-7000-8000-000000000001',
+    '01932b6f-0006-7000-8000-000000000001',
+    0,
+    NOW(), NOW(), 0
+);
+
+-- COND 2: VIP segment
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000003',
+    'n3',
+    'COND',
+    'customer.in_segment',
+    '{"segments":["VIP"]}',
+    'AUDIENCE_SEGMENT',
+    '01932b6f-0005-7000-8000-000000000001',
+    '01932b6f-0006-7000-8000-000000000001',
+    1,
+    NOW(), NOW(), 0
+);
+
+-- COND 3: Weekend only
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000004',
+    'n4',
+    'COND',
+    'time.window.active',
+    '{"startTime":"00:00:00","endTime":"23:59:59","timezone":"Asia/Bangkok","daysOfWeek":["SATURDAY","SUNDAY"],"spansMidnight":false}',
+    'TIME_WINDOW',
+    '01932b6f-0005-7000-8000-000000000001',
+    '01932b6f-0006-7000-8000-000000000001',
+    2,
+    NOW(), NOW(), 0
+);
+
+-- Usage limits
+INSERT INTO rule_usage_limits (
+    id, validation_rule_id, per_code_total, per_customer, per_day,
+    created_at, updated_at
+) VALUES (
+    '01932b6f-0007-7000-8000-000000000001',
+    '01932b6f-0005-7000-8000-000000000001',
+    1000,
+    3,
+    200,
+    NOW(), NOW()
+);
+
+COMMIT;
+```
+
+### 4.8 Ví Dụ 3: Rule Phức Tạp với Nested Groups
 
 **Yêu cầu:** Khách VIP + (Đơn >= 500k HOẶC là khách mới)
 
-```yaml
-# Structure:
-# ROOT (ALL)
-#   ├── n2: customer.in_segment (VIP)
-#   └── n3: GROUP (ANY)
-#           ├── n4: order.total.gte (500k)
-#           └── n5: customer.is_new
+```sql
+-- ============================================================
+-- VALIDATION RULE: VIP_HIGH_VALUE_OR_NEW
+-- Mô tả: VIP + (Đơn >= 500k HOẶC khách mới)
+-- Structure:
+--   ROOT (ALL)
+--     ├── n2: customer.in_segment (VIP)
+--     └── n3: GROUP (ANY)
+--             ├── n4: order.total.gte (500k)
+--             └── n5: customer.is_new
+-- ============================================================
 
-databaseChangeLog:
-  - changeSet:
-      id: XXX-complex-rule
-      author: harley hoang
-      changes:
-        # validation_rules
-        - insert:
-            tableName: validation_rules
-            columns:
-              - column: { name: id, value: 01932b6f-0005-7000-8000-000000000020 }
-              - column: { name: code, value: VIP_HIGH_VALUE_OR_NEW }
-              - column: { name: name, value: VIP High Value or New Customer }
-              - column: { name: state, value: DRAFT }
-              - column: { name: rule_version, valueNumeric: 1 }
-              - column: { name: logic, value: ALL }
-              - column: { name: dsl, value: '{}' }
-              - column: { name: created_by, value: admin }
-              - column: { name: updated_by, value: admin }
+START TRANSACTION;
 
-        # ROOT node (n1) - ALL
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column: { name: id, value: 01932b6f-0006-7000-8000-000000000020 }
-              - column: { name: node_id, value: n1 }
-              - column: { name: type, value: GROUP }
-              - column: { name: group_logic, value: ALL }
-              - column: { name: children_ids, value: '["n2","n3"]' }
-              - column: { name: node_order, valueNumeric: 0 }
-              - column: { name: validation_rule_id, value: 01932b6f-0005-7000-8000-000000000020 }
+-- Insert rule
+INSERT INTO validation_rules (
+    id, code, name, state, rule_version, logic, dsl,
+    created_at, updated_at, created_by, updated_by, version
+) VALUES (
+    '01932b6f-0005-7000-8000-000000000020',
+    'VIP_HIGH_VALUE_OR_NEW',
+    'VIP High Value or New Customer',
+    'DRAFT',
+    1,
+    'ALL',
+    '{}',
+    NOW(), NOW(), 'admin', 'admin', 0
+);
 
-        # COND node (n2) - VIP segment
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column: { name: id, value: 01932b6f-0006-7000-8000-000000000021 }
-              - column: { name: node_id, value: n2 }
-              - column: { name: type, value: COND }
-              - column: { name: operator_name, value: customer.in_segment }
-              - column: { name: params, value: '{"segments":["VIP"]}' }
-              - column: { name: reason_code, value: AUDIENCE_SEGMENT }
-              - column: { name: validation_rule_id, value: 01932b6f-0005-7000-8000-000000000020 }
-              - column: { name: parent_id, value: 01932b6f-0006-7000-8000-000000000020 }
-              - column: { name: node_order, valueNumeric: 0 }
+-- ROOT node (n1) - ALL
+INSERT INTO rule_nodes (
+    id, node_id, type, group_logic, children_ids, node_order,
+    validation_rule_id, parent_id, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000020',
+    'n1',
+    'GROUP',
+    'ALL',
+    '["n2","n3"]',
+    0,
+    '01932b6f-0005-7000-8000-000000000020',
+    NULL,
+    NOW(), NOW(), 0
+);
 
-        # Nested GROUP node (n3) - ANY
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column: { name: id, value: 01932b6f-0006-7000-8000-000000000022 }
-              - column: { name: node_id, value: n3 }
-              - column: { name: type, value: GROUP }
-              - column: { name: group_logic, value: ANY }
-              - column: { name: children_ids, value: '["n4","n5"]' }
-              - column: { name: node_order, valueNumeric: 1 }
-              - column: { name: validation_rule_id, value: 01932b6f-0005-7000-8000-000000000020 }
-              - column: { name: parent_id, value: 01932b6f-0006-7000-8000-000000000020 }
+-- COND node (n2) - VIP segment
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000021',
+    'n2',
+    'COND',
+    'customer.in_segment',
+    '{"segments":["VIP"]}',
+    'AUDIENCE_SEGMENT',
+    '01932b6f-0005-7000-8000-000000000020',
+    '01932b6f-0006-7000-8000-000000000020',
+    0,
+    NOW(), NOW(), 0
+);
 
-        # COND node (n4) - Order >= 500k
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column: { name: id, value: 01932b6f-0006-7000-8000-000000000023 }
-              - column: { name: node_id, value: n4 }
-              - column: { name: type, value: COND }
-              - column: { name: operator_name, value: order.total.gte }
-              - column: { name: params, value: '{"amount":500000,"currency":"VND"}' }
-              - column: { name: reason_code, value: ORDER_TOTAL_MIN }
-              - column: { name: validation_rule_id, value: 01932b6f-0005-7000-8000-000000000020 }
-              - column: { name: parent_id, value: 01932b6f-0006-7000-8000-000000000022 }
-              - column: { name: node_order, valueNumeric: 0 }
+-- Nested GROUP node (n3) - ANY
+INSERT INTO rule_nodes (
+    id, node_id, type, group_logic, children_ids, node_order,
+    validation_rule_id, parent_id, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000022',
+    'n3',
+    'GROUP',
+    'ANY',
+    '["n4","n5"]',
+    1,
+    '01932b6f-0005-7000-8000-000000000020',
+    '01932b6f-0006-7000-8000-000000000020',
+    NOW(), NOW(), 0
+);
 
-        # COND node (n5) - New customer
-        - insert:
-            tableName: rule_nodes
-            columns:
-              - column: { name: id, value: 01932b6f-0006-7000-8000-000000000024 }
-              - column: { name: node_id, value: n5 }
-              - column: { name: type, value: COND }
-              - column: { name: operator_name, value: customer.is_new }
-              - column: { name: params, value: '{}' }
-              - column: { name: reason_code, value: NOT_NEW_CUSTOMER }
-              - column: { name: validation_rule_id, value: 01932b6f-0005-7000-8000-000000000020 }
-              - column: { name: parent_id, value: 01932b6f-0006-7000-8000-000000000022 }
-              - column: { name: node_order, valueNumeric: 1 }
+-- COND node (n4) - Order >= 500k
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000023',
+    'n4',
+    'COND',
+    'order.total.gte',
+    '{"amount":500000,"currency":"VND"}',
+    'ORDER_TOTAL_MIN',
+    '01932b6f-0005-7000-8000-000000000020',
+    '01932b6f-0006-7000-8000-000000000022',
+    0,
+    NOW(), NOW(), 0
+);
+
+-- COND node (n5) - New customer
+INSERT INTO rule_nodes (
+    id, node_id, type, operator_name, params, reason_code,
+    validation_rule_id, parent_id, node_order, created_at, updated_at, version
+) VALUES (
+    '01932b6f-0006-7000-8000-000000000024',
+    'n5',
+    'COND',
+    'customer.is_new',
+    '{}',
+    'NOT_NEW_CUSTOMER',
+    '01932b6f-0005-7000-8000-000000000020',
+    '01932b6f-0006-7000-8000-000000000022',
+    1,
+    NOW(), NOW(), 0
+);
+
+COMMIT;
 ```
 
-### 4.8 Đăng Ký Migration vào Master Changelog
+### 4.9 Generate UUID
 
-**File:** `src/main/resources/db/changelog/db.changelog-master.yaml`
+**Cách 1: Online Generator**
+- https://www.uuidtools.com/v7
+- https://www.uuidgenerator.net/version7
 
-```yaml
-databaseChangeLog:
-  - include:
-      file: db/changelog/changes/001-create-validation-rule-engine-schema.yaml
-  - include:
-      file: db/changelog/changes/002-insert-rule-engine-sample-data.yaml
-  # ... existing migrations ...
-  - include:
-      file: db/changelog/changes/XXX-add-[rule-name]-validation-rule.yaml  # Thêm dòng này
+**Cách 2: SQL trong MariaDB**
+```sql
+SELECT UUID() as new_uuid;
 ```
 
-### 4.9 Checklist Khai Báo Rule Mới
+**Cách 3: Convention cho validation module**
+```
+Base prefix: 01932b6f-XXXX-7000-8000-XXXXXXXXXXXX
+
+validation_rules:  01932b6f-0005-7000-8000-00000000XXXX
+rule_nodes:        01932b6f-0006-7000-8000-00000000XXXX
+rule_usage_limits: 01932b6f-0007-7000-8000-00000000XXXX
+
+Tăng số cuối: 0001, 0002, 0003, ...
+```
+
+### 4.10 Checklist Khai Báo Rule
 
 | # | Task | Check |
 |---|------|-------|
-| 1 | Tạo file migration với đúng naming convention | ☐ |
-| 2 | Generate UUID cho validation_rules | ☐ |
-| 3 | Generate UUID cho mỗi rule_node | ☐ |
-| 4 | Khai báo ROOT GROUP node với children_ids | ☐ |
-| 5 | Khai báo tất cả COND nodes với parent_id | ☐ |
-| 6 | Verify JSON format trong params và children_ids | ☐ |
-| 7 | Đảm bảo node_id trong children_ids khớp với node_id của children | ☐ |
-| 8 | Set state = DRAFT cho rule mới | ☐ |
-| 9 | Thêm migration vào db.changelog-master.yaml | ☐ |
-| 10 | Chạy Liquibase để apply migration | ☐ |
+| 1 | Generate UUID cho validation_rules | ☐ |
+| 2 | Generate UUID cho mỗi rule_node | ☐ |
+| 3 | Code rule phải unique (check trước khi insert) | ☐ |
+| 4 | ROOT node không có parent_id (NULL) | ☐ |
+| 5 | COND nodes có parent_id trỏ đến GROUP | ☐ |
+| 6 | children_ids chứa node_id (không phải id) | ☐ |
+| 7 | parent_id chứa id (không phải node_id) | ☐ |
+| 8 | JSON params đúng format | ☐ |
+| 9 | state = 'DRAFT' cho rule mới | ☐ |
+| 10 | Chạy COMMIT sau khi insert | ☐ |
 
-### 4.10 Verify Sau Khi Insert
+### 4.11 Query Kiểm Tra Sau Khi Insert
 
-**Query kiểm tra rule:**
 ```sql
--- Kiểm tra rule
-SELECT id, code, name, state, logic FROM validation_rules WHERE code = 'YOUR_RULE_CODE';
+-- Kiểm tra rule đã tạo
+SELECT id, code, name, state, logic, rule_version
+FROM validation_rules
+WHERE code = 'YOUR_RULE_CODE';
 
--- Kiểm tra nodes
-SELECT n.id, n.node_id, n.type, n.group_logic, n.operator_name, n.parent_id
-FROM rule_nodes n
-JOIN validation_rules r ON n.validation_rule_id = r.id
-WHERE r.code = 'YOUR_RULE_CODE'
-ORDER BY n.node_order;
-
--- Kiểm tra tree structure
+-- Kiểm tra tất cả nodes của rule
 SELECT
     n.node_id,
     n.type,
     COALESCE(n.group_logic, n.operator_name) as logic_or_operator,
+    n.params,
+    n.reason_code,
     p.node_id as parent_node_id
 FROM rule_nodes n
 LEFT JOIN rule_nodes p ON n.parent_id = p.id
-WHERE n.validation_rule_id = 'YOUR-RULE-UUID';
+WHERE n.validation_rule_id = 'YOUR-RULE-UUID'
+ORDER BY n.node_order;
+
+-- Kiểm tra tree structure (hiển thị dạng cây)
+SELECT
+    CASE
+        WHEN n.parent_id IS NULL THEN n.node_id
+        ELSE CONCAT('  └── ', n.node_id)
+    END as tree_view,
+    n.type,
+    COALESCE(n.group_logic, n.operator_name) as logic_or_operator
+FROM rule_nodes n
+WHERE n.validation_rule_id = 'YOUR-RULE-UUID'
+ORDER BY n.parent_id IS NOT NULL, n.node_order;
+
+-- Kiểm tra usage limits
+SELECT * FROM rule_usage_limits
+WHERE validation_rule_id = 'YOUR-RULE-UUID';
+```
+
+### 4.12 Rollback Nếu Có Lỗi
+
+```sql
+-- Nếu chưa COMMIT và cần rollback
+ROLLBACK;
+
+-- Nếu đã COMMIT và cần xóa rule
+START TRANSACTION;
+
+-- Xóa usage limits
+DELETE FROM rule_usage_limits WHERE validation_rule_id = 'YOUR-RULE-UUID';
+
+-- Xóa nodes
+DELETE FROM rule_nodes WHERE validation_rule_id = 'YOUR-RULE-UUID';
+
+-- Xóa rule
+DELETE FROM validation_rules WHERE id = 'YOUR-RULE-UUID';
+
+COMMIT;
 ```
 
 ---
 
 ## 4B. Khai Báo Rule Qua REST API (Alternative)
 
-Ngoài cách insert trực tiếp database, có thể dùng REST API:
+Ngoài cách insert trực tiếp database, có thể dùng REST API (dành cho dev/test):
 
 ### API Endpoint
 
