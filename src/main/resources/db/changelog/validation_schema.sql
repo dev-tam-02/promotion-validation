@@ -51,9 +51,7 @@ CREATE TABLE rule_nodes (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_rule_nodes_validation_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id),
-    CONSTRAINT fk_rule_nodes_parent FOREIGN KEY (parent_id) REFERENCES rule_nodes(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Rule nodes forming tree structure for complex rules';
 
 CREATE INDEX idx_rule_nodes_validation_rule_id ON rule_nodes (validation_rule_id);
@@ -74,8 +72,7 @@ CREATE TABLE rule_usage_limits (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_usage_limits_validation_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Usage limits for validation rules';
 
 -- ============================================================================
@@ -135,8 +132,7 @@ CREATE TABLE temporal_policy_windows (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_policy_windows_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Time of day windows for temporal policies';
 
 CREATE INDEX idx_policy_windows_policy_id ON temporal_policy_windows (temporal_policy_id);
@@ -156,8 +152,7 @@ CREATE TABLE time_exceptions (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_time_exceptions_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Time exceptions for temporal policies';
 
 CREATE INDEX idx_time_exceptions_policy_id ON time_exceptions (temporal_policy_id);
@@ -197,9 +192,7 @@ CREATE TABLE rule_temporal_links (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_temporal_links_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
-    CONSTRAINT fk_temporal_links_policy FOREIGN KEY (temporal_policy_id) REFERENCES temporal_policies(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Links between assignments and temporal policies (assignment-specific time constraints)';
 
 CREATE INDEX idx_temporal_links_assignment_id ON rule_temporal_links (assignment_id);
@@ -241,8 +234,7 @@ CREATE TABLE operator_resources (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_operator_resources_resource FOREIGN KEY (resource_id) REFERENCES resources(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Link between operators and resources';
 
 CREATE INDEX idx_operator_resources_operator ON operator_resources (operator_name);
@@ -303,8 +295,7 @@ CREATE TABLE publish_jobs (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_publish_jobs_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Asynchronous publish job tracking';
 
 CREATE INDEX idx_publish_jobs_status ON publish_jobs (status);
@@ -324,8 +315,7 @@ CREATE TABLE rule_versions (
     updated_by VARCHAR(36) COMMENT 'Last updater',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_rule_versions_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Historical versions of rules';
 
 CREATE UNIQUE INDEX idx_rule_versions_rule_version ON rule_versions (validation_rule_id, version_number DESC);
@@ -347,8 +337,7 @@ CREATE TABLE rule_time_frames (
     created_by VARCHAR(36) COMMENT 'Creator',
     updated_by VARCHAR(36) COMMENT 'Last updater',
     version BIGINT NOT NULL DEFAULT 0 COMMENT 'Optimistic locking version',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_rule_time_frames_rule FOREIGN KEY (validation_rule_id) REFERENCES validation_rules(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Time frames for rules';
 
 CREATE INDEX idx_rule_time_frames_rule_id ON rule_time_frames (validation_rule_id);
@@ -437,8 +426,7 @@ CREATE TABLE assignment_applicability_rules (
     repeat_count INT DEFAULT 1 COMMENT 'Number of times to repeat application',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
-    PRIMARY KEY (id),
-    CONSTRAINT fk_applicability_rules_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB COMMENT='Applicability rules for assignments (included/excluded products, collections, SKUs)';
 
 CREATE INDEX idx_applicability_rules_assignment_id ON assignment_applicability_rules (assignment_id);
