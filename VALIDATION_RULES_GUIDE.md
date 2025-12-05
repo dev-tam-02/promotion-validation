@@ -1478,7 +1478,3 @@ curl -X POST "http://localhost:16014/promotion/promotion-validation/v1/rules/rul
 3. **Sử dụng reason codes rõ ràng**: `CUSTOMER_NOT_VIP`, `ORDER_BELOW_MINIMUM`
 4. **Version control**: Clone rule thay vì edit trực tiếp
 5. **Test đầy đủ**: Dùng batch simulate với nhiều test cases
-
----
-
-*Tài liệu được tạo cho module validation - Promix Platform*
