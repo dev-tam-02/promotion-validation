@@ -6,7 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.LengthCheck;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidDaysOfWeek;
 
 import java.util.List;
 
@@ -50,7 +52,9 @@ public class TimeFrameDTO {
      * Days of week when the rule is valid.
      * Uses ISO-8601 standard: 1 = Monday, 7 = Sunday.
      * Example: [1, 3, 5] for Monday, Wednesday, Friday.
+     * Each value must be between 1-7, no duplicates allowed.
      */
+    @ValidDaysOfWeek(message = "CAMPAIGN_DAY_OF_WEEKS_INVALID", groups = FormatCheck.class)
     private List<Integer> validityDaysOfWeek;
 
     /**

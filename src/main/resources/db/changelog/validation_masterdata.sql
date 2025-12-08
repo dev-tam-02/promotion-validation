@@ -2,10 +2,11 @@
 -- INSERT Sample Data for Validation Rule Engine - MariaDB
 -- Generated from Liquibase changelog files
 -- ============================================================================
-
+use promotion_validation;
 -- ============================================================================
 -- 1. operators - Sample operators
 -- ============================================================================
+
 INSERT INTO operators (id, name, operator_version, context, json_schema, compiler_id, status, created_at, updated_at)
 VALUES
     ('01932b6f-0001-7000-8000-000000000001', 'order.total.gte', 1, 'order',
@@ -72,65 +73,47 @@ VALUES
 -- ============================================================================
 -- 5. validation_rules - Sample validation rules
 -- ============================================================================
-INSERT INTO validation_rules (id, code, name, state, rule_version, logic, dsl, created_by, updated_by)
-VALUES
-    ('01932b6f-0005-7000-8000-000000000001', 'WEEKEND_VIP_500K',
-     'Weekend VIP >=500k, HCM express', 'DRAFT', 1, 'ALL', '{}', 'admin', 'admin'),
+INSERT INTO validation_rules (id, code, name, state, rule_version, logic, dsl, published_at, published_by, created_at,
+                              updated_at, created_by, updated_by, version, bundle_hash)
+VALUES ('01932b6f-0005-7000-8000-000000000001', 'BETTING_FEE_REFUND',
+        'Tập segment 100% Betting Fee Refund - Weekend Comeback Deal', 'DRAFT', 1, 'ALL',
+        '{}', null, null, '2025-11-13 09:22:28', '2025-11-13 09:22:28', 'admin', 'admin', 0, null);
 
-    ('01932b6f-0005-7000-8000-000000000002', 'BUSINESS_HOURS_PROMO',
-     'Business Hours Promotion', 'DRAFT', 1, 'ALL', '{}', 'admin', 'admin'),
 
-    ('01932b6f-0005-7000-8000-000000000010', 'VIP_SEGMENT_ONLY',
-     'VIP Segment Only Validation', 'DRAFT', 1, 'ALL', '{}', 'admin', 'admin');
+INSERT INTO validation_rules (id, code, name, state, rule_version, logic, dsl, published_at, published_by, created_at,
+                              updated_at, created_by, updated_by, version, bundle_hash)
+VALUES ('01932b6f-0005-7000-8000-000000000002', 'FTTH_FEE_REFUND', 'Tập segment  575012 - 100 % FTTH Fee Cashback',
+        'DRAFT', 1, 'ALL',
+        '{}', null, null, '2025-11-13 09:22:28', '2025-11-13 09:22:28', 'admin', 'admin', 0, null);
+
 
 -- ============================================================================
 -- 6. rule_nodes - Sample rule nodes
 -- Note: node_order values include fixes from changeset 011
 -- ============================================================================
 
--- Rule nodes for first rule (WEEKEND_VIP_500K)
-INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, validation_rule_id)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000001', 'n1', 'GROUP', 'ALL', '["n3","n4"]', 0,
-     '01932b6f-0005-7000-8000-000000000001');
+INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
+                        validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
+VALUES ('01932b6f-0006-7000-8000-000000000010', 'n1', 'GROUP', 'ALL', '["n2"]', 0, null, null, null,
+        '01932b6f-0005-7000-8000-000000000001', null, '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
+INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
+                        validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
+VALUES ('01932b6f-0006-7000-8000-000000000011', 'n2', 'COND', null, null, 0, 'customer.in_segment',
+        '{"segments":["BETTINGREFUND"]}', 'AUDIENCE_SEGMENT', '01932b6f-0005-7000-8000-000000000001',
+        '01932b6f-0006-7000-8000-000000000010', '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 
-INSERT INTO rule_nodes (id, node_id, type, operator_name, params, reason_code, validation_rule_id, parent_id, node_order)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000003', 'n3', 'COND', 'order.total.gte',
-     '{"amount":500000,"currency":"VND"}', 'ORDER_TOTAL_MIN',
-     '01932b6f-0005-7000-8000-000000000001', '01932b6f-0006-7000-8000-000000000001', 1),
 
-    ('01932b6f-0006-7000-8000-000000000004', 'n4', 'COND', 'customer.in_segment',
-     '{"segments":["VIP"]}', 'AUDIENCE_SEGMENT',
-     '01932b6f-0005-7000-8000-000000000001', '01932b6f-0006-7000-8000-000000000001', 2);
+INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
+                        validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
+VALUES ('01932b6f-0006-7000-8000-000000000012', 'n1', 'GROUP', 'ALL', '["n2"]', 0, null, null, null,
+        '01932b6f-0005-7000-8000-000000000002', null, '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 
--- Rule nodes for second rule (BUSINESS_HOURS_PROMO)
-INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, validation_rule_id)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000005', 'n1', 'GROUP', 'ALL', '["n2","n3"]', 0,
-     '01932b6f-0005-7000-8000-000000000002');
+INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
+                        validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
+VALUES ('01932b6f-0006-7000-8000-000000000013', 'n2', 'COND', null, null, 0, 'customer.in_segment',
+        '{"segments":["FTTHCASHBACK"]}', 'AUDIENCE_SEGMENT', '01932b6f-0005-7000-8000-000000000002',
+        '01932b6f-0006-7000-8000-000000000012', '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 
-INSERT INTO rule_nodes (id, node_id, type, operator_name, params, reason_code, validation_rule_id, parent_id, node_order)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000006', 'n2', 'COND', 'time.window.active',
-     '{"startTime":"09:00:00","endTime":"17:00:00","timezone":"Asia/Bangkok","daysOfWeek":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"spansMidnight":false}',
-     'TIME_WINDOW', '01932b6f-0005-7000-8000-000000000002', '01932b6f-0006-7000-8000-000000000005', 1),
-
-    ('01932b6f-0006-7000-8000-000000000007', 'n3', 'COND', 'order.total.gte',
-     '{"amount":300000,"currency":"VND"}', 'ORDER_TOTAL_MIN',
-     '01932b6f-0005-7000-8000-000000000002', '01932b6f-0006-7000-8000-000000000005', 2);
-
--- Rule nodes for VIP Segment Only rule (from changeset 012)
-INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, validation_rule_id)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000010', 'n1', 'GROUP', 'ALL', '["n2"]', 0,
-     '01932b6f-0005-7000-8000-000000000010');
-
-INSERT INTO rule_nodes (id, node_id, type, operator_name, params, reason_code, validation_rule_id, parent_id, node_order)
-VALUES
-    ('01932b6f-0006-7000-8000-000000000011', 'n2', 'COND', 'customer.in_segment',
-     '{"segments":["VIP"]}', 'AUDIENCE_SEGMENT',
-     '01932b6f-0005-7000-8000-000000000010', '01932b6f-0006-7000-8000-000000000010', 0);
 
 -- ============================================================================
 -- 7. rule_usage_limits - Sample usage limits

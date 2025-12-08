@@ -5,6 +5,156 @@
 -- Note: COLLATE utf8mb4_unicode_ci is set for name and description fields only
 -- ============================================================================
 use promotion_validation;
+
+drop table if exists BATCH_JOB_EXECUTION_CONTEXT;
+
+drop table if exists BATCH_JOB_EXECUTION_PARAMS;
+
+drop table if exists BATCH_JOB_EXECUTION_SEQ;
+
+drop table if exists BATCH_JOB_SEQ;
+
+drop table if exists BATCH_STEP_EXECUTION_CONTEXT;
+
+drop table if exists BATCH_STEP_EXECUTION;
+
+drop table if exists BATCH_JOB_EXECUTION;
+
+drop table if exists BATCH_JOB_INSTANCE;
+
+drop table if exists BATCH_STEP_EXECUTION_SEQ;
+
+drop table if exists DATABASECHANGELOG;
+
+drop table if exists DATABASECHANGELOGLOCK;
+
+drop table if exists assignment_applicability_rules;
+
+drop table if exists assignment_snapshots;
+
+drop table if exists operator_registry;
+
+drop table if exists operator_resources;
+
+drop table if exists operators;
+
+drop table if exists outbox_events;
+
+drop table if exists publish_jobs;
+
+drop table if exists reason_codes;
+
+drop table if exists resources;
+
+drop table if exists rule_configuration;
+
+drop table if exists rule_nodes;
+
+drop table if exists rule_target_segments;
+
+drop table if exists rule_temporal_links;
+
+drop table if exists assignments;
+
+drop table if exists rule_time_frames;
+
+drop table if exists rule_usage_limits;
+
+drop table if exists rule_versions;
+
+drop table if exists temporal_policy_windows;
+
+drop table if exists time_exceptions;
+
+drop table if exists temporal_policies;
+
+drop table if exists time_links;
+
+drop table if exists validation_rule_snapshots;
+
+drop table if exists validation_rules;
+
+drop table if exists validation_rules_assignment_deleted;
+
+
+
+CREATE TABLE BATCH_JOB_INSTANCE  (
+                                     JOB_INSTANCE_ID BIGINT  NOT NULL PRIMARY KEY ,
+                                     VERSION BIGINT ,
+                                     JOB_NAME VARCHAR(100) NOT NULL,
+                                     JOB_KEY VARCHAR(32) NOT NULL,
+                                     constraint JOB_INST_UN unique (JOB_NAME, JOB_KEY)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION  (
+                                      JOB_EXECUTION_ID BIGINT  NOT NULL PRIMARY KEY ,
+                                      VERSION BIGINT  ,
+                                      JOB_INSTANCE_ID BIGINT NOT NULL,
+                                      CREATE_TIME DATETIME(6) NOT NULL,
+                                      START_TIME DATETIME(6) DEFAULT NULL ,
+                                      END_TIME DATETIME(6) DEFAULT NULL ,
+                                      STATUS VARCHAR(10) ,
+                                      EXIT_CODE VARCHAR(2500) ,
+                                      EXIT_MESSAGE VARCHAR(2500) ,
+                                      LAST_UPDATED DATETIME(6),
+                                      constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID)
+                                          references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION_PARAMS  (
+                                             JOB_EXECUTION_ID BIGINT NOT NULL ,
+                                             PARAMETER_NAME VARCHAR(100) NOT NULL ,
+                                             PARAMETER_TYPE VARCHAR(100) NOT NULL ,
+                                             PARAMETER_VALUE VARCHAR(2500) ,
+                                             IDENTIFYING CHAR(1) NOT NULL ,
+                                             constraint JOB_EXEC_PARAMS_FK foreign key (JOB_EXECUTION_ID)
+                                                 references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_STEP_EXECUTION  (
+                                       STEP_EXECUTION_ID BIGINT  NOT NULL PRIMARY KEY ,
+                                       VERSION BIGINT NOT NULL,
+                                       STEP_NAME VARCHAR(100) NOT NULL,
+                                       JOB_EXECUTION_ID BIGINT NOT NULL,
+                                       CREATE_TIME DATETIME(6) NOT NULL,
+                                       START_TIME DATETIME(6) DEFAULT NULL ,
+                                       END_TIME DATETIME(6) DEFAULT NULL ,
+                                       STATUS VARCHAR(10) ,
+                                       COMMIT_COUNT BIGINT ,
+                                       READ_COUNT BIGINT ,
+                                       FILTER_COUNT BIGINT ,
+                                       WRITE_COUNT BIGINT ,
+                                       READ_SKIP_COUNT BIGINT ,
+                                       WRITE_SKIP_COUNT BIGINT ,
+                                       PROCESS_SKIP_COUNT BIGINT ,
+                                       ROLLBACK_COUNT BIGINT ,
+                                       EXIT_CODE VARCHAR(2500) ,
+                                       EXIT_MESSAGE VARCHAR(2500) ,
+                                       LAST_UPDATED DATETIME(6),
+                                       constraint JOB_EXEC_STEP_FK foreign key (JOB_EXECUTION_ID)
+                                           references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_STEP_EXECUTION_CONTEXT  (
+                                               STEP_EXECUTION_ID BIGINT NOT NULL PRIMARY KEY,
+                                               SHORT_CONTEXT VARCHAR(2500) NOT NULL,
+                                               SERIALIZED_CONTEXT TEXT ,
+                                               constraint STEP_EXEC_CTX_FK foreign key (STEP_EXECUTION_ID)
+                                                   references BATCH_STEP_EXECUTION(STEP_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE TABLE BATCH_JOB_EXECUTION_CONTEXT  (
+                                              JOB_EXECUTION_ID BIGINT NOT NULL PRIMARY KEY,
+                                              SHORT_CONTEXT VARCHAR(2500) NOT NULL,
+                                              SERIALIZED_CONTEXT TEXT ,
+                                              constraint JOB_EXEC_CTX_FK foreign key (JOB_EXECUTION_ID)
+                                                  references BATCH_JOB_EXECUTION(JOB_EXECUTION_ID)
+) ENGINE=InnoDB;
+
+CREATE SEQUENCE BATCH_STEP_EXECUTION_SEQ START WITH 1 MINVALUE 1 MAXVALUE 9223372036854775806 INCREMENT BY 1 NOCACHE NOCYCLE ENGINE=InnoDB;
+CREATE SEQUENCE BATCH_JOB_EXECUTION_SEQ START WITH 1 MINVALUE 1 MAXVALUE 9223372036854775806 INCREMENT BY 1 NOCACHE NOCYCLE ENGINE=InnoDB;
+CREATE SEQUENCE BATCH_JOB_SEQ START WITH 1 MINVALUE 1 MAXVALUE 9223372036854775806 INCREMENT BY 1 NOCACHE NOCYCLE ENGINE=InnoDB;
+
 -- ============================================================================
 -- 1. validation_rules - Core validation rules table
 -- ============================================================================
