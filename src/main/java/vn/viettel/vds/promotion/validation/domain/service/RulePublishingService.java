@@ -520,8 +520,19 @@ public class RulePublishingService {
         }
         data.setWindows(windowDtos);
 
-        logger.debug("Built temporal policy data: timezone={}, rrule={}, windowsCount={}",
-                policy.getTz(), policy.getRrule(), windowDtos.size());
+        // Map duration and interval from metadata (ISO 8601 format)
+        Map<String, Object> metadata = policy.getMetadata();
+        if (metadata != null) {
+            if (metadata.get("duration") != null) {
+                data.setDuration((String) metadata.get("duration"));
+            }
+            if (metadata.get("interval") != null) {
+                data.setInterval((String) metadata.get("interval"));
+            }
+        }
+
+        logger.debug("Built temporal policy data: timezone={}, rrule={}, windowsCount={}, duration={}, interval={}",
+                policy.getTz(), policy.getRrule(), windowDtos.size(), data.getDuration(), data.getInterval());
 
         return data;
     }

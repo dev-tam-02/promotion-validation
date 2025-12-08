@@ -191,6 +191,14 @@ public class CompileRequest {
         @JsonProperty("windows")
         private List<TimeWindow> windows;
 
+        @Schema(description = "Duration of each active window (ISO 8601)", example = "PT1H")
+        @JsonProperty("duration")
+        private String duration;
+
+        @Schema(description = "Interval between active windows (ISO 8601)", example = "P1D")
+        @JsonProperty("interval")
+        private String interval;
+
         public TemporalPolicyData() {
             // Default constructor for Jackson deserialization
         }
@@ -233,6 +241,22 @@ public class CompileRequest {
 
         public void setWindows(List<TimeWindow> windows) {
             this.windows = windows;
+        }
+
+        public String getDuration() {
+            return duration;
+        }
+
+        public void setDuration(String duration) {
+            this.duration = duration;
+        }
+
+        public String getInterval() {
+            return interval;
+        }
+
+        public void setInterval(String interval) {
+            this.interval = interval;
         }
     }
 
