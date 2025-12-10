@@ -166,9 +166,9 @@ promix:
         enabled: false  # Disable Avro consumer factory
     kafka:
       bootstrap-servers:
-        - kafka-1:9092
-        - kafka-2:9093
-        - kafka-3:9094
+        - kafka-1:19092
+        - kafka-2:19093
+        - kafka-3:19094
       client-id: validation
       enable-avro: false
 
