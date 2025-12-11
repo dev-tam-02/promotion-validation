@@ -69,10 +69,9 @@ public class RollbackValidationRuleCommandDTO {
     @Id(errorCode = "CAMPAIGN_ID_INVALID", groups = FormatCheck.class)
     private String campaignId;
 
-    @NotNull(message = "VALIDATION_RULE_ID_REQUIRED", groups = RequiredCheck.class)
-    @NotBlank(message = "VALIDATION_RULE_ID_EMPTY", groups = EmptyCheck.class)
+    // validationRuleId is optional when rollbackAll=true
+    // Only validated when provided (not null/blank)
     @Size(max = 36, message = "VALIDATION_RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
-    @Id(errorCode = "VALIDATION_RULE_ID_INVALID", groups = FormatCheck.class)
     private String validationRuleId;
 
     @NotNull(message = "ROLLBACK_ALL_REQUIRED", groups = RequiredCheck.class)
