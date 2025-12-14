@@ -8,10 +8,16 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.application.service.DeleteValidationRuleCommandHandler;
+import vn.viettel.vds.promotion.validation.application.service.DisableValidationRuleCommandHandler;
+import vn.viettel.vds.promotion.validation.application.service.EnableValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.RevertValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.RollbackValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.SettingValidationRuleCommandHandler;
 import vn.viettel.vds.promotion.validation.application.service.UpdateValidationRuleCommandHandler;
+import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
@@ -31,6 +37,9 @@ import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
  *   <li>{@link UpdateValidationRuleCommand} - Update existing validation rule assignments</li>
  *   <li>{@link RollbackValidationRuleCommand} - Rollback validation rule assignments</li>
  *   <li>{@link RevertValidationRuleCommand} - Revert validation rule to previous version (saga compensation)</li>
+ *   <li>{@link DeleteValidationRuleCommand} - Delete validation rule assignments (soft delete)</li>
+ *   <li>{@link EnableValidationRuleCommand} - Enable validation rule assignments</li>
+ *   <li>{@link DisableValidationRuleCommand} - Disable validation rule assignments</li>
  * </ul>
  *
  * <p>The consumer leverages Jackson's {@code @JsonTypeInfo} and {@code @JsonSubTypes}
@@ -52,16 +61,25 @@ public class ValidationRuleCommandConsumer {
     private final UpdateValidationRuleCommandHandler updateCommandHandler;
     private final RollbackValidationRuleCommandHandler rollbackCommandHandler;
     private final RevertValidationRuleCommandHandler revertCommandHandler;
+    private final DeleteValidationRuleCommandHandler deleteCommandHandler;
+    private final EnableValidationRuleCommandHandler enableCommandHandler;
+    private final DisableValidationRuleCommandHandler disableCommandHandler;
 
     public ValidationRuleCommandConsumer(
             SettingValidationRuleCommandHandler settingCommandHandler,
             UpdateValidationRuleCommandHandler updateCommandHandler,
             RollbackValidationRuleCommandHandler rollbackCommandHandler,
-            RevertValidationRuleCommandHandler revertCommandHandler) {
+            RevertValidationRuleCommandHandler revertCommandHandler,
+            DeleteValidationRuleCommandHandler deleteCommandHandler,
+            EnableValidationRuleCommandHandler enableCommandHandler,
+            DisableValidationRuleCommandHandler disableCommandHandler) {
         this.settingCommandHandler = settingCommandHandler;
         this.updateCommandHandler = updateCommandHandler;
         this.rollbackCommandHandler = rollbackCommandHandler;
         this.revertCommandHandler = revertCommandHandler;
+        this.deleteCommandHandler = deleteCommandHandler;
+        this.enableCommandHandler = enableCommandHandler;
+        this.disableCommandHandler = disableCommandHandler;
     }
 
     /**
@@ -120,6 +138,9 @@ public class ValidationRuleCommandConsumer {
             case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
             case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
             case RevertValidationRuleCommand c -> handleRevertCommand(c);
+            case DeleteValidationRuleCommand c -> handleDeleteCommand(c);
+            case EnableValidationRuleCommand c -> handleEnableCommand(c);
+            case DisableValidationRuleCommand c -> handleDisableCommand(c);
             default -> handleUnknownCommand(command);
         }
 
@@ -166,6 +187,36 @@ public class ValidationRuleCommandConsumer {
     private void handleRevertCommand(RevertValidationRuleCommand command) {
         logger.debug("Routing to RevertValidationRuleCommandHandler: commandId={}", command.getId());
         revertCommandHandler.handleCommand(command);
+    }
+
+    /**
+     * Handle DeleteValidationRuleCommand.
+     * Soft delete validation rule assignments.
+     * Throws BusinessException with error code if processing fails.
+     */
+    private void handleDeleteCommand(DeleteValidationRuleCommand command) {
+        logger.debug("Routing to DeleteValidationRuleCommandHandler: commandId={}", command.getId());
+        deleteCommandHandler.handleCommand(command);
+    }
+
+    /**
+     * Handle EnableValidationRuleCommand.
+     * Enable validation rule assignments.
+     * Throws BusinessException with error code if processing fails.
+     */
+    private void handleEnableCommand(EnableValidationRuleCommand command) {
+        logger.debug("Routing to EnableValidationRuleCommandHandler: commandId={}", command.getId());
+        enableCommandHandler.handleCommand(command);
+    }
+
+    /**
+     * Handle DisableValidationRuleCommand.
+     * Disable validation rule assignments.
+     * Throws BusinessException with error code if processing fails.
+     */
+    private void handleDisableCommand(DisableValidationRuleCommand command) {
+        logger.debug("Routing to DisableValidationRuleCommandHandler: commandId={}", command.getId());
+        disableCommandHandler.handleCommand(command);
     }
 
     /**
@@ -220,6 +271,9 @@ public class ValidationRuleCommandConsumer {
                 case UpdateValidationRuleCommand c -> updateCommandHandler.handleDeadLetterCommand(c);
                 case RollbackValidationRuleCommand c -> rollbackCommandHandler.handleDeadLetterCommand(c);
                 case RevertValidationRuleCommand c -> revertCommandHandler.handleDeadLetterCommand(c);
+                case DeleteValidationRuleCommand c -> deleteCommandHandler.handleDeadLetterCommand(c);
+                case EnableValidationRuleCommand c -> enableCommandHandler.handleDeadLetterCommand(c);
+                case DisableValidationRuleCommand c -> disableCommandHandler.handleDeadLetterCommand(c);
                 default -> logger.error("Unknown command type in DLQ: {}", command.getType());
             }
 

@@ -382,4 +382,294 @@ public class SettingValidationRuleEventPublisher {
                 .build();
     }
 
+    /**
+     * Publish delete success event cho DeleteValidationRuleCommand.
+     * Sử dụng ValidationCompensationResultEvent để thông báo delete thành công.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param validationRuleId Validation rule ID (assignment ID) đã bị delete
+     */
+    public void publishDeleteSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        try {
+            logger.info("Publishing delete success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+            // Build compensation result cho delete operation
+            ValidationCompensationResultEvent.CompensationResult compensationResult =
+                    ValidationCompensationResultEvent.CompensationResult.builder()
+                            .assignmentId(validationRuleId)
+                            .ruleId(validationRuleId)
+                            .rollbackAction("DELETE")
+                            .unassignmentId(validationRuleId)
+                            .deactivatedAt(Instant.now())
+                            .build();
+
+            // Build payload
+            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
+                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
+                            .commandId(commandId)
+                            .isSuccess(true)
+                            .compensationStatus("SUCCESS")
+                            .compensationResult(compensationResult)
+                            .processedBy(serviceName)
+                            .processedAt(Instant.now())
+                            .build();
+
+            // Build metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
+
+            // Build event
+            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRuleDeletedEvent")
+                    .source(serviceName)
+                    .subject(campaignId != null ? campaignId : commandId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
+                    .compensationStatus("SUCCESS")
+                    .assignmentId(validationRuleId)
+                    .ruleId(validationRuleId)
+                    .unassignmentId(validationRuleId)
+                    .deactivatedAt(Instant.now())
+                    .build();
+
+            // Publish event
+            String key = campaignId != null ? campaignId : commandId;
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationRuleDeletedEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
+                                    commandId, campaignId, eventTopic,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish ValidationRuleDeletedEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing delete success event: commandId={}, campaignId={}", commandId, campaignId, e);
+            throw new ValidationException("Failed to publish delete success event for commandId: " + commandId, e);
+        }
+    }
+
+    /**
+     * Publish delete error event cho DeleteValidationRuleCommand.
+     * Sử dụng ValidationRuleSettingFailedEvent.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param errorCode Error code
+     * @param errorMessage Error message
+     */
+    public void publishDeleteErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
+        try {
+            publishErrorEvent(commandId, campaignId, errorCode, "Delete failed: " + errorMessage);
+            logger.info("Published delete error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
+                    commandId, errorCode);
+        } catch (Exception e) {
+            throw new ValidationException("Failed to publish delete error event for commandId: " + commandId, e);
+        }
+    }
+
+    /**
+     * Publish enable success event cho EnableValidationRuleCommand.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param validationRuleId Validation rule ID (assignment ID) đã được enable
+     */
+    public void publishEnableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        try {
+            logger.info("Publishing enable success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+            // Build compensation result cho enable operation
+            ValidationCompensationResultEvent.CompensationResult compensationResult =
+                    ValidationCompensationResultEvent.CompensationResult.builder()
+                            .assignmentId(validationRuleId)
+                            .ruleId(validationRuleId)
+                            .rollbackAction("ENABLE")
+                            .unassignmentId(validationRuleId)
+                            .deactivatedAt(Instant.now())
+                            .build();
+
+            // Build payload
+            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
+                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
+                            .commandId(commandId)
+                            .isSuccess(true)
+                            .compensationStatus("SUCCESS")
+                            .compensationResult(compensationResult)
+                            .processedBy(serviceName)
+                            .processedAt(Instant.now())
+                            .build();
+
+            // Build metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
+
+            // Build event
+            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRuleEnabledEvent")
+                    .source(serviceName)
+                    .subject(campaignId != null ? campaignId : commandId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
+                    .compensationStatus("SUCCESS")
+                    .assignmentId(validationRuleId)
+                    .ruleId(validationRuleId)
+                    .unassignmentId(validationRuleId)
+                    .deactivatedAt(Instant.now())
+                    .build();
+
+            // Publish event
+            String key = campaignId != null ? campaignId : commandId;
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationRuleEnabledEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
+                                    commandId, campaignId, eventTopic,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish ValidationRuleEnabledEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing enable success event: commandId={}, campaignId={}", commandId, campaignId, e);
+            throw new ValidationException("Failed to publish enable success event for commandId: " + commandId, e);
+        }
+    }
+
+    /**
+     * Publish enable error event cho EnableValidationRuleCommand.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param errorCode Error code
+     * @param errorMessage Error message
+     */
+    public void publishEnableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
+        try {
+            publishErrorEvent(commandId, campaignId, errorCode, "Enable failed: " + errorMessage);
+            logger.info("Published enable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
+                    commandId, errorCode);
+        } catch (Exception e) {
+            throw new ValidationException("Failed to publish enable error event for commandId: " + commandId, e);
+        }
+    }
+
+    /**
+     * Publish disable success event cho DisableValidationRuleCommand.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param validationRuleId Validation rule ID (assignment ID) đã được disable
+     */
+    public void publishDisableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+        try {
+            logger.info("Publishing disable success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+            // Build compensation result cho disable operation
+            ValidationCompensationResultEvent.CompensationResult compensationResult =
+                    ValidationCompensationResultEvent.CompensationResult.builder()
+                            .assignmentId(validationRuleId)
+                            .ruleId(validationRuleId)
+                            .rollbackAction("DISABLE")
+                            .unassignmentId(validationRuleId)
+                            .deactivatedAt(Instant.now())
+                            .build();
+
+            // Build payload
+            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
+                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
+                            .commandId(commandId)
+                            .isSuccess(true)
+                            .compensationStatus("SUCCESS")
+                            .compensationResult(compensationResult)
+                            .processedBy(serviceName)
+                            .processedAt(Instant.now())
+                            .build();
+
+            // Build metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
+
+            // Build event
+            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRuleDisabledEvent")
+                    .source(serviceName)
+                    .subject(campaignId != null ? campaignId : commandId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
+                    .compensationStatus("SUCCESS")
+                    .assignmentId(validationRuleId)
+                    .ruleId(validationRuleId)
+                    .unassignmentId(validationRuleId)
+                    .deactivatedAt(Instant.now())
+                    .build();
+
+            // Publish event
+            String key = campaignId != null ? campaignId : commandId;
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationRuleDisabledEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
+                                    commandId, campaignId, eventTopic,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish ValidationRuleDisabledEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing disable success event: commandId={}, campaignId={}", commandId, campaignId, e);
+            throw new ValidationException("Failed to publish disable success event for commandId: " + commandId, e);
+        }
+    }
+
+    /**
+     * Publish disable error event cho DisableValidationRuleCommand.
+     *
+     * @param commandId Command ID
+     * @param campaignId Campaign ID
+     * @param errorCode Error code
+     * @param errorMessage Error message
+     */
+    public void publishDisableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
+        try {
+            publishErrorEvent(commandId, campaignId, errorCode, "Disable failed: " + errorMessage);
+            logger.info("Published disable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
+                    commandId, errorCode);
+        } catch (Exception e) {
+            throw new ValidationException("Failed to publish disable error event for commandId: " + commandId, e);
+        }
+    }
+
 }
