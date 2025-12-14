@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.event.ValidationCompensationResultEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEventPayload;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingFailedEvent;
@@ -208,13 +209,77 @@ public class SettingValidationRuleEventPublisher {
 
     /**
      * Publish rollback success event for saga compensation
-     * Uses ValidationRuleSettingAppliedEvent with rollback metadata
+     * Publishes ValidationCompensationResultEvent to notify campaign saga
      */
     public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
-        logger.info("Rollback success - treating as applied event: commandId={}, campaignId={}, validationRuleId={}",
-                commandId, campaignId, validationRuleId);
-        // Rollback success can be handled by campaign saga orchestrator
-        // No need to publish separate event
+        try {
+            logger.info("Publishing rollback success event: commandId={}, campaignId={}, validationRuleId={}",
+                    commandId, campaignId, validationRuleId);
+
+            // Build compensation result
+            ValidationCompensationResultEvent.CompensationResult compensationResult =
+                    ValidationCompensationResultEvent.CompensationResult.builder()
+                            .assignmentId(validationRuleId)
+                            .ruleId(validationRuleId)
+                            .rollbackAction("DEACTIVATE")
+                            .unassignmentId(validationRuleId)
+                            .deactivatedAt(Instant.now())
+                            .build();
+
+            // Build payload
+            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
+                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
+                            .commandId(commandId)
+                            .isSuccess(true)
+                            .compensationStatus("SUCCESS")
+                            .compensationResult(compensationResult)
+                            .processedBy(serviceName)
+                            .processedAt(Instant.now())
+                            .build();
+
+            // Build metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put(CORRELATION_ID_KEY, commandId);
+            metadata.put(SERVICE_NAME_KEY, serviceName);
+            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
+
+            // Build event
+            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationCompensationResultEvent")
+                    .source(serviceName)
+                    .subject(campaignId != null ? campaignId : commandId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(metadata)
+                    .compensationStatus("SUCCESS")
+                    .assignmentId(validationRuleId)
+                    .ruleId(validationRuleId)
+                    .unassignmentId(validationRuleId)
+                    .deactivatedAt(Instant.now())
+                    .build();
+
+            // Publish event
+            String key = campaignId != null ? campaignId : commandId;
+            kafkaUtils.send(eventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationCompensationResultEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
+                                    commandId, campaignId, eventTopic,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
+                        } else {
+                            logger.error("Failed to publish ValidationCompensationResultEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing rollback success event: commandId={}, campaignId={}", commandId, campaignId, e);
+            throw new ValidationException("Failed to publish rollback success event for commandId: " + commandId, e);
+        }
     }
 
     /**
