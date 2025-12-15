@@ -1,10 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ErrorDetail;
 import com.promix.platform.core.exception.BusinessException;
 import com.promix.platform.core.exception.factory.ExceptionFactory;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,7 +16,6 @@ import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Service xử lý DeleteValidationRuleCommand để soft delete validation rule assignments.
@@ -47,21 +43,18 @@ public class DeleteValidationRuleCommandHandler {
     private final ValidationEngineDeploymentService validationEngineClient;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
-    private final Validator validator;
 
     public DeleteValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             ValidationEngineDeploymentService validationEngineClient,
             SettingValidationRuleEventPublisher eventPublisher,
-            IdempotencyService idempotencyService,
-            Validator validator) {
+            IdempotencyService idempotencyService) {
         this.assignmentRepository = assignmentRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.validationEngineClient = validationEngineClient;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
-        this.validator = validator;
     }
 
     /**

@@ -11,7 +11,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repositor
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,6 +34,7 @@ import java.util.List;
 public class DisableValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(DisableValidationRuleCommandHandler.class);
+    private static final String UNKNOWN = "unknown";
 
     private final AssignmentJpaRepository assignmentRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
@@ -270,9 +270,9 @@ public class DisableValidationRuleCommandHandler {
     public void handleDeadLetterCommand(DisableValidationRuleCommand command) {
         logger.error("Processing dead letter DisableValidationRuleCommand: commandId={}, campaignId={}, validationRuleId={}, reason={}",
                 command.getId(),
-                command.getPayload() != null ? command.getPayload().getCampaignId() : "unknown",
-                command.getPayload() != null ? command.getPayload().getValidationRuleId() : "unknown",
-                command.getPayload() != null ? command.getPayload().getDisableReason() : "unknown");
+                command.getPayload() != null ? command.getPayload().getCampaignId() : UNKNOWN,
+                command.getPayload() != null ? command.getPayload().getValidationRuleId() : UNKNOWN,
+                command.getPayload() != null ? command.getPayload().getDisableReason() : UNKNOWN);
 
         publishDisableErrorEvent(
                 command.getId(),

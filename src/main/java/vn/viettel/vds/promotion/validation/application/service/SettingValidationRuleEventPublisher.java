@@ -38,6 +38,7 @@ public class SettingValidationRuleEventPublisher {
     private static final String AGGREGATE_VALIDATION = "Validation";
     private static final String EVENT_TYPE_APPLIED = "ValidationRuleSettingAppliedEvent";
     private static final String EVENT_TYPE_FAILED = "ValidationRuleSettingFailedEvent";
+    private static final String COMPENSATION_STATUS_SUCCESS = "SUCCESS";
 
     private final KafkaUtils kafkaUtils;
     private final CommandMappingService mappingService;
@@ -211,6 +212,7 @@ public class SettingValidationRuleEventPublisher {
      * Publish rollback success event for saga compensation
      * Publishes ValidationCompensationResultEvent to notify campaign saga
      */
+    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
     public void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             logger.info("Publishing rollback success event: commandId={}, campaignId={}, validationRuleId={}",
@@ -231,7 +233,7 @@ public class SettingValidationRuleEventPublisher {
                     ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
                             .commandId(commandId)
                             .isSuccess(true)
-                            .compensationStatus("SUCCESS")
+                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                             .compensationResult(compensationResult)
                             .processedBy(serviceName)
                             .processedAt(Instant.now())
@@ -254,7 +256,7 @@ public class SettingValidationRuleEventPublisher {
                     .version(1)
                     .payload(payload)
                     .metadata(metadata)
-                    .compensationStatus("SUCCESS")
+                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                     .assignmentId(validationRuleId)
                     .ruleId(validationRuleId)
                     .unassignmentId(validationRuleId)
@@ -390,6 +392,7 @@ public class SettingValidationRuleEventPublisher {
      * @param campaignId Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã bị delete
      */
+    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
     public void publishDeleteSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             logger.info("Publishing delete success event: commandId={}, campaignId={}, validationRuleId={}",
@@ -410,7 +413,7 @@ public class SettingValidationRuleEventPublisher {
                     ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
                             .commandId(commandId)
                             .isSuccess(true)
-                            .compensationStatus("SUCCESS")
+                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                             .compensationResult(compensationResult)
                             .processedBy(serviceName)
                             .processedAt(Instant.now())
@@ -433,7 +436,7 @@ public class SettingValidationRuleEventPublisher {
                     .version(1)
                     .payload(payload)
                     .metadata(metadata)
-                    .compensationStatus("SUCCESS")
+                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                     .assignmentId(validationRuleId)
                     .ruleId(validationRuleId)
                     .unassignmentId(validationRuleId)
@@ -487,6 +490,7 @@ public class SettingValidationRuleEventPublisher {
      * @param campaignId Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã được enable
      */
+    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
     public void publishEnableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             logger.info("Publishing enable success event: commandId={}, campaignId={}, validationRuleId={}",
@@ -507,7 +511,7 @@ public class SettingValidationRuleEventPublisher {
                     ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
                             .commandId(commandId)
                             .isSuccess(true)
-                            .compensationStatus("SUCCESS")
+                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                             .compensationResult(compensationResult)
                             .processedBy(serviceName)
                             .processedAt(Instant.now())
@@ -530,7 +534,7 @@ public class SettingValidationRuleEventPublisher {
                     .version(1)
                     .payload(payload)
                     .metadata(metadata)
-                    .compensationStatus("SUCCESS")
+                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                     .assignmentId(validationRuleId)
                     .ruleId(validationRuleId)
                     .unassignmentId(validationRuleId)
@@ -583,6 +587,7 @@ public class SettingValidationRuleEventPublisher {
      * @param campaignId Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã được disable
      */
+    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
     public void publishDisableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             logger.info("Publishing disable success event: commandId={}, campaignId={}, validationRuleId={}",
@@ -603,7 +608,7 @@ public class SettingValidationRuleEventPublisher {
                     ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
                             .commandId(commandId)
                             .isSuccess(true)
-                            .compensationStatus("SUCCESS")
+                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                             .compensationResult(compensationResult)
                             .processedBy(serviceName)
                             .processedAt(Instant.now())
@@ -626,7 +631,7 @@ public class SettingValidationRuleEventPublisher {
                     .version(1)
                     .payload(payload)
                     .metadata(metadata)
-                    .compensationStatus("SUCCESS")
+                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
                     .assignmentId(validationRuleId)
                     .ruleId(validationRuleId)
                     .unassignmentId(validationRuleId)

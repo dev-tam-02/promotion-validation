@@ -11,8 +11,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repositor
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand.EnableValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 
 import java.time.Instant;
 import java.util.List;
