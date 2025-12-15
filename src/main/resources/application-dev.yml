@@ -217,7 +217,7 @@ promix:
         fetch-max-bytes: 52428800
         fetch-max-wait: 500
         isolation-level: read_committed
-        concurrency: 3
+        concurrency: 12
         batch-listener: false
         ack-mode: MANUAL_IMMEDIATE
         session-timeout: 30000
