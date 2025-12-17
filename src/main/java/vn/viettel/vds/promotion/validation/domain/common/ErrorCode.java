@@ -39,7 +39,7 @@ public enum ErrorCode {
 
     // Assignment errors (22xx)
     ASSIGNMENT_NOT_FOUND("VAL-2200", "Assignment not found", 404),
-    ASSIGNMENT_ALREADY_EXISTS("VAL-2201", "Assignment already exists", 409),
+    DUPLICATE_ASSIGNMENT_VALIDATION_RULE("VAL-2201", "Assignment already exists", 409),
     ASSIGNMENT_INVALID_CONFIG("VAL-2202", "Assignment configuration is invalid", 400),
     MISSING_CAMPAIGN_ID("VAL-2203", "Campaign ID is required", 400),
     MISSING_ASSIGN_RULE("VAL-2204", "Assignment rule data is required", 400),

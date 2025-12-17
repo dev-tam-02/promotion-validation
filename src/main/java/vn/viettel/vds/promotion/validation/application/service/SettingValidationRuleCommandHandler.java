@@ -325,7 +325,7 @@ public class SettingValidationRuleCommandHandler {
 
         // Check duplicate assignment for same objectType and objectId
         if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, objectId)) {
-            return Result.failure(ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+            return Result.failure(ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE,
                     "Assignment already exists for objectType=" + objectType + ", objectId=" + objectId);
         }
 
