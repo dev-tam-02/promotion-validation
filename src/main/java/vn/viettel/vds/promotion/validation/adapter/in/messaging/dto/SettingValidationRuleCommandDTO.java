@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -79,6 +80,7 @@ public class SettingValidationRuleCommandDTO {
     @NotNull(message = "OBJECT_TYPE_REQUIRED", groups = RequiredCheck.class)
     @NotBlank(message = "OBJECT_TYPE_EMPTY", groups = EmptyCheck.class)
     @Size(max = 10, message = "OBJECT_TYPE_LENGTH_EXCEEDED", groups = LengthCheck.class)
+    @Pattern(regexp = "^[a-zA-Z0-9-]+$", message = "OBJECT_TYPE_INVALID", groups = FormatCheck.class)
     private String objectType;
 
     @NotNull(message = "OBJECT_ID_REQUIRED", groups = RequiredCheck.class)
