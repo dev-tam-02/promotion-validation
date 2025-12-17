@@ -70,10 +70,8 @@ public class SettingValidationRuleCommandDTO {
     /**
      * Rule ID is optional. If provided, validates empty, length (max 36) and format (UUID).
      */
-    @Size.List({
-        @Size(min = 1, message = "RULE_ID_EMPTY", groups = EmptyCheck.class),
-        @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
-    })
+    @Size(min = 1, message = "RULE_ID_EMPTY", groups = EmptyCheck.class)
+    @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "RULE_ID_INVALID", groups = FormatCheck.class)
     private String ruleId;
 
