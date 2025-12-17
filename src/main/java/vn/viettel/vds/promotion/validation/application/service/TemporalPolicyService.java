@@ -340,7 +340,9 @@ public class TemporalPolicyService {
             }
         }
 
-        logger.info("Found {} temporal policies for objectType={}, objectId={}", result.size(), objectType, objectId);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Found {} temporal policies for objectType={}, objectId={}", result.size(), objectType, objectId);
+        }
         return result;
     }
 

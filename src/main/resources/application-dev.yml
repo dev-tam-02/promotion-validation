@@ -116,6 +116,9 @@ promix:
   # Observer Configuration (Tracing, Logging, Metrics)
   observer:
     enabled: true
+    logging:
+      request-response:
+        enabled: false  # Disable request/response logging
     tracing:
       enabled: true
       service-name: ${spring.application.name}

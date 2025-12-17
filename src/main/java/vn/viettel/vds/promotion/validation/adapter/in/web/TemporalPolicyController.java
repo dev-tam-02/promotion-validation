@@ -83,8 +83,6 @@ public class TemporalPolicyController {
             @Parameter(description = "Comma-separated list of object IDs", required = true)
             @RequestParam String objectIds) {
 
-        logger.info("GET /v1/temporal-policies/batch - objectType={}, objectIds={}", objectType, objectIds);
-
         String[] ids = objectIds.split(",");
         java.util.Map<String, List<TemporalPolicyResponse>> result = new java.util.HashMap<>();
 
