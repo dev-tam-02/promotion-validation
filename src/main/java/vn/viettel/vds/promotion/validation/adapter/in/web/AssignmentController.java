@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.web.annotation.ResponseCode;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -8,11 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.DeleteAssignmentRequest;
-import vn.viettel.vds.promotion.validation.adapter.in.web.dto.DeleteAssignmentResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationGroups;
 import vn.viettel.vds.promotion.validation.application.service.AssignmentService;
 
@@ -49,8 +48,8 @@ public class AssignmentController {
      * 5. Soft delete: update deleted_at, deleted_by, version+1
      * 6. Insert into validation_rules_assignment_deleted
      *
-     * @param request   the delete assignment request containing validation_rule_id and object_id
-     * @param userId    the user performing the deletion
+     * @param request the delete assignment request containing validation_rule_id and object_id
+     * @param userId  the user performing the deletion
      * @return DeleteAssignmentResponse with success code and message
      */
     @Operation(
@@ -64,8 +63,8 @@ public class AssignmentController {
             @ApiResponse(responseCode = "404", description = "Validation rule, object, or assignment not found")
     })
     @DeleteMapping
-    @ResponseStatus(HttpStatus.OK)
-    public DeleteAssignmentResponse deleteAssignment(
+    @ResponseCode(code = "DELETED_ASSIGNMENT_VALIDATION_SUCCESS")
+    public void deleteAssignment(
             @Validated(ValidationGroups.OrderedChecks.class) @RequestBody DeleteAssignmentRequest request,
             @Parameter(description = "User making the request")
             @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
@@ -82,7 +81,5 @@ public class AssignmentController {
                 validationRuleId, objectId, userId);
 
         logger.info("Assignment deleted successfully: assignmentId={}", deletedAssignmentId);
-
-        return DeleteAssignmentResponse.success(deletedAssignmentId);
     }
 }
