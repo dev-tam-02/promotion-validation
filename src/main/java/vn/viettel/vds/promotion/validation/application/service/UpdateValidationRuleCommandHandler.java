@@ -128,7 +128,7 @@ public class UpdateValidationRuleCommandHandler {
                         .orElseThrow(() -> {
                             logger.error("Assignment not found: assignmentId={}", payloadAssignmentId);
                             return ExceptionFactory.createValidationException(
-                                    ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                                    ErrorCode.ASSIGNMENT_VALIDATION_NOT_FOUND.name(),
                                     "Assignment not found: " + payloadAssignmentId
                             );
                         });
@@ -142,7 +142,7 @@ public class UpdateValidationRuleCommandHandler {
                 if (assignments.isEmpty()) {
                     logger.error("Assignment not found: objectType={}, objectId={}", objectType, objectId);
                     throw ExceptionFactory.createValidationException(
-                            ErrorCode.ASSIGNMENT_NOT_FOUND.name(),
+                            ErrorCode.ASSIGNMENT_VALIDATION_NOT_FOUND.name(),
                             "Assignment not found: objectType=" + objectType + ", objectId=" + objectId
                     );
                 }
@@ -279,7 +279,7 @@ public class UpdateValidationRuleCommandHandler {
                 // Validate rule exists
                 if (!validationRuleRepository.existsById(payload.getRuleId())) {
                     return UpdateProcessingResult.failure(
-                            ErrorCode.RULE_NOT_FOUND.name(),
+                            ErrorCode.VALIDATION_RULE_NOT_FOUND.name(),
                             "Validation rule not found: " + payload.getRuleId()
                     );
                 }

@@ -90,7 +90,7 @@ public class RevertValidationRuleCommandHandler {
                     .orElseThrow(() -> {
                         log.error("Validation rule not found: ruleId={}", validationRuleId);
                         return ExceptionFactory.createValidationException(
-                                "RULE_NOT_FOUND",
+                                "VALIDATION_RULE_NOT_FOUND",
                                 "Validation rule not found: " + validationRuleId);
                     });
 

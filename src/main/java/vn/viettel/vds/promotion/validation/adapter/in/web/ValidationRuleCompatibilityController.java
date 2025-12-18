@@ -59,7 +59,7 @@ public class ValidationRuleCompatibilityController {
                 }
                 return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
                         request.ruleId(),
-                        "RULE_NOT_FOUND",
+                        "VALIDATION_RULE_NOT_FOUND",
                         "Validation rule not found: " + request.ruleId()
                 ));
             }

@@ -28,8 +28,7 @@ public enum ErrorCode {
     VALIDATION_FAILED("VAL-2004", "Validation failed", 400),
 
     // Rule-specific errors (21xx)
-    RULE_NOT_FOUND("VAL-2100", "Rule not found", 404),
-    RULE_ALREADY_EXISTS("VAL-2101", "Rule already exists", 409),
+    RULE_ALREADY_EXISTS("VAL-2100", "Rule already exists", 409),
     RULE_INVALID_STATE("VAL-2102", "Rule is in invalid state for this operation", 400),
     RULE_MISSING_APPLICABILITY_NODE("VAL-2103", "Rule must contain product.applicability.in condition", 400),
     RULE_EVALUATION_ERROR("VAL-2104", "Rule evaluation failed", 500),
@@ -38,8 +37,7 @@ public enum ErrorCode {
     RULE_DUPLICATE_CODE("VAL-2107", "Rule code already exists", 409),
 
     // Assignment errors (22xx)
-    ASSIGNMENT_NOT_FOUND("VAL-2200", "Assignment not found", 404),
-    DUPLICATE_ASSIGNMENT_VALIDATION_RULE("VAL-2201", "Assignment already exists", 409),
+    DUPLICATE_ASSIGNMENT_VALIDATION_RULE("VAL-2200", "Assignment already exists", 409),
     ASSIGNMENT_INVALID_CONFIG("VAL-2202", "Assignment configuration is invalid", 400),
     MISSING_CAMPAIGN_ID("VAL-2203", "Campaign ID is required", 400),
     MISSING_ASSIGN_RULE("VAL-2204", "Assignment rule data is required", 400),
