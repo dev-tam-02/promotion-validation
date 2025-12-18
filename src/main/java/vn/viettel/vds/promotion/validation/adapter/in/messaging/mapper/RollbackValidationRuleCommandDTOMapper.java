@@ -30,22 +30,22 @@ public class RollbackValidationRuleCommandDTOMapper {
         var payload = command.getPayload();
 
         RollbackValidationRuleCommandDTO dto = RollbackValidationRuleCommandDTO.builder()
-            // Map envelope fields
-            .id(command.getId())
-            .type(command.getType())
-            .source(command.getSource())
-            .subject(command.getSubject())
-            // Map payload fields requiring validation
-            .campaignId(payload.getCampaignId())
-            .validationRuleId(payload.getValidationRuleId())
-            .rollbackAll(payload.getRollbackAll())
-            // Map optional fields (no validation)
-            .rollbackReason(payload.getRollbackReason())
-            .correlationId(payload.getCorrelationId())
-            .build();
+                // Map envelope fields
+                .id(command.getId())
+                .type(command.getType())
+                .source(command.getSource())
+                .subject(command.getSubject())
+                // Map payload fields requiring validation
+                .campaignId(payload.getCampaignId())
+                .validationRuleId(payload.getValidationRuleId())
+                .rollbackAll(payload.getRollbackAll())
+                // Map optional fields (no validation)
+                .rollbackReason(payload.getRollbackReason())
+                .correlationId(payload.getCorrelationId())
+                .build();
 
         log.debug("Mapped RollbackValidationRuleCommand to DTO: commandId={}, campaignId={}, validationRuleId={}",
-            command.getId(), payload.getCampaignId(), payload.getValidationRuleId());
+                command.getId(), payload.getCampaignId(), payload.getValidationRuleId());
 
         return dto;
     }

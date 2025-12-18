@@ -63,7 +63,7 @@ public interface AssignmentPersistencePort {
      * - Delete from assignments table
      *
      * @param assignment the assignment to delete
-     * @param deletedBy the user performing the deletion
+     * @param deletedBy  the user performing the deletion
      * @return the ID of the deleted assignment
      */
     String softDeleteAssignment(Assignment assignment, String deletedBy);

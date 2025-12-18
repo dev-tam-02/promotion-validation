@@ -7,10 +7,10 @@ import java.time.Instant;
 
 /**
  * Entity for storing assignment snapshots for saga compensation.
- *
+ * <p>
  * This entity stores a complete JSON snapshot of the assignment aggregate
  * (assignment + applicability rules + temporal links) before an update operation.
- *
+ * <p>
  * When a saga needs to compensate/revert, it can restore the aggregate
  * from this snapshot using the targetVersion.
  */

@@ -9,7 +9,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEng
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.BundleWarmupException;
@@ -19,11 +18,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @Transactional
@@ -60,7 +55,7 @@ public class RulePublishingService {
     }
 
     public RulePublishResult publishRule(String ruleId, String assignmentId,
-                                        vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+                                         vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
         logger.info("Publishing rule: ruleId={}, assignmentId={}, hasApplicability={}",
                 ruleId, assignmentId, applicableToData != null);
 
@@ -88,11 +83,11 @@ public class RulePublishingService {
      * Creates DRL bundle containing only:
      * - Product applicability node (from applicableToData)
      * - Temporal policy constraints (from timeframe linked to assignment)
-     *
+     * <p>
      * Use case: Campaign assigns applicableTo + timeframe but no validation rule
      *
-     * @param assignmentId Assignment identifier (used as bundle key)
-     * @param applicableToData Applicability scope with included/excluded products (can be null)
+     * @param assignmentId      Assignment identifier (used as bundle key)
+     * @param applicableToData  Applicability scope with included/excluded products (can be null)
      * @param hasTemporalPolicy Whether assignment has temporal policy
      * @return RulePublishResult with bundleHash if successful
      */
@@ -540,12 +535,12 @@ public class RulePublishingService {
     /**
      * Build full node list by merging existing nodes + dynamic product applicability node
      *
-     * @param rule Rule entity with existing nodes
+     * @param rule             Rule entity with existing nodes
      * @param applicableToData Applicability scope data (can be null)
      * @return Full list of RuleNodeDto including dynamic nodes
      */
     private List<RuleNodeDto> buildFullNodeList(Rule rule,
-                                                 vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+                                                vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
         // Convert existing nodes to DTOs
         List<RuleNodeDto> nodeDtos = convertToNodeDtos(rule.getNodes());
 
@@ -627,7 +622,7 @@ public class RulePublishingService {
     /**
      * Add product node ID to root node's children list
      *
-     * @param nodeDtos List of all nodes
+     * @param nodeDtos      List of all nodes
      * @param productNodeId ID of the product applicability node to add
      */
     private void addProductNodeToRootChildren(List<RuleNodeDto> nodeDtos, String productNodeId) {

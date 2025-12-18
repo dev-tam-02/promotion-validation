@@ -30,26 +30,26 @@ public class UpdateValidationRuleCommandDTOMapper {
         var payload = command.getPayload();
 
         UpdateValidationRuleCommandDTO dto = UpdateValidationRuleCommandDTO.builder()
-            // Map envelope fields
-            .id(command.getId())
-            .type(command.getType())
-            .source(command.getSource())
-            .subject(command.getSubject())
-            // Map payload fields requiring validation
-            .assignmentId(payload.getAssignmentId())
-            .ruleId(payload.getRuleId())
-            .objectType(payload.getObjectType())
-            .objectId(payload.getObjectId())
-            .active(payload.getActive())
-            .trafficPercent(payload.getTrafficPercent())
-            .priority(payload.getPriority())
-            .notes(payload.getNotes())
-            .updatedBy(payload.getUpdatedBy())
-            .reason(payload.getReason())
-            .build();
+                // Map envelope fields
+                .id(command.getId())
+                .type(command.getType())
+                .source(command.getSource())
+                .subject(command.getSubject())
+                // Map payload fields requiring validation
+                .assignmentId(payload.getAssignmentId())
+                .ruleId(payload.getRuleId())
+                .objectType(payload.getObjectType())
+                .objectId(payload.getObjectId())
+                .active(payload.getActive())
+                .trafficPercent(payload.getTrafficPercent())
+                .priority(payload.getPriority())
+                .notes(payload.getNotes())
+                .updatedBy(payload.getUpdatedBy())
+                .reason(payload.getReason())
+                .build();
 
         log.debug("Mapped UpdateValidationRuleCommand to DTO: commandId={}, assignmentId={}, updatedBy={}",
-            command.getId(), payload.getAssignmentId(), payload.getUpdatedBy());
+                command.getId(), payload.getAssignmentId(), payload.getUpdatedBy());
 
         return dto;
     }

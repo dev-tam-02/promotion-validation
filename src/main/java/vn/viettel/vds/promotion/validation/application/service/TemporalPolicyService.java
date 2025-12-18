@@ -311,7 +311,7 @@ public class TemporalPolicyService {
      * through the assignment-temporal_policy relationship.
      *
      * @param objectType The type of the object/entity (e.g., "CAMPAIGN", "DISCOUNT")
-     * @param objectId The ID of the object/entity
+     * @param objectId   The ID of the object/entity
      * @return List of temporal policies associated with the object
      */
     @Transactional(readOnly = true)
@@ -346,6 +346,28 @@ public class TemporalPolicyService {
         return result;
     }
 
+    /**
+     * Find entity IDs by entity type and time range.
+     * Delegates to the repository to find all entities that have temporal policies
+     * overlapping with the specified time range.
+     *
+     * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
+     * @param startTs    Start timestamp of the query range (nullable)
+     * @param endTs      End timestamp of the query range (nullable)
+     * @return List of distinct entity IDs
+     */
+    @Transactional(readOnly = true)
+    public List<String> findEntityIdsByTypeAndTimeRange(String entityType, Instant startTs, Instant endTs) {
+        logger.info("Finding entity IDs by type and time range: entityType={}, startTs={}, endTs={}",
+                entityType, startTs, endTs);
+
+        List<String> entityIds = ruleTemporalLinkPersistencePort.findEntityIdsByEntityTypeAndTimeRange(
+                entityType, startTs, endTs);
+
+        logger.info("Found {} entity IDs for entityType={}", entityIds.size(), entityType);
+        return entityIds;
+    }
+
     // Time window class for preview results
     public static class TimeWindow {
         private final Instant start;
@@ -363,28 +385,6 @@ public class TemporalPolicyService {
         public Instant getEnd() {
             return end;
         }
-    }
-
-    /**
-     * Find entity IDs by entity type and time range.
-     * Delegates to the repository to find all entities that have temporal policies
-     * overlapping with the specified time range.
-     *
-     * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
-     * @param startTs Start timestamp of the query range (nullable)
-     * @param endTs End timestamp of the query range (nullable)
-     * @return List of distinct entity IDs
-     */
-    @Transactional(readOnly = true)
-    public List<String> findEntityIdsByTypeAndTimeRange(String entityType, Instant startTs, Instant endTs) {
-        logger.info("Finding entity IDs by type and time range: entityType={}, startTs={}, endTs={}",
-                entityType, startTs, endTs);
-
-        List<String> entityIds = ruleTemporalLinkPersistencePort.findEntityIdsByEntityTypeAndTimeRange(
-                entityType, startTs, endTs);
-
-        logger.info("Found {} entity IDs for entityType={}", entityIds.size(), entityType);
-        return entityIds;
     }
 
     /**

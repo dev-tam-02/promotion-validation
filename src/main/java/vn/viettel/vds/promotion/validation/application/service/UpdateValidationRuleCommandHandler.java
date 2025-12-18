@@ -12,23 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentSnapshotEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleSnapshotEntity;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.UpdateValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.UpdateValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTimeFrameEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentApplicabilityRuleJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.TemporalPolicyJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.*;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.TimeFrame;
@@ -711,6 +698,72 @@ public class UpdateValidationRuleCommandHandler {
     }
 
     /**
+     * Publish success event with version info for saga correlation.
+     */
+    private void publishUpdateSuccessEvent(UpdateValidationRuleCommand command, String assignmentId,
+                                           String ruleId, Long currentVersion, Long previousVersion) {
+        try {
+            String eventId = IdGenerator.generateId();
+            UpdateValidationRuleCommandPayload commandPayload = command.getPayload();
+
+            Map<String, String> metadata = new HashMap<>();
+            if (command.getMetadata() != null) {
+                metadata.putAll(command.getMetadata());
+            }
+            metadata.put("commandId", command.getId());
+            metadata.put("source", SOURCE);
+
+            // Build update result with version info
+            ValidationSettingUpdateResultEvent.UpdateResult updateResult =
+                    ValidationSettingUpdateResultEvent.UpdateResult.builder()
+                            .assignmentId(assignmentId)
+                            .ruleId(ruleId)
+                            .currentVersion(currentVersion)
+                            .previousVersion(previousVersion)
+                            .build();
+
+            // Build payload
+            ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload eventPayload =
+                    ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload.builder()
+                            .commandId(command.getId())
+                            .isSuccess(true)
+                            .updateResult(updateResult)
+                            .processedBy(SOURCE)
+                            .processedAt(Instant.now())
+                            .build();
+
+            ValidationSettingUpdateResultEvent event = ValidationSettingUpdateResultEvent.builder()
+                    .id(eventId)
+                    .type("ValidationSettingUpdateResultEvent")
+                    .source(SOURCE)
+                    .subject(commandPayload != null ? commandPayload.getObjectId() : assignmentId)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(eventPayload)
+                    .assignmentId(assignmentId)
+                    .ruleId(ruleId)
+                    .metadata(metadata)
+                    .build();
+
+            String key = commandPayload != null ? commandPayload.getObjectId() : assignmentId;
+            kafkaTemplate.send(validationEventTopic, key, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            logger.error("Failed to publish ValidationSettingUpdateResultEvent: assignmentId={}",
+                                    assignmentId, ex);
+                        } else {
+                            logger.info("Published ValidationSettingUpdateResultEvent: eventId={}, " +
+                                            "assignmentId={}, currentVersion={}, previousVersion={}",
+                                    eventId, assignmentId, currentVersion, previousVersion);
+                        }
+                    });
+
+        } catch (Exception e) {
+            logger.error("Error publishing ValidationSettingUpdateResultEvent: assignmentId={}", assignmentId, e);
+        }
+    }
+
+    /**
      * Result wrapper for update processing
      */
     public static class UpdateProcessingResult {
@@ -721,7 +774,7 @@ public class UpdateValidationRuleCommandHandler {
         private final String ruleId;
 
         private UpdateProcessingResult(boolean success, String errorCode, String errorMessage,
-                                        String assignmentId, String ruleId) {
+                                       String assignmentId, String ruleId) {
             this.success = success;
             this.errorCode = errorCode;
             this.errorMessage = errorMessage;
@@ -786,72 +839,6 @@ public class UpdateValidationRuleCommandHandler {
 
         public String getRuleId() {
             return ruleId;
-        }
-    }
-
-    /**
-     * Publish success event with version info for saga correlation.
-     */
-    private void publishUpdateSuccessEvent(UpdateValidationRuleCommand command, String assignmentId,
-                                            String ruleId, Long currentVersion, Long previousVersion) {
-        try {
-            String eventId = IdGenerator.generateId();
-            UpdateValidationRuleCommandPayload commandPayload = command.getPayload();
-
-            Map<String, String> metadata = new HashMap<>();
-            if (command.getMetadata() != null) {
-                metadata.putAll(command.getMetadata());
-            }
-            metadata.put("commandId", command.getId());
-            metadata.put("source", SOURCE);
-
-            // Build update result with version info
-            ValidationSettingUpdateResultEvent.UpdateResult updateResult =
-                    ValidationSettingUpdateResultEvent.UpdateResult.builder()
-                            .assignmentId(assignmentId)
-                            .ruleId(ruleId)
-                            .currentVersion(currentVersion)
-                            .previousVersion(previousVersion)
-                            .build();
-
-            // Build payload
-            ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload eventPayload =
-                    ValidationSettingUpdateResultEvent.ValidationSettingUpdatePayload.builder()
-                            .commandId(command.getId())
-                            .isSuccess(true)
-                            .updateResult(updateResult)
-                            .processedBy(SOURCE)
-                            .processedAt(Instant.now())
-                            .build();
-
-            ValidationSettingUpdateResultEvent event = ValidationSettingUpdateResultEvent.builder()
-                    .id(eventId)
-                    .type("ValidationSettingUpdateResultEvent")
-                    .source(SOURCE)
-                    .subject(commandPayload != null ? commandPayload.getObjectId() : assignmentId)
-                    .occurredAt(Instant.now())
-                    .version(1)
-                    .payload(eventPayload)
-                    .assignmentId(assignmentId)
-                    .ruleId(ruleId)
-                    .metadata(metadata)
-                    .build();
-
-            String key = commandPayload != null ? commandPayload.getObjectId() : assignmentId;
-            kafkaTemplate.send(validationEventTopic, key, event)
-                    .whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            logger.error("Failed to publish ValidationSettingUpdateResultEvent: assignmentId={}",
-                                    assignmentId, ex);
-                        } else {
-                            logger.info("Published ValidationSettingUpdateResultEvent: eventId={}, " +
-                                            "assignmentId={}, currentVersion={}, previousVersion={}",
-                                    eventId, assignmentId, currentVersion, previousVersion);
-                        }
-                    });
-
-        } catch (Exception e) {
-            logger.error("Error publishing ValidationSettingUpdateResultEvent: assignmentId={}", assignmentId, e);
         }
     }
 }

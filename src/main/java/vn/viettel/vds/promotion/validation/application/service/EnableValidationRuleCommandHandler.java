@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  * Service xử lý EnableValidationRuleCommand để enable validation rule assignments.
- *
+ * <p>
  * Chức năng chính:
  * - Validate command từ Kafka
  * - Tìm và enable (set active = true) assignments theo campaignId + validationRuleId
@@ -54,7 +54,7 @@ public class EnableValidationRuleCommandHandler {
 
     /**
      * Xử lý enable command từ campaign service.
-     *
+     * <p>
      * Logic flow:
      * 1. Kiểm tra idempotency - nếu đã xử lý thì return true ngay
      * 2. Validate command payload
@@ -121,7 +121,7 @@ public class EnableValidationRuleCommandHandler {
 
         } catch (BusinessException e) {
             logger.error("Validation failed for EnableValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage(), e);
+                    commandId, e.getMessage(), e);
             throw e; // NOSONAR - Exception được log đầy đủ trước khi rethrow
         } catch (Exception e) {
             logger.error("Unexpected error processing EnableValidationRuleCommand: commandId={}", commandId, e);
@@ -141,8 +141,8 @@ public class EnableValidationRuleCommandHandler {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Command or payload is null"
+                    "INVALID_COMMAND",
+                    "Command or payload is null"
             );
         }
 
@@ -162,7 +162,7 @@ public class EnableValidationRuleCommandHandler {
     /**
      * Thực thi logic enable assignment.
      *
-     * @param campaignId Campaign ID
+     * @param campaignId       Campaign ID
      * @param validationRuleId Assignment ID cần enable
      * @return true nếu thành công, false nếu thất bại
      */

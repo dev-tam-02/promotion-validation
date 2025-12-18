@@ -8,21 +8,8 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.application.service.DeleteValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.DisableValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.EnableValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.RevertValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.RollbackValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.SettingValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.application.service.UpdateValidationRuleCommandHandler;
-import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
-import vn.viettel.vds.promotion.validation.command.ValidationRuleCommand;
+import vn.viettel.vds.promotion.validation.application.service.*;
+import vn.viettel.vds.promotion.validation.command.*;
 
 /**
  * Unified Kafka consumer for ValidationRuleCommand with type-based routing.
@@ -93,7 +80,7 @@ public class ValidationRuleCommandConsumer {
      *     default -> handleUnknown(command);
      * }
      * }</pre>
-     *
+     * <p>
      * Error handling strategy:
      * - Let exceptions propagate naturally to promix-messaging
      * - No try-catch - framework handles error classification
@@ -119,7 +106,7 @@ public class ValidationRuleCommandConsumer {
             Acknowledgment acknowledgment) {
 
         logger.info("Received command from topic={}, partition={}, offset={}",
-            topic, partition, offset);
+                topic, partition, offset);
 
         // Null check - deserialization can fail and return null
         if (command == null) {
@@ -128,7 +115,7 @@ public class ValidationRuleCommandConsumer {
         }
 
         logger.debug("Processing command: commandId={}, type={}, offset={}",
-            command.getId(), command.getType(), offset);
+                command.getId(), command.getType(), offset);
 
         // Type-based routing using Java 21 pattern matching
         // Handlers now throw BusinessException with error code if processing fails
@@ -145,7 +132,7 @@ public class ValidationRuleCommandConsumer {
         }
 
         logger.debug("Successfully processed command: commandId={}, offset={}",
-            command.getId(), offset);
+                command.getId(), offset);
 
         // Acknowledge message after successful processing
         acknowledgment.acknowledge();
@@ -246,7 +233,7 @@ public class ValidationRuleCommandConsumer {
             Acknowledgment acknowledgment) {
 
         logger.warn("Received message from dead letter queue: topic={}, partition={}, offset={}",
-            topic, partition, offset);
+                topic, partition, offset);
 
         // Skip null/tombstone messages in DLQ
         if (command == null) {
@@ -256,7 +243,7 @@ public class ValidationRuleCommandConsumer {
         }
 
         logger.warn("Processing DLQ message: commandId={}, type={}, offset={}",
-            command.getId(), command.getType(), offset);
+                command.getId(), command.getType(), offset);
 
         try {
             // Log the failed command for manual investigation

@@ -12,18 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTimeFrameEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyWindowEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentApplicabilityRuleJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTimeFrameJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.TemporalPolicyJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.*;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
@@ -139,7 +129,7 @@ public class SettingValidationRuleCommandHandler {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it
             // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
             logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage(), e);
+                    commandId, e.getMessage(), e);
             throw e; // NOSONAR - Exception is logged before rethrowing for proper error tracking
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
@@ -152,7 +142,7 @@ public class SettingValidationRuleCommandHandler {
 
     /**
      * Validate command using Bean Validation annotations on DTO.
-     *
+     * <p>
      * Validation flow:
      * 1. Check command and payload not null
      * 2. Convert command to DTO
@@ -167,8 +157,8 @@ public class SettingValidationRuleCommandHandler {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Command or payload is null"
+                    "INVALID_COMMAND",
+                    "Command or payload is null"
             );
         }
 
@@ -177,8 +167,8 @@ public class SettingValidationRuleCommandHandler {
         if (dto == null) {
             logger.error("Failed to convert command to DTO: commandId={}", command.getId());
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Failed to convert command to DTO"
+                    "INVALID_COMMAND",
+                    "Failed to convert command to DTO"
             );
         }
 
@@ -189,24 +179,24 @@ public class SettingValidationRuleCommandHandler {
         if (!violations.isEmpty()) {
             // Build ErrorDetail list from all violations
             List<ErrorDetail> errorDetails = violations.stream()
-                .map(violation -> ErrorDetail.of(
-                    violation.getPropertyPath().toString(),  // field
-                    violation.getMessage(),                  // errorCode (from annotation)
-                    String.format("Invalid value: %s", violation.getInvalidValue()),  // message
-                    violation.getInvalidValue()             // details
-                ))
-                .toList();
+                    .map(violation -> ErrorDetail.of(
+                            violation.getPropertyPath().toString(),  // field
+                            violation.getMessage(),                  // errorCode (from annotation)
+                            String.format("Invalid value: %s", violation.getInvalidValue()),  // message
+                            violation.getInvalidValue()             // details
+                    ))
+                    .toList();
 
             // Build summary error message
             String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
 
             logger.error("SettingValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
-                command.getId(), violations.size(), errorDetails);
+                    command.getId(), violations.size(), errorDetails);
 
             throw ExceptionFactory.createValidationException(
-                "METHOD_ARGUMENT_NOT_VALID",
-                errorMessage,
-                errorDetails.toArray(new ErrorDetail[0])
+                    "METHOD_ARGUMENT_NOT_VALID",
+                    errorMessage,
+                    errorDetails.toArray(new ErrorDetail[0])
             );
         }
 
@@ -383,7 +373,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Process timeframe configuration - ENHANCED version
      * Creates TemporalPolicy, TemporalPolicyWindows, and RuleTemporalLink
-     *
+     * <p>
      * FIXED: Link temporal policy with assignment instead of validation rule
      * Rationale: Temporal constraints are assignment-specific, not rule-specific
      */
@@ -460,7 +450,7 @@ public class SettingValidationRuleCommandHandler {
                     assignment.getId(), assignment.getRuleId(), e.getMessage(), e);
             throw new TimeframeProcessingException( // NOSONAR - Exception is logged and wrapped with contextual information
                     "Failed to process timeframe for assignmentId=" + assignment.getId() +
-                    ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
+                            ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
         }
     }
 
@@ -468,7 +458,7 @@ public class SettingValidationRuleCommandHandler {
      * Save applicability rules (included/excluded products, collections, SKUs) for an assignment.
      * Persists ApplicabilityScope data to assignment_applicability_rules table.
      *
-     * @param assignmentEntity The assignment entity
+     * @param assignmentEntity   The assignment entity
      * @param applicabilityScope The applicability scope containing included/excluded rules
      */
     private void saveApplicabilityRules(AssignmentEntity assignmentEntity, ApplicabilityScope applicabilityScope) {
@@ -617,7 +607,7 @@ public class SettingValidationRuleCommandHandler {
      * Create TemporalPolicyWindow entities for validity hours per day
      */
     private void createTemporalPolicyWindows(TemporalPolicyEntity temporalPolicy,
-                                            List<SettingValidationRuleCommand.ValidityHoursPerDay> validityHours) {
+                                             List<SettingValidationRuleCommand.ValidityHoursPerDay> validityHours) {
         for (var hours : validityHours) {
             TemporalPolicyWindowEntity window = new TemporalPolicyWindowEntity();
             window.setId(IdGenerator.generateId());
@@ -685,10 +675,10 @@ public class SettingValidationRuleCommandHandler {
      * ENHANCED: Also re-deploys if assignment has temporal policy to ensure temporal constraints are sent to validation-engine
      * FIXED: When ruleId is null/empty but has applicableTo or timeframe, still deploy bundle with these constraints
      *
-     * @param assignmentEntity Assignment entity (to update temporal_bundle_hash after deployment)
-     * @param ruleId Rule identifier (can be null)
+     * @param assignmentEntity  Assignment entity (to update temporal_bundle_hash after deployment)
+     * @param ruleId            Rule identifier (can be null)
      * @param hasTemporalPolicy Whether assignment has temporal policy (passed directly to avoid @Transactional timing issues)
-     * @param applicableToData Applicability scope data to create product applicability node dynamically
+     * @param applicableToData  Applicability scope data to create product applicability node dynamically
      */
     private void deployRuleToEngine(AssignmentEntity assignmentEntity,
                                     String ruleId,

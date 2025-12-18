@@ -8,7 +8,7 @@ import java.time.Instant;
 /**
  * Domain model representing a link between an assignment and a temporal policy.
  * This is a pure domain object without persistence concerns.
- *
+ * <p>
  * FIXED: Changed from linking validation rules to linking assignments
  * Rationale: Temporal constraints are assignment-specific, not rule-specific
  */

@@ -13,7 +13,7 @@ import java.util.Optional;
 
 /**
  * Repository for managing assignment snapshots.
- *
+ * <p>
  * Used for saga compensation - storing and retrieving assignment snapshots
  * to enable version-based rollback during saga failures.
  */

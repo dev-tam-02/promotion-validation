@@ -20,7 +20,7 @@ import java.util.Optional;
 
 /**
  * Service for managing assignment snapshots.
- *
+ * <p>
  * This service handles:
  * - Creating snapshots before update/delete operations
  * - Restoring assignments from snapshots during saga compensation
@@ -31,6 +31,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AssignmentSnapshotService {
 
+    private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
     private final AssignmentSnapshotRepository snapshotRepository;
     private final AssignmentJpaRepository assignmentRepository;
     private final AssignmentApplicabilityRuleJpaRepository applicabilityRuleRepository;
@@ -38,15 +39,13 @@ public class AssignmentSnapshotService {
     private final TemporalPolicyJpaRepository temporalPolicyRepository;
     private final ObjectMapper objectMapper;
 
-    private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
-
     /**
      * Create a snapshot of the current assignment state before modification.
      *
-     * @param assignmentId the assignment ID to snapshot
-     * @param sagaId the saga ID (for correlation during compensation)
+     * @param assignmentId  the assignment ID to snapshot
+     * @param sagaId        the saga ID (for correlation during compensation)
      * @param correlationId the correlation ID
-     * @param reason the reason for creating the snapshot
+     * @param reason        the reason for creating the snapshot
      * @return the created snapshot entity with version info
      */
     @Transactional
@@ -104,7 +103,7 @@ public class AssignmentSnapshotService {
     /**
      * Restore an assignment from a snapshot.
      *
-     * @param assignmentId the assignment ID to restore
+     * @param assignmentId  the assignment ID to restore
      * @param targetVersion the version to restore to
      * @return the restored assignment entity
      */
@@ -267,7 +266,7 @@ public class AssignmentSnapshotService {
      * Restore an AssignmentEntity from snapshot data.
      */
     private void restoreAssignmentFromSnapshotData(AssignmentEntity assignment,
-                                                    AssignmentSnapshotData snapshotData) {
+                                                   AssignmentSnapshotData snapshotData) {
         // Restore basic info
         assignment.setEntityType(snapshotData.getEntityType());
         assignment.setEntityId(snapshotData.getEntityId());

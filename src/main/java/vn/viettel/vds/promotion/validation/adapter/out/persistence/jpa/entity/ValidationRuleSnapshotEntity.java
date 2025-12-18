@@ -7,13 +7,13 @@ import java.time.Instant;
 
 /**
  * Entity for storing validation rule snapshots for saga compensation.
- *
+ * <p>
  * This entity stores a complete JSON snapshot of the validation rule aggregate
  * (rule + nodes + limits + timeframes) before an update operation.
- *
+ * <p>
  * When a saga needs to compensate/revert, it can restore the aggregate
  * from this snapshot using the targetVersion.
- *
+ * <p>
  * Key design decisions:
  * - JSON storage: Flexible schema, handles all related entities in one document
  * - Version-based: Each snapshot tied to a specific version number

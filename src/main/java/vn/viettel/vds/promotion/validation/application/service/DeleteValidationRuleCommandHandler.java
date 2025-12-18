@@ -19,13 +19,13 @@ import java.util.List;
 
 /**
  * Service xử lý DeleteValidationRuleCommand để soft delete validation rule assignments.
- *
+ * <p>
  * Chức năng chính:
  * - Validate command từ Kafka
  * - Tìm và soft delete (set active = false) các assignments theo campaignId
  * - Undeploy rules khỏi validation-engine
  * - Publish events thông báo kết quả
- *
+ * <p>
  * Lưu ý: Đây là soft delete, không xóa vật lý khỏi database
  *
  * @author Validation Team
@@ -59,7 +59,7 @@ public class DeleteValidationRuleCommandHandler {
 
     /**
      * Xử lý delete command từ campaign service.
-     *
+     * <p>
      * Logic flow:
      * 1. Kiểm tra idempotency - nếu đã xử lý thì return true ngay
      * 2. Validate command payload
@@ -132,7 +132,7 @@ public class DeleteValidationRuleCommandHandler {
             // Re-throw BusinessException (validation errors) để promix-messaging xử lý
             // BusinessException với BAD_REQUEST → DLQ ngay lập tức (non-retryable)
             logger.error("Validation failed for DeleteValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage(), e);
+                    commandId, e.getMessage(), e);
             throw e; // NOSONAR - Exception được log đầy đủ trước khi rethrow
         } catch (Exception e) {
             logger.error("Unexpected error processing DeleteValidationRuleCommand: commandId={}", commandId, e);
@@ -144,7 +144,7 @@ public class DeleteValidationRuleCommandHandler {
 
     /**
      * Validate command sử dụng Bean Validation annotations.
-     *
+     * <p>
      * Validation flow:
      * 1. Kiểm tra command và payload not null
      * 2. Run Bean Validation
@@ -158,8 +158,8 @@ public class DeleteValidationRuleCommandHandler {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Command or payload is null"
+                    "INVALID_COMMAND",
+                    "Command or payload is null"
             );
         }
 
@@ -170,8 +170,8 @@ public class DeleteValidationRuleCommandHandler {
         if (command.getPayload().getCampaignId() == null || command.getPayload().getCampaignId().isBlank()) {
             logger.error("DeleteValidationRuleCommand validation failed: campaignId is required");
             throw ExceptionFactory.createValidationException(
-                "INVALID_CAMPAIGN_ID",
-                "campaignId is required"
+                    "INVALID_CAMPAIGN_ID",
+                    "campaignId is required"
             );
         }
 
@@ -181,9 +181,9 @@ public class DeleteValidationRuleCommandHandler {
     /**
      * Thực thi logic delete assignments.
      *
-     * @param campaignId Campaign ID để tìm assignments
+     * @param campaignId       Campaign ID để tìm assignments
      * @param validationRuleId Assignment ID cụ thể để delete (optional)
-     * @param deleteAll Nếu true, delete tất cả assignments của campaign
+     * @param deleteAll        Nếu true, delete tất cả assignments của campaign
      * @return true nếu thành công, false nếu thất bại
      */
     private boolean executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {

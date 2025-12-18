@@ -9,14 +9,14 @@ import java.util.Map;
 
 /**
  * DTO representing the complete state of a validation rule aggregate.
- *
+ * <p>
  * This is used for JSON serialization/deserialization of snapshots.
  * Contains all related data:
  * - Rule basic info
  * - Usage limits
  * - Nodes (rule tree structure)
  * - Time frames
- *
+ * <p>
  * Design decisions:
  * - Flat structure for simplicity
  * - No circular references (parent stored as parentId)

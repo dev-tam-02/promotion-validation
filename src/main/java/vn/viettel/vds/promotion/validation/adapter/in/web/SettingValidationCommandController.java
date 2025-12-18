@@ -16,7 +16,7 @@ import java.util.UUID;
 /**
  * REST API Controller to directly invoke SettingValidationRuleCommand processing.
  * This controller allows manual triggering of validation command processing via HTTP.
- *
+ * <p>
  * Uses SettingValidationRuleCommandHandler directly instead of going through Kafka consumer.
  */
 @RestController

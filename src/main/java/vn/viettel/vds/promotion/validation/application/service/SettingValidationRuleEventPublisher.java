@@ -9,11 +9,7 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
 import vn.viettel.vds.promotion.validation.domain.model.Assignment;
-import vn.viettel.vds.promotion.validation.event.ValidationCompensationResultEvent;
-import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEvent;
-import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEventPayload;
-import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingFailedEvent;
-import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingFailedEventPayload;
+import vn.viettel.vds.promotion.validation.event.*;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -388,8 +384,8 @@ public class SettingValidationRuleEventPublisher {
      * Publish delete success event cho DeleteValidationRuleCommand.
      * Sử dụng ValidationCompensationResultEvent để thông báo delete thành công.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
+     * @param commandId        Command ID
+     * @param campaignId       Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã bị delete
      */
     @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
@@ -468,9 +464,9 @@ public class SettingValidationRuleEventPublisher {
      * Publish delete error event cho DeleteValidationRuleCommand.
      * Sử dụng ValidationRuleSettingFailedEvent.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
-     * @param errorCode Error code
+     * @param commandId    Command ID
+     * @param campaignId   Campaign ID
+     * @param errorCode    Error code
      * @param errorMessage Error message
      */
     public void publishDeleteErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
@@ -486,8 +482,8 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish enable success event cho EnableValidationRuleCommand.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
+     * @param commandId        Command ID
+     * @param campaignId       Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã được enable
      */
     @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
@@ -565,9 +561,9 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish enable error event cho EnableValidationRuleCommand.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
-     * @param errorCode Error code
+     * @param commandId    Command ID
+     * @param campaignId   Campaign ID
+     * @param errorCode    Error code
      * @param errorMessage Error message
      */
     public void publishEnableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
@@ -583,8 +579,8 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish disable success event cho DisableValidationRuleCommand.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
+     * @param commandId        Command ID
+     * @param campaignId       Campaign ID
      * @param validationRuleId Validation rule ID (assignment ID) đã được disable
      */
     @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
@@ -662,9 +658,9 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish disable error event cho DisableValidationRuleCommand.
      *
-     * @param commandId Command ID
-     * @param campaignId Campaign ID
-     * @param errorCode Error code
+     * @param commandId    Command ID
+     * @param campaignId   Campaign ID
+     * @param errorCode    Error code
      * @param errorMessage Error message
      */
     public void publishDisableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {

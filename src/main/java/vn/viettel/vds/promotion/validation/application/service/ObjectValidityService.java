@@ -8,13 +8,12 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
 import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
  * Service for validating object validity.
  * Handles validation of objects (campaigns, promotions) against their validity timeframes.
- *
+ * <p>
  * Purpose: Check if an object is currently within its active time (start_ts to end_ts).
  * If no temporal policy is configured for the object, it is considered VALID (no time restriction).
  */
@@ -28,7 +27,7 @@ public class ObjectValidityService {
     /**
      * Validate object validity within its timeframe.
      * Checks if an object is currently valid based on its temporal policies (start_ts, end_ts).
-     *
+     * <p>
      * Logic:
      * - If no temporal policy found for object -> PASS (no time restriction)
      * - If temporal policy exists -> check if currentDateTime is within start_ts and end_ts
@@ -87,9 +86,9 @@ public class ObjectValidityService {
     /**
      * Validate current time against a temporal policy's start_ts and end_ts.
      *
-     * @param policy The temporal policy containing start_ts and end_ts
+     * @param policy         The temporal policy containing start_ts and end_ts
      * @param currentInstant The current time to validate
-     * @param mode The mode of the policy ("ALLOW" means time must be within range)
+     * @param mode           The mode of the policy ("ALLOW" means time must be within range)
      * @return ValidationResult
      */
     private ValidationResult validateAgainstTemporalPolicy(TemporalPolicy policy, Instant currentInstant, String mode) {

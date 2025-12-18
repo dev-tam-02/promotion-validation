@@ -3,12 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 import com.promix.platform.validation.annotations.Id;
 import jakarta.validation.GroupSequence;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +16,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
 /**
  * DTO for validating SettingValidationRuleCommand in validation service.
  * Contains validation rules specific to validation service processing requirements.
- *
+ * <p>
  * Validation order:
  * 1. RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors)
  * 2. EmptyCheck: @NotBlank validations ({FIELD}_EMPTY errors)
@@ -33,11 +28,11 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    RequiredCheck.class,
-    EmptyCheck.class,
-    LengthCheck.class,
-    FormatCheck.class,
-    SettingValidationRuleCommandDTO.class
+        RequiredCheck.class,
+        EmptyCheck.class,
+        LengthCheck.class,
+        FormatCheck.class,
+        SettingValidationRuleCommandDTO.class
 })
 public class SettingValidationRuleCommandDTO {
 

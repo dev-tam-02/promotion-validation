@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * DTO representing the complete state of an assignment aggregate.
- *
+ * <p>
  * This is used for JSON serialization/deserialization of snapshots.
  * Contains all related data:
  * - Assignment basic info

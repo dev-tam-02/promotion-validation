@@ -32,14 +32,14 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    FormatCheck.class,
-    ValidityTimeframeDTO.class
+        FormatCheck.class,
+        ValidityTimeframeDTO.class
 })
 @ValidTimeRange(
-    startField = "startDate",
-    endField = "expirationDate",
-    message = "CAMPAIGN_START_DATE_BEFORE_NOW",
-    groups = FormatCheck.class
+        startField = "startDate",
+        endField = "expirationDate",
+        message = "CAMPAIGN_START_DATE_BEFORE_NOW",
+        groups = FormatCheck.class
 )
 public class ValidityTimeframeDTO {
 

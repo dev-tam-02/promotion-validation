@@ -1,6 +1,7 @@
 # Hướng Dẫn Khai Báo và Sử Dụng Validation Rules
 
 ## Mục Lục
+
 1. [Tổng Quan](#1-tổng-quan)
 2. [Cấu Trúc Database](#2-cấu-trúc-database)
 3. [Vòng Đời của Rule](#3-vòng-đời-của-rule)
@@ -16,20 +17,23 @@
 
 ## 1. Tổng Quan
 
-Module **validation** quản lý các quy tắc xác thực (validation rules) cho nền tảng khuyến mại. Mỗi rule có thể bao gồm nhiều điều kiện (conditions) được tổ chức theo cấu trúc cây (tree structure).
+Module **validation** quản lý các quy tắc xác thực (validation rules) cho nền tảng khuyến mại. Mỗi rule có thể bao gồm
+nhiều điều kiện (conditions) được tổ chức theo cấu trúc cây (tree structure).
 
 ### Kiến Trúc Chính
+
 - **Database**: MariaDB với Liquibase migrations
 - **Validation Engine**: Tích hợp với Drools-based validation-engine để compile và execute rules
 - **Messaging**: Kafka cho việc gán rule (assignment) và events
 
 ### Thành Phần Chính
-| Thành Phần | Mô Tả |
-|------------|-------|
-| `validation_rules` | Bảng chính lưu trữ rule definitions |
-| `rule_nodes` | Cấu trúc cây cho các điều kiện |
-| `assignments` | Gắn rules với objects (campaign, voucher, etc.) |
-| `temporal_policies` | Ràng buộc thời gian áp dụng |
+
+| Thành Phần          | Mô Tả                                           |
+|---------------------|-------------------------------------------------|
+| `validation_rules`  | Bảng chính lưu trữ rule definitions             |
+| `rule_nodes`        | Cấu trúc cây cho các điều kiện                  |
+| `assignments`       | Gắn rules với objects (campaign, voucher, etc.) |
+| `temporal_policies` | Ràng buộc thời gian áp dụng                     |
 
 ---
 
@@ -58,6 +62,7 @@ CREATE TABLE validation_rules (
 ```
 
 **Indexes:**
+
 - `idx_validation_rules_state_version` (state, rule_version DESC)
 - `idx_validation_rules_code` (UNIQUE)
 
@@ -81,17 +86,17 @@ CREATE TABLE rule_nodes (
 
 ### 2.3 Node Types
 
-| Type | Mô Tả | Thuộc Tính |
-|------|-------|------------|
-| `GROUP` | Nhóm các điều kiện | `group_logic`: ALL, ANY, NONE |
-| `COND` | Điều kiện đơn | `operator_name`, `params`, `reason_code` |
+| Type    | Mô Tả              | Thuộc Tính                               |
+|---------|--------------------|------------------------------------------|
+| `GROUP` | Nhóm các điều kiện | `group_logic`: ALL, ANY, NONE            |
+| `COND`  | Điều kiện đơn      | `operator_name`, `params`, `reason_code` |
 
 ### 2.4 Logic Types
 
-| Logic | Mô Tả |
-|-------|-------|
-| `ALL` | Tất cả children phải TRUE |
-| `ANY` | Ít nhất 1 child TRUE |
+| Logic  | Mô Tả                      |
+|--------|----------------------------|
+| `ALL`  | Tất cả children phải TRUE  |
+| `ANY`  | Ít nhất 1 child TRUE       |
 | `NONE` | Tất cả children phải FALSE |
 
 ---
@@ -107,12 +112,12 @@ DRAFT → PUBLISHED → DEPRECATED → ARCHIVED
          (can return)
 ```
 
-| State | Mô Tả | Có thể chuyển sang |
-|-------|-------|-------------------|
-| `DRAFT` | Rule đang tạo/chỉnh sửa | PUBLISHED, ARCHIVED |
-| `PUBLISHED` | Active và đang áp dụng | DEPRECATED, ARCHIVED |
-| `DEPRECATED` | Lỗi thời nhưng vẫn hoạt động | PUBLISHED, ARCHIVED |
-| `ARCHIVED` | Lưu trữ vĩnh viễn | (không chuyển được) |
+| State        | Mô Tả                        | Có thể chuyển sang   |
+|--------------|------------------------------|----------------------|
+| `DRAFT`      | Rule đang tạo/chỉnh sửa      | PUBLISHED, ARCHIVED  |
+| `PUBLISHED`  | Active và đang áp dụng       | DEPRECATED, ARCHIVED |
+| `DEPRECATED` | Lỗi thời nhưng vẫn hoạt động | PUBLISHED, ARCHIVED  |
+| `ARCHIVED`   | Lưu trữ vĩnh viễn            | (không chuyển được)  |
 
 ### 3.2 Quy Tắc Chuyển Đổi
 
@@ -180,72 +185,73 @@ mysql -h promotion-mariadb -P 3306 -u root -p validation
 
 #### 4.2.1 Bảng `validation_rules` (Bắt buộc)
 
-| Column | Type | Bắt buộc | Mô tả |
-|--------|------|----------|-------|
-| `id` | VARCHAR(36) | ✅ | UUID dạng UUIDv7 |
-| `code` | VARCHAR(100) | ✅ | Mã unique của rule |
-| `name` | VARCHAR(200) | ✅ | Tên hiển thị |
-| `state` | VARCHAR(20) | ✅ | Luôn đặt `DRAFT` khi tạo mới |
-| `rule_version` | BIGINT | ✅ | Bắt đầu từ `1` |
-| `logic` | VARCHAR(50) | ✅ | `ALL`, `ANY`, hoặc `NONE` |
-| `dsl` | TEXT | ❌ | JSON DSL snapshot (để `{}`) |
-| `created_by` | VARCHAR(100) | ❌ | Username tạo |
-| `updated_by` | VARCHAR(100) | ❌ | Username update |
+| Column         | Type         | Bắt buộc | Mô tả                        |
+|----------------|--------------|----------|------------------------------|
+| `id`           | VARCHAR(36)  | ✅        | UUID dạng UUIDv7             |
+| `code`         | VARCHAR(100) | ✅        | Mã unique của rule           |
+| `name`         | VARCHAR(200) | ✅        | Tên hiển thị                 |
+| `state`        | VARCHAR(20)  | ✅        | Luôn đặt `DRAFT` khi tạo mới |
+| `rule_version` | BIGINT       | ✅        | Bắt đầu từ `1`               |
+| `logic`        | VARCHAR(50)  | ✅        | `ALL`, `ANY`, hoặc `NONE`    |
+| `dsl`          | TEXT         | ❌        | JSON DSL snapshot (để `{}`)  |
+| `created_by`   | VARCHAR(100) | ❌        | Username tạo                 |
+| `updated_by`   | VARCHAR(100) | ❌        | Username update              |
 
 #### 4.2.2 Bảng `rule_nodes` (Bắt buộc)
 
 **A. ROOT Node (GROUP) - Luôn cần 1 root node:**
 
-| Column | Type | Bắt buộc | Mô tả |
-|--------|------|----------|-------|
-| `id` | VARCHAR(36) | ✅ | UUID unique |
-| `node_id` | VARCHAR(100) | ✅ | Identifier ngắn (vd: `n1`) |
-| `type` | VARCHAR(20) | ✅ | `GROUP` |
-| `group_logic` | VARCHAR(20) | ✅ | `ALL`, `ANY`, `NONE` |
-| `children_ids` | TEXT | ✅ | JSON array child node_ids |
-| `node_order` | INT | ❌ | Thứ tự (bắt đầu từ 0) |
-| `validation_rule_id` | VARCHAR(36) | ✅ | FK đến validation_rules |
-| `parent_id` | VARCHAR(36) | ❌ | NULL cho root node |
+| Column               | Type         | Bắt buộc | Mô tả                      |
+|----------------------|--------------|----------|----------------------------|
+| `id`                 | VARCHAR(36)  | ✅        | UUID unique                |
+| `node_id`            | VARCHAR(100) | ✅        | Identifier ngắn (vd: `n1`) |
+| `type`               | VARCHAR(20)  | ✅        | `GROUP`                    |
+| `group_logic`        | VARCHAR(20)  | ✅        | `ALL`, `ANY`, `NONE`       |
+| `children_ids`       | TEXT         | ✅        | JSON array child node_ids  |
+| `node_order`         | INT          | ❌        | Thứ tự (bắt đầu từ 0)      |
+| `validation_rule_id` | VARCHAR(36)  | ✅        | FK đến validation_rules    |
+| `parent_id`          | VARCHAR(36)  | ❌        | NULL cho root node         |
 
 **B. COND Nodes (Điều kiện):**
 
-| Column | Type | Bắt buộc | Mô tả |
-|--------|------|----------|-------|
-| `id` | VARCHAR(36) | ✅ | UUID unique |
-| `node_id` | VARCHAR(100) | ✅ | Identifier ngắn (vd: `n2`) |
-| `type` | VARCHAR(20) | ✅ | `COND` |
-| `operator_name` | VARCHAR(100) | ✅ | Tên operator |
-| `params` | TEXT | ✅ | JSON parameters |
-| `reason_code` | VARCHAR(100) | ✅ | Mã lỗi khi fail |
-| `validation_rule_id` | VARCHAR(36) | ✅ | FK đến validation_rules |
-| `parent_id` | VARCHAR(36) | ✅ | FK đến parent GROUP node |
-| `node_order` | INT | ❌ | Thứ tự trong parent |
+| Column               | Type         | Bắt buộc | Mô tả                      |
+|----------------------|--------------|----------|----------------------------|
+| `id`                 | VARCHAR(36)  | ✅        | UUID unique                |
+| `node_id`            | VARCHAR(100) | ✅        | Identifier ngắn (vd: `n2`) |
+| `type`               | VARCHAR(20)  | ✅        | `COND`                     |
+| `operator_name`      | VARCHAR(100) | ✅        | Tên operator               |
+| `params`             | TEXT         | ✅        | JSON parameters            |
+| `reason_code`        | VARCHAR(100) | ✅        | Mã lỗi khi fail            |
+| `validation_rule_id` | VARCHAR(36)  | ✅        | FK đến validation_rules    |
+| `parent_id`          | VARCHAR(36)  | ✅        | FK đến parent GROUP node   |
+| `node_order`         | INT          | ❌        | Thứ tự trong parent        |
 
 #### 4.2.3 Bảng `rule_usage_limits` (Tùy chọn)
 
-| Column | Type | Mô tả |
-|--------|------|-------|
-| `id` | VARCHAR(36) | UUID unique |
+| Column               | Type        | Mô tả                   |
+|----------------------|-------------|-------------------------|
+| `id`                 | VARCHAR(36) | UUID unique             |
 | `validation_rule_id` | VARCHAR(36) | FK đến validation_rules |
-| `per_code_total` | INT | Tổng số lần sử dụng |
-| `per_customer` | INT | Số lần/khách hàng |
-| `per_day` | INT | Số lần/ngày |
+| `per_code_total`     | INT         | Tổng số lần sử dụng     |
+| `per_customer`       | INT         | Số lần/khách hàng       |
+| `per_day`            | INT         | Số lần/ngày             |
 
 ### 4.3 Giải Thích Chi Tiết Các Giá Trị
 
 #### 4.3.1 Bảng `validation_rules` - Giá Trị Các Cột
 
-| Cột | Giá Trị | Khi Nào Chọn | Ví Dụ |
-|-----|---------|--------------|-------|
-| **state** | `DRAFT` | Rule mới tạo, chưa active | Luôn dùng khi insert mới |
-| | `PUBLISHED` | Rule đã được activate và publish | Chỉ set qua API, KHÔNG insert trực tiếp |
-| | `ARCHIVED` | Rule đã lưu trữ, không dùng nữa | Chỉ set qua API |
-| **logic** | `ALL` | Tất cả điều kiện con phải đúng (AND) | Khách VIP **VÀ** đơn >= 500k |
-| | `ANY` | Ít nhất 1 điều kiện đúng (OR) | Khách VIP **HOẶC** khách mới |
-| | `NONE` | Tất cả điều kiện phải sai (NOT) | KHÔNG thuộc blacklist |
-| **rule_version** | `1` | Phiên bản đầu tiên | Luôn bắt đầu từ 1 |
+| Cột              | Giá Trị     | Khi Nào Chọn                         | Ví Dụ                                   |
+|------------------|-------------|--------------------------------------|-----------------------------------------|
+| **state**        | `DRAFT`     | Rule mới tạo, chưa active            | Luôn dùng khi insert mới                |
+|                  | `PUBLISHED` | Rule đã được activate và publish     | Chỉ set qua API, KHÔNG insert trực tiếp |
+|                  | `ARCHIVED`  | Rule đã lưu trữ, không dùng nữa      | Chỉ set qua API                         |
+| **logic**        | `ALL`       | Tất cả điều kiện con phải đúng (AND) | Khách VIP **VÀ** đơn >= 500k            |
+|                  | `ANY`       | Ít nhất 1 điều kiện đúng (OR)        | Khách VIP **HOẶC** khách mới            |
+|                  | `NONE`      | Tất cả điều kiện phải sai (NOT)      | KHÔNG thuộc blacklist                   |
+| **rule_version** | `1`         | Phiên bản đầu tiên                   | Luôn bắt đầu từ 1                       |
 
 **⚠️ Lưu ý quan trọng về `state`:**
+
 - Khi insert mới: **LUÔN dùng `DRAFT`**
 - Không bao giờ insert trực tiếp `PUBLISHED` - phải qua API activate + publish
 - Quy trình: `DRAFT` → (API activate) → `PUBLISHED`
@@ -254,17 +260,19 @@ mysql -h promotion-mariadb -P 3306 -u root -p validation
 
 #### 4.3.2 Bảng `rule_nodes` - Giá Trị Cột `type`
 
-| Giá Trị | Mô Tả | Khi Nào Chọn | Các Cột Bắt Buộc |
-|---------|-------|--------------|------------------|
-| **`GROUP`** | Node nhóm, chứa các node con | Khi cần **nhóm nhiều điều kiện** với logic AND/OR/NOT | `group_logic`, `children_ids` |
-| **`COND`** | Node điều kiện, thực hiện kiểm tra | Khi cần **kiểm tra 1 điều kiện cụ thể** | `operator_name`, `params`, `reason_code` |
+| Giá Trị     | Mô Tả                              | Khi Nào Chọn                                          | Các Cột Bắt Buộc                         |
+|-------------|------------------------------------|-------------------------------------------------------|------------------------------------------|
+| **`GROUP`** | Node nhóm, chứa các node con       | Khi cần **nhóm nhiều điều kiện** với logic AND/OR/NOT | `group_logic`, `children_ids`            |
+| **`COND`**  | Node điều kiện, thực hiện kiểm tra | Khi cần **kiểm tra 1 điều kiện cụ thể**               | `operator_name`, `params`, `reason_code` |
 
 **Quy tắc:**
+
 - Mỗi rule **phải có ít nhất 1 ROOT node** loại `GROUP`
 - ROOT node **không có `parent_id`** (NULL)
 - `COND` node **luôn là con** của `GROUP` node
 
 **Ví dụ trực quan:**
+
 ```
 Rule: Khách VIP + (Đơn >= 500k HOẶC khách mới)
 
@@ -281,13 +289,14 @@ ROOT (GROUP, logic=ALL)           ← type='GROUP', parent_id=NULL
 
 **Chỉ áp dụng cho node type = `GROUP`**
 
-| Giá Trị | Logic | Khi Nào Chọn | Ví Dụ |
-|---------|-------|--------------|-------|
-| **`ALL`** | AND - Tất cả con phải TRUE | Khi **tất cả điều kiện** đều phải thỏa mãn | VIP **VÀ** đơn >= 500k **VÀ** cuối tuần |
-| **`ANY`** | OR - Ít nhất 1 con TRUE | Khi **chỉ cần 1** điều kiện thỏa mãn | VIP **HOẶC** GOLD **HOẶC** PLATINUM |
-| **`NONE`** | NOT - Tất cả con phải FALSE | Khi **không được phép** thỏa mãn bất kỳ điều kiện nào | KHÔNG blacklist **VÀ** KHÔNG fraud |
+| Giá Trị    | Logic                       | Khi Nào Chọn                                          | Ví Dụ                                   |
+|------------|-----------------------------|-------------------------------------------------------|-----------------------------------------|
+| **`ALL`**  | AND - Tất cả con phải TRUE  | Khi **tất cả điều kiện** đều phải thỏa mãn            | VIP **VÀ** đơn >= 500k **VÀ** cuối tuần |
+| **`ANY`**  | OR - Ít nhất 1 con TRUE     | Khi **chỉ cần 1** điều kiện thỏa mãn                  | VIP **HOẶC** GOLD **HOẶC** PLATINUM     |
+| **`NONE`** | NOT - Tất cả con phải FALSE | Khi **không được phép** thỏa mãn bất kỳ điều kiện nào | KHÔNG blacklist **VÀ** KHÔNG fraud      |
 
 **Bảng truth table:**
+
 ```
 ALL (AND):
   - TRUE + TRUE = TRUE
@@ -313,34 +322,35 @@ NONE (NOT):
 
 ##### A. Order Operators (Kiểm tra đơn hàng)
 
-| Operator | Mô Tả | Params | Khi Nào Dùng |
-|----------|-------|--------|--------------|
-| `order.total.gte` | Tổng đơn >= giá trị | `{"amount": 500000, "currency": "VND"}` | Đơn hàng tối thiểu |
-| `order.total.lte` | Tổng đơn <= giá trị | `{"amount": 1000000, "currency": "VND"}` | Đơn hàng tối đa |
-| `order.total.between` | Tổng đơn trong khoảng | `{"min": 100000, "max": 500000, "currency": "VND"}` | Đơn trong khoảng giá |
-| `order.item.count.gte` | Số lượng item >= | `{"count": 3}` | Mua ít nhất X sản phẩm |
-| `order.item.product.applicable` | Sản phẩm áp dụng | `{"include": ["P1","P2"], "exclude": ["P3"]}` | Giới hạn sản phẩm |
+| Operator                        | Mô Tả                 | Params                                              | Khi Nào Dùng           |
+|---------------------------------|-----------------------|-----------------------------------------------------|------------------------|
+| `order.total.gte`               | Tổng đơn >= giá trị   | `{"amount": 500000, "currency": "VND"}`             | Đơn hàng tối thiểu     |
+| `order.total.lte`               | Tổng đơn <= giá trị   | `{"amount": 1000000, "currency": "VND"}`            | Đơn hàng tối đa        |
+| `order.total.between`           | Tổng đơn trong khoảng | `{"min": 100000, "max": 500000, "currency": "VND"}` | Đơn trong khoảng giá   |
+| `order.item.count.gte`          | Số lượng item >=      | `{"count": 3}`                                      | Mua ít nhất X sản phẩm |
+| `order.item.product.applicable` | Sản phẩm áp dụng      | `{"include": ["P1","P2"], "exclude": ["P3"]}`       | Giới hạn sản phẩm      |
 
 ##### B. Customer Operators (Kiểm tra khách hàng)
 
-| Operator | Mô Tả | Params | Khi Nào Dùng |
-|----------|-------|--------|--------------|
-| `customer.in_segment` | Thuộc segment | `{"segments": ["VIP", "GOLD"]}` | Khách VIP/GOLD/... |
-| `customer.not_in_segment` | KHÔNG thuộc segment | `{"segments": ["BLACKLIST"]}` | Loại trừ blacklist |
-| `customer.is_new` | Khách hàng mới | `{}` | Ưu đãi khách mới |
-| `customer.order_count.gte` | Số đơn >= | `{"count": 5}` | Khách thân thiết (>= 5 đơn) |
-| `customer.order_count.lte` | Số đơn <= | `{"count": 2}` | Khách mới (<= 2 đơn) |
-| `customer.tier.in` | Thuộc tier | `{"tiers": [1, 2, 3]}` | Tier membership |
+| Operator                   | Mô Tả               | Params                          | Khi Nào Dùng                |
+|----------------------------|---------------------|---------------------------------|-----------------------------|
+| `customer.in_segment`      | Thuộc segment       | `{"segments": ["VIP", "GOLD"]}` | Khách VIP/GOLD/...          |
+| `customer.not_in_segment`  | KHÔNG thuộc segment | `{"segments": ["BLACKLIST"]}`   | Loại trừ blacklist          |
+| `customer.is_new`          | Khách hàng mới      | `{}`                            | Ưu đãi khách mới            |
+| `customer.order_count.gte` | Số đơn >=           | `{"count": 5}`                  | Khách thân thiết (>= 5 đơn) |
+| `customer.order_count.lte` | Số đơn <=           | `{"count": 2}`                  | Khách mới (<= 2 đơn)        |
+| `customer.tier.in`         | Thuộc tier          | `{"tiers": [1, 2, 3]}`          | Tier membership             |
 
 ##### C. Time Operators (Kiểm tra thời gian)
 
-| Operator | Mô Tả | Params | Khi Nào Dùng |
-|----------|-------|--------|--------------|
-| `time.window.active` | Trong khung giờ | Xem chi tiết bên dưới | Flash sale, giờ vàng |
-| `time.day.in` | Ngày trong tuần | `{"days": ["SATURDAY", "SUNDAY"]}` | Promo cuối tuần |
-| `time.date.between` | Trong khoảng ngày | `{"start": "2024-01-01", "end": "2024-12-31"}` | Campaign theo mùa |
+| Operator             | Mô Tả             | Params                                         | Khi Nào Dùng         |
+|----------------------|-------------------|------------------------------------------------|----------------------|
+| `time.window.active` | Trong khung giờ   | Xem chi tiết bên dưới                          | Flash sale, giờ vàng |
+| `time.day.in`        | Ngày trong tuần   | `{"days": ["SATURDAY", "SUNDAY"]}`             | Promo cuối tuần      |
+| `time.date.between`  | Trong khoảng ngày | `{"start": "2024-01-01", "end": "2024-12-31"}` | Campaign theo mùa    |
 
 **Chi tiết `time.window.active` params:**
+
 ```json
 {
   "startTime": "09:00:00",        // Giờ bắt đầu (HH:mm:ss)
@@ -352,15 +362,16 @@ NONE (NOT):
 ```
 
 **Giá trị `daysOfWeek`:**
+
 - `MONDAY`, `TUESDAY`, `WEDNESDAY`, `THURSDAY`, `FRIDAY`, `SATURDAY`, `SUNDAY`
 
 ##### D. Product Operators (Kiểm tra sản phẩm)
 
-| Operator | Mô Tả | Params | Khi Nào Dùng |
-|----------|-------|--------|--------------|
+| Operator              | Mô Tả          | Params                              | Khi Nào Dùng        |
+|-----------------------|----------------|-------------------------------------|---------------------|
 | `product.in_category` | Thuộc category | `{"categories": ["FOOD", "DRINK"]}` | Promo theo danh mục |
-| `product.in_brand` | Thuộc brand | `{"brands": ["NIKE", "ADIDAS"]}` | Promo theo brand |
-| `product.sku.in` | SKU cụ thể | `{"skus": ["SKU001", "SKU002"]}` | Promo SKU cụ thể |
+| `product.in_brand`    | Thuộc brand    | `{"brands": ["NIKE", "ADIDAS"]}`    | Promo theo brand    |
+| `product.sku.in`      | SKU cụ thể     | `{"skus": ["SKU001", "SKU002"]}`    | Promo SKU cụ thể    |
 
 ---
 
@@ -368,19 +379,20 @@ NONE (NOT):
 
 **Mã lỗi trả về khi điều kiện KHÔNG thỏa mãn**
 
-| Reason Code | Mô Tả | Dùng Với Operator |
-|-------------|-------|-------------------|
-| `ORDER_TOTAL_MIN` | Đơn hàng chưa đạt tối thiểu | `order.total.gte` |
-| `ORDER_TOTAL_MAX` | Đơn hàng vượt tối đa | `order.total.lte` |
-| `AUDIENCE_SEGMENT` | Không thuộc segment | `customer.in_segment` |
-| `CUSTOMER_BLACKLIST` | Khách trong blacklist | `customer.not_in_segment` |
-| `NOT_NEW_CUSTOMER` | Không phải khách mới | `customer.is_new` |
-| `TIME_WINDOW` | Ngoài khung giờ | `time.window.active` |
-| `NOT_WEEKEND` | Không phải cuối tuần | `time.day.in` |
-| `PRODUCT_NOT_APPLICABLE` | Sản phẩm không áp dụng | `order.item.product.applicable` |
-| `USAGE_LIMIT_EXCEEDED` | Vượt giới hạn sử dụng | Usage limits |
+| Reason Code              | Mô Tả                       | Dùng Với Operator               |
+|--------------------------|-----------------------------|---------------------------------|
+| `ORDER_TOTAL_MIN`        | Đơn hàng chưa đạt tối thiểu | `order.total.gte`               |
+| `ORDER_TOTAL_MAX`        | Đơn hàng vượt tối đa        | `order.total.lte`               |
+| `AUDIENCE_SEGMENT`       | Không thuộc segment         | `customer.in_segment`           |
+| `CUSTOMER_BLACKLIST`     | Khách trong blacklist       | `customer.not_in_segment`       |
+| `NOT_NEW_CUSTOMER`       | Không phải khách mới        | `customer.is_new`               |
+| `TIME_WINDOW`            | Ngoài khung giờ             | `time.window.active`            |
+| `NOT_WEEKEND`            | Không phải cuối tuần        | `time.day.in`                   |
+| `PRODUCT_NOT_APPLICABLE` | Sản phẩm không áp dụng      | `order.item.product.applicable` |
+| `USAGE_LIMIT_EXCEEDED`   | Vượt giới hạn sử dụng       | Usage limits                    |
 
 **⚠️ Có thể tự định nghĩa reason_code mới**, miễn là:
+
 - Viết UPPER_CASE
 - Không có dấu cách
 - Mô tả rõ ràng lý do fail
@@ -389,13 +401,14 @@ NONE (NOT):
 
 #### 4.3.6 Bảng `rule_usage_limits` - Giải Thích
 
-| Cột | Mô Tả | Giá Trị | Ví Dụ |
-|-----|-------|---------|-------|
-| `per_code_total` | Tổng số lần sử dụng của rule | Số nguyên > 0, hoặc NULL (không giới hạn) | `1000` = tối đa 1000 lần |
-| `per_customer` | Số lần mỗi khách được dùng | Số nguyên > 0, hoặc NULL | `3` = mỗi khách tối đa 3 lần |
-| `per_day` | Số lần sử dụng mỗi ngày | Số nguyên > 0, hoặc NULL | `200` = tối đa 200 lần/ngày |
+| Cột              | Mô Tả                        | Giá Trị                                   | Ví Dụ                        |
+|------------------|------------------------------|-------------------------------------------|------------------------------|
+| `per_code_total` | Tổng số lần sử dụng của rule | Số nguyên > 0, hoặc NULL (không giới hạn) | `1000` = tối đa 1000 lần     |
+| `per_customer`   | Số lần mỗi khách được dùng   | Số nguyên > 0, hoặc NULL                  | `3` = mỗi khách tối đa 3 lần |
+| `per_day`        | Số lần sử dụng mỗi ngày      | Số nguyên > 0, hoặc NULL                  | `200` = tối đa 200 lần/ngày  |
 
 **Ví dụ:**
+
 ```sql
 -- Rule chỉ cho 1000 người đầu tiên, mỗi người 1 lần
 per_code_total = 1000
@@ -415,6 +428,7 @@ per_day = 100
 **Format UUIDv7:** `XXXXXXXX-XXXX-7XXX-XXXX-XXXXXXXXXXXX`
 
 **Convention cho validation module:**
+
 ```
 Base prefix: 01932b6f-XXXX-7000-8000-XXXXXXXXXXXX
 
@@ -424,6 +438,7 @@ Base prefix: 01932b6f-XXXX-7000-8000-XXXXXXXXXXXX
 ```
 
 **Quy tắc:**
+
 - Tăng dần số cuối cho mỗi record mới
 - Kiểm tra ID không trùng với existing data
 - Có thể dùng UUID generator: https://www.uuidtools.com/v7
@@ -834,15 +849,18 @@ COMMIT;
 ### 4.9 Generate UUID
 
 **Cách 1: Online Generator**
+
 - https://www.uuidtools.com/v7
 - https://www.uuidgenerator.net/version7
 
 **Cách 2: SQL trong MariaDB**
+
 ```sql
 SELECT UUID() as new_uuid;
 ```
 
 **Cách 3: Convention cho validation module**
+
 ```
 Base prefix: 01932b6f-XXXX-7000-8000-XXXXXXXXXXXX
 
@@ -855,18 +873,18 @@ Tăng số cuối: 0001, 0002, 0003, ...
 
 ### 4.10 Checklist Khai Báo Rule
 
-| # | Task | Check |
-|---|------|-------|
-| 1 | Generate UUID cho validation_rules | ☐ |
-| 2 | Generate UUID cho mỗi rule_node | ☐ |
-| 3 | Code rule phải unique (check trước khi insert) | ☐ |
-| 4 | ROOT node không có parent_id (NULL) | ☐ |
-| 5 | COND nodes có parent_id trỏ đến GROUP | ☐ |
-| 6 | children_ids chứa node_id (không phải id) | ☐ |
-| 7 | parent_id chứa id (không phải node_id) | ☐ |
-| 8 | JSON params đúng format | ☐ |
-| 9 | state = 'DRAFT' cho rule mới | ☐ |
-| 10 | Chạy COMMIT sau khi insert | ☐ |
+| #  | Task                                           | Check |
+|----|------------------------------------------------|-------|
+| 1  | Generate UUID cho validation_rules             | ☐     |
+| 2  | Generate UUID cho mỗi rule_node                | ☐     |
+| 3  | Code rule phải unique (check trước khi insert) | ☐     |
+| 4  | ROOT node không có parent_id (NULL)            | ☐     |
+| 5  | COND nodes có parent_id trỏ đến GROUP          | ☐     |
+| 6  | children_ids chứa node_id (không phải id)      | ☐     |
+| 7  | parent_id chứa id (không phải node_id)         | ☐     |
+| 8  | JSON params đúng format                        | ☐     |
+| 9  | state = 'DRAFT' cho rule mới                   | ☐     |
+| 10 | Chạy COMMIT sau khi insert                     | ☐     |
 
 ### 4.11 Query Kiểm Tra Sau Khi Insert
 
@@ -1066,6 +1084,7 @@ POST /promotion/promotion-validation/v1/rules/publishing/rules/{ruleId}/validate
 ```
 
 **Response:**
+
 ```json
 {
   "ruleId": "rul_MIN_ORDER_100K_123456",
@@ -1197,6 +1216,7 @@ GET /promotion/promotion-validation/v1/rules/publishing/rules/{ruleId}/status
 ```
 
 **Response:**
+
 ```json
 {
   "ruleId": "rul_MIN_ORDER_100K_123456",
@@ -1215,6 +1235,7 @@ GET /promotion/promotion-validation/v1/rules/publishing/rules/{ruleId}/status
 **Topic:** `promotion_validation_command`
 
 **Payload:**
+
 ```json
 {
   "id": "cmd_uuid",
@@ -1277,6 +1298,7 @@ GET /promotion/promotion-validation/v1/rules/by-object?objectType=campaign&objec
 ```
 
 **Response:**
+
 ```json
 {
   "rule": {
@@ -1303,33 +1325,33 @@ GET /promotion/promotion-validation/v1/rules/by-object?objectType=campaign&objec
 
 ### 9.1 Rule Management
 
-| Method | Endpoint | Mô Tả |
-|--------|----------|-------|
-| POST | `/v1/rules` | Tạo rule mới |
-| GET | `/v1/rules/{ruleId}` | Lấy rule theo ID |
-| GET | `/v1/rules` | List rules với pagination |
-| PATCH | `/v1/rules/{ruleId}` | Update rule (chỉ DRAFT) |
-| POST | `/v1/rules/{ruleId}:activate` | Activate rule |
-| POST | `/v1/rules/{ruleId}:archive` | Archive rule |
-| POST | `/v1/rules/{ruleId}:clone` | Clone rule |
-| POST | `/v1/rules:lint` | Validate rule structure |
+| Method | Endpoint                      | Mô Tả                     |
+|--------|-------------------------------|---------------------------|
+| POST   | `/v1/rules`                   | Tạo rule mới              |
+| GET    | `/v1/rules/{ruleId}`          | Lấy rule theo ID          |
+| GET    | `/v1/rules`                   | List rules với pagination |
+| PATCH  | `/v1/rules/{ruleId}`          | Update rule (chỉ DRAFT)   |
+| POST   | `/v1/rules/{ruleId}:activate` | Activate rule             |
+| POST   | `/v1/rules/{ruleId}:archive`  | Archive rule              |
+| POST   | `/v1/rules/{ruleId}:clone`    | Clone rule                |
+| POST   | `/v1/rules:lint`              | Validate rule structure   |
 
 ### 9.2 Rule Publishing
 
-| Method | Endpoint | Mô Tả |
-|--------|----------|-------|
-| POST | `/v1/rules/publishing/rules/{ruleId}` | Publish rule |
-| POST | `/v1/rules/publishing/batch` | Batch publish |
-| DELETE | `/v1/rules/publishing/rules/{ruleId}` | Unpublish rule |
-| GET | `/v1/rules/publishing/rules/{ruleId}/status` | Get deployment status |
-| POST | `/v1/rules/publishing/rules/{ruleId}/validate` | Validate for publishing |
+| Method | Endpoint                                       | Mô Tả                   |
+|--------|------------------------------------------------|-------------------------|
+| POST   | `/v1/rules/publishing/rules/{ruleId}`          | Publish rule            |
+| POST   | `/v1/rules/publishing/batch`                   | Batch publish           |
+| DELETE | `/v1/rules/publishing/rules/{ruleId}`          | Unpublish rule          |
+| GET    | `/v1/rules/publishing/rules/{ruleId}/status`   | Get deployment status   |
+| POST   | `/v1/rules/publishing/rules/{ruleId}/validate` | Validate for publishing |
 
 ### 9.3 Rule Simulation
 
-| Method | Endpoint | Mô Tả |
-|--------|----------|-------|
-| POST | `/v1/rules/{ruleId}/simulate` | Test rule với context |
-| POST | `/v1/rules/{ruleId}/simulate:batch` | Batch test cases |
+| Method | Endpoint                            | Mô Tả                 |
+|--------|-------------------------------------|-----------------------|
+| POST   | `/v1/rules/{ruleId}/simulate`       | Test rule với context |
+| POST   | `/v1/rules/{ruleId}/simulate:batch` | Batch test cases      |
 
 ---
 
@@ -1437,6 +1459,7 @@ curl -X POST "http://localhost:16014/promotion/promotion-validation/v1/rules/rul
 ```
 
 **Response:**
+
 ```json
 {
   "decision": "allow",

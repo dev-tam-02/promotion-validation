@@ -11,7 +11,7 @@ import java.util.Optional;
 
 /**
  * Repository for RuleTemporalLinkEntity
- *
+ * <p>
  * IMPORTANT: After migration 013, rule_temporal_links now links to assignments, not validation_rules
  * All queries have been updated to use assignment.id instead of validationRule.id
  */
@@ -47,7 +47,7 @@ public interface RuleTemporalLinkJpaRepository extends JpaRepository<RuleTempora
      * to get all temporal policies associated with a specific object (entity).
      *
      * @param entityType The type of the entity (e.g., "CAMPAIGN", "DISCOUNT")
-     * @param entityId The ID of the entity
+     * @param entityId   The ID of the entity
      * @return List of RuleTemporalLinkEntity objects with temporal policies loaded
      */
     @Query("SELECT rtl FROM RuleTemporalLinkEntity rtl " +
@@ -62,15 +62,15 @@ public interface RuleTemporalLinkJpaRepository extends JpaRepository<RuleTempora
     /**
      * Find distinct entity IDs by entity type and time range.
      * This query filters entities (campaigns/discounts) by their effectiveTimeFrom (tp.startTs).
-     *
+     * <p>
      * Filter logic:
      * - If startTs provided: only return entities where tp.startTs >= startTs
      * - If endTs provided: only return entities where tp.startTs <= endTs
      * - If both provided: return entities where startTs <= tp.startTs <= endTs
      *
      * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
-     * @param startTs Start timestamp of the query range (nullable) - filters by effectiveTimeFrom >= startTs
-     * @param endTs End timestamp of the query range (nullable) - filters by effectiveTimeFrom <= endTs
+     * @param startTs    Start timestamp of the query range (nullable) - filters by effectiveTimeFrom >= startTs
+     * @param endTs      End timestamp of the query range (nullable) - filters by effectiveTimeFrom <= endTs
      * @return List of distinct entity IDs that match the criteria
      */
     @Query("SELECT DISTINCT rtl.assignment.entityId FROM RuleTemporalLinkEntity rtl " +

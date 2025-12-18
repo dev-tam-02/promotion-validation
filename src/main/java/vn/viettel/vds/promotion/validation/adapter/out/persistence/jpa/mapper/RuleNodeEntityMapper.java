@@ -149,9 +149,9 @@ public class RuleNodeEntityMapper {
      * Phase 4: Build and return root nodes.
      */
     private List<RuleNode> buildRootNodes(List<RuleNodeEntity> entities,
-                                           Map<String, RuleNode.Builder> builderMap,
-                                           Map<String, RuleNode> builtNodes,
-                                           Map<String, RuleNodeEntity> entityMap) {
+                                          Map<String, RuleNode.Builder> builderMap,
+                                          Map<String, RuleNode> builtNodes,
+                                          Map<String, RuleNodeEntity> entityMap) {
         logger.debug("[NODE_MAP_TREE] Phase 4: Building root nodes (parent=null)");
         List<RuleNodeEntity> rootEntities = entities.stream()
                 .filter(e -> e.getParent() == null)
@@ -171,9 +171,9 @@ public class RuleNodeEntityMapper {
      * Build node and its children recursively.
      */
     private RuleNode buildNodeRecursively(String nodeId,
-                                           Map<String, RuleNode.Builder> builderMap,
-                                           Map<String, RuleNode> builtNodes,
-                                           Map<String, RuleNodeEntity> entityMap) {
+                                          Map<String, RuleNode.Builder> builderMap,
+                                          Map<String, RuleNode> builtNodes,
+                                          Map<String, RuleNodeEntity> entityMap) {
         if (builtNodes.containsKey(nodeId)) {
             logger.trace("[NODE_MAP_TREE] Node '{}' already built, returning cached", nodeId);
             return builtNodes.get(nodeId);
@@ -202,10 +202,10 @@ public class RuleNodeEntityMapper {
      * Build children for a GROUP node.
      */
     private void buildGroupNodeChildren(RuleNodeEntity entity,
-                                         RuleNode.Builder builder,
-                                         Map<String, RuleNode.Builder> builderMap,
-                                         Map<String, RuleNode> builtNodes,
-                                         Map<String, RuleNodeEntity> entityMap) {
+                                        RuleNode.Builder builder,
+                                        Map<String, RuleNode.Builder> builderMap,
+                                        Map<String, RuleNode> builtNodes,
+                                        Map<String, RuleNodeEntity> entityMap) {
         logger.debug("[NODE_MAP_TREE] Building GROUP node '{}' with {} children",
                 entity.getNodeId(), entity.getChildrenIds().size());
         List<RuleNode> builtChildren = entity.getChildrenIds().stream()

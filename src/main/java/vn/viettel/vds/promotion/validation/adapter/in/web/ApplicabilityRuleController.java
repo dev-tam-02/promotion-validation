@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Controller for managing applicability rules.
  * Provides endpoints to query applicability rules by assignment's entity type and entity ID.
- *
+ * <p>
  * Flow:
  * 1. Input: objectType (assignment's entityType), objectId (assignment's entityId)
  * 2. Find assignment(s) matching entityType and entityId
@@ -41,7 +41,7 @@ public class ApplicabilityRuleController {
 
     /**
      * Get applicability rules by assignment's entity type and entity ID.
-     *
+     * <p>
      * Flow:
      * 1. Find assignment(s) by entityType (objectType) and entityId (objectId)
      * 2. Return all applicability rules from those assignments

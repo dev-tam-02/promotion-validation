@@ -13,7 +13,7 @@ import java.util.Optional;
 
 /**
  * Repository for managing validation rule snapshots.
- *
+ * <p>
  * Used for saga compensation - storing and retrieving aggregate snapshots
  * to enable version-based rollback during saga failures.
  */
@@ -25,7 +25,7 @@ public interface ValidationRuleSnapshotRepository extends JpaRepository<Validati
      * Used during revert operation to get the target version's state.
      *
      * @param validationRuleId the validation rule ID
-     * @param version the version number to restore
+     * @param version          the version number to restore
      * @return the snapshot if found
      */
     Optional<ValidationRuleSnapshotEntity> findByValidationRuleIdAndVersion(String validationRuleId, Long version);
@@ -60,7 +60,7 @@ public interface ValidationRuleSnapshotRepository extends JpaRepository<Validati
      * Check if a snapshot exists for a specific rule and version.
      *
      * @param validationRuleId the validation rule ID
-     * @param version the version number
+     * @param version          the version number
      * @return true if snapshot exists
      */
     boolean existsByValidationRuleIdAndVersion(String validationRuleId, Long version);
@@ -92,21 +92,21 @@ public interface ValidationRuleSnapshotRepository extends JpaRepository<Validati
      * Useful for limiting storage while keeping recent backups.
      *
      * @param validationRuleId the validation rule ID
-     * @param keepCount number of snapshots to keep
+     * @param keepCount        number of snapshots to keep
      * @return number of deleted records
      */
     @Modifying
     @Query(value = """
-        DELETE FROM validation_rule_snapshots
-        WHERE validation_rule_id = :ruleId
-        AND id NOT IN (
-            SELECT id FROM (
-                SELECT id FROM validation_rule_snapshots
-                WHERE validation_rule_id = :ruleId
-                ORDER BY version DESC
-                LIMIT :keepCount
-            ) AS keep_list
-        )
-        """, nativeQuery = true)
+            DELETE FROM validation_rule_snapshots
+            WHERE validation_rule_id = :ruleId
+            AND id NOT IN (
+                SELECT id FROM (
+                    SELECT id FROM validation_rule_snapshots
+                    WHERE validation_rule_id = :ruleId
+                    ORDER BY version DESC
+                    LIMIT :keepCount
+                ) AS keep_list
+            )
+            """, nativeQuery = true)
     int deleteOldSnapshots(@Param("ruleId") String validationRuleId, @Param("keepCount") int keepCount);
 }

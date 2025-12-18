@@ -1,12 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,7 +11,7 @@ import java.time.Instant;
 /**
  * JPA entity for assignment applicability rules.
  * Stores included/excluded products, collections, and SKUs for an assignment.
- *
+ * <p>
  * Schema columns (from 015-create-assignment-applicability-rules.yaml):
  * - id: varchar(36) - Primary key
  * - assignment_id: varchar(36) - Foreign key to assignments

@@ -10,12 +10,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleSnapshotEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand.RevertValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertedEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertFailedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertedEvent;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -23,11 +22,11 @@ import java.util.Map;
 
 /**
  * Handler for RevertValidationRuleCommand.
- *
+ * <p>
  * This handler is responsible for restoring a validation rule to a previous version
  * during saga compensation. It uses the snapshot stored before the update to restore
  * the aggregate to its previous state.
- *
+ * <p>
  * Flow:
  * 1. Receive RevertValidationRuleCommand with targetVersion and currentVersion
  * 2. Validate the command (idempotency, version check)
@@ -166,9 +165,9 @@ public class RevertValidationRuleCommandHandler {
      * Publish ValidationRuleRevertedEvent on successful revert.
      */
     private void publishRevertedEvent(RevertValidationRuleCommand command,
-                                       ValidationRuleEntity restoredRule,
-                                       Long restoredToVersion,
-                                       Long rolledBackFromVersion) {
+                                      ValidationRuleEntity restoredRule,
+                                      Long restoredToVersion,
+                                      Long rolledBackFromVersion) {
         try {
             String eventId = IdGenerator.generateId();
 

@@ -9,11 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.EmptyCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.LengthCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.RequiredCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidTimeOfDayRange;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.*;
 
 /**
  * DTO for validating ValidityHoursPerDay in timeframe configuration.
@@ -39,17 +35,17 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Valid
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    RequiredCheck.class,
-    EmptyCheck.class,
-    LengthCheck.class,
-    FormatCheck.class,
-    ValidityHoursPerDayDTO.class
+        RequiredCheck.class,
+        EmptyCheck.class,
+        LengthCheck.class,
+        FormatCheck.class,
+        ValidityHoursPerDayDTO.class
 })
 @ValidTimeOfDayRange(
-    startField = "startTime",
-    endField = "expirationTime",
-    message = "TIME_OF_DAY_RANGE_INVALID",
-    groups = FormatCheck.class
+        startField = "startTime",
+        endField = "expirationTime",
+        message = "TIME_OF_DAY_RANGE_INVALID",
+        groups = FormatCheck.class
 )
 public class ValidityHoursPerDayDTO {
 

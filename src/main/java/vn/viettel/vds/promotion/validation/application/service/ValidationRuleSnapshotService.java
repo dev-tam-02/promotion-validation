@@ -20,12 +20,12 @@ import java.util.Optional;
 
 /**
  * Service for managing validation rule snapshots.
- *
+ * <p>
  * This service handles:
  * - Creating snapshots before update/delete operations
  * - Restoring rules from snapshots during saga compensation
  * - Cleaning up expired snapshots
- *
+ * <p>
  * Design: Aggregate Snapshot Pattern
  * - Stores complete rule aggregate (rule + nodes + limits + timeframes) as JSON
  * - Enables version-based rollback for saga compensation
@@ -36,20 +36,19 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ValidationRuleSnapshotService {
 
+    private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
+    private static final int DEFAULT_MAX_SNAPSHOTS_PER_RULE = 10;
     private final ValidationRuleSnapshotRepository snapshotRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final ObjectMapper objectMapper;
-
-    private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
-    private static final int DEFAULT_MAX_SNAPSHOTS_PER_RULE = 10;
 
     /**
      * Create a snapshot of the current validation rule state before modification.
      *
      * @param validationRuleId the rule ID to snapshot
-     * @param sagaId the saga ID (for correlation during compensation)
-     * @param correlationId the correlation ID
-     * @param reason the reason for creating the snapshot
+     * @param sagaId           the saga ID (for correlation during compensation)
+     * @param correlationId    the correlation ID
+     * @param reason           the reason for creating the snapshot
      * @return the created snapshot entity
      */
     @Transactional
@@ -116,7 +115,7 @@ public class ValidationRuleSnapshotService {
      * This is used during saga compensation to revert to a previous version.
      *
      * @param validationRuleId the rule ID to restore
-     * @param targetVersion the version to restore to
+     * @param targetVersion    the version to restore to
      * @return the restored rule entity
      */
     @Transactional
@@ -192,7 +191,7 @@ public class ValidationRuleSnapshotService {
      * Keep only the most recent N snapshots for each rule.
      *
      * @param validationRuleId the rule ID
-     * @param keepCount number of snapshots to keep
+     * @param keepCount        number of snapshots to keep
      * @return number of deleted snapshots
      */
     @Transactional
@@ -284,7 +283,7 @@ public class ValidationRuleSnapshotService {
      * Restore a ValidationRuleEntity from snapshot data.
      */
     private void restoreRuleFromSnapshotData(ValidationRuleEntity rule,
-                                              ValidationRuleSnapshotData snapshotData) {
+                                             ValidationRuleSnapshotData snapshotData) {
         // Restore basic info
         rule.setCode(snapshotData.getCode());
         rule.setName(snapshotData.getName());

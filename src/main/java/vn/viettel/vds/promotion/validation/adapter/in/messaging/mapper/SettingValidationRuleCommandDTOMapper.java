@@ -38,27 +38,27 @@ public class SettingValidationRuleCommandDTOMapper {
         var payload = command.getPayload();
 
         SettingValidationRuleCommandDTO dto = SettingValidationRuleCommandDTO.builder()
-            // Map envelope fields
-            .id(command.getId())
-            .type(command.getType())
-            .source(command.getSource())
-            .subject(command.getSubject())
-            // Map payload fields requiring validation
-            .ruleId(payload.getRuleId())
-            .objectType(payload.getObjectType())
-            .objectId(payload.getObjectId())
-            .active(payload.getActive())
-            .trafficPercent(payload.getTrafficPercent())
-            .priority(payload.getPriority())
-            // Map optional fields (no validation)
-            .notes(payload.getNotes())
-            // Map timeframe fields (cascading validation)
-            .timeframe(mapTimeFrame(payload.getTimeframe()))
-            .build();
+                // Map envelope fields
+                .id(command.getId())
+                .type(command.getType())
+                .source(command.getSource())
+                .subject(command.getSubject())
+                // Map payload fields requiring validation
+                .ruleId(payload.getRuleId())
+                .objectType(payload.getObjectType())
+                .objectId(payload.getObjectId())
+                .active(payload.getActive())
+                .trafficPercent(payload.getTrafficPercent())
+                .priority(payload.getPriority())
+                // Map optional fields (no validation)
+                .notes(payload.getNotes())
+                // Map timeframe fields (cascading validation)
+                .timeframe(mapTimeFrame(payload.getTimeframe()))
+                .build();
 
         log.debug("Mapped SettingValidationRuleCommand to DTO: commandId={}, ruleId={}, objectType={}, objectId={}, hasTimeframe={}",
-            command.getId(), payload.getRuleId(), payload.getObjectType(), payload.getObjectId(),
-            payload.getTimeframe() != null);
+                command.getId(), payload.getRuleId(), payload.getObjectType(), payload.getObjectId(),
+                payload.getTimeframe() != null);
 
         return dto;
     }
@@ -75,13 +75,13 @@ public class SettingValidationRuleCommandDTOMapper {
         }
 
         return TimeFrameDTO.builder()
-            .validityTimeframe(mapValidityTimeframe(timeFrame.getValidityTimeframe()))
-            .validityDaysOfWeek(timeFrame.getValidityDaysOfWeek())
-            .validityHoursPerDay(mapValidityHoursPerDay(timeFrame.getValidityHoursPerDay()))
-            .timeFrameId(timeFrame.getTimeFrameId())
-            .mode(timeFrame.getMode() != null ? timeFrame.getMode().name() : null)
-            .timezone(timeFrame.getTimezone())
-            .build();
+                .validityTimeframe(mapValidityTimeframe(timeFrame.getValidityTimeframe()))
+                .validityDaysOfWeek(timeFrame.getValidityDaysOfWeek())
+                .validityHoursPerDay(mapValidityHoursPerDay(timeFrame.getValidityHoursPerDay()))
+                .timeFrameId(timeFrame.getTimeFrameId())
+                .mode(timeFrame.getMode() != null ? timeFrame.getMode().name() : null)
+                .timezone(timeFrame.getTimezone())
+                .build();
     }
 
     /**
@@ -96,12 +96,12 @@ public class SettingValidationRuleCommandDTOMapper {
         }
 
         return ValidityTimeframeDTO.builder()
-            .startDate(validityTimeframe.getStartDate())
-            .expirationDate(validityTimeframe.getExpirationDate())
-            .interval(validityTimeframe.getInterval())
-            .duration(validityTimeframe.getDuration())
-            .activityDurationAfterPublishing(validityTimeframe.getActivityDurationAfterPublishing())
-            .build();
+                .startDate(validityTimeframe.getStartDate())
+                .expirationDate(validityTimeframe.getExpirationDate())
+                .interval(validityTimeframe.getInterval())
+                .duration(validityTimeframe.getDuration())
+                .activityDurationAfterPublishing(validityTimeframe.getActivityDurationAfterPublishing())
+                .build();
     }
 
     /**
@@ -116,8 +116,8 @@ public class SettingValidationRuleCommandDTOMapper {
         }
 
         return validityHoursPerDayList.stream()
-            .map(this::mapSingleValidityHoursPerDay)
-            .toList();
+                .map(this::mapSingleValidityHoursPerDay)
+                .toList();
     }
 
     /**
@@ -132,9 +132,9 @@ public class SettingValidationRuleCommandDTOMapper {
         }
 
         return ValidityHoursPerDayDTO.builder()
-            .dayOfWeek(validityHoursPerDay.getDayOfWeek())
-            .startTime(validityHoursPerDay.getStartTime())
-            .expirationTime(validityHoursPerDay.getExpirationTime())
-            .build();
+                .dayOfWeek(validityHoursPerDay.getDayOfWeek())
+                .startTime(validityHoursPerDay.getStartTime())
+                .expirationTime(validityHoursPerDay.getExpirationTime())
+                .build();
     }
 }

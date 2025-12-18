@@ -17,13 +17,13 @@ import java.util.List;
 
 /**
  * Service xử lý DisableValidationRuleCommand để disable validation rule assignments.
- *
+ * <p>
  * Chức năng chính:
  * - Validate command từ Kafka
  * - Tìm và disable (set active = false) assignments theo campaignId + validationRuleId
  * - Undeploy rules khỏi validation-engine
  * - Publish events thông báo kết quả
- *
+ * <p>
  * Lưu ý: Disable khác với Delete - Disable có thể Enable lại, Delete là soft delete vĩnh viễn
  *
  * @author Validation Team
@@ -54,7 +54,7 @@ public class DisableValidationRuleCommandHandler {
 
     /**
      * Xử lý disable command từ campaign service.
-     *
+     * <p>
      * Logic flow:
      * 1. Kiểm tra idempotency - nếu đã xử lý thì return true ngay
      * 2. Validate command payload
@@ -123,7 +123,7 @@ public class DisableValidationRuleCommandHandler {
 
         } catch (BusinessException e) {
             logger.error("Validation failed for DisableValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage(), e);
+                    commandId, e.getMessage(), e);
             throw e; // NOSONAR - Exception được log đầy đủ trước khi rethrow
         } catch (Exception e) {
             logger.error("Unexpected error processing DisableValidationRuleCommand: commandId={}", commandId, e);
@@ -143,8 +143,8 @@ public class DisableValidationRuleCommandHandler {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Command or payload is null"
+                    "INVALID_COMMAND",
+                    "Command or payload is null"
             );
         }
 
@@ -164,7 +164,7 @@ public class DisableValidationRuleCommandHandler {
     /**
      * Thực thi logic disable assignment.
      *
-     * @param campaignId Campaign ID
+     * @param campaignId       Campaign ID
      * @param validationRuleId Assignment ID cần disable
      * @return true nếu thành công, false nếu thất bại
      */

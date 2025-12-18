@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * Outbound port for RuleTemporalLink persistence operations.
- *
+ * <p>
  * IMPORTANT: After migration 013, temporal links are assignment-specific, not rule-specific
  * Methods have been updated to use assignmentId instead of ruleId
  */
@@ -43,7 +43,7 @@ public interface RuleTemporalLinkPersistencePort {
      * This method retrieves all temporal policy links associated with a specific entity/object.
      *
      * @param entityType The type of the entity (e.g., "CAMPAIGN", "DISCOUNT")
-     * @param entityId The ID of the entity
+     * @param entityId   The ID of the entity
      * @return List of RuleTemporalLink objects with temporal policies
      */
     List<RuleTemporalLink> findByEntityTypeAndEntityId(String entityType, String entityId);
@@ -53,8 +53,8 @@ public interface RuleTemporalLinkPersistencePort {
      * Returns distinct entity IDs that have temporal policies overlapping with the specified time range.
      *
      * @param entityType The type of the entity (e.g., "CASHBACK", "DISCOUNT_COUPON")
-     * @param startTs Start timestamp of the query range (nullable)
-     * @param endTs End timestamp of the query range (nullable)
+     * @param startTs    Start timestamp of the query range (nullable)
+     * @param endTs      End timestamp of the query range (nullable)
      * @return List of distinct entity IDs
      */
     List<String> findEntityIdsByEntityTypeAndTimeRange(String entityType, java.time.Instant startTs, java.time.Instant endTs);

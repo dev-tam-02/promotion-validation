@@ -17,7 +17,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
 /**
  * DTO for validating RollbackValidationRuleCommand in validation service.
  * Contains validation rules specific to rollback command processing requirements.
- *
+ * <p>
  * Validation order:
  * 1. RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors)
  * 2. EmptyCheck: @NotBlank validations ({FIELD}_EMPTY errors)
@@ -29,11 +29,11 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Requi
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    RequiredCheck.class,
-    EmptyCheck.class,
-    LengthCheck.class,
-    FormatCheck.class,
-    RollbackValidationRuleCommandDTO.class
+        RequiredCheck.class,
+        EmptyCheck.class,
+        LengthCheck.class,
+        FormatCheck.class,
+        RollbackValidationRuleCommandDTO.class
 })
 public class RollbackValidationRuleCommandDTO {
 

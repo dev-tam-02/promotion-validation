@@ -58,7 +58,7 @@ public class AssignmentIdOrObjectReferenceValidator
             // If object reference is incomplete, assignmentId is required
             if (!hasAssignmentId) {
                 logger.debug("Validation failed: assignmentId is required when objectId or objectType is missing. " +
-                        "objectId={}, objectType={}, assignmentId={}",
+                                "objectId={}, objectType={}, assignmentId={}",
                         objectId, objectType, assignmentId);
 
                 // Disable default violation and add custom one on assignmentId field

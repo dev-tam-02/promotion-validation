@@ -124,7 +124,7 @@ public class RollbackValidationRuleCommandHandler {
             // Re-throw BusinessException (validation errors) to let promix-messaging handle it
             // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
             logger.error("Validation failed for RollbackValidationRuleCommand: commandId={}, error={}",
-                commandId, e.getMessage(), e);
+                    commandId, e.getMessage(), e);
             throw e; // NOSONAR - Exception is logged before rethrowing for proper error tracking
         } catch (Exception e) {
             logger.error("Unexpected error processing RollbackValidationRuleCommand: commandId={}", commandId, e);
@@ -135,7 +135,7 @@ public class RollbackValidationRuleCommandHandler {
 
     /**
      * Validate command using Bean Validation annotations on DTO.
-     *
+     * <p>
      * Validation flow:
      * 1. Check command and payload not null
      * 2. Convert command to DTO
@@ -150,8 +150,8 @@ public class RollbackValidationRuleCommandHandler {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Command or payload is null"
+                    "INVALID_COMMAND",
+                    "Command or payload is null"
             );
         }
 
@@ -160,8 +160,8 @@ public class RollbackValidationRuleCommandHandler {
         if (dto == null) {
             logger.error("Failed to convert command to DTO: commandId={}", command.getId());
             throw ExceptionFactory.createValidationException(
-                "INVALID_COMMAND",
-                "Failed to convert command to DTO"
+                    "INVALID_COMMAND",
+                    "Failed to convert command to DTO"
             );
         }
 
@@ -172,24 +172,24 @@ public class RollbackValidationRuleCommandHandler {
         if (!violations.isEmpty()) {
             // Build ErrorDetail list from all violations
             List<ErrorDetail> errorDetails = violations.stream()
-                .map(violation -> ErrorDetail.of(
-                    violation.getPropertyPath().toString(),  // field
-                    violation.getMessage(),                  // errorCode (from annotation)
-                    String.format("Invalid value: %s", violation.getInvalidValue()),  // message
-                    violation.getInvalidValue()             // details
-                ))
-                .toList();
+                    .map(violation -> ErrorDetail.of(
+                            violation.getPropertyPath().toString(),  // field
+                            violation.getMessage(),                  // errorCode (from annotation)
+                            String.format("Invalid value: %s", violation.getInvalidValue()),  // message
+                            violation.getInvalidValue()             // details
+                    ))
+                    .toList();
 
             // Build summary error message
             String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
 
             logger.error("RollbackValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
-                command.getId(), violations.size(), errorDetails);
+                    command.getId(), violations.size(), errorDetails);
 
             throw ExceptionFactory.createValidationException(
-                "METHOD_ARGUMENT_NOT_VALID",
-                errorMessage,
-                errorDetails.toArray(new ErrorDetail[0])
+                    "METHOD_ARGUMENT_NOT_VALID",
+                    errorMessage,
+                    errorDetails.toArray(new ErrorDetail[0])
             );
         }
 

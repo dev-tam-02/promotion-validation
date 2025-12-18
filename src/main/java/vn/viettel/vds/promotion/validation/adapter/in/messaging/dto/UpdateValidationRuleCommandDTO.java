@@ -2,25 +2,17 @@ package vn.viettel.vds.promotion.validation.adapter.in.messaging.dto;
 
 import com.promix.platform.validation.annotations.Id;
 import jakarta.validation.GroupSequence;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.EmptyCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.FormatCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.LengthCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.RequiredCheck;
-import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.ValidAssignmentIdOrObjectReference;
+import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.*;
 
 /**
  * DTO for validating UpdateValidationRuleCommand in validation service.
  * Contains validation rules specific to validation service processing requirements.
- *
+ * <p>
  * Validation order:
  * 1. RequiredCheck: @NotNull validations ({FIELD}_REQUIRED errors)
  * 2. EmptyCheck: @NotBlank validations ({FIELD}_EMPTY errors)
@@ -32,11 +24,11 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.validation.Valid
 @NoArgsConstructor
 @AllArgsConstructor
 @GroupSequence({
-    RequiredCheck.class,
-    EmptyCheck.class,
-    LengthCheck.class,
-    FormatCheck.class,
-    UpdateValidationRuleCommandDTO.class
+        RequiredCheck.class,
+        EmptyCheck.class,
+        LengthCheck.class,
+        FormatCheck.class,
+        UpdateValidationRuleCommandDTO.class
 })
 @ValidAssignmentIdOrObjectReference(groups = RequiredCheck.class)
 public class UpdateValidationRuleCommandDTO {

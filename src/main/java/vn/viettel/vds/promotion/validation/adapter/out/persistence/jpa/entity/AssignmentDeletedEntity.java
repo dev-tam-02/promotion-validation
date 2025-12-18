@@ -107,16 +107,6 @@ public class AssignmentDeletedEntity {
     @Column(name = "version")
     private Integer version;
 
-    @PrePersist
-    public void prePersist() {
-        if (id == null) {
-            id = java.util.UUID.randomUUID().toString();
-        }
-        if (deletedAt == null) {
-            deletedAt = Instant.now();
-        }
-    }
-
     /**
      * Create deleted entity from original assignment.
      */
@@ -136,5 +126,15 @@ public class AssignmentDeletedEntity {
         deleted.setDeletedBy(deletedBy);
         deleted.setVersion(newVersion);
         return deleted;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = java.util.UUID.randomUUID().toString();
+        }
+        if (deletedAt == null) {
+            deletedAt = Instant.now();
+        }
     }
 }
