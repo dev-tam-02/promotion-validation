@@ -289,6 +289,20 @@ public class UpdateValidationRuleCommandHandler {
                 assignmentEntity.setEntityType(payload.getObjectType());
             }
             if (payload.getObjectId() != null) {
+                // Check duplicate if objectId is changing
+                String currentEntityId = assignmentEntity.getEntityId();
+                String newObjectId = payload.getObjectId();
+                if (!newObjectId.equals(currentEntityId)) {
+                    String objectType = payload.getObjectType() != null
+                            ? payload.getObjectType()
+                            : assignmentEntity.getEntityType();
+                    if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, newObjectId)) {
+                        return UpdateProcessingResult.failure(
+                                ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE.name(),
+                                "Assignment already exists for objectType=" + objectType + ", objectId=" + newObjectId
+                        );
+                    }
+                }
                 assignmentEntity.setEntityId(payload.getObjectId());
             }
 
