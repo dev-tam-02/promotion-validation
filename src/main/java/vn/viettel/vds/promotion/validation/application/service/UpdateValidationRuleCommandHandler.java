@@ -268,48 +268,29 @@ public class UpdateValidationRuleCommandHandler {
             String assignmentId = assignmentEntity.getId();
             logger.info("Processing update for assignmentId={}", assignmentId);
 
-            // Track if temporal policy changes
-            boolean hasTemporalPolicyChanges = false;
-
             // Update basic fields if provided
             if (payload.getActive() != null) {
                 assignmentEntity.setActive(payload.getActive());
             }
-            if (payload.getRuleId() != null) {
-                // Validate rule exists
-                if (!validationRuleRepository.existsById(payload.getRuleId())) {
-                    return UpdateProcessingResult.failure(
-                            ErrorCode.VALIDATION_RULE_NOT_FOUND.name(),
-                            "Validation rule not found: " + payload.getRuleId()
-                    );
-                }
-                assignmentEntity.setRuleId(payload.getRuleId());
+
+            // Update ruleId with validation
+            UpdateProcessingResult ruleIdResult = updateRuleIdIfProvided(assignmentEntity, payload);
+            if (ruleIdResult != null) {
+                return ruleIdResult;
             }
+
             if (payload.getObjectType() != null) {
                 assignmentEntity.setEntityType(payload.getObjectType());
             }
-            if (payload.getObjectId() != null) {
-                // Check duplicate if objectId is changing
-                String currentEntityId = assignmentEntity.getEntityId();
-                String newObjectId = payload.getObjectId();
-                if (!newObjectId.equals(currentEntityId)) {
-                    String objectType = payload.getObjectType() != null
-                            ? payload.getObjectType()
-                            : assignmentEntity.getEntityType();
-                    if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, newObjectId)) {
-                        return UpdateProcessingResult.failure(
-                                ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE.name(),
-                                "Assignment already exists for objectType=" + objectType + ", objectId=" + newObjectId
-                        );
-                    }
-                }
-                assignmentEntity.setEntityId(payload.getObjectId());
+
+            // Update objectId with duplicate check
+            UpdateProcessingResult objectIdResult = updateObjectIdIfProvided(assignmentEntity, payload);
+            if (objectIdResult != null) {
+                return objectIdResult;
             }
 
             // Update includedAll from applicability
-            if (payload.getApplicableTo() != null && Boolean.TRUE.equals(payload.getApplicableTo().getIncludedAll())) {
-                assignmentEntity.setIncludedAll(true);
-            }
+            updateIncludedAllIfApplicable(assignmentEntity, payload);
 
             assignmentEntity.setUpdatedAt(Instant.now());
 
@@ -322,17 +303,9 @@ public class UpdateValidationRuleCommandHandler {
                 updateApplicabilityRules(assignmentEntity, applicableTo);
             }
 
-            // Update timeframe if provided
-            TimeFrame timeframe = payload.getTimeframe();
-            if (timeframe != null) {
-                updateTimeframe(assignmentEntity, timeframe);
-                hasTemporalPolicyChanges = true;
-            }
-
-            // Re-deploy rule if needed
-            if (hasTemporalPolicyChanges || Boolean.TRUE.equals(payload.getActive())) {
-                deployRuleToEngine(assignmentEntity, assignmentEntity.getRuleId(), hasTemporalPolicyChanges, applicableTo);
-            }
+            // Update timeframe if provided and re-deploy rule if needed
+            boolean hasTemporalPolicyChanges = updateTimeframeIfProvided(assignmentEntity, payload);
+            redeployRuleIfNeeded(assignmentEntity, payload, hasTemporalPolicyChanges, applicableTo);
 
             logger.info("Successfully updated assignmentId={}, updatedBy={}, reason={}",
                     assignmentId, payload.getUpdatedBy(), payload.getReason());
@@ -342,6 +315,91 @@ public class UpdateValidationRuleCommandHandler {
         } catch (Exception e) {
             logger.error("Error processing update: commandId={}", commandId, e);
             return UpdateProcessingResult.failure("PROCESSING_ERROR", e.getMessage());
+        }
+    }
+
+    /**
+     * Update ruleId if provided, with validation that rule exists.
+     * Returns failure result if validation fails, null if successful or not provided.
+     */
+    private UpdateProcessingResult updateRuleIdIfProvided(
+            AssignmentEntity assignmentEntity,
+            UpdateValidationRuleCommandPayload payload) {
+        if (payload.getRuleId() == null) {
+            return null;
+        }
+        if (!validationRuleRepository.existsById(payload.getRuleId())) {
+            return UpdateProcessingResult.failure(
+                    ErrorCode.VALIDATION_RULE_NOT_FOUND.name(),
+                    "Validation rule not found: " + payload.getRuleId()
+            );
+        }
+        assignmentEntity.setRuleId(payload.getRuleId());
+        return null;
+    }
+
+    /**
+     * Update objectId if provided, with duplicate assignment check.
+     * Returns failure result if duplicate exists, null if successful or not provided.
+     */
+    private UpdateProcessingResult updateObjectIdIfProvided(
+            AssignmentEntity assignmentEntity,
+            UpdateValidationRuleCommandPayload payload) {
+        if (payload.getObjectId() == null) {
+            return null;
+        }
+        String currentEntityId = assignmentEntity.getEntityId();
+        String newObjectId = payload.getObjectId();
+        if (!newObjectId.equals(currentEntityId)) {
+            String objectType = payload.getObjectType() != null
+                    ? payload.getObjectType()
+                    : assignmentEntity.getEntityType();
+            if (assignmentRepository.existsByEntityTypeAndEntityId(objectType, newObjectId)) {
+                return UpdateProcessingResult.failure(
+                        ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE.name(),
+                        "Assignment already exists for objectType=" + objectType + ", objectId=" + newObjectId
+                );
+            }
+        }
+        assignmentEntity.setEntityId(payload.getObjectId());
+        return null;
+    }
+
+    /**
+     * Update includedAll flag if applicableTo specifies includedAll = true.
+     */
+    private void updateIncludedAllIfApplicable(
+            AssignmentEntity assignmentEntity,
+            UpdateValidationRuleCommandPayload payload) {
+        if (payload.getApplicableTo() != null && Boolean.TRUE.equals(payload.getApplicableTo().getIncludedAll())) {
+            assignmentEntity.setIncludedAll(true);
+        }
+    }
+
+    /**
+     * Update timeframe if provided. Returns true if temporal policy was changed.
+     */
+    private boolean updateTimeframeIfProvided(
+            AssignmentEntity assignmentEntity,
+            UpdateValidationRuleCommandPayload payload) {
+        TimeFrame timeframe = payload.getTimeframe();
+        if (timeframe == null) {
+            return false;
+        }
+        updateTimeframe(assignmentEntity, timeframe);
+        return true;
+    }
+
+    /**
+     * Re-deploy rule to engine if needed (temporal policy changes or activation).
+     */
+    private void redeployRuleIfNeeded(
+            AssignmentEntity assignmentEntity,
+            UpdateValidationRuleCommandPayload payload,
+            boolean hasTemporalPolicyChanges,
+            ApplicabilityScope applicableTo) {
+        if (hasTemporalPolicyChanges || Boolean.TRUE.equals(payload.getActive())) {
+            deployRuleToEngine(assignmentEntity, assignmentEntity.getRuleId(), hasTemporalPolicyChanges, applicableTo);
         }
     }
 
