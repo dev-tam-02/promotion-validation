@@ -67,6 +67,7 @@ public class UpdateValidationRuleCommandDTO {
     @Id(errorCode = "ASSIGNMENT_ID_INVALID", groups = FormatCheck.class)
     private String assignmentId;
 
+    @Size(min = 1, message = "RULE_ID_EMPTY", groups = EmptyCheck.class)
     @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "RULE_ID_INVALID", groups = FormatCheck.class)
     private String ruleId;
