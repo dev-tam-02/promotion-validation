@@ -170,7 +170,10 @@ public class RulePublishingService {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(assignmentId);  // Use assignmentId as bundle key
-        compileRequest.setVersion(1);
+        // Use timestamp-based version to avoid idempotency cache
+        // This ensures temporal data changes result in new bundle compilation
+        int version = (int) (System.currentTimeMillis() % 1_000_000_000);
+        compileRequest.setVersion(version);
         compileRequest.setLogic("ALL");
         compileRequest.setNodes(nodeDtos);
         compileRequest.setOperatorsFingerprint("assignment-bundle-" + assignmentId);
@@ -399,6 +402,15 @@ public class RulePublishingService {
         // Determine version and logic
         Integer version = determineRuleVersion(rule);
         String logic = determineRootLogic(rule);
+
+        // When compiling for assignment, use timestamp-based version to avoid idempotency cache
+        // This ensures temporal data changes result in new bundle compilation
+        // Validation-engine caches compile results by tenantId + ruleId + version
+        if (assignmentId != null) {
+            version = (int) (System.currentTimeMillis() % 1_000_000_000);
+            logger.debug("Using timestamp-based version for assignment compile: assignmentId={}, version={}",
+                    assignmentId, version);
+        }
 
         CompileRequest compileRequest = buildCompileRequest(rule, version, logic, fullNodeDtos, assignmentId);
 
