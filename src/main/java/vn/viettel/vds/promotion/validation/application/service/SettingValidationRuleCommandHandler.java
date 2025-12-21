@@ -735,6 +735,8 @@ public class SettingValidationRuleCommandHandler {
                                                      vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult) {
         if (publishResult.isSuccess()) {
             assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
+            // Explicit save to persist temporalBundleHash - entity was saved before this method was called
+            assignmentRepository.save(assignmentEntity);
             logger.info("Assignment bundle deployed successfully: assignmentId={}, bundleHash={}, artifactSize={}",
                     assignmentEntity.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize());
         } else {
@@ -781,6 +783,8 @@ public class SettingValidationRuleCommandHandler {
 
         if (publishResult.isSuccess()) {
             assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
+            // Explicit save to persist temporalBundleHash - entity was saved before this method was called
+            assignmentRepository.save(assignmentEntity);
             logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}, artifactSize={}, hasTemporalPolicy={}",
                     ruleId, assignmentEntity.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize(), hasTemporalPolicy);
             logger.info("Updated assignment.temporal_bundle_hash: assignmentId={}, bundleHash={}",

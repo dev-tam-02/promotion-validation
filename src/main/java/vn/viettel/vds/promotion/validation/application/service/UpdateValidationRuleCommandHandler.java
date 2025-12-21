@@ -687,6 +687,8 @@ public class UpdateValidationRuleCommandHandler {
 
                 if (publishResult.isSuccess()) {
                     assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
+                    // Explicit save to persist temporalBundleHash - entity was saved before this method was called
+                    assignmentRepository.save(assignmentEntity);
                     logger.info("Rule deployed successfully after update: ruleId={}, bundleHash={}",
                             ruleId, publishResult.getBundleHash());
                 } else {
