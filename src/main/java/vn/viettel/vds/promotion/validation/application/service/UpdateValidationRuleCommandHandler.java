@@ -572,7 +572,14 @@ public class UpdateValidationRuleCommandHandler {
 
         if (timeframeData.getValidityTimeframe() != null) {
             var validity = timeframeData.getValidityTimeframe();
-            policy.setStartTs(validity.getStartDate());
+
+            // If duration and interval are provided but startDate is null, use current time
+            Instant startTs = validity.getStartDate();
+            if (startTs == null && validity.getDuration() != null && validity.getInterval() != null) {
+                startTs = Instant.now();
+                logger.info("Duration/Interval mode: startDate not provided, using current time as startTs={}", startTs);
+            }
+            policy.setStartTs(startTs);
             policy.setEndTs(validity.getExpirationDate());
 
             if (validity.getInterval() != null || validity.getDuration() != null || validity.getActivityDurationAfterPublishing() != null) {
