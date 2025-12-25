@@ -8,18 +8,20 @@ import java.util.Map;
 
 /**
  * Feign client for communicating with Customer microservice.
- * Uses Eureka service discovery for dynamic service resolution.
+ * Uses direct URL for service resolution.
  * <p>
  * Configuration:
- * - name: Eureka service name from application.yml
+ * - name: Client name for identification
+ * - url: Direct URL to customer service
  * - path: Base path for all customer API endpoints
  *
  * @author Validation Module Team
  * @since 1.0.0
  */
 @FeignClient(
-        name = "${promix.validation.external.customer.name:promotion-customer}",
-        path = "${promix.validation.external.customer.path:/promotion/promotion-customer/api/v1/customers}"
+        name = "customer-feign-client",
+        url = "${promix.validation.external.customer.url:http://customer:8080}",
+        path = "${promix.validation.external.customer.path:/api/v1/customers}"
 )
 public interface CustomerFeignClient {
 

@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.Map;
 
 @FeignClient(
-        name = "${integration.validation-engine.service-name:promotion-validation-engine}",
-        contextId = "validation-engine-proxy-client",
+        name = "validation-engine-proxy-client",
+        url = "${integration.validation-engine.url:http://validation-engine:8080}",
         path = "${integration.validation-engine.service-path:/promotion/promotion-validation-engine}",
         fallback = ValidationProxyFeignClientFallback.class
 )

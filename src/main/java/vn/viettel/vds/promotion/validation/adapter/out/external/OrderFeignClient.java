@@ -8,18 +8,20 @@ import java.util.Map;
 
 /**
  * Feign client for communicating with Order microservice.
- * Uses Eureka service discovery for dynamic service resolution.
+ * Uses direct URL for service resolution.
  * <p>
  * Configuration:
- * - name: Eureka service name from application.yml
+ * - name: Client name for identification
+ * - url: Direct URL to order service
  * - path: Base path for all order API endpoints
  *
  * @author Validation Module Team
  * @since 1.0.0
  */
 @FeignClient(
-        name = "${promix.validation.external.order.name:promotion-order}",
-        path = "${promix.validation.external.order.path:/promotion/promotion-order/api/v1/orders}"
+        name = "order-feign-client",
+        url = "${promix.validation.external.order.url:http://order:8080}",
+        path = "${promix.validation.external.order.path:/api/v1/orders}"
 )
 public interface OrderFeignClient {
 
