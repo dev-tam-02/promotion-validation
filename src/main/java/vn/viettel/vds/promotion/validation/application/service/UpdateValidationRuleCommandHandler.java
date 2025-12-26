@@ -570,42 +570,71 @@ public class UpdateValidationRuleCommandHandler {
         policy.setName("timeframe-" + timeFrameId);
         policy.setTz(timezone);
 
-        if (timeframeData.getValidityTimeframe() != null) {
-            var validity = timeframeData.getValidityTimeframe();
-
-            // If duration and interval are provided but startDate is null, use current time
-            Instant startTs = validity.getStartDate();
-            if (startTs == null && validity.getDuration() != null && validity.getInterval() != null) {
-                startTs = Instant.now();
-                logger.info("Duration/Interval mode: startDate not provided, using current time as startTs={}", startTs);
-            }
-            policy.setStartTs(startTs);
-            policy.setEndTs(validity.getExpirationDate());
-
-            if (validity.getInterval() != null || validity.getDuration() != null || validity.getActivityDurationAfterPublishing() != null) {
-                Map<String, Object> metadata = new HashMap<>();
-                if (validity.getInterval() != null) {
-                    metadata.put("interval", validity.getInterval());
-                }
-                if (validity.getDuration() != null) {
-                    metadata.put("duration", validity.getDuration());
-                }
-                if (validity.getActivityDurationAfterPublishing() != null) {
-                    metadata.put("activityDurationAfterPublishing", validity.getActivityDurationAfterPublishing());
-                }
-                policy.setMetadata(metadata);
-            }
-        }
-
-        if (timeframeData.getValidityDaysOfWeek() != null && !timeframeData.getValidityDaysOfWeek().isEmpty()) {
-            String rrule = buildRRuleFromDaysOfWeek(timeframeData.getValidityDaysOfWeek());
-            policy.setRrule(rrule);
-        }
+        processValidityTimeframe(policy, timeframeData.getValidityTimeframe());
+        processValidityDaysOfWeek(policy, timeframeData.getValidityDaysOfWeek());
 
         policy.setCreatedAt(Instant.now());
         policy.setUpdatedAt(Instant.now());
 
         return policy;
+    }
+
+    /**
+     * Process validity timeframe and set startTs, endTs, and metadata
+     */
+    private void processValidityTimeframe(TemporalPolicyEntity policy,
+                                          UpdateValidationRuleCommand.ValidityTimeframe validity) {
+        if (validity == null) {
+            return;
+        }
+        Instant startTs = calculateStartTs(validity);
+        policy.setStartTs(startTs);
+        policy.setEndTs(validity.getExpirationDate());
+        policy.setMetadata(buildValidityMetadata(validity));
+    }
+
+    /**
+     * Calculate start timestamp from validity data
+     */
+    private Instant calculateStartTs(UpdateValidationRuleCommand.ValidityTimeframe validity) {
+        Instant startTs = validity.getStartDate();
+        boolean hasDurationAndInterval = validity.getDuration() != null && validity.getInterval() != null;
+        if (startTs == null && hasDurationAndInterval) {
+            startTs = Instant.now();
+            logger.info("Duration/Interval mode: startDate not provided, using current time as startTs={}", startTs);
+        }
+        return startTs;
+    }
+
+    /**
+     * Build metadata map from validity timeframe
+     */
+    private Map<String, Object> buildValidityMetadata(UpdateValidationRuleCommand.ValidityTimeframe validity) {
+        Map<String, Object> metadata = new HashMap<>();
+        addIfNotNull(metadata, "interval", validity.getInterval());
+        addIfNotNull(metadata, "duration", validity.getDuration());
+        addIfNotNull(metadata, "activityDurationAfterPublishing", validity.getActivityDurationAfterPublishing());
+        return metadata.isEmpty() ? null : metadata;
+    }
+
+    /**
+     * Add value to metadata map if not null
+     */
+    private void addIfNotNull(Map<String, Object> metadata, String key, Object value) {
+        if (value != null) {
+            metadata.put(key, value);
+        }
+    }
+
+    /**
+     * Process validity days of week and set RRULE
+     */
+    private void processValidityDaysOfWeek(TemporalPolicyEntity policy, List<Integer> daysOfWeek) {
+        if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+            return;
+        }
+        String rrule = buildRRuleFromDaysOfWeek(daysOfWeek);
+        policy.setRrule(rrule);
     }
 
     /**
