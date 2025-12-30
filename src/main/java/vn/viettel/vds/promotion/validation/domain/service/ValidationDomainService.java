@@ -85,13 +85,18 @@ public class ValidationDomainService {
     }
 
     /**
-     * Perform fast check validation
+     * Pre-validate request before delegating to Rule-Engine fast-check.
+     * This method only performs basic input validation and eligibility checks.
+     * Actual fast-check logic (time constraints, blacklist, rate limiting) is handled by Rule-Engine.
+     *
+     * @param request the validation request to pre-validate
+     * @return ValidationResult.ALLOW if pre-validation passes, DENY otherwise
      */
-    public ValidationResult performFastCheck(ValidationRequest request) {
-        log.debug("Performing fast check for promotion: {}",
+    public ValidationResult preValidateFastCheck(ValidationRequest request) {
+        log.debug("Pre-validating fast check request for promotion: {}",
                 request.getPromotionId());
 
-        // Fast check basic eligibility
+        // Validate basic eligibility for fast-check
         if (!request.isFastCheckEligible()) {
             return ValidationResult.deny(
                     request.getTransactionId(),
@@ -100,22 +105,18 @@ public class ValidationDomainService {
             );
         }
 
-        // Check customer context
+        // Validate required customer context
         if (request.getValidationContext() == null ||
                 request.getValidationContext().getCustomer() == null) {
             return ValidationResult.deny(
                     request.getTransactionId(),
                     "MISSING_CUSTOMER",
-                    "Customer context is required"
+                    "Customer context is required for fast check"
             );
         }
 
-        // Quick eligibility check
-        if (request.isHighValueTransaction()) {
-            // High value transactions may need additional checks
-            log.debug("High value transaction detected");
-        }
-
+        // Pre-validation passed - delegate to Rule-Engine for actual fast-check
+        log.debug("Pre-validation passed for transaction: {}", request.getTransactionId());
         return ValidationResult.allow(request.getTransactionId());
     }
 

@@ -20,11 +20,12 @@ public interface ValidateDataUseCase {
     ValidationResult validate(ValidationRequest request);
 
     /**
-     * Perform fast check validation
-     * Quick validation without full rule evaluation
+     * Perform fast check validation.
+     * Pre-validates request locally, then delegates to Rule-Engine service for
+     * actual fast-check logic (time constraints, order constraints, blacklist, rate limiting).
      *
      * @param request the validation request
-     * @return validation result
+     * @return validation result from Rule-Engine
      */
     ValidationResult performFastCheck(ValidationRequest request);
 

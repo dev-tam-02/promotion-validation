@@ -74,33 +74,45 @@ public class ValidateDataUseCaseImpl implements ValidateDataUseCase {
         log.debug("Performing fast check for transaction: {}",
                 request.getTransactionId());
 
-        // First perform domain-level fast check
-        ValidationResult domainResult =
-                validationDomainService.performFastCheck(request);
+        // Pre-validate request before delegating to Rule-Engine
+        ValidationResult preValidationResult =
+                validationDomainService.preValidateFastCheck(request);
 
-        if (domainResult.isDenied()) {
-            return domainResult;
+        if (preValidationResult.isDenied()) {
+            log.debug("Pre-validation failed for transaction: {}",
+                    request.getTransactionId());
+            return preValidationResult;
         }
 
-        // If domain check passes and engine is available, use engine
+        // Delegate actual fast-check logic to Rule-Engine service
+        // Rule-Engine handles: time constraints, order constraints, blacklist, rate limiting
         if (validationEngine.isAvailable() && request.getPromotionId() != null) {
             try {
                 Map<String, Object> context = new HashMap<>();
                 context.put("customerId", request.getCustomerId());
                 context.put("orderValue", request.getOrderValue());
                 context.put("timestamp", request.getTimestamp());
+                context.put("customerSegment", request.getCustomerSegment());
 
                 return validationEngine.performFastCheck(
                         request.getPromotionId(),
                         context
                 );
             } catch (Exception e) {
-                log.warn("Fast check via engine failed, using domain result", e);
-                return domainResult;
+                log.error("Fast check via Rule-Engine failed: {}", e.getMessage(), e);
+                return ValidationResult.error(
+                        request.getTransactionId(),
+                        "Fast check service unavailable: " + e.getMessage()
+                );
             }
         }
 
-        return domainResult;
+        // If Rule-Engine is not available, fail with clear error
+        log.warn("Rule-Engine service not available for fast check");
+        return ValidationResult.error(
+                request.getTransactionId(),
+                "Rule-Engine service not available for fast check"
+        );
     }
 
     @Override
