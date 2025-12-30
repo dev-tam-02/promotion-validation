@@ -1,0 +1,91 @@
+databaseChangeLog:
+  # Operator categories table for UI configuration
+  - changeSet:
+      id: 019-create-operator-categories-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: operator_categories
+            remarks: Categories for grouping operators in UI rule builder
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(50)
+                  remarks: Category code identifier (audience, products, prices_quantities)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: name
+                  type: varchar(100)
+                  remarks: Display name for UI
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: int
+                  remarks: Order for displaying in UI
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: icon
+                  type: varchar(50)
+                  remarks: Material icon name for UI
+              - column:
+                  name: description
+                  type: text
+                  remarks: Category description
+              - column:
+                  name: is_metadata_category
+                  type: boolean
+                  remarks: Whether this is a metadata category (dynamic fields from schema)
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: metadata_schema_type
+                  type: varchar(50)
+                  remarks: Schema type for metadata categories (customer, order, redemption, custom_event)
+              - column:
+                  name: is_active
+                  type: boolean
+                  remarks: Whether category is active
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  remarks: Last update timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_operator_categories_display_order
+            tableName: operator_categories
+            columns:
+              - column:
+                  name: display_order
+
+        - createIndex:
+            indexName: idx_operator_categories_active
+            tableName: operator_categories
+            columns:
+              - column:
+                  name: is_active

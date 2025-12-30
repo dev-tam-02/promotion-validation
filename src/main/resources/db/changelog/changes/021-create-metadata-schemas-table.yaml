@@ -1,0 +1,114 @@
+databaseChangeLog:
+  # Metadata schemas table for dynamic metadata fields
+  - changeSet:
+      id: 021-create-metadata-schemas-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: metadata_schemas
+            remarks: Dynamic metadata field definitions for customer, order, redemption, and custom events
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: tenant_id
+                  type: varchar(50)
+                  remarks: Tenant identifier for multi-tenancy
+                  constraints:
+                    nullable: false
+              - column:
+                  name: schema_type
+                  type: varchar(50)
+                  remarks: Type of schema (customer, order, redemption, custom_event)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: field_key
+                  type: varchar(100)
+                  remarks: Field key/identifier (region, source, campaign_type)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: field_name
+                  type: varchar(100)
+                  remarks: Display name for UI (Region, Source)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: field_type
+                  type: varchar(20)
+                  remarks: Data type (string, number, boolean, date)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: available_values
+                  type: text
+                  remarks: JSON array of predefined values for select (null for free text)
+              - column:
+                  name: is_required
+                  type: boolean
+                  remarks: Whether field is required
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: int
+                  remarks: Order for displaying in UI
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: boolean
+                  remarks: Whether field is active
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  remarks: Last update timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: metadata_schemas
+            columnNames: tenant_id, schema_type, field_key
+            constraintName: uk_metadata_schemas_tenant_type_key
+
+        - createIndex:
+            indexName: idx_metadata_schemas_tenant_type
+            tableName: metadata_schemas
+            columns:
+              - column:
+                  name: tenant_id
+              - column:
+                  name: schema_type
+
+        - createIndex:
+            indexName: idx_metadata_schemas_display_order
+            tableName: metadata_schemas
+            columns:
+              - column:
+                  name: display_order
+
+        - createIndex:
+            indexName: idx_metadata_schemas_active
+            tableName: metadata_schemas
+            columns:
+              - column:
+                  name: is_active

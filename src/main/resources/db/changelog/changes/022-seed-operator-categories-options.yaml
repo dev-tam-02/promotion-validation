@@ -1,0 +1,659 @@
+databaseChangeLog:
+  # Seed operator categories
+  - changeSet:
+      id: 022-seed-operator-categories
+      author: harley hoang
+      changes:
+        # Audience Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-audience-001" }
+              - column: { name: code, value: "audience" }
+              - column: { name: name, value: "Audience" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: icon, value: "people" }
+              - column: { name: description, value: "Target specific customer segments and loyalty tiers" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Products Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-products-001" }
+              - column: { name: code, value: "products" }
+              - column: { name: name, value: "Products" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: icon, value: "shopping_cart" }
+              - column: { name: description, value: "Filter by product attributes in order items" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Prices & Quantities Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-prices-001" }
+              - column: { name: code, value: "prices_quantities" }
+              - column: { name: name, value: "Prices & Quantities" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: icon, value: "attach_money" }
+              - column: { name: description, value: "Set price and quantity thresholds" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Budget Constraints Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-budget-001" }
+              - column: { name: code, value: "budget_constraints" }
+              - column: { name: name, value: "Budget constraints" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: icon, value: "account_balance" }
+              - column: { name: description, value: "Limit redemptions and budget usage" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-redemptions-001" }
+              - column: { name: code, value: "redemptions" }
+              - column: { name: name, value: "Redemptions" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: icon, value: "redeem" }
+              - column: { name: description, value: "Control redemption access and authorization" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Customer Metadata Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-customer-meta-001" }
+              - column: { name: code, value: "customer_metadata" }
+              - column: { name: name, value: "Customer metadata" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: icon, value: "person_outline" }
+              - column: { name: description, value: "Filter by customer custom attributes" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "customer" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Order Metadata Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-order-meta-001" }
+              - column: { name: code, value: "order_metadata" }
+              - column: { name: name, value: "Order metadata" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: icon, value: "receipt" }
+              - column: { name: description, value: "Filter by order custom attributes" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "order" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemption Metadata Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-redemption-meta-001" }
+              - column: { name: code, value: "redemption_metadata" }
+              - column: { name: name, value: "Redemption metadata" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: icon, value: "card_giftcard" }
+              - column: { name: description, value: "Filter by redemption custom attributes" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "redemption" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Custom Event Metadata Category
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-event-meta-001" }
+              - column: { name: code, value: "custom_event_metadata" }
+              - column: { name: name, value: "Custom event metadata" }
+              - column: { name: display_order, valueNumeric: 9 }
+              - column: { name: icon, value: "event" }
+              - column: { name: description, value: "Filter by custom event attributes" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "custom_event" }
+              - column: { name: is_active, valueBoolean: true }
+
+  # Seed operator options - Audience
+  - changeSet:
+      id: 022-seed-operator-options-audience
+      author: harley hoang
+      changes:
+        # Customer segment
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-customer-segment-001" }
+              - column: { name: category_id, value: "cat-audience-001" }
+              - column: { name: code, value: "customer_segment" }
+              - column: { name: name, value: "Customer segment" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "Target customers by segment membership" }
+              - column: { name: operator_name, value: "customer.in_segment" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Customer loyalty tier
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-customer-tier-001" }
+              - column: { name: category_id, value: "cat-audience-001" }
+              - column: { name: code, value: "customer_loyalty_tier" }
+              - column: { name: name, value: "Customer loyalty tier" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "Target customers by loyalty tier" }
+              - column: { name: operator_name, value: "customer.tier.equals" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
+              - column: { name: default_comparator, value: "equals" }
+              - column: { name: value_type, value: "string" }
+              - column: { name: value_source, value: "select" }
+              - column: { name: value_options, value: '[{"value":"BRONZE","label":"Bronze"},{"value":"SILVER","label":"Silver"},{"value":"GOLD","label":"Gold"},{"value":"PLATINUM","label":"Platinum"}]' }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemption only by code holder
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-code-holder-001" }
+              - column: { name: category_id, value: "cat-audience-001" }
+              - column: { name: code, value: "redemption_code_holder_only" }
+              - column: { name: name, value: "Redemption only by code holder" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Only the customer who received the code can redeem it" }
+              - column: { name: operator_name, value: "redemption.code_holder_only" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "boolean" }
+              - column: { name: available_comparators, value: '["equals"]' }
+              - column: { name: default_comparator, value: "equals" }
+              - column: { name: value_type, value: "boolean" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: is_active, valueBoolean: true }
+
+  # Seed operator options - Products
+  - changeSet:
+      id: 022-seed-operator-options-products
+      author: harley hoang
+      changes:
+        # Any order item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-any-item-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "any_order_item" }
+              - column: { name: name, value: "Any order item" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "At least one item in order matches criteria" }
+              - column: { name: operator_name, value: "order.item.product.applicable" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Every order item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-every-item-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "every_order_item" }
+              - column: { name: name, value: "Every order item" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "All items in order must match criteria" }
+              - column: { name: operator_name, value: "order.item.product.applicable.all" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # None of the order items
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-none-item-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "none_order_item" }
+              - column: { name: name, value: "None of the order items" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "No items in order should match criteria" }
+              - column: { name: operator_name, value: "order.item.product.applicable.none" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Most expensive item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-most-expensive-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "most_expensive_item" }
+              - column: { name: name, value: "Most expensive of the order items" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "Check the most expensive item in order" }
+              - column: { name: operator_name, value: "order.item.most_expensive" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Cheapest item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-cheapest-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "cheapest_item" }
+              - column: { name: name, value: "Cheapest of the order items" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "Check the cheapest item in order" }
+              - column: { name: operator_name, value: "order.item.cheapest" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Item category
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-item-category-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "item_category" }
+              - column: { name: name, value: "Item category" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: description, value: "Filter by product category" }
+              - column: { name: operator_name, value: "order.item.category.in" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Item brand
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-item-brand-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "item_brand" }
+              - column: { name: name, value: "Item brand" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: description, value: "Filter by product brand" }
+              - column: { name: operator_name, value: "order.item.brand.in" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Item collection
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-item-collection-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "item_collection" }
+              - column: { name: name, value: "Item collection" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: description, value: "Filter by product collection" }
+              - column: { name: operator_name, value: "order.item.collection.in" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: is_active, valueBoolean: true }
+
+  # Seed operator options - Prices & Quantities
+  - changeSet:
+      id: 022-seed-operator-options-prices
+      author: harley hoang
+      changes:
+        # Total amount
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-amount-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "total_amount" }
+              - column: { name: name, value: "Total amount" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "Order total amount after discounts" }
+              - column: { name: operator_name, value: "order.total.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "between", "equals"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Initial amount
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-initial-amount-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "initial_amount" }
+              - column: { name: name, value: "Initial amount" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "Order total amount before any discounts" }
+              - column: { name: operator_name, value: "order.initial.amount.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "between", "equals"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Items quantity
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-items-quantity-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "items_quantity" }
+              - column: { name: name, value: "Items quantity" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Total number of items in order" }
+              - column: { name: operator_name, value: "order.items.count.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "between", "equals"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Price of each item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-price-each-item-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "price_each_item" }
+              - column: { name: name, value: "Price of each item" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "All items must meet price criteria" }
+              - column: { name: operator_name, value: "order.item.price.forall" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "between"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Price of any item
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-price-any-item-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "price_any_item" }
+              - column: { name: name, value: "Price of any item" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "At least one item meets price criteria" }
+              - column: { name: operator_name, value: "order.item.price.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "between"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+  # Seed operator options - Budget Constraints
+  - changeSet:
+      id: 022-seed-operator-options-budget
+      author: harley hoang
+      changes:
+        # Total orders value
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-orders-value-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_orders_value" }
+              - column: { name: name, value: "Total orders value" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "Maximum total value of orders using this promotion" }
+              - column: { name: operator_name, value: "budget.orders_value.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Total discounted amount
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-discounted-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_discounted_amount" }
+              - column: { name: name, value: "Total discounted amount" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "Maximum total discount amount given" }
+              - column: { name: operator_name, value: "budget.discounted_amount.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Total number of redemptions
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-redemptions-total-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_redemptions" }
+              - column: { name: name, value: "Total number of redemptions" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Maximum total redemptions allowed" }
+              - column: { name: operator_name, value: "budget.redemptions.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions per day
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-redemptions-day-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_day" }
+              - column: { name: name, value: "Redemptions per day" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "Maximum redemptions per day" }
+              - column: { name: operator_name, value: "budget.redemptions.per_day.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions per month
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-redemptions-month-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_month" }
+              - column: { name: name, value: "Redemptions per month" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "Maximum redemptions per month" }
+              - column: { name: operator_name, value: "budget.redemptions.per_month.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions per customer
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-per-customer-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer" }
+              - column: { name: name, value: "Redemptions per customer in a campaign" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: description, value: "Maximum redemptions per customer" }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions per customer per day
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-per-customer-day-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer_per_day" }
+              - column: { name: name, value: "Redemptions per customer per day" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: description, value: "Maximum daily redemptions per customer" }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.per_day.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redemptions per customer per month
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-budget-per-customer-month-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer_per_month" }
+              - column: { name: name, value: "Redemptions per customer per month" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: description, value: "Maximum monthly redemptions per customer" }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.per_month.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: is_active, valueBoolean: true }
+
+  # Seed operator options - Redemptions
+  - changeSet:
+      id: 022-seed-operator-options-redemptions
+      author: harley hoang
+      changes:
+        # Redeeming user
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-redeeming-user-001" }
+              - column: { name: category_id, value: "cat-redemptions-001" }
+              - column: { name: code, value: "redeeming_user" }
+              - column: { name: name, value: "Redeeming user" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "Filter by specific user who redeems" }
+              - column: { name: operator_name, value: "redemption.user.equals" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
+              - column: { name: default_comparator, value: "equals" }
+              - column: { name: value_type, value: "string" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Redeeming API key
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-redeeming-api-key-001" }
+              - column: { name: category_id, value: "cat-redemptions-001" }
+              - column: { name: code, value: "redeeming_api_key" }
+              - column: { name: name, value: "Redeeming API key" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "Filter by API key used for redemption" }
+              - column: { name: operator_name, value: "redemption.api_key.equals" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
+              - column: { name: default_comparator, value: "equals" }
+              - column: { name: value_type, value: "string" }
+              - column: { name: value_source, value: "select" }
+              - column: { name: is_active, valueBoolean: true }

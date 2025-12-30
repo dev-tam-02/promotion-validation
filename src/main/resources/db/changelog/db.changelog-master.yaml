@@ -33,3 +33,11 @@ databaseChangeLog:
       file: db/changelog/changes/017-create-validation-rule-snapshots.yaml
   - include:
       file: db/changelog/changes/018-create-assignment-snapshots.yaml
+  - include:
+      file: db/changelog/changes/019-create-operator-categories-table.yaml
+  - include:
+      file: db/changelog/changes/020-create-operator-options-table.yaml
+  - include:
+      file: db/changelog/changes/021-create-metadata-schemas-table.yaml
+  - include:
+      file: db/changelog/changes/022-seed-operator-categories-options.yaml

@@ -1,0 +1,147 @@
+databaseChangeLog:
+  # Operator options table for UI configuration
+  - changeSet:
+      id: 020-create-operator-options-table
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: operator_options
+            remarks: Options within categories for UI rule builder configuration
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  remarks: Primary key UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: varchar(36)
+                  remarks: Foreign key to operator_categories
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_operator_options_category
+                    references: operator_categories(id)
+              - column:
+                  name: code
+                  type: varchar(50)
+                  remarks: Option code identifier (customer_segment, total_amount)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(100)
+                  remarks: Display name for UI
+                  constraints:
+                    nullable: false
+              - column:
+                  name: display_order
+                  type: int
+                  remarks: Order for displaying in UI
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+                  remarks: Option description
+              - column:
+                  name: operator_name
+                  type: varchar(100)
+                  remarks: Linked operator name (customer.in_segment, order.total.gte)
+              - column:
+                  name: operator_version
+                  type: int
+                  remarks: Operator version
+                  defaultValueNumeric: 1
+              - column:
+                  name: comparison_type
+                  type: varchar(20)
+                  remarks: Type of comparison (single, range, list, boolean)
+              - column:
+                  name: available_comparators
+                  type: text
+                  remarks: JSON array of available comparators (equals, gte, lte, in, not_in, between)
+              - column:
+                  name: default_comparator
+                  type: varchar(20)
+                  remarks: Default comparator for this option
+              - column:
+                  name: value_type
+                  type: varchar(20)
+                  remarks: Type of value (number, string, list, boolean)
+              - column:
+                  name: value_source
+                  type: varchar(20)
+                  remarks: Source of value (input, select, multi_select, schema)
+              - column:
+                  name: value_options
+                  type: text
+                  remarks: JSON array of predefined options for select/multi_select
+              - column:
+                  name: min_value
+                  type: decimal(19,4)
+                  remarks: Minimum value for validation
+              - column:
+                  name: max_value
+                  type: decimal(19,4)
+                  remarks: Maximum value for validation
+              - column:
+                  name: pattern
+                  type: varchar(255)
+                  remarks: Regex pattern for validation
+              - column:
+                  name: is_active
+                  type: boolean
+                  remarks: Whether option is active
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  remarks: Creation timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  remarks: Last update timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: operator_options
+            columnNames: category_id, code
+            constraintName: uk_operator_options_category_code
+
+        - createIndex:
+            indexName: idx_operator_options_category_id
+            tableName: operator_options
+            columns:
+              - column:
+                  name: category_id
+
+        - createIndex:
+            indexName: idx_operator_options_display_order
+            tableName: operator_options
+            columns:
+              - column:
+                  name: display_order
+
+        - createIndex:
+            indexName: idx_operator_options_operator_name
+            tableName: operator_options
+            columns:
+              - column:
+                  name: operator_name
+
+        - createIndex:
+            indexName: idx_operator_options_active
+            tableName: operator_options
+            columns:
+              - column:
+                  name: is_active
