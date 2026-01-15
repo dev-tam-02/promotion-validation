@@ -72,6 +72,11 @@ public class RuleTemporalLinkJpaAdapter implements RuleTemporalLinkPersistencePo
     }
 
     @Override
+    public void deleteByAssignmentId(String assignmentId) {
+        repository.deleteByAssignmentId(assignmentId);
+    }
+
+    @Override
     public void delete(RuleTemporalLink ruleTemporalLink) {
         repository.deleteById(ruleTemporalLink.getId());
     }

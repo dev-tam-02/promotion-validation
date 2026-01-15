@@ -34,6 +34,12 @@ public interface RuleTemporalLinkPersistencePort {
     // UPDATED: Changed from countByRuleId to countByAssignmentId
     long countByAssignmentId(String assignmentId);
 
+    /**
+     * Delete all temporal links by assignment ID.
+     * Used for restore operations.
+     */
+    void deleteByAssignmentId(String assignmentId);
+
     void delete(RuleTemporalLink ruleTemporalLink);
 
     void deleteById(String id);

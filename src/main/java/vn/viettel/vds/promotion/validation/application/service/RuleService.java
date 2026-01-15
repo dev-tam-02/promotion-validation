@@ -11,8 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -29,16 +30,16 @@ public class RuleService {
 
     private final RulePersistencePort rulePersistencePort;
     private final AssignmentService assignmentService;
-    private final AssignmentJpaRepository assignmentRepository;
+    private final AssignmentPersistencePort assignmentPort;
     private final RuleService self;
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        @Lazy AssignmentService assignmentService,
-                       AssignmentJpaRepository assignmentRepository,
+                       AssignmentPersistencePort assignmentPort,
                        @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
         this.assignmentService = assignmentService;
-        this.assignmentRepository = assignmentRepository;
+        this.assignmentPort = assignmentPort;
         this.self = self;
     }
 
@@ -407,32 +408,32 @@ public class RuleService {
     public BundleHashResponse getBundleHashForObject(String objectType, String objectId) {
         logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
 
-        // Find active assignment for object
-        var assignments = assignmentRepository.findByEntityTypeAndEntityIdAndActive(objectType, objectId, true);
+        // Find active assignment for object via port
+        List<Assignment> assignments = assignmentPort.findActiveByTenantIdAndSubject(null, objectType, objectId);
         if (assignments.isEmpty()) {
             logger.warn("No active assignment found for object: type={}, id={}", objectType, objectId);
             throw new ResourceNotFoundException();
         }
 
         // Get first assignment (there should only be one active)
-        var assignmentEntity = assignments.get(0);
+        Assignment assignment = assignments.get(0);
 
         // Check if assignment has temporalBundleHash
-        if (assignmentEntity.getTemporalBundleHash() == null || assignmentEntity.getTemporalBundleHash().isEmpty()) {
-            logger.warn("Assignment has no temporalBundleHash: assignmentId={}", assignmentEntity.getId());
+        if (assignment.getTemporalBundleHash() == null || assignment.getTemporalBundleHash().isEmpty()) {
+            logger.warn("Assignment has no temporalBundleHash: assignmentId={}", assignment.getId());
             throw new ResourceNotFoundException();
         }
 
         logger.debug("Found temporal bundle hash {} for object {}:{}",
-                assignmentEntity.getTemporalBundleHash(), objectType, objectId);
+                assignment.getTemporalBundleHash(), objectType, objectId);
 
         return BundleHashResponse.builder()
                 .objectType(objectType)
                 .objectId(objectId)
-                .bundleHash(assignmentEntity.getTemporalBundleHash())
+                .bundleHash(assignment.getTemporalBundleHash())
                 .ruleVersion(null)
                 .assignmentVersion(1)
-                .compiledAt(assignmentEntity.getUpdatedAt())
+                .compiledAt(assignment.getUpdatedAt())
                 .build();
     }
 }

@@ -42,6 +42,13 @@ public interface RuleTemporalLinkJpaRepository extends JpaRepository<RuleTempora
     long countByAssignmentId(@Param("assignmentId") String assignmentId);
 
     /**
+     * Delete all temporal links by assignment ID.
+     * Used for restore operations.
+     */
+    @Query("DELETE FROM RuleTemporalLinkEntity rtl WHERE rtl.assignment.id = :assignmentId")
+    void deleteByAssignmentId(@Param("assignmentId") String assignmentId);
+
+    /**
      * Find temporal policies by entity type and entity ID through assignments.
      * This query joins: rule_temporal_links -> assignments -> temporal_policies
      * to get all temporal policies associated with a specific object (entity).

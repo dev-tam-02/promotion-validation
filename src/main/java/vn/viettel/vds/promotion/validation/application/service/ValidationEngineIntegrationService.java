@@ -5,10 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -26,16 +26,16 @@ public class ValidationEngineIntegrationService {
     private static final String STATUS_ERROR_PREFIX = "Error: ";
 
     private final ValidationEngineDeploymentService validationEngineClient;
-    private final ValidationRuleJpaRepository validationRuleRepository;
-    private final AssignmentJpaRepository assignmentRepository;
+    private final ValidationRuleRepositoryPort validationRulePort;
+    private final AssignmentPersistencePort assignmentPort;
 
     public ValidationEngineIntegrationService(
             ValidationEngineDeploymentService validationEngineClient,
-            ValidationRuleJpaRepository validationRuleRepository,
-            AssignmentJpaRepository assignmentRepository) {
+            ValidationRuleRepositoryPort validationRulePort,
+            AssignmentPersistencePort assignmentPort) {
         this.validationEngineClient = validationEngineClient;
-        this.validationRuleRepository = validationRuleRepository;
-        this.assignmentRepository = assignmentRepository;
+        this.validationRulePort = validationRulePort;
+        this.assignmentPort = assignmentPort;
     }
 
     /**
@@ -45,7 +45,7 @@ public class ValidationEngineIntegrationService {
     public void synchronizeAllRules() {
         logger.info("Starting full rule synchronization with validation-engine");
 
-        List<AssignmentEntity> activeAssignments = assignmentRepository.findByActive(true);
+        List<Assignment> activeAssignments = assignmentPort.findByActive(true);
 
         long successCount = activeAssignments.stream()
                 .filter(this::synchronizeAssignment)
@@ -58,16 +58,16 @@ public class ValidationEngineIntegrationService {
         // Bundle management is now automatic in validation-engine.
     }
 
-    private boolean synchronizeAssignment(AssignmentEntity assignment) {
+    private boolean synchronizeAssignment(Assignment assignment) {
         try {
-            var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
+            var validationRuleOpt = validationRulePort.findById(assignment.getId());
             if (validationRuleOpt.isEmpty()) {
                 logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
                         assignment.getId(), assignment.getId());
                 return false;
             }
 
-            ValidationRuleEntity rule = validationRuleOpt.get();
+            Rule rule = validationRuleOpt.get();
 
             // Note: deployRule() is deprecated and does nothing.
             // Actual rule deployment is handled by RulePublishingService.publishRule()
@@ -90,14 +90,14 @@ public class ValidationEngineIntegrationService {
         logger.info("Deploying specific rule assignment: assignmentId={}", assignmentId);
 
         try {
-            // Get the assignment
-            var assignmentOpt = assignmentRepository.findById(assignmentId);
+            // Get the assignment via port
+            var assignmentOpt = assignmentPort.findById(assignmentId);
             if (assignmentOpt.isEmpty()) {
                 logger.warn("Assignment not found: assignmentId={}", assignmentId);
                 return CompletableFuture.completedFuture(false);
             }
 
-            AssignmentEntity assignment = assignmentOpt.get();
+            Assignment assignment = assignmentOpt.get();
 
             // Only deploy if active
             if (assignment.getActive() == null || !assignment.getActive()) {
@@ -105,15 +105,15 @@ public class ValidationEngineIntegrationService {
                 return CompletableFuture.completedFuture(false);
             }
 
-            // Get the validation rule
-            var validationRuleOpt = validationRuleRepository.findById(assignment.getId());
+            // Get the validation rule via port
+            var validationRuleOpt = validationRulePort.findById(assignment.getId());
             if (validationRuleOpt.isEmpty()) {
                 logger.warn("Validation rule not found for assignment: ruleId={}, assignmentId={}",
                         assignment.getId(), assignmentId);
                 return CompletableFuture.completedFuture(false);
             }
 
-            ValidationRuleEntity rule = validationRuleOpt.get();
+            Rule rule = validationRuleOpt.get();
 
             // Note: deployRule() is deprecated and does nothing.
             // Actual rule deployment is handled by RulePublishingService.publishRule()
@@ -164,8 +164,8 @@ public class ValidationEngineIntegrationService {
      */
     public SynchronizationStatus getSynchronizationStatus() {
         try {
-            // Count active assignments (tenantId removed from schema)
-            long activeAssignments = assignmentRepository.countByActive(true);
+            // Count active assignments via port (tenantId is ignored in adapter)
+            long activeAssignments = assignmentPort.countByTenantIdAndActive(null, true);
 
             // Check validation-engine health
             boolean engineHealthy = isValidationEngineHealthy();

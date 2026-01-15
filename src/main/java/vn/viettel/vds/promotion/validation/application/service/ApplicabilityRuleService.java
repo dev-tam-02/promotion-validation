@@ -5,9 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ApplicabilityRuleResponse;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentApplicabilityRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.ApplicabilityRulePersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.ApplicabilityRule;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,10 +23,13 @@ public class ApplicabilityRuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicabilityRuleService.class);
 
-    private final AssignmentJpaRepository assignmentRepository;
+    private final AssignmentPersistencePort assignmentPort;
+    private final ApplicabilityRulePersistencePort applicabilityRulePort;
 
-    public ApplicabilityRuleService(AssignmentJpaRepository assignmentRepository) {
-        this.assignmentRepository = assignmentRepository;
+    public ApplicabilityRuleService(AssignmentPersistencePort assignmentPort,
+                                    ApplicabilityRulePersistencePort applicabilityRulePort) {
+        this.assignmentPort = assignmentPort;
+        this.applicabilityRulePort = applicabilityRulePort;
     }
 
     /**
@@ -41,9 +45,8 @@ public class ApplicabilityRuleService {
     public List<ApplicabilityRuleResponse> findByObjectTypeAndObjectId(String objectType, String objectId) {
         logger.debug("Finding applicability rules for assignment with entityType={}, entityId={}", objectType, objectId);
 
-        // Step 1: Find assignments by entityType and entityId
-        List<AssignmentEntity> assignments = assignmentRepository
-                .findByEntityTypeAndEntityId(objectType, objectId);
+        // Step 1: Find assignments by entityType (subjectType) and entityId (subjectKey)
+        List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey(objectType, objectId);
 
         if (assignments.isEmpty()) {
             logger.debug("No assignments found for entityType={}, entityId={}", objectType, objectId);
@@ -53,14 +56,14 @@ public class ApplicabilityRuleService {
         logger.debug("Found {} assignments for entityType={}, entityId={}",
                 assignments.size(), objectType, objectId);
 
-        // Step 2: Collect all applicability rules from all assignments
+        // Step 2: Collect all applicability rules from all assignments via port
         List<ApplicabilityRuleResponse> result = new ArrayList<>();
-        for (AssignmentEntity assignment : assignments) {
-            List<AssignmentApplicabilityRuleEntity> rules = assignment.getApplicabilityRules();
-            if (rules != null && !rules.isEmpty()) {
+        for (Assignment assignment : assignments) {
+            List<ApplicabilityRule> rules = applicabilityRulePort.findByAssignmentId(assignment.getId());
+            if (!rules.isEmpty()) {
                 logger.debug("Assignment {} has {} applicability rules",
                         assignment.getId(), rules.size());
-                for (AssignmentApplicabilityRuleEntity rule : rules) {
+                for (ApplicabilityRule rule : rules) {
                     result.add(toResponse(rule));
                 }
             }
@@ -73,21 +76,21 @@ public class ApplicabilityRuleService {
     }
 
     /**
-     * Convert entity to response DTO.
+     * Convert domain model to response DTO.
      */
-    private ApplicabilityRuleResponse toResponse(AssignmentApplicabilityRuleEntity entity) {
+    private ApplicabilityRuleResponse toResponse(ApplicabilityRule rule) {
         ApplicabilityRuleResponse response = new ApplicabilityRuleResponse();
-        response.setId(entity.getId());
-        response.setAssignmentId(entity.getAssignment() != null ? entity.getAssignment().getId() : null);
-        response.setRuleType(entity.getRuleType());
-        response.setObjectType(entity.getObjectType());
-        response.setObjectId(entity.getObjectId());
-        response.setEffect(entity.getEffect());
-        response.setTarget(entity.getTarget());
-        response.setSkipInitially(entity.getSkipInitially());
-        response.setRepeatCount(entity.getRepeatCount());
-        response.setCreatedAt(entity.getCreatedAt());
-        response.setUpdatedAt(entity.getUpdatedAt());
+        response.setId(rule.getId());
+        response.setAssignmentId(rule.getAssignmentId());
+        response.setRuleType(rule.getRuleType() != null ? rule.getRuleType().name() : null);
+        response.setObjectType(rule.getObjectType() != null ? rule.getObjectType().name() : null);
+        response.setObjectId(rule.getObjectId());
+        response.setEffect(rule.getEffect() != null ? rule.getEffect().name() : null);
+        response.setTarget(rule.getTarget() != null ? rule.getTarget().name() : null);
+        response.setSkipInitially(rule.getSkipInitially());
+        response.setRepeatCount(rule.getRepeatCount());
+        response.setCreatedAt(rule.getCreatedAt());
+        response.setUpdatedAt(rule.getUpdatedAt());
         return response;
     }
 }

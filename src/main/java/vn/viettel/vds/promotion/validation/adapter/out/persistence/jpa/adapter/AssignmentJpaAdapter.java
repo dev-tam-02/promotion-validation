@@ -164,6 +164,13 @@ public class AssignmentJpaAdapter implements AssignmentPersistencePort {
     }
 
     @Override
+    public List<Assignment> findByActive(Boolean active) {
+        return repository.findByActive(active).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<Assignment> findByRuleIdAndEntityId(String ruleId, String entityId) {
         return repository.findByRuleIdAndEntityId(ruleId, entityId)
                 .map(mapper::toDomain);

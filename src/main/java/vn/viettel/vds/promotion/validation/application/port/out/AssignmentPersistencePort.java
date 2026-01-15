@@ -50,6 +50,12 @@ public interface AssignmentPersistencePort {
     void deleteById(String id);
 
     /**
+     * Find all assignments by active status.
+     * Used for synchronization operations.
+     */
+    List<Assignment> findByActive(Boolean active);
+
+    /**
      * Find assignment by rule ID and entity ID (object_id).
      * Used for delete assignment operation (SRS PRM_KBNV_API_VALD008).
      */
