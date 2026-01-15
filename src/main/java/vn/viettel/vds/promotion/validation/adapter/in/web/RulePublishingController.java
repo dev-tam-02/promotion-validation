@@ -15,7 +15,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.PublishRuleRequest
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleDeploymentStatusResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RulePublishResponse;
 import vn.viettel.vds.promotion.validation.domain.exception.RulePublishingException;
-import vn.viettel.vds.promotion.validation.domain.service.RulePublishingService;
+import vn.viettel.vds.promotion.validation.application.service.RulePublishingService;
 
 import java.util.HashMap;
 import java.util.List;

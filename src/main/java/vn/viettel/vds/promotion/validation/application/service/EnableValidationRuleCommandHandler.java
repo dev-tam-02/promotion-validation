@@ -37,14 +37,14 @@ public class EnableValidationRuleCommandHandler {
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
-    private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
+    private final RulePublishingService rulePublishingService;
 
     public EnableValidationRuleCommandHandler(
             AssignmentJpaRepository assignmentRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
-            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService) {
+            RulePublishingService rulePublishingService) {
         this.assignmentRepository = assignmentRepository;
         this.validationRuleRepository = validationRuleRepository;
         this.eventPublisher = eventPublisher;

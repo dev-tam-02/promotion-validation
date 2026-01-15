@@ -1,4 +1,4 @@
-package vn.viettel.vds.promotion.validation.domain.service;
+package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -19,11 +19,13 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * Service for rule publishing operations.
+ * Application service for rule publishing operations.
  * <p>
- * NOTE: This service has dependencies on adapters and ports, so it should ideally
- * be located in application/service/ layer. It is kept here temporarily for
- * backward compatibility. Future refactoring should move this to application layer.
+ * This service orchestrates rule compilation, warmup, and deployment to the validation engine.
+ * It belongs in the application layer because it:
+ * - Coordinates multiple adapters (ValidationEngineClient, persistence)
+ * - Contains orchestration logic rather than pure domain logic
+ * - Depends on external infrastructure through ports
  * </p>
  * <p>
  * Spring annotations have been removed. Bean wiring is done via DomainServicesConfig.

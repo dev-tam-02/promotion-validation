@@ -44,7 +44,7 @@ public class SettingValidationRuleCommandHandler {
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
-    private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
+    private final RulePublishingService rulePublishingService;
     private final Validator validator;
     private final SettingValidationRuleCommandDTOMapper dtoMapper;
 
@@ -57,7 +57,7 @@ public class SettingValidationRuleCommandHandler {
             ValidationRuleJpaRepository validationRuleRepository,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
-            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService,
+            RulePublishingService rulePublishingService,
             Validator validator,
             SettingValidationRuleCommandDTOMapper dtoMapper) {
         this.assignmentRepository = assignmentRepository;
@@ -765,7 +765,7 @@ public class SettingValidationRuleCommandHandler {
     }
 
     private void handleAssignmentBundlePublishResult(AssignmentEntity assignmentEntity,
-                                                     vn.viettel.vds.promotion.validation.domain.service.RulePublishingService.RulePublishResult publishResult) {
+                                                     RulePublishingService.RulePublishResult publishResult) {
         if (publishResult.isSuccess()) {
             assignmentEntity.setTemporalBundleHash(publishResult.getBundleHash());
             // Explicit save to persist temporalBundleHash - entity was saved before this method was called

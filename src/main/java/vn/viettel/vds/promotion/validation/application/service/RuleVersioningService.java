@@ -1,4 +1,4 @@
-package vn.viettel.vds.promotion.validation.domain.service;
+package vn.viettel.vds.promotion.validation.application.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Service for rule versioning operations.
+ * Application service for rule versioning operations.
  * <p>
- * NOTE: This service has dependencies on adapters and ports, so it should ideally
- * be located in application/service/ layer. It is kept here temporarily for
- * backward compatibility. Future refactoring should move this to application layer.
+ * This service manages rule version lifecycle including creation, rollback, and history.
+ * It belongs in the application layer because it orchestrates persistence operations
+ * and depends on infrastructure through ports.
  * </p>
  * <p>
  * Spring annotations have been removed. Bean wiring is done via DomainServicesConfig.

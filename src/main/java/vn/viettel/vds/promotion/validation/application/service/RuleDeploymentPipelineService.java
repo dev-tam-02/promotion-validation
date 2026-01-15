@@ -1,4 +1,4 @@
-package vn.viettel.vds.promotion.validation.domain.service;
+package vn.viettel.vds.promotion.validation.application.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +15,15 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * Service for rule deployment pipeline operations.
+ * Application service for rule deployment pipeline operations.
  * <p>
- * NOTE: This service has dependencies on adapters and ports, so it should ideally
- * be located in application/service/ layer. It is kept here temporarily for
- * backward compatibility. Future refactoring should move this to application layer.
+ * This service orchestrates the rule deployment lifecycle including validation,
+ * compilation, testing, and health checks. It belongs in the application layer
+ * because it coordinates multiple infrastructure components.
+ * </p>
+ * <p>
+ * NOTE: Spring Pageable is used because RulePersistencePort currently depends on it.
+ * This should be refactored to use framework-agnostic pagination abstractions.
  * </p>
  * <p>
  * Spring annotations have been removed. Bean wiring is done via DomainServicesConfig.

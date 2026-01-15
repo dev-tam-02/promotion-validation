@@ -49,7 +49,7 @@ public class UpdateValidationRuleCommandHandler {
     private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final IdempotencyService idempotencyService;
-    private final vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService;
+    private final RulePublishingService rulePublishingService;
     private final Validator validator;
     private final UpdateValidationRuleCommandDTOMapper dtoMapper;
     private final AssignmentSnapshotService assignmentSnapshotService;
@@ -67,7 +67,7 @@ public class UpdateValidationRuleCommandHandler {
             RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
             ValidationRuleJpaRepository validationRuleRepository,
             IdempotencyService idempotencyService,
-            vn.viettel.vds.promotion.validation.domain.service.RulePublishingService rulePublishingService,
+            RulePublishingService rulePublishingService,
             Validator validator,
             UpdateValidationRuleCommandDTOMapper dtoMapper,
             AssignmentSnapshotService assignmentSnapshotService,
