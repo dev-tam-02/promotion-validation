@@ -28,6 +28,12 @@ public class Assignment {
     private Integer trafficPercent;
     private StickyKeyStrategy stickyKeyStrategy;
 
+    /**
+     * Flag indicating if this assignment applies to all products.
+     * When true, product applicability rules are ignored.
+     */
+    private Boolean includedAll;
+
     // Audit fields
     private Instant createdAt;
     private String createdBy;
