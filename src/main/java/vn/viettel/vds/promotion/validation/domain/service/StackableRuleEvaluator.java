@@ -1,8 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactPack;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -14,17 +13,16 @@ import java.util.List;
  * Domain service for evaluating stacking rules against validation facts.
  * <p>
  * This service evaluates business rules to determine if discounts can be
- * stacked together. It provides pure domain logic without infrastructure
- * dependencies.
+ * stacked together. This is a pure domain service - no Spring annotations.
+ * Bean wiring is done via DomainServicesConfig in adapter layer.
  * </p>
  *
  * @author Validation Team
  * @since 1.0.0
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
 public class StackableRuleEvaluator {
+
+    private static final Logger log = LoggerFactory.getLogger(StackableRuleEvaluator.class);
 
     /**
      * Evaluates all stacking rules against the provided fact pack.

@@ -1,8 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.DiscountFact;
 import vn.viettel.vds.promotion.validation.domain.fact.OrderFact;
@@ -22,16 +21,16 @@ import java.util.List;
  * <p>
  * Contains pure business logic for validating discount stacking rules,
  * optimizing discount order, and calculating discount amounts.
- * This service has no infrastructure dependencies.
+ * This is a pure domain service - no Spring annotations.
+ * Bean wiring is done via DomainServicesConfig in adapter layer.
  * </p>
  *
  * @author Validation Team
  * @since 1.0.0
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
 public class StackableDiscountValidationService {
+
+    private static final Logger log = LoggerFactory.getLogger(StackableDiscountValidationService.class);
 
     private static final BigDecimal MAX_DISCOUNT_PERCENTAGE = new BigDecimal("100");
     private static final BigDecimal MIN_FINAL_AMOUNT = BigDecimal.ZERO;

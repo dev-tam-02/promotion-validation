@@ -2,8 +2,6 @@ package vn.viettel.vds.promotion.validation.domain.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -14,8 +12,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Service
-@Transactional
+/**
+ * Service for rule versioning operations.
+ * <p>
+ * NOTE: This service has dependencies on adapters and ports, so it should ideally
+ * be located in application/service/ layer. It is kept here temporarily for
+ * backward compatibility. Future refactoring should move this to application layer.
+ * </p>
+ * <p>
+ * Spring annotations have been removed. Bean wiring is done via DomainServicesConfig.
+ * Transaction management should be handled at the use case level.
+ * </p>
+ */
 public class RuleVersioningService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleVersioningService.class);

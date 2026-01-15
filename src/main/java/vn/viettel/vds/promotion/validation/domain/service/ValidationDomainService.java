@@ -1,7 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.service;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
@@ -11,12 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Domain service containing core validation business logic
- * Pure business logic without infrastructure dependencies
+ * Domain service containing core validation business logic.
+ * Pure business logic without infrastructure dependencies.
+ * <p>
+ * This is a pure domain service - no Spring annotations.
+ * Bean wiring is done via DomainServicesConfig in adapter layer.
+ * </p>
  */
-@Slf4j
-@Service
 public class ValidationDomainService {
+
+    private static final Logger log = LoggerFactory.getLogger(ValidationDomainService.class);
 
     /**
      * Validate a request against a set of rules

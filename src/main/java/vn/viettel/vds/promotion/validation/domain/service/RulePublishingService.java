@@ -3,8 +3,6 @@ package vn.viettel.vds.promotion.validation.domain.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
@@ -20,8 +18,18 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import java.time.Instant;
 import java.util.*;
 
-@Service
-@Transactional
+/**
+ * Service for rule publishing operations.
+ * <p>
+ * NOTE: This service has dependencies on adapters and ports, so it should ideally
+ * be located in application/service/ layer. It is kept here temporarily for
+ * backward compatibility. Future refactoring should move this to application layer.
+ * </p>
+ * <p>
+ * Spring annotations have been removed. Bean wiring is done via DomainServicesConfig.
+ * Transaction management should be handled at the use case level.
+ * </p>
+ */
 public class RulePublishingService {
 
     private static final Logger logger = LoggerFactory.getLogger(RulePublishingService.class);
