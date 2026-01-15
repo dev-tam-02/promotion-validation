@@ -21,11 +21,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
-import vn.viettel.vds.promotion.validation.application.service.AssignmentService;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.*;
 
@@ -52,17 +52,14 @@ public class RuleController {
     private final RuleResponseMapper ruleMapper;
     private final RuleValidationService ruleValidationService;
     private final RuleSimulationService ruleSimulationService;
-    private final AssignmentService assignmentService;
 
     public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
-                          RuleSimulationService ruleSimulationService,
-                          AssignmentService assignmentService) {
+                          RuleSimulationService ruleSimulationService) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
         this.ruleSimulationService = ruleSimulationService;
-        this.assignmentService = assignmentService;
     }
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
@@ -389,51 +386,35 @@ public class RuleController {
         return caseResult;
     }
 
-    @Operation(summary = "Get rule by object", description = "Retrieve validation rule with assignment details for a specific object")
+    @Operation(summary = "Get rule by object", description = "Retrieve validation rule with binding details for a specific object")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Rule found"),
             @ApiResponse(responseCode = "404", description = "No rule assigned to this object")
     })
     @GetMapping("/by-object")
-    public RuleWithAssignmentResponse getRuleByObject(
+    public RuleWithBindingResponse getRuleByObject(
             @Parameter(description = "Object type (e.g., CAMPAIGN, PROMOTION)") @RequestParam String objectType,
             @Parameter(description = "Object ID") @RequestParam String objectId) {
 
         logger.info("Getting rule by object: type={}, id={}", objectType, objectId);
 
-        // Get assignment details
-        Optional<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignment =
-                assignmentService.findBySubjectTypeAndKey(objectType, objectId);
+        // Get binding details
+        Optional<RuleBinding> binding = ruleService.getBindingForObject(objectType, objectId);
 
-        if (assignment.isEmpty()) {
+        if (binding.isEmpty()) {
             throw new com.promix.platform.core.exception.ResourceNotFoundException();
         }
 
+        RuleBinding b = binding.get();
+
         // Get the rule
-        Rule rule = ruleService.getRuleById(assignment.get().getRuleId());
+        Rule rule = ruleService.getRuleById(b.getRuleId());
 
-        // Build response with rule and assignment details
-        RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
-        response.setRule(ruleMapper.toRuleResponse(rule));
-
-        RuleWithAssignmentResponse.AssignmentDetails assignmentDetails = new RuleWithAssignmentResponse.AssignmentDetails();
-        assignmentDetails.setAssignmentId(assignment.get().getId());
-        assignmentDetails.setObjectType(assignment.get().getSubject().getType());
-        assignmentDetails.setObjectId(assignment.get().getSubject().getKey());
-        assignmentDetails.setActive(assignment.get().getActive());
-        assignmentDetails.setValidFrom(assignment.get().getValidFrom());
-        assignmentDetails.setValidTo(assignment.get().getValidTo());
-        assignmentDetails.setTrafficPercent(assignment.get().getTrafficPercent());
-        assignmentDetails.setStickyKeyStrategy(assignment.get().getStickyKeyStrategy() != null ?
-                assignment.get().getStickyKeyStrategy().name() : null);
-        assignmentDetails.setRuleVersionPinned(assignment.get().getRuleVersionPinned());
-        assignmentDetails.setAssignmentVersion(assignment.get().getAssignmentVersion());
-        assignmentDetails.setCreatedAt(assignment.get().getCreatedAt());
-        assignmentDetails.setUpdatedAt(assignment.get().getUpdatedAt());
-
-        response.setAssignment(assignmentDetails);
-
-        return response;
+        // Build response with rule and binding details
+        return RuleWithBindingResponse.builder()
+                .rule(ruleMapper.toRuleResponse(rule))
+                .binding(mapToBindingDetails(b))
+                .build();
     }
 
     @Operation(summary = "Get all rules by object", description = "Retrieve all validation rules (active and inactive) assigned to a specific object")
@@ -442,49 +423,31 @@ public class RuleController {
             @ApiResponse(responseCode = "404", description = "No rules assigned to this object")
     })
     @GetMapping("/by-object/all")
-    public List<RuleWithAssignmentResponse> getAllRulesByObject(
+    public List<RuleWithBindingResponse> getAllRulesByObject(
             @Parameter(description = "Object type (e.g., CAMPAIGN, PROMOTION)") @RequestParam String objectType,
             @Parameter(description = "Object ID") @RequestParam String objectId) {
 
         logger.info("Getting all rules by object: type={}, id={}", objectType, objectId);
 
-        // Get all assignments for this object
-        List<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignments =
-                assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
+        // Get all bindings for this object
+        List<RuleBinding> bindings = ruleService.getAllBindingsForObject(objectType, objectId);
 
-        if (assignments.isEmpty()) {
+        if (bindings.isEmpty()) {
             throw new com.promix.platform.core.exception.ResourceNotFoundException();
         }
 
-        // Build response list with rule and assignment details
-        return assignments.stream()
-                .map(assignment -> {
+        // Build response list with rule and binding details
+        return bindings.stream()
+                .map(binding -> {
                     try {
-                        Rule rule = ruleService.getRuleById(assignment.getRuleId());
+                        Rule rule = ruleService.getRuleById(binding.getRuleId());
 
-                        RuleWithAssignmentResponse response = new RuleWithAssignmentResponse();
-                        response.setRule(ruleMapper.toRuleResponse(rule));
-
-                        RuleWithAssignmentResponse.AssignmentDetails assignmentDetails = new RuleWithAssignmentResponse.AssignmentDetails();
-                        assignmentDetails.setAssignmentId(assignment.getId());
-                        assignmentDetails.setObjectType(assignment.getSubject().getType());
-                        assignmentDetails.setObjectId(assignment.getSubject().getKey());
-                        assignmentDetails.setActive(assignment.getActive());
-                        assignmentDetails.setValidFrom(assignment.getValidFrom());
-                        assignmentDetails.setValidTo(assignment.getValidTo());
-                        assignmentDetails.setTrafficPercent(assignment.getTrafficPercent());
-                        assignmentDetails.setStickyKeyStrategy(assignment.getStickyKeyStrategy() != null ?
-                                assignment.getStickyKeyStrategy().name() : null);
-                        assignmentDetails.setRuleVersionPinned(assignment.getRuleVersionPinned());
-                        assignmentDetails.setAssignmentVersion(assignment.getAssignmentVersion());
-                        assignmentDetails.setCreatedAt(assignment.getCreatedAt());
-                        assignmentDetails.setUpdatedAt(assignment.getUpdatedAt());
-
-                        response.setAssignment(assignmentDetails);
-
-                        return response;
+                        return RuleWithBindingResponse.builder()
+                                .rule(ruleMapper.toRuleResponse(rule))
+                                .binding(mapToBindingDetails(binding))
+                                .build();
                     } catch (Exception e) {
-                        logger.warn("Failed to get rule {}: {}", assignment.getId(), e.getMessage());
+                        logger.warn("Failed to get rule {}: {}", binding.getRuleId(), e.getMessage());
                         return null;
                     }
                 })
@@ -513,5 +476,47 @@ public class RuleController {
                 objectId, response.bundleHash());
 
         return response;
+    }
+
+    /**
+     * Map RuleBinding to BindingDetails DTO
+     */
+    private RuleWithBindingResponse.BindingDetails mapToBindingDetails(RuleBinding binding) {
+        return RuleWithBindingResponse.BindingDetails.builder()
+                .bindingId(binding.getId())
+                .targetType(binding.getTargetType())
+                .targetId(binding.getTargetId())
+                .ruleId(binding.getRuleId())
+                .ruleVersionPinned(binding.getRuleVersionPinned())
+                .active(binding.getActive())
+                .priority(binding.getPriority())
+                .validFrom(binding.getValidFrom())
+                .validTo(binding.getValidTo())
+                .timezone(binding.getTimezone())
+                .rrule(binding.getRrule())
+                .timeWindows(binding.getTimeWindows() != null ?
+                        binding.getTimeWindows().stream()
+                                .map(tw -> RuleWithBindingResponse.TimeWindowDto.builder()
+                                        .start(tw.getStart())
+                                        .end(tw.getEnd())
+                                        .build())
+                                .toList() : null)
+                .excludedDates(binding.getExcludedDates())
+                .includedAll(binding.getIncludedAll())
+                .includedProducts(binding.getIncludedProducts())
+                .excludedProducts(binding.getExcludedProducts())
+                .includedCategories(binding.getIncludedCategories())
+                .excludedCategories(binding.getExcludedCategories())
+                .includedBrands(binding.getIncludedBrands())
+                .excludedBrands(binding.getExcludedBrands())
+                .trafficPercent(binding.getTrafficPercent())
+                .stickyKeyStrategy(binding.getStickyKeyStrategy() != null ?
+                        binding.getStickyKeyStrategy().name() : null)
+                .bundleHash(binding.getBundleHash())
+                .createdAt(binding.getCreatedAt())
+                .updatedAt(binding.getUpdatedAt())
+                .createdBy(binding.getCreatedBy())
+                .updatedBy(binding.getUpdatedBy())
+                .build();
     }
 }

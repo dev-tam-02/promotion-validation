@@ -163,7 +163,7 @@ public class ValidationRuleCommandConsumer {
      */
     private void handleRollbackCommand(RollbackValidationRuleCommand command) {
         logger.debug("Routing to RollbackValidationRuleCommandHandler: commandId={}", command.getId());
-        rollbackCommandHandler.handleCommand(command);
+        rollbackCommandHandler.handleRollback(command);
     }
 
     /**

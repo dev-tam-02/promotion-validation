@@ -12,23 +12,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.application.port.out.*;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
 import vn.viettel.vds.promotion.validation.domain.common.Result;
-import vn.viettel.vds.promotion.validation.domain.exception.TimeframeProcessingException;
-import vn.viettel.vds.promotion.validation.domain.model.*;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Service to handle SettingValidationRuleCommand processing
+ * Service to handle SettingValidationRuleCommand processing.
+ * <p>
+ * Refactored to use unified RuleBinding model instead of legacy Assignment + TemporalPolicy + RuleTemporalLink.
  */
 @Service
 @Transactional
@@ -36,11 +39,7 @@ public class SettingValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
-    private final AssignmentPersistencePort assignmentPort;
-    private final ApplicabilityRulePersistencePort applicabilityRulePort;
-    private final RuleTimeFramePersistencePort ruleTimeFramePort;
-    private final TemporalPolicyPersistencePort temporalPolicyPort;
-    private final RuleTemporalLinkPersistencePort ruleTemporalLinkPort;
+    private final RuleBindingPersistencePort ruleBindingPort;
     private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -49,22 +48,14 @@ public class SettingValidationRuleCommandHandler {
     private final SettingValidationRuleCommandDTOMapper dtoMapper;
 
     public SettingValidationRuleCommandHandler(
-            AssignmentPersistencePort assignmentPort,
-            ApplicabilityRulePersistencePort applicabilityRulePort,
-            RuleTimeFramePersistencePort ruleTimeFramePort,
-            TemporalPolicyPersistencePort temporalPolicyPort,
-            RuleTemporalLinkPersistencePort ruleTemporalLinkPort,
+            RuleBindingPersistencePort ruleBindingPort,
             ValidationRuleRepositoryPort validationRulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
             RulePublishingService rulePublishingService,
             Validator validator,
             SettingValidationRuleCommandDTOMapper dtoMapper) {
-        this.assignmentPort = assignmentPort;
-        this.applicabilityRulePort = applicabilityRulePort;
-        this.ruleTimeFramePort = ruleTimeFramePort;
-        this.temporalPolicyPort = temporalPolicyPort;
-        this.ruleTemporalLinkPort = ruleTemporalLinkPort;
+        this.ruleBindingPort = ruleBindingPort;
         this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
@@ -76,23 +67,22 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Handle SettingValidationRuleCommand
      */
-    @SuppressWarnings("java:S2139") // Exception is properly logged before rethrowing
+    @SuppressWarnings("java:S2139")
     public boolean handleCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
 
         try {
             logger.info("Processing SettingValidationRuleCommand: commandId={}", commandId);
 
-            // Check idempotency - if already processed, return success immediately
+            // Check idempotency
             if (idempotencyService.isProcessed(commandId)) {
                 logger.info("Command already processed (idempotent check): commandId={}", commandId);
                 return true;
             }
 
-            // Step 1: Validate command using Bean Validation
+            // Validate command
             validateCommand(command);
 
-            // Extract command payload
             SettingValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Command payload is null: commandId={}", commandId);
@@ -100,13 +90,11 @@ public class SettingValidationRuleCommandHandler {
                 return false;
             }
 
-            // Extract campaignId from payload for error events
             String campaignId = payload.getObjectId();
 
-            // Process the command
+            // Process command
             CommandProcessingResult result = processCommand(commandId, payload);
 
-            // Handle failure - throw BusinessException with specific error code
             if (!result.isSuccess()) {
                 publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
                 logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
@@ -117,8 +105,7 @@ public class SettingValidationRuleCommandHandler {
             // Publish success event
             publishSuccessEvent(commandId, result);
 
-            // Mark as processed after successful processing
-            // Convert to serializable DTO to avoid Avro Schema serialization issues
+            // Mark as processed
             IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
             idempotencyService.markAsProcessed(commandId, idempotencyDto);
 
@@ -126,68 +113,41 @@ public class SettingValidationRuleCommandHandler {
             return true;
 
         } catch (BusinessException e) {
-            // Re-throw BusinessException (validation errors) to let promix-messaging handle it
-            // BusinessException with BAD_REQUEST → DLQ immediately (non-retryable)
             logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
                     commandId, e.getMessage(), e);
-            throw e; // NOSONAR - Exception is logged before rethrowing for proper error tracking
+            throw e;
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
-            // Try to extract campaignId from command for error event
             String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
             publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Validate command using Bean Validation annotations on DTO.
-     * <p>
-     * Validation flow:
-     * 1. Check command and payload not null
-     * 2. Convert command to DTO
-     * 3. Run Bean Validation with group sequence
-     * 4. Throw ValidationException if validation fails
-     *
-     * @param command the command to validate
-     * @throws RuntimeException if validation fails with specific error codes
-     */
     private void validateCommand(SettingValidationRuleCommand command) {
-        // Step 1: Null check
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException(
-                    "INVALID_COMMAND",
-                    "Command or payload is null"
-            );
+            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
         }
 
-        // Step 2: Convert to DTO
         SettingValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
         if (dto == null) {
             logger.error("Failed to convert command to DTO: commandId={}", command.getId());
-            throw ExceptionFactory.createValidationException(
-                    "INVALID_COMMAND",
-                    "Failed to convert command to DTO"
-            );
+            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Failed to convert command to DTO");
         }
 
-        // Step 3: Bean Validation
         Set<ConstraintViolation<SettingValidationRuleCommandDTO>> violations = validator.validate(dto);
 
-        // Step 4: Handle validation errors
         if (!violations.isEmpty()) {
-            // Build ErrorDetail list from all violations
             List<ErrorDetail> errorDetails = violations.stream()
                     .map(violation -> ErrorDetail.of(
-                            violation.getPropertyPath().toString(),  // field
-                            violation.getMessage(),                  // errorCode (from annotation)
-                            String.format("Invalid value: %s", violation.getInvalidValue()),  // message
-                            violation.getInvalidValue()             // details
+                            violation.getPropertyPath().toString(),
+                            violation.getMessage(),
+                            String.format("Invalid value: %s", violation.getInvalidValue()),
+                            violation.getInvalidValue()
                     ))
                     .toList();
 
-            // Build summary error message
             String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
 
             logger.error("SettingValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
@@ -204,13 +164,11 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * Process the command and create/update assignments
+     * Process command by creating a unified RuleBinding
      */
-    private CommandProcessingResult processCommand(
-            String commandId,
-            SettingValidationRuleCommandPayload payload) {
+    private CommandProcessingResult processCommand(String commandId, SettingValidationRuleCommandPayload payload) {
         try {
-            // Validate command components
+            // Validate components
             Result<ComponentsData> componentsResult = validateCommandComponents(payload);
             if (componentsResult.isFailure()) {
                 return CommandProcessingResult.failure(
@@ -221,72 +179,28 @@ public class SettingValidationRuleCommandHandler {
 
             ComponentsData components = componentsResult.getValue();
 
-            // ✅ REMOVED: No longer create node in DB
-            // Product applicability node will be created dynamically during compilation
-            // by RulePublishingService based on applicableToData
+            // Create unified RuleBinding
+            RuleBinding ruleBinding = createRuleBinding(components);
 
-            // ✅ Create rule assignment with objectType + objectId
-            Assignment assignment = createRuleAssignment(
-                    components.ruleId(),
-                    components.objectType(),
-                    components.objectId(),
-                    components.active(),
-                    components.trafficPercent()
-            );
+            // Save binding
+            ruleBinding = ruleBindingPort.save(ruleBinding);
 
-            // Set includedAll from applicability data
-            if (components.applicableToData() != null && Boolean.TRUE.equals(components.applicableToData().getIncludedAll())) {
-                assignment.setIncludedAll(true);
-            }
+            logger.info("Created rule binding: targetType={}, targetId={}, ruleId={}, bindingId={}",
+                    components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
-            // Save assignment via port
-            assignment = assignmentPort.save(assignment);
+            // Deploy to validation-engine
+            ruleBinding = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
 
-            if (logger.isInfoEnabled()) {
-                logger.info("Created assignment: objectType={}, objectId={}, ruleId={}, assignmentId={}",
-                        components.objectType(), components.objectId(), components.ruleId(), assignment.getId());
-            }
-
-            // Process applicability rules (included/excluded products, collections, SKUs)
-            if (components.applicableToData() != null) {
-                saveApplicabilityRules(assignment, components.applicableToData());
-            }
-
-            // Process timeframe if provided
-            String timeFrameId = null;
-            boolean hasTemporalPolicy = false;
-            if (components.timeframeData() != null) {
-                timeFrameId = processTimeframe(assignment, components.timeframeData());
-                hasTemporalPolicy = true;
-            }
-
-            // Deploy rule to validation-engine
-            // Pass hasTemporalPolicy flag directly instead of querying DB (avoids @Transactional timing issues)
-            // Pass assignment to update temporal_bundle_hash after deployment
-            // Pass applicableToData to create product applicability node dynamically
-            assignment = deployRuleToEngine(assignment, components.ruleId(), hasTemporalPolicy, components.applicableToData());
-
-            // Create processing result
-            return CommandProcessingResult.success(
-                    assignment,
-                    components.applicableToData(),
-                    timeFrameId,
-                    components.timeframeData()
-            );
+            // Create result
+            return CommandProcessingResult.success(ruleBinding, components.applicableToData(), components.timeframeData());
 
         } catch (Exception e) {
-            logger.error("Error processing command components: commandId={}", commandId, e);
+            logger.error("Error processing command: commandId={}", commandId, e);
             return CommandProcessingResult.failure("PROCESSING_ERROR", e.getMessage());
         }
     }
 
-    /**
-     * Validate command components and extract data
-     */
-    private Result<ComponentsData> validateCommandComponents(
-            SettingValidationRuleCommandPayload payload) {
-
-        // Extract command components (flattened structure)
+    private Result<ComponentsData> validateCommandComponents(SettingValidationRuleCommandPayload payload) {
         String ruleId = payload.getRuleId();
         String objectType = payload.getObjectType();
         String objectId = payload.getObjectId();
@@ -295,9 +209,7 @@ public class SettingValidationRuleCommandHandler {
         ApplicabilityScope applicableToData = payload.getApplicableTo();
         TimeFrame timeframeData = payload.getTimeframe();
         Integer priority = payload.getPriority();
-        String notes = payload.getNotes();
 
-        // Validate required fields
         if (objectType == null || objectType.isEmpty()) {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectType is required in payload");
         }
@@ -306,16 +218,12 @@ public class SettingValidationRuleCommandHandler {
             return Result.failure(ErrorCode.COMMAND_VALIDATION_ERROR, "objectId is required in payload");
         }
 
-        // NOTE: ruleId validation removed - ruleId can be null/empty
-        // When ruleId is not provided, only create bundle with applicableTo and timeframe
-
-        // Check duplicate assignment for same objectType and objectId
-        if (assignmentPort.existsBySubjectTypeAndSubjectKey(objectType, objectId)) {
+        // Check duplicate binding
+        if (ruleBindingPort.existsByTargetAndRule(objectType, objectId, ruleId != null ? ruleId : "")) {
             return Result.failure(ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE,
-                    "Assignment already exists for objectType=" + objectType + ", objectId=" + objectId);
+                    "Binding already exists for targetType=" + objectType + ", targetId=" + objectId);
         }
 
-        // Return validated components
         return Result.success(new ComponentsData(
                 ruleId,
                 objectType,
@@ -324,357 +232,164 @@ public class SettingValidationRuleCommandHandler {
                 trafficPercent,
                 applicableToData,
                 timeframeData,
-                priority,
-                notes
+                priority
         ));
     }
 
     /**
-     * ✅ Create RuleAssignment domain model with objectType + objectId (flexible design)
+     * Create RuleBinding from command components
      */
-    private Assignment createRuleAssignment(
-            String ruleId,
-            String objectType,
-            String objectId,
-            Boolean active,
-            Integer trafficPercent) {
-
-        // Generate assignment ID
-        String assignmentId = IdGenerator.generateId();
-
-        // ✅ Create Subject with objectType + objectId (supports multiple object types)
-        Assignment.Subject subject = new Assignment.Subject();
-        subject.setType(objectType);      // "campaign", "product", "customer", etc.
-        subject.setKey(objectId);         // ID of the object
-
-        // Create and configure assignment
-        Assignment assignment = new Assignment();
-        assignment.setId(assignmentId);
-        assignment.setRuleId(ruleId);
-        assignment.setSubject(subject);
-        assignment.setAssignmentVersion(1);
-        assignment.setActive(active == null || active);
-        assignment.setTrafficPercent(trafficPercent != null ? trafficPercent : 100);
-        assignment.setCreatedAt(Instant.now());
-        assignment.setUpdatedAt(Instant.now());
-
-        logger.debug("Created assignment domain model: assignmentId={}, objectType={}, objectId={}, ruleId={}",
-                assignmentId, objectType, objectId, ruleId);
-
-        return assignment;
-    }
-
-    /**
-     * Process timeframe configuration - ENHANCED version
-     * Creates TemporalPolicy, TemporalPolicyWindows, and RuleTemporalLink
-     * <p>
-     * FIXED: Link temporal policy with assignment instead of validation rule
-     * Rationale: Temporal constraints are assignment-specific, not rule-specific
-     */
-    @SuppressWarnings("java:S2139") // Exception is properly logged and wrapped with contextual information
-    private String processTimeframe(Assignment assignment, TimeFrame timeframeData) {
-        try {
-            logger.info("Processing timeframe for assignmentId={}, ruleId={}",
-                    assignment.getId(), assignment.getRuleId());
-
-            // Extract timeframe components
-            String timeFrameId = timeframeData.getTimeFrameId();
-            String mode = timeframeData.getMode() != null ? timeframeData.getMode().toString() : "REQUIRED";
-            String timezone = timeframeData.getTimezone() != null ? timeframeData.getTimezone() : "UTC";
-
-            // Generate timeFrame ID if not provided
-            if (timeFrameId == null) {
-                timeFrameId = IdGenerator.generateId();
-            }
-
-            // Get ruleId from assignment (can be null)
-            String ruleId = assignment.getRuleId();
-
-            // Step 1: Create TemporalPolicy domain model and save
-            TemporalPolicy temporalPolicy = createTemporalPolicy(timeFrameId, timezone, timeframeData);
-            temporalPolicy = temporalPolicyPort.save(temporalPolicy);
-            logger.debug("Created temporal policy: policyId={}, name={}", temporalPolicy.getId(), temporalPolicy.getName());
-
-            // Step 2: TimeOfDayWindows are already embedded in TemporalPolicy and saved together
-            if (timeframeData.getValidityHoursPerDay() != null && !timeframeData.getValidityHoursPerDay().isEmpty()) {
-                logger.debug("Temporal policy includes {} validity hour windows", timeframeData.getValidityHoursPerDay().size());
-            }
-
-            // Step 3: Create RuleTemporalLink to link assignment with temporal policy
-            // FIXED: Link with assignment instead of validationRule
-            RuleTemporalLink link = RuleTemporalLink.builder()
-                    .id(IdGenerator.generateId())
-                    .assignmentId(assignment.getId())
-                    .temporalPolicyId(temporalPolicy.getId())
-                    .mode(mode)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            ruleTemporalLinkPort.save(link);
-            logger.debug("Created assignment temporal link: linkId={}, assignmentId={}, policyId={}, mode={}",
-                    link.getId(), assignment.getId(), temporalPolicy.getId(), mode);
-
-            // Step 4: Keep RuleTimeFrame for backward compatibility (legacy)
-            // Only create RuleTimeFrame if ruleId exists and is found in DB
-            if (ruleId != null && !ruleId.isEmpty()) {
-                var validationRuleOpt = validationRulePort.findById(ruleId);
-                if (validationRuleOpt.isPresent()) {
-                    RuleTimeFrame ruleTimeFrame = RuleTimeFrame.builder()
-                            .id(IdGenerator.generateId())
-                            .validationRuleId(ruleId)
-                            .timeFrameId(timeFrameId)
-                            .mode(mode)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build();
-                    ruleTimeFramePort.save(ruleTimeFrame);
-                    logger.debug("Created legacy RuleTimeFrame: ruleId={}, timeFrameId={}", ruleId, timeFrameId);
-                } else {
-                    logger.debug("Skipping legacy RuleTimeFrame creation - ruleId not found in DB: {}", ruleId);
-                }
-            } else {
-                logger.debug("Skipping legacy RuleTimeFrame creation - ruleId is null/empty");
-            }
-
-            logger.info("Successfully processed timeframe: assignmentId={}, ruleId={}, timeFrameId={}, policyId={}",
-                    assignment.getId(), assignment.getRuleId(), timeFrameId, temporalPolicy.getId());
-            return timeFrameId;
-
-        } catch (Exception e) {
-            logger.error("Failed to process timeframe for assignmentId={}, ruleId={}: {}",
-                    assignment.getId(), assignment.getRuleId(), e.getMessage(), e);
-            throw new TimeframeProcessingException( // NOSONAR - Exception is logged and wrapped with contextual information
-                    "Failed to process timeframe for assignmentId=" + assignment.getId() +
-                            ", ruleId=" + assignment.getRuleId() + " due to: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Save applicability rules (included/excluded products, collections, SKUs) for an assignment.
-     * Persists ApplicabilityScope data to assignment_applicability_rules table.
-     *
-     * @param assignment         The assignment domain model
-     * @param applicabilityScope The applicability scope containing included/excluded rules
-     */
-    private void saveApplicabilityRules(Assignment assignment, ApplicabilityScope applicabilityScope) {
-        if (applicabilityScope == null) {
-            return;
-        }
-
-        String assignmentId = assignment.getId();
-        logger.info("Saving applicability rules for assignmentId={}", assignmentId);
-
-        int savedCount = 0;
-
-        // Process included rules
-        if (applicabilityScope.getIncluded() != null && !applicabilityScope.getIncluded().isEmpty()) {
-            for (var rule : applicabilityScope.getIncluded()) {
-                ApplicabilityRule domainRule = createApplicabilityRuleDomain(
-                        assignmentId,
-                        ApplicabilityRule.RuleType.INCLUDED,
-                        rule
-                );
-                applicabilityRulePort.save(domainRule);
-                savedCount++;
-            }
-            logger.debug("Saved {} included applicability rules for assignmentId={}",
-                    applicabilityScope.getIncluded().size(), assignmentId);
-        }
-
-        // Process excluded rules
-        if (applicabilityScope.getExcluded() != null && !applicabilityScope.getExcluded().isEmpty()) {
-            for (var rule : applicabilityScope.getExcluded()) {
-                ApplicabilityRule domainRule = createApplicabilityRuleDomain(
-                        assignmentId,
-                        ApplicabilityRule.RuleType.EXCLUDED,
-                        rule
-                );
-                applicabilityRulePort.save(domainRule);
-                savedCount++;
-            }
-            logger.debug("Saved {} excluded applicability rules for assignmentId={}",
-                    applicabilityScope.getExcluded().size(), assignmentId);
-        }
-
-        logger.info("Successfully saved {} applicability rules for assignmentId={}", savedCount, assignmentId);
-    }
-
-    /**
-     * Create ApplicabilityRule domain model from ApplicabilityRule command data
-     */
-    private ApplicabilityRule createApplicabilityRuleDomain(
-            String assignmentId,
-            ApplicabilityRule.RuleType ruleType,
-            SettingValidationRuleCommand.ApplicabilityRule rule) {
-
-        ApplicabilityRule.ApplicabilityRuleBuilder builder = ApplicabilityRule.builder()
+    private RuleBinding createRuleBinding(ComponentsData components) {
+        RuleBinding.RuleBindingBuilder builder = RuleBinding.builder()
                 .id(IdGenerator.generateId())
-                .assignmentId(assignmentId)
-                .ruleType(ruleType)
-                .objectId(rule.getId())
-                .skipInitially(rule.getSkipInitially() != null ? rule.getSkipInitially() : 0)
-                .repeatCount(rule.getRepeat() != null ? rule.getRepeat() : 1)
+                .ruleId(components.ruleId())
+                .targetType(components.objectType())
+                .targetId(components.objectId())
+                .active(components.active() == null || components.active())
+                .trafficPercent(components.trafficPercent() != null ? components.trafficPercent() : 100)
+                .priority(components.priority() != null ? components.priority() : 0)
                 .createdAt(Instant.now())
-                .updatedAt(Instant.now());
+                .updatedAt(Instant.now())
+                .createdBy("system")
+                .updatedBy("system")
+                .version(0L);
 
-        // Set object type
-        if (rule.getObject() != null) {
-            builder.objectType(mapObjectType(rule.getObject()));
+        // Process applicability data
+        if (components.applicableToData() != null) {
+            ApplicabilityScope scope = components.applicableToData();
+            builder.includedAll(Boolean.TRUE.equals(scope.getIncludedAll()));
+
+            if (scope.getIncluded() != null && !scope.getIncluded().isEmpty()) {
+                List<String> includedIds = scope.getIncluded().stream()
+                        .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
+                        .collect(Collectors.toList());
+                builder.includedProducts(includedIds);
+            }
+
+            if (scope.getExcluded() != null && !scope.getExcluded().isEmpty()) {
+                List<String> excludedIds = scope.getExcluded().stream()
+                        .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
+                        .collect(Collectors.toList());
+                builder.excludedProducts(excludedIds);
+            }
         }
 
-        // Set effect
-        if (rule.getEffect() != null) {
-            builder.effect(mapEffectType(rule.getEffect()));
-        }
+        // Process timeframe data
+        if (components.timeframeData() != null) {
+            TimeFrame timeframe = components.timeframeData();
+            builder.timezone(timeframe.getTimezone() != null ? timeframe.getTimezone() : "Asia/Ho_Chi_Minh");
 
-        // Set target
-        if (rule.getTarget() != null) {
-            builder.target(mapTargetType(rule.getTarget()));
+            // Process validity timeframe
+            if (timeframe.getValidityTimeframe() != null) {
+                var validity = timeframe.getValidityTimeframe();
+                builder.validFrom(validity.getStartDate());
+                builder.validTo(validity.getExpirationDate());
+            }
+
+            // Process validity days of week as RRULE
+            if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
+                String rrule = buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek());
+                builder.rrule(rrule);
+            }
+
+            // Process validity hours per day as time windows
+            if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
+                List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
+                        .map(hours -> RuleBinding.TimeWindow.builder()
+                                .start(extractTimeOnly(hours.getStartTime()))
+                                .end(extractTimeOnly(hours.getExpirationTime()))
+                                .build())
+                        .collect(Collectors.toList());
+                builder.timeWindows(windows);
+            }
         }
 
         return builder.build();
     }
 
-    private ApplicabilityRule.ObjectType mapObjectType(SettingValidationRuleCommand.ObjectType commandType) {
-        if (commandType == null) return null;
-        return ApplicabilityRule.ObjectType.valueOf(commandType.name());
-    }
-
-    private ApplicabilityRule.EffectType mapEffectType(SettingValidationRuleCommand.EffectType commandType) {
-        if (commandType == null) return null;
-        return ApplicabilityRule.EffectType.valueOf(commandType.name());
-    }
-
-    private ApplicabilityRule.TargetType mapTargetType(SettingValidationRuleCommand.TargetType commandType) {
-        if (commandType == null) return null;
-        return ApplicabilityRule.TargetType.valueOf(commandType.name());
-    }
-
-    /**
-     * Create TemporalPolicy domain model from TimeFrame data
-     */
-    private TemporalPolicy createTemporalPolicy(String timeFrameId, String timezone, TimeFrame timeframeData) {
-        TemporalPolicy.TemporalPolicyBuilder builder = TemporalPolicy.builder()
-                .id(IdGenerator.generateId())
-                .name("timeframe-" + timeFrameId)
-                .tz(timezone)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now());
-
-        // Process validity timeframe
-        if (timeframeData.getValidityTimeframe() != null) {
-            SettingValidationRuleCommand.ValidityTimeframe validity = timeframeData.getValidityTimeframe();
-            Instant startTs = calculateStartTs(validity);
-            builder.startTs(startTs)
-                    .endTs(validity.getExpirationDate())
-                    .metadata(buildValidityMetadata(validity));
-        }
-
-        // Process validity days of week
-        if (timeframeData.getValidityDaysOfWeek() != null && !timeframeData.getValidityDaysOfWeek().isEmpty()) {
-            String rrule = buildRRuleFromDaysOfWeek(timeframeData.getValidityDaysOfWeek());
-            builder.rrule(rrule);
-            logger.debug("Built RRULE from daysOfWeek: {}", rrule);
-        }
-
-        // Process validity hours per day as TimeOfDayWindows
-        if (timeframeData.getValidityHoursPerDay() != null && !timeframeData.getValidityHoursPerDay().isEmpty()) {
-            List<TimeOfDayWindow> windows = createTimeOfDayWindows(timeframeData.getValidityHoursPerDay());
-            builder.timeOfDayWindows(windows);
-        }
-
-        return builder.build();
-    }
-
-    /**
-     * Calculate start timestamp from validity data
-     */
-    private Instant calculateStartTs(SettingValidationRuleCommand.ValidityTimeframe validity) {
-        Instant startTs = validity.getStartDate();
-        boolean hasDurationAndInterval = validity.getDuration() != null && validity.getInterval() != null;
-        if (startTs == null && hasDurationAndInterval) {
-            startTs = Instant.now();
-            logger.info("Duration/Interval mode: startDate not provided, using current time as startTs={}", startTs);
-        }
-        return startTs;
-    }
-
-    /**
-     * Build metadata map from validity timeframe
-     */
-    private java.util.Map<String, Object> buildValidityMetadata(SettingValidationRuleCommand.ValidityTimeframe validity) {
-        java.util.Map<String, Object> metadata = new java.util.HashMap<>();
-        addIfNotNull(metadata, "interval", validity.getInterval());
-        addIfNotNull(metadata, "duration", validity.getDuration());
-        addIfNotNull(metadata, "activityDurationAfterPublishing", validity.getActivityDurationAfterPublishing());
-        return metadata.isEmpty() ? null : metadata;
-    }
-
-    /**
-     * Add value to metadata map if not null
-     */
-    private void addIfNotNull(java.util.Map<String, Object> metadata, String key, Object value) {
-        if (value != null) {
-            metadata.put(key, value);
-        }
-    }
-
-    /**
-     * Build RRULE string from validityDaysOfWeek
-     * Example: [1, 3, 5] -> "FREQ=WEEKLY;BYDAY=MO,WE,FR"
-     */
     private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
-        // Map integers to RFC 5545 day codes: 1=MO, 2=TU, 3=WE, 4=TH, 5=FR, 6=SA, 7=SU
         String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-
         String byDay = daysOfWeek.stream()
                 .filter(day -> day >= 1 && day <= 7)
                 .map(day -> dayCodes[day - 1])
                 .collect(Collectors.joining(","));
-
         return "FREQ=WEEKLY;BYDAY=" + byDay;
     }
 
-    /**
-     * Create TimeOfDayWindow domain models for validity hours per day
-     */
-    private List<TimeOfDayWindow> createTimeOfDayWindows(
-            List<SettingValidationRuleCommand.ValidityHoursPerDay> validityHours) {
-        return validityHours.stream()
-                .map(hours -> {
-                    TimeOfDayWindow window = new TimeOfDayWindow(
-                            extractTimeOnly(hours.getStartTime()),
-                            extractTimeOnly(hours.getExpirationTime())
-                    );
-                    logger.debug("Created time of day window: dayOfWeek={}, start={}, end={}",
-                            hours.getDayOfWeek(), window.getStart(), window.getEnd());
-                    return window;
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Extract time portion from time string (e.g., "09:00:00+07:00" -> "09:00")
-     */
     private String extractTimeOnly(String timeString) {
         if (timeString == null) {
             return null;
         }
-        // Remove timezone offset and seconds if present
-        // "09:00:00+07:00" -> "09:00"
-        // "09:00+07:00" -> "09:00"
-        // "09:00" -> "09:00"
-        String time = timeString.split("\\+")[0].split("-")[0]; // Remove timezone
+        String time = timeString.split("\\+")[0].split("-")[0];
         String[] parts = time.split(":");
         if (parts.length >= 2) {
-            return parts[0] + ":" + parts[1]; // HH:mm
+            return parts[0] + ":" + parts[1];
         }
         return time;
     }
 
     /**
-     * Publish success event
+     * Deploy rule to validation-engine
      */
+    private RuleBinding deployRuleToEngine(RuleBinding binding, String ruleId, ApplicabilityScope applicableToData) {
+        try {
+            if (!Boolean.TRUE.equals(binding.getActive())) {
+                logger.info("Skipping deployment - binding is not active: bindingId={}", binding.getId());
+                return binding;
+            }
+
+            boolean hasTemporalPolicy = binding.hasTemporalConstraints();
+            boolean hasApplicability = applicableToData != null;
+
+            if (ruleId == null || ruleId.isEmpty()) {
+                // Deploy assignment bundle without business rule
+                if (!hasApplicability && !hasTemporalPolicy) {
+                    logger.info("Skipping deployment - no ruleId and no constraints: bindingId={}", binding.getId());
+                    return binding;
+                }
+
+                logger.info("Deploying binding bundle (no ruleId): bindingId={}, hasApplicability={}, hasTemporalPolicy={}",
+                        binding.getId(), hasApplicability, hasTemporalPolicy);
+
+                var publishResult = rulePublishingService.publishAssignmentBundle(
+                        binding.getId(), applicableToData, hasTemporalPolicy);
+
+                return handlePublishResult(binding, publishResult);
+            } else {
+                // Deploy business rule bundle
+                var validationRuleOpt = validationRulePort.findById(ruleId);
+                if (validationRuleOpt.isEmpty()) {
+                    logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
+                    return binding;
+                }
+
+                logger.info("Deploying rule bundle: bindingId={}, ruleId={}", binding.getId(), ruleId);
+
+                var publishResult = rulePublishingService.publishRule(ruleId, binding.getId(), applicableToData);
+
+                return handlePublishResult(binding, publishResult);
+            }
+        } catch (Exception e) {
+            logger.error("Error deploying rule to engine: bindingId={}, ruleId={}", binding.getId(), ruleId, e);
+            return binding;
+        }
+    }
+
+    private RuleBinding handlePublishResult(RuleBinding binding, RulePublishingService.RulePublishResult publishResult) {
+        if (publishResult.isSuccess()) {
+            RuleBinding updated = binding.toBuilder()
+                    .bundleHash(publishResult.getBundleHash())
+                    .updatedAt(Instant.now())
+                    .build();
+            updated = ruleBindingPort.save(updated);
+            logger.info("Rule deployed successfully: bindingId={}, bundleHash={}", updated.getId(), publishResult.getBundleHash());
+            return updated;
+        } else {
+            logger.error("Failed to deploy rule: bindingId={}, error={}", binding.getId(), publishResult.getErrorMessage());
+            return binding;
+        }
+    }
+
     private void publishSuccessEvent(String commandId, CommandProcessingResult result) {
         try {
             eventPublisher.publishSuccessEvent(commandId, result);
@@ -683,9 +398,6 @@ public class SettingValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Publish error event
-     */
     private void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
             eventPublisher.publishErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -694,169 +406,17 @@ public class SettingValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Deploy rule to validation-engine after successful assignment creation
-     * Checks if rule has bundleHash, if not, deploys it via RulePublishingService
-     * ENHANCED: Also re-deploys if assignment has temporal policy to ensure temporal constraints are sent to validation-engine
-     * FIXED: When ruleId is null/empty but has applicableTo or timeframe, still deploy bundle with these constraints
-     *
-     * @param assignment        Assignment domain model (to update temporal_bundle_hash after deployment)
-     * @param ruleId            Rule identifier (can be null)
-     * @param hasTemporalPolicy Whether assignment has temporal policy (passed directly to avoid @Transactional timing issues)
-     * @param applicableToData  Applicability scope data to create product applicability node dynamically
-     * @return Updated assignment with temporal_bundle_hash if deployed successfully
-     */
-    private Assignment deployRuleToEngine(Assignment assignment,
-                                          String ruleId,
-                                          boolean hasTemporalPolicy,
-                                          ApplicabilityScope applicableToData) {
-        try {
-            if (!isAssignmentActive(assignment, ruleId)) {
-                return assignment;
-            }
-
-            if (ruleId == null || ruleId.isEmpty()) {
-                return deployAssignmentBundleWithoutRule(assignment, hasTemporalPolicy, applicableToData);
-            }
-
-            return deployBusinessRuleBundle(assignment, ruleId, hasTemporalPolicy, applicableToData);
-
-        } catch (Exception e) {
-            logger.error("Error deploying rule to validation-engine: ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId(), e);
-            return assignment;
-        }
-    }
-
-    private boolean isAssignmentActive(Assignment assignment, String ruleId) {
-        if (assignment.getActive() == null || !assignment.getActive()) {
-            logger.info("Skipping rule deployment - assignment is not active: ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-            return false;
-        }
-        return true;
-    }
-
-    private Assignment deployAssignmentBundleWithoutRule(Assignment assignment,
-                                                         boolean hasTemporalPolicy,
-                                                         ApplicabilityScope applicableToData) {
-        boolean hasApplicability = applicableToData != null;
-
-        if (!hasApplicability && !hasTemporalPolicy) {
-            logger.info("Skipping deployment - ruleId is null/empty and no applicableTo or timeframe: assignmentId={}",
-                    assignment.getId());
-            return assignment;
-        }
-
-        logger.info("Deploying assignment bundle (no ruleId): assignmentId={}, hasApplicability={}, hasTemporalPolicy={}",
-                assignment.getId(), hasApplicability, hasTemporalPolicy);
-
-        var publishResult = rulePublishingService.publishAssignmentBundle(
-                assignment.getId(), applicableToData, hasTemporalPolicy);
-
-        return handleAssignmentBundlePublishResult(assignment, publishResult);
-    }
-
-    private Assignment handleAssignmentBundlePublishResult(Assignment assignment,
-                                                           RulePublishingService.RulePublishResult publishResult) {
-        if (publishResult.isSuccess()) {
-            // Update temporalBundleHash using toBuilder pattern (Assignment is immutable with @Value)
-            Assignment updatedAssignment = assignment.toBuilder()
-                    .temporalBundleHash(publishResult.getBundleHash())
-                    .build();
-            // Save updated assignment via port
-            updatedAssignment = assignmentPort.save(updatedAssignment);
-            logger.info("Assignment bundle deployed successfully: assignmentId={}, bundleHash={}, artifactSize={}",
-                    updatedAssignment.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize());
-            return updatedAssignment;
-        } else {
-            logger.error("Failed to deploy assignment bundle: assignmentId={}, error={}",
-                    assignment.getId(), publishResult.getErrorMessage());
-            return assignment;
-        }
-    }
-
-    private Assignment deployBusinessRuleBundle(Assignment assignment,
-                                                String ruleId,
-                                                boolean hasTemporalPolicy,
-                                                ApplicabilityScope applicableToData) {
-        var validationRuleOpt = validationRulePort.findById(ruleId);
-        if (validationRuleOpt.isEmpty()) {
-            logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
-            return assignment;
-        }
-
-        var validationRule = validationRuleOpt.get();
-        boolean ruleNotYetDeployed = validationRule.getBundleHash() == null || validationRule.getBundleHash().isEmpty();
-        boolean needsDeployment = ruleNotYetDeployed || hasTemporalPolicy;
-
-        if (!needsDeployment) {
-            logger.info("Rule already deployed and no temporal policy: ruleId={}, bundleHash={}",
-                    ruleId, validationRule.getBundleHash());
-            return assignment;
-        }
-
-        Assignment result = executeRuleDeployment(assignment, ruleId, hasTemporalPolicy, applicableToData, ruleNotYetDeployed);
-
-        logger.info("Rule deployment check completed: ruleId={}, assignmentId={}, needsDeployment={}, hasTemporalPolicy={}",
-                ruleId, assignment.getId(), needsDeployment, hasTemporalPolicy);
-
-        return result;
-    }
-
-    private Assignment executeRuleDeployment(Assignment assignment,
-                                             String ruleId,
-                                             boolean hasTemporalPolicy,
-                                             ApplicabilityScope applicableToData,
-                                             boolean ruleNotYetDeployed) {
-        String deploymentReason = ruleNotYetDeployed ? "rule not yet deployed" : "temporal policy present";
-        logger.info("Deploying rule: ruleId={}, assignmentId={}, reason={}",
-                ruleId, assignment.getId(), deploymentReason);
-
-        var publishResult = rulePublishingService.publishRule(ruleId, assignment.getId(), applicableToData);
-
-        if (publishResult.isSuccess()) {
-            // Update temporalBundleHash using toBuilder pattern (Assignment is immutable with @Value)
-            Assignment updatedAssignment = assignment.toBuilder()
-                    .temporalBundleHash(publishResult.getBundleHash())
-                    .build();
-            // Save updated assignment via port
-            updatedAssignment = assignmentPort.save(updatedAssignment);
-            logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}, artifactSize={}, hasTemporalPolicy={}",
-                    ruleId, updatedAssignment.getId(), publishResult.getBundleHash(), publishResult.getArtifactSize(), hasTemporalPolicy);
-            logger.info("Updated assignment.temporal_bundle_hash: assignmentId={}, bundleHash={}",
-                    updatedAssignment.getId(), publishResult.getBundleHash());
-            return updatedAssignment;
-        } else {
-            logger.error("Failed to deploy rule: ruleId={}, assignmentId={}, error={}",
-                    ruleId, assignment.getId(), publishResult.getErrorMessage());
-            return assignment;
-        }
-    }
-
-    /**
-     * Handle dead letter commands (for monitoring/alerting)
-     */
     public void handleDeadLetterCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
         logger.error("Processing dead letter command: commandId={}", commandId);
 
-        // Could implement:
-        // - Store in dead letter table for manual processing
-        // - Send alerts to monitoring system
-        // - Log detailed information for debugging
-
         try {
-            // Publish dead letter event for monitoring
             eventPublisher.publishDeadLetterEvent(commandId);
         } catch (Exception e) {
             logger.error("Failed to publish dead letter event: commandId={}", commandId, e);
         }
     }
 
-    /**
-     * Record to hold validated command components (flattened structure)
-     */
     private record ComponentsData(
             String ruleId,
             String objectType,
@@ -865,76 +425,58 @@ public class SettingValidationRuleCommandHandler {
             Integer trafficPercent,
             ApplicabilityScope applicableToData,
             TimeFrame timeframeData,
-            Integer priority,
-            String notes
+            Integer priority
     ) {
     }
 
-    /**
-     * Serializable DTO for idempotency storage
-     * Excludes Avro Schema objects to prevent Jackson serialization errors
-     */
     public static class IdempotencyResultDto {
         private final boolean success;
-        private final String assignmentId;
+        private final String bindingId;
         private final String ruleId;
-        private final String timeFrameId;
 
-        public IdempotencyResultDto(boolean success, String assignmentId, String ruleId, String timeFrameId) {
+        public IdempotencyResultDto(boolean success, String bindingId, String ruleId) {
             this.success = success;
-            this.assignmentId = assignmentId;
+            this.bindingId = bindingId;
             this.ruleId = ruleId;
-            this.timeFrameId = timeFrameId;
         }
 
         public boolean isSuccess() {
             return success;
         }
 
-        public String getAssignmentId() {
-            return assignmentId;
+        public String getBindingId() {
+            return bindingId;
         }
 
         public String getRuleId() {
             return ruleId;
         }
-
-        public String getTimeFrameId() {
-            return timeFrameId;
-        }
     }
 
-    /**
-     * Result wrapper for command processing
-     */
     public static class CommandProcessingResult {
         private final boolean success;
         private final String errorCode;
         private final String errorMessage;
-        private final Assignment assignment;
+        private final RuleBinding ruleBinding;
         private final ApplicabilityScope applicabilityData;
-        private final String timeFrameId;
         private final TimeFrame timeframeData;
 
         private CommandProcessingResult(Builder builder) {
             this.success = builder.success;
             this.errorCode = builder.errorCode;
             this.errorMessage = builder.errorMessage;
-            this.assignment = builder.assignment;
+            this.ruleBinding = builder.ruleBinding;
             this.applicabilityData = builder.applicabilityData;
-            this.timeFrameId = builder.timeFrameId;
             this.timeframeData = builder.timeframeData;
         }
 
-        public static CommandProcessingResult success(Assignment assignment,
+        public static CommandProcessingResult success(RuleBinding binding,
                                                       ApplicabilityScope applicabilityData,
-                                                      String timeFrameId,
                                                       TimeFrame timeframeData) {
             return new Builder()
                     .success(true)
-                    .assignment(assignment)
+                    .ruleBinding(binding)
                     .applicabilityData(applicabilityData)
-                    .timeFrameId(timeFrameId)
                     .timeframeData(timeframeData)
                     .build();
         }
@@ -947,7 +489,6 @@ public class SettingValidationRuleCommandHandler {
                     .build();
         }
 
-        // Getters
         public boolean isSuccess() {
             return success;
         }
@@ -960,39 +501,30 @@ public class SettingValidationRuleCommandHandler {
             return errorMessage;
         }
 
-        public Assignment getAssignment() {
-            return assignment;
+        public RuleBinding getRuleBinding() {
+            return ruleBinding;
         }
 
         public ApplicabilityScope getApplicabilityData() {
             return applicabilityData;
         }
 
-        public String getTimeFrameId() {
-            return timeFrameId;
-        }
-
         public TimeFrame getTimeframeData() {
             return timeframeData;
         }
 
-        /**
-         * Convert to serializable DTO for idempotency storage
-         * Excludes Avro objects that cannot be serialized by Jackson
-         */
         public IdempotencyResultDto toIdempotencyDto() {
-            String assignmentId = assignment != null ? assignment.getId() : null;
-            String ruleId = assignment != null ? assignment.getRuleId() : null;
-            return new IdempotencyResultDto(success, assignmentId, ruleId, timeFrameId);
+            String bindingId = ruleBinding != null ? ruleBinding.getId() : null;
+            String ruleId = ruleBinding != null ? ruleBinding.getRuleId() : null;
+            return new IdempotencyResultDto(success, bindingId, ruleId);
         }
 
         static class Builder {
             private boolean success;
             private String errorCode;
             private String errorMessage;
-            private Assignment assignment;
+            private RuleBinding ruleBinding;
             private ApplicabilityScope applicabilityData;
-            private String timeFrameId;
             private TimeFrame timeframeData;
 
             Builder success(boolean success) {
@@ -1010,18 +542,13 @@ public class SettingValidationRuleCommandHandler {
                 return this;
             }
 
-            Builder assignment(Assignment assignment) {
-                this.assignment = assignment;
+            Builder ruleBinding(RuleBinding ruleBinding) {
+                this.ruleBinding = ruleBinding;
                 return this;
             }
 
             Builder applicabilityData(ApplicabilityScope applicabilityData) {
                 this.applicabilityData = applicabilityData;
-                return this;
-            }
-
-            Builder timeFrameId(String timeFrameId) {
-                this.timeFrameId = timeFrameId;
                 return this;
             }
 

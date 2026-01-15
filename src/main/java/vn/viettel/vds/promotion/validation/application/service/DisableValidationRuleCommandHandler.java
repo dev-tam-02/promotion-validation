@@ -6,87 +6,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Service xử lý DisableValidationRuleCommand để disable validation rule assignments.
+ * Service to handle DisableValidationRuleCommand for disabling rule bindings.
  * <p>
- * Chức năng chính:
- * - Validate command từ Kafka
- * - Tìm và disable (set active = false) assignments theo campaignId + validationRuleId
- * - Undeploy rules khỏi validation-engine
- * - Publish events thông báo kết quả
- * <p>
- * Lưu ý: Disable khác với Delete - Disable có thể Enable lại, Delete là soft delete vĩnh viễn
- * <p>
- * Refactored to use Ports instead of JPA repositories directly (hexagonal architecture compliance).
- *
- * @author Validation Team
- * @since 1.0.0
+ * Refactored to use unified RuleBinding model.
  */
 @Service
 @Transactional
 public class DisableValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(DisableValidationRuleCommandHandler.class);
-    private static final String UNKNOWN = "unknown";
 
-    private final AssignmentPersistencePort assignmentPort;
+    private final RuleBindingPersistencePort ruleBindingPort;
     private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
 
     public DisableValidationRuleCommandHandler(
-            AssignmentPersistencePort assignmentPort,
+            RuleBindingPersistencePort ruleBindingPort,
             ValidationRuleRepositoryPort validationRulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService) {
-        this.assignmentPort = assignmentPort;
+        this.ruleBindingPort = ruleBindingPort;
         this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
     }
 
-    /**
-     * Xử lý disable command từ campaign service.
-     * <p>
-     * Logic flow:
-     * 1. Kiểm tra idempotency - nếu đã xử lý thì return true ngay
-     * 2. Validate command payload
-     * 3. Tìm assignment theo campaignId và validationRuleId
-     * 4. Disable assignment (set active = false)
-     * 5. Undeploy rule khỏi validation-engine
-     * 6. Mark command as processed
-     * 7. Publish success event
-     *
-     * @param command Disable command chứa campaignId và validationRuleId
-     * @return true nếu disable thành công, false nếu thất bại
-     * @throws BusinessException nếu validation fails (non-retryable, gửi DLQ ngay)
-     */
-    @SuppressWarnings("java:S2139") // Exception được log đầy đủ trước khi rethrow
+    @SuppressWarnings("java:S2139")
     public boolean handleCommand(DisableValidationRuleCommand command) {
         String commandId = command.getId();
 
         try {
             logger.info("Processing DisableValidationRuleCommand: commandId={}", commandId);
 
-            // Bước 1: Kiểm tra idempotency
             if (idempotencyService.isProcessed(commandId)) {
-                logger.info("Disable command already processed (idempotent check): commandId={}", commandId);
+                logger.info("Disable command already processed: commandId={}", commandId);
                 return true;
             }
 
-            // Bước 2: Validate command
             validateCommand(command);
 
-            // Extract payload
             DisableValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Disable command payload is null: commandId={}", commandId);
@@ -96,61 +65,42 @@ public class DisableValidationRuleCommandHandler {
 
             String campaignId = payload.getCampaignId();
             String validationRuleId = payload.getValidationRuleId();
-            String disableReason = payload.getDisableReason();
 
-            logger.info("Disable request: campaignId={}, validationRuleId={}, reason={}",
-                    campaignId, validationRuleId, disableReason);
+            logger.info("Disable request: campaignId={}, validationRuleId={}", campaignId, validationRuleId);
 
-            // Bước 3 & 4 & 5: Execute disable logic
             boolean success = executeDisable(campaignId, validationRuleId);
 
             if (!success) {
                 String errorCode = "DISABLE_FAILED";
-                String errorMessage = "Failed to disable validation rule assignment";
+                String errorMessage = "Failed to disable validation rule binding";
                 publishDisableErrorEvent(commandId, campaignId, errorCode, errorMessage);
-                logger.error("Failed to process DisableValidationRuleCommand: commandId={}, campaignId={}, errorCode={}",
-                        commandId, campaignId, errorCode);
+                logger.error("Failed to process DisableValidationRuleCommand: commandId={}", commandId);
                 throw ExceptionFactory.createValidationException(errorCode, errorMessage);
             }
 
-            // Bước 6: Mark as processed
             idempotencyService.markAsProcessed(commandId, "Disable completed successfully");
-
-            // Bước 7: Publish success event
             publishDisableSuccessEvent(commandId, campaignId, validationRuleId);
 
-            logger.info("Successfully processed DisableValidationRuleCommand: commandId={}, campaignId={}",
-                    commandId, campaignId);
+            logger.info("Successfully processed DisableValidationRuleCommand: commandId={}", commandId);
             return true;
 
         } catch (BusinessException e) {
-            logger.error("Validation failed for DisableValidationRuleCommand: commandId={}, error={}",
-                    commandId, e.getMessage(), e);
-            throw e; // NOSONAR - Exception được log đầy đủ trước khi rethrow
+            logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
-            logger.error("Unexpected error processing DisableValidationRuleCommand: commandId={}", commandId, e);
+            logger.error("Unexpected error: commandId={}", commandId, e);
             String campaignId = command.getPayload() != null ? command.getPayload().getCampaignId() : null;
             publishDisableErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Validate command.
-     *
-     * @param command Command cần validate
-     * @throws BusinessException nếu validation fails
-     */
     private void validateCommand(DisableValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException(
-                    "INVALID_COMMAND",
-                    "Command or payload is null"
-            );
+            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
         }
 
-        // Validate required fields
         DisableValidationRuleCommandPayload payload = command.getPayload();
         if (payload.getCampaignId() == null || payload.getCampaignId().isBlank()) {
             throw ExceptionFactory.createValidationException("INVALID_CAMPAIGN_ID", "campaignId is required");
@@ -163,88 +113,37 @@ public class DisableValidationRuleCommandHandler {
         logger.debug("DisableValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
-    /**
-     * Thực thi logic disable assignment.
-     *
-     * @param campaignId       Campaign ID
-     * @param validationRuleId Assignment ID cần disable
-     * @return true nếu thành công, false nếu thất bại
-     */
     private boolean executeDisable(String campaignId, String validationRuleId) {
         try {
-            // Tìm assignment theo validationRuleId (assignment ID)
-            Assignment assignment = assignmentPort.findById(validationRuleId)
-                    .orElse(null);
+            // Find binding by ID first
+            RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
 
-            // Nếu không tìm thấy theo ID, thử tìm theo campaignId (subject)
-            if (assignment == null) {
-                List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
-                if (assignments.isEmpty()) {
-                    logger.warn("No assignment found for campaign: campaignId={}", campaignId);
+            // If not found by ID, search by target
+            if (binding == null) {
+                List<RuleBinding> bindings = ruleBindingPort.findByTarget("campaign", campaignId);
+                if (bindings.isEmpty()) {
+                    logger.warn("No binding found for campaign: {}", campaignId);
                     return false;
                 }
-                // Lấy assignment đầu tiên nếu có nhiều
-                assignment = assignments.get(0);
+                binding = bindings.get(0);
             }
 
-            logger.info("Found assignment to disable: assignmentId={}, ruleId={}, currentActive={}",
-                    assignment.getId(), assignment.getRuleId(), assignment.getActive());
+            logger.info("Found binding to disable: bindingId={}, ruleId={}, currentActive={}",
+                    binding.getId(), binding.getRuleId(), binding.getActive());
 
-            // Disable assignment
-            assignment.setActive(false);
-            assignment.setUpdatedAt(Instant.now());
-            assignmentPort.save(assignment);
+            // Disable binding
+            ruleBindingPort.deactivate(binding.getId(), "system");
 
-            logger.info("Disabled assignment: assignmentId={}", assignment.getId());
-
-            // Undeploy rule khỏi validation-engine
-            undeployRuleFromEngine(assignment);
+            logger.info("Disabled binding: bindingId={}", binding.getId());
 
             return true;
 
         } catch (Exception e) {
-            logger.error("Error executing disable for campaign: campaignId={}, validationRuleId={}",
-                    campaignId, validationRuleId, e);
+            logger.error("Error executing disable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
             return false;
         }
     }
 
-    /**
-     * Undeploy rule khỏi validation-engine.
-     *
-     * @param assignment Assignment chứa rule cần undeploy
-     */
-    private void undeployRuleFromEngine(Assignment assignment) {
-        try {
-            String ruleId = assignment.getRuleId();
-
-            // Kiểm tra rule có tồn tại không
-            if (ruleId == null || ruleId.isBlank()) {
-                logger.info("Skipping undeployment - assignment has no ruleId: assignmentId={}", assignment.getId());
-                return;
-            }
-
-            boolean ruleExists = validationRulePort.existsById(ruleId);
-            if (!ruleExists) {
-                logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
-                return;
-            }
-
-            // Note: removeRule() is deprecated và không làm gì
-            // Bundle management hiện tại là automatic trong validation-engine
-            logger.info("Rule removal requested (automatic management): ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-
-        } catch (Exception e) {
-            logger.error("Error undeploying rule from validation-engine: assignmentId={}",
-                    assignment.getId(), e);
-            // Không fail toàn bộ disable vì undeployment issues
-        }
-    }
-
-    /**
-     * Publish disable success event.
-     */
     private void publishDisableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             eventPublisher.publishDisableSuccessEvent(commandId, campaignId, validationRuleId);
@@ -253,9 +152,6 @@ public class DisableValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Publish disable error event.
-     */
     private void publishDisableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
             eventPublisher.publishDisableErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -264,23 +160,14 @@ public class DisableValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Xử lý dead letter command từ DLQ topic.
-     *
-     * @param command Failed disable command từ DLQ
-     */
     public void handleDeadLetterCommand(DisableValidationRuleCommand command) {
-        logger.error("Processing dead letter DisableValidationRuleCommand: commandId={}, campaignId={}, validationRuleId={}, reason={}",
-                command.getId(),
-                command.getPayload() != null ? command.getPayload().getCampaignId() : UNKNOWN,
-                command.getPayload() != null ? command.getPayload().getValidationRuleId() : UNKNOWN,
-                command.getPayload() != null ? command.getPayload().getDisableReason() : UNKNOWN);
+        logger.error("Processing dead letter DisableValidationRuleCommand: commandId={}", command.getId());
 
         publishDisableErrorEvent(
                 command.getId(),
                 command.getPayload() != null ? command.getPayload().getCampaignId() : null,
                 "DLQ_PROCESSING",
-                "Command moved to dead letter queue after multiple retries"
+                "Command moved to dead letter queue"
         );
     }
 }

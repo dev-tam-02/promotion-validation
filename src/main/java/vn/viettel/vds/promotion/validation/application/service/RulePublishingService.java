@@ -5,15 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
-import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
-import vn.viettel.vds.promotion.validation.domain.model.TimeOfDayWindow;
 import vn.viettel.vds.promotion.validation.domain.exception.BundleWarmupException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleCompilationException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleExecutionException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
@@ -42,18 +40,18 @@ public class RulePublishingService {
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
-    private final RuleTemporalLinkPersistencePort ruleTemporalLinkPort;
+    private final RuleBindingPersistencePort ruleBindingPersistencePort;
     private final ObjectMapper objectMapper;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
                                  vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties,
-                                 RuleTemporalLinkPersistencePort ruleTemporalLinkPort,
+                                 RuleBindingPersistencePort ruleBindingPersistencePort,
                                  ObjectMapper objectMapper) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.tenantProperties = tenantProperties;
-        this.ruleTemporalLinkPort = ruleTemporalLinkPort;
+        this.ruleBindingPersistencePort = ruleBindingPersistencePort;
         this.objectMapper = objectMapper;
     }
 
@@ -176,42 +174,39 @@ public class RulePublishingService {
 
     /**
      * Build CompileRequest for assignment bundle (no business rule)
+     * Now uses RuleBinding which contains embedded temporal data
      */
-    private CompileRequest buildAssignmentBundleCompileRequest(String assignmentId, List<RuleNodeDto> nodeDtos) {
+    private CompileRequest buildAssignmentBundleCompileRequest(String bindingId, List<RuleNodeDto> nodeDtos) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
-        compileRequest.setRuleId(assignmentId);  // Use assignmentId as bundle key
+        compileRequest.setRuleId(bindingId);  // Use bindingId as bundle key
         // Use timestamp-based version to avoid idempotency cache
         // This ensures temporal data changes result in new bundle compilation
         int version = (int) (System.currentTimeMillis() % 1_000_000_000);
         compileRequest.setVersion(version);
         compileRequest.setLogic("ALL");
         compileRequest.setNodes(nodeDtos);
-        compileRequest.setOperatorsFingerprint("assignment-bundle-" + assignmentId);
+        compileRequest.setOperatorsFingerprint("binding-bundle-" + bindingId);
 
-        // Add temporal policy data
-        List<RuleTemporalLink> temporalLinks = ruleTemporalLinkPort.findByAssignmentIdWithPolicy(assignmentId);
+        // Add temporal policy data from RuleBinding
+        ruleBindingPersistencePort.findById(bindingId).ifPresent(binding -> {
+            if (binding.hasTemporalConstraints()) {
+                logger.info("Found temporal constraints for binding: bindingId={}", bindingId);
 
-        if (!temporalLinks.isEmpty()) {
-            logger.info("Found {} temporal links for assignment bundle: assignmentId={}", temporalLinks.size(), assignmentId);
+                CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyDataFromBinding(binding);
 
-            RuleTemporalLink link = temporalLinks.get(0);
-            TemporalPolicy policy = link.getTemporalPolicy();
+                CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
+                        binding.getId(),
+                        "REQUIRED",  // Default mode for bindings
+                        temporalData
+                );
 
-            CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
-            String mappedMode = mapTemporalMode(link.getMode());
+                compileRequest.setTimeLinks(List.of(timeLink));
 
-            CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
-                    policy.getId(),
-                    mappedMode,
-                    temporalData
-            );
-
-            compileRequest.setTimeLinks(List.of(timeLink));
-
-            logger.debug("Added temporal policy to assignment bundle: policyId={}, mode={}, timezone={}",
-                    policy.getId(), link.getMode(), policy.getTz());
-        }
+                logger.debug("Added temporal policy to binding bundle: bindingId={}, timezone={}",
+                        binding.getId(), binding.getTimezone());
+            }
+        });
 
         return compileRequest;
     }
@@ -454,81 +449,64 @@ public class RulePublishingService {
         return rule.getLogic() != null ? rule.getLogic().name() : "ALL";
     }
 
-    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos, String assignmentId) {
+    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos, String bindingId) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
 
-        // IMPORTANT: Use assignmentId as ruleId (not rule.getId())
-        // Each assignment = rule template + campaign context (applicableTo + timeframe)
-        // Different assignments need different bundles even if using same rule template
-        compileRequest.setRuleId(assignmentId != null ? assignmentId : rule.getId());
+        // IMPORTANT: Use bindingId as ruleId (not rule.getId())
+        // Each binding = rule template + target context (applicableTo + timeframe)
+        // Different bindings need different bundles even if using same rule template
+        compileRequest.setRuleId(bindingId != null ? bindingId : rule.getId());
 
         compileRequest.setVersion(version);
         compileRequest.setLogic(logic);
         compileRequest.setNodes(nodeDtos);
         compileRequest.setOperatorsFingerprint(generateOperatorFingerprint(rule.getNodes()));
 
-        // Add temporal policy data if assignmentId is provided
-        if (assignmentId != null) {
-            List<RuleTemporalLink> temporalLinks = ruleTemporalLinkPort.findByAssignmentIdWithPolicy(assignmentId);
+        // Add temporal policy data if bindingId is provided
+        if (bindingId != null) {
+            ruleBindingPersistencePort.findById(bindingId).ifPresent(binding -> {
+                if (binding.hasTemporalConstraints()) {
+                    logger.info("Found temporal constraints for bindingId={}", bindingId);
 
-            if (!temporalLinks.isEmpty()) {
-                logger.info("Found {} temporal links for assignmentId={}", temporalLinks.size(), assignmentId);
+                    // Build TemporalPolicyData from RuleBinding
+                    CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyDataFromBinding(binding);
 
-                RuleTemporalLink link = temporalLinks.get(0); // Assumption: 1 policy per assignment
-                TemporalPolicy policy = link.getTemporalPolicy();
+                    // Create TimeLink and add to compile request
+                    CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
+                            binding.getId(),
+                            "REQUIRED",  // Default mode for bindings
+                            temporalData
+                    );
 
-                // Build TemporalPolicyData
-                CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
+                    compileRequest.setTimeLinks(List.of(timeLink));
 
-                // Map mode: validation-engine expects "REQUIRED" for mandatory timeframe validation
-                String mappedMode = mapTemporalMode(link.getMode());
-
-                // Create TimeLink and add to compile request
-                CompileRequest.TimeLink timeLink = new CompileRequest.TimeLink(
-                        policy.getId(),
-                        mappedMode,
-                        temporalData
-                );
-
-                compileRequest.setTimeLinks(List.of(timeLink));
-
-                logger.debug("Added temporal policy to compile request: policyId={}, mode={}, timezone={}",
-                        policy.getId(), link.getMode(), policy.getTz());
-            } else {
-                logger.debug("No temporal links found for assignmentId={}", assignmentId);
-            }
+                    logger.debug("Added temporal policy to compile request: bindingId={}, timezone={}",
+                            binding.getId(), binding.getTimezone());
+                } else {
+                    logger.debug("No temporal constraints found for bindingId={}", bindingId);
+                }
+            });
         }
 
         return compileRequest;
     }
 
     /**
-     * Map temporal mode from validation DB to validation-engine format
-     * validation-engine expects "REQUIRED" for mandatory timeframe validation
+     * Build TemporalPolicyData from RuleBinding
+     * RuleBinding now contains all temporal data embedded (validFrom, validTo, rrule, timeWindows, timezone)
      */
-    private String mapTemporalMode(String mode) {
-        if (mode == null || mode.isEmpty()) {
-            return "REQUIRED";  // Default to REQUIRED
-        }
-        // Map ALLOW → REQUIRED (for promotion context, timeframe is always required)
-        if ("ALLOW".equalsIgnoreCase(mode)) {
-            return "REQUIRED";
-        }
-        return mode;
-    }
-
-    private CompileRequest.TemporalPolicyData buildTemporalPolicyData(TemporalPolicy policy) {
+    private CompileRequest.TemporalPolicyData buildTemporalPolicyDataFromBinding(RuleBinding binding) {
         CompileRequest.TemporalPolicyData data = new CompileRequest.TemporalPolicyData();
-        data.setTimezone(policy.getTz());
-        data.setRrule(policy.getRrule());
-        data.setStartTs(policy.getStartTs() != null ? policy.getStartTs().toString() : null);
-        data.setEndTs(policy.getEndTs() != null ? policy.getEndTs().toString() : null);
+        data.setTimezone(binding.getTimezone() != null ? binding.getTimezone() : "Asia/Ho_Chi_Minh");
+        data.setRrule(binding.getRrule());
+        data.setStartTs(binding.getValidFrom() != null ? binding.getValidFrom().toString() : null);
+        data.setEndTs(binding.getValidTo() != null ? binding.getValidTo().toString() : null);
 
-        // Convert time-of-day windows
+        // Convert time windows from RuleBinding
         List<CompileRequest.TimeWindow> windowDtos;
-        if (policy.getTimeOfDayWindows() != null && !policy.getTimeOfDayWindows().isEmpty()) {
-            windowDtos = policy.getTimeOfDayWindows().stream()
+        if (binding.getTimeWindows() != null && !binding.getTimeWindows().isEmpty()) {
+            windowDtos = binding.getTimeWindows().stream()
                     .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd()))
                     .toList();
         } else {
@@ -538,19 +516,8 @@ public class RulePublishingService {
         }
         data.setWindows(windowDtos);
 
-        // Map duration and interval from metadata (ISO 8601 format)
-        Map<String, Object> metadata = policy.getMetadata();
-        if (metadata != null) {
-            if (metadata.get("duration") != null) {
-                data.setDuration((String) metadata.get("duration"));
-            }
-            if (metadata.get("interval") != null) {
-                data.setInterval((String) metadata.get("interval"));
-            }
-        }
-
-        logger.debug("Built temporal policy data: timezone={}, rrule={}, windowsCount={}, duration={}, interval={}",
-                policy.getTz(), policy.getRrule(), windowDtos.size(), data.getDuration(), data.getInterval());
+        logger.debug("Built temporal policy data from binding: timezone={}, rrule={}, windowsCount={}",
+                binding.getTimezone(), binding.getRrule(), windowDtos.size());
 
         return data;
     }

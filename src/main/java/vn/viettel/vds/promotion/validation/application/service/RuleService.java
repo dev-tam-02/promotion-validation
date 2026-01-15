@@ -11,9 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
-import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -29,17 +29,14 @@ public class RuleService {
     private static final String INVALID_RULE_STRUCTURE_CODE = "INVALID_RULE_STRUCTURE";
 
     private final RulePersistencePort rulePersistencePort;
-    private final AssignmentService assignmentService;
-    private final AssignmentPersistencePort assignmentPort;
+    private final RuleBindingPersistencePort ruleBindingPort;
     private final RuleService self;
 
     public RuleService(RulePersistencePort rulePersistencePort,
-                       @Lazy AssignmentService assignmentService,
-                       AssignmentPersistencePort assignmentPort,
+                       RuleBindingPersistencePort ruleBindingPort,
                        @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
-        this.assignmentService = assignmentService;
-        this.assignmentPort = assignmentPort;
+        this.ruleBindingPort = ruleBindingPort;
         this.self = self;
     }
 
@@ -352,16 +349,15 @@ public class RuleService {
     public Rule getRuleByObject(String objectType, String objectId) {
         logger.info("Getting rule by object: type={}, id={}", objectType, objectId);
 
-        // Find assignment for this object
-        Optional<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignment =
-                assignmentService.findBySubjectTypeAndKey(objectType, objectId);
+        // Find binding for this object
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
 
-        if (assignment.isEmpty()) {
+        if (bindings.isEmpty()) {
             throw new ResourceNotFoundException();
         }
 
-        // Get the rule from assignment
-        String ruleId = assignment.get().getId();
+        // Get the rule from binding (first active binding)
+        String ruleId = bindings.get(0).getRuleId();
         return self.getRuleById(ruleId);
     }
 
@@ -373,21 +369,20 @@ public class RuleService {
     public List<Rule> getAllRulesByObject(String objectType, String objectId) {
         logger.info("Getting all rules by object: type={}, id={}", objectType, objectId);
 
-        // Find all assignments for this object
-        List<vn.viettel.vds.promotion.validation.domain.model.Assignment> assignments =
-                assignmentService.findAllBySubjectTypeAndKey(objectType, objectId);
+        // Find all bindings for this object
+        List<RuleBinding> bindings = ruleBindingPort.findByTarget(objectType, objectId);
 
-        if (assignments.isEmpty()) {
+        if (bindings.isEmpty()) {
             throw new ResourceNotFoundException();
         }
 
-        // Get all rules from assignments
-        return assignments.stream()
-                .map(assignment -> {
+        // Get all rules from bindings
+        return bindings.stream()
+                .map(binding -> {
                     try {
-                        return self.getRuleById(assignment.getId());
+                        return self.getRuleById(binding.getRuleId());
                     } catch (Exception e) {
-                        logger.warn("Failed to get rule {}: {}", assignment.getId(), e.getMessage());
+                        logger.warn("Failed to get rule {}: {}", binding.getRuleId(), e.getMessage());
                         return null;
                     }
                 })
@@ -408,32 +403,59 @@ public class RuleService {
     public BundleHashResponse getBundleHashForObject(String objectType, String objectId) {
         logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
 
-        // Find active assignment for object via port
-        List<Assignment> assignments = assignmentPort.findActiveByTenantIdAndSubject(null, objectType, objectId);
-        if (assignments.isEmpty()) {
-            logger.warn("No active assignment found for object: type={}, id={}", objectType, objectId);
+        // Find active binding for object
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
+        if (bindings.isEmpty()) {
+            logger.warn("No active binding found for object: type={}, id={}", objectType, objectId);
             throw new ResourceNotFoundException();
         }
 
-        // Get first assignment (there should only be one active)
-        Assignment assignment = assignments.get(0);
+        // Get first binding (highest priority active binding)
+        RuleBinding binding = bindings.get(0);
 
-        // Check if assignment has temporalBundleHash
-        if (assignment.getTemporalBundleHash() == null || assignment.getTemporalBundleHash().isEmpty()) {
-            logger.warn("Assignment has no temporalBundleHash: assignmentId={}", assignment.getId());
+        // Check if binding has bundleHash
+        if (binding.getBundleHash() == null || binding.getBundleHash().isEmpty()) {
+            logger.warn("Binding has no bundleHash: bindingId={}", binding.getId());
             throw new ResourceNotFoundException();
         }
 
-        logger.debug("Found temporal bundle hash {} for object {}:{}",
-                assignment.getTemporalBundleHash(), objectType, objectId);
+        logger.debug("Found bundle hash {} for object {}:{}",
+                binding.getBundleHash(), objectType, objectId);
 
         return BundleHashResponse.builder()
                 .objectType(objectType)
                 .objectId(objectId)
-                .bundleHash(assignment.getTemporalBundleHash())
-                .ruleVersion(null)
+                .bundleHash(binding.getBundleHash())
+                .ruleVersion(binding.getRuleVersionPinned() != null ? binding.getRuleVersionPinned().longValue() : null)
                 .assignmentVersion(1)
-                .compiledAt(assignment.getUpdatedAt())
+                .compiledAt(binding.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Get binding for an object
+     *
+     * @param objectType Object type (campaign, voucher, tier, reward)
+     * @param objectId   Object identifier/key
+     * @return Optional containing the active binding if found
+     */
+    @Transactional(readOnly = true)
+    public Optional<RuleBinding> getBindingForObject(String objectType, String objectId) {
+        logger.debug("Getting binding for object: type={}, id={}", objectType, objectId);
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
+        return bindings.isEmpty() ? Optional.empty() : Optional.of(bindings.get(0));
+    }
+
+    /**
+     * Get all bindings for an object
+     *
+     * @param objectType Object type (campaign, voucher, tier, reward)
+     * @param objectId   Object identifier/key
+     * @return List of all bindings for the object
+     */
+    @Transactional(readOnly = true)
+    public List<RuleBinding> getAllBindingsForObject(String objectType, String objectId) {
+        logger.debug("Getting all bindings for object: type={}, id={}", objectType, objectId);
+        return ruleBindingPort.findByTarget(objectType, objectId);
     }
 }

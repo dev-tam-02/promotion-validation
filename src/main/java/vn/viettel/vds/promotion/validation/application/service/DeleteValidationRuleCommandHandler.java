@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.DeleteValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
@@ -18,18 +18,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Service xử lý DeleteValidationRuleCommand để soft delete validation rule assignments.
+ * Service to handle DeleteValidationRuleCommand for soft deleting rule bindings.
  * <p>
- * Chức năng chính:
- * - Validate command từ Kafka
- * - Tìm và soft delete (set active = false) các assignments theo campaignId
- * - Undeploy rules khỏi validation-engine
- * - Publish events thông báo kết quả
- * <p>
- * Lưu ý: Đây là soft delete, không xóa vật lý khỏi database
- *
- * @author Validation Team
- * @since 1.0.0
+ * Refactored to use unified RuleBinding model.
  */
 @Service
 @Transactional
@@ -37,59 +28,40 @@ public class DeleteValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(DeleteValidationRuleCommandHandler.class);
 
-    private final AssignmentPersistencePort assignmentPort;
+    private final RuleBindingPersistencePort ruleBindingPort;
     private final ValidationRuleRepositoryPort validationRulePort;
-    @SuppressWarnings("unused") // Reserved for future use
+    @SuppressWarnings("unused")
     private final ValidationEnginePort validationEnginePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
 
     public DeleteValidationRuleCommandHandler(
-            AssignmentPersistencePort assignmentPort,
+            RuleBindingPersistencePort ruleBindingPort,
             ValidationRuleRepositoryPort validationRulePort,
             ValidationEnginePort validationEnginePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService) {
-        this.assignmentPort = assignmentPort;
+        this.ruleBindingPort = ruleBindingPort;
         this.validationRulePort = validationRulePort;
         this.validationEnginePort = validationEnginePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
     }
 
-    /**
-     * Xử lý delete command từ campaign service.
-     * <p>
-     * Logic flow:
-     * 1. Kiểm tra idempotency - nếu đã xử lý thì return true ngay
-     * 2. Validate command payload
-     * 3. Tìm assignments theo campaignId và validationRuleId (nếu có)
-     * 4. Soft delete từng assignment (set active = false)
-     * 5. Undeploy rules khỏi validation-engine
-     * 6. Mark command as processed
-     * 7. Publish success event
-     *
-     * @param command Delete command chứa campaignId và optional validationRuleId
-     * @return true nếu delete thành công, false nếu thất bại
-     * @throws BusinessException nếu validation fails (non-retryable, gửi DLQ ngay)
-     */
-    @SuppressWarnings("java:S2139") // Exception được log đầy đủ trước khi rethrow
+    @SuppressWarnings("java:S2139")
     public boolean handleCommand(DeleteValidationRuleCommand command) {
         String commandId = command.getId();
 
         try {
             logger.info("Processing DeleteValidationRuleCommand: commandId={}", commandId);
 
-            // Bước 1: Kiểm tra idempotency - nếu đã xử lý rồi thì return success ngay
             if (idempotencyService.isProcessed(commandId)) {
-                logger.info("Delete command already processed (idempotent check): commandId={}", commandId);
+                logger.info("Delete command already processed: commandId={}", commandId);
                 return true;
             }
 
-            // Bước 2: Validate command payload
             validateCommand(command);
 
-            // Extract command payload
             DeleteValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Delete command payload is null: commandId={}", commandId);
@@ -98,191 +70,124 @@ public class DeleteValidationRuleCommandHandler {
             }
 
             String campaignId = payload.getCampaignId();
-            String validationRuleId = payload.getValidationRuleId() != null ?
-                    payload.getValidationRuleId() : null;
+            String validationRuleId = payload.getValidationRuleId();
             boolean deleteAll = Boolean.TRUE.equals(payload.getDeleteAll());
 
             logger.info("Delete request: campaignId={}, validationRuleId={}, deleteAll={}",
                     campaignId, validationRuleId, deleteAll);
 
-            // Bước 3 & 4: Execute delete logic
             boolean success = executeDelete(campaignId, validationRuleId, deleteAll);
 
-            // Xử lý thất bại - throw BusinessException với error code cụ thể
             if (!success) {
                 String errorCode = "DELETE_FAILED";
-                String errorMessage = "Failed to delete validation rule assignment";
+                String errorMessage = "Failed to delete validation rule binding";
                 publishDeleteErrorEvent(commandId, campaignId, errorCode, errorMessage);
-                logger.error("Failed to process DeleteValidationRuleCommand: commandId={}, campaignId={}, errorCode={}",
-                        commandId, campaignId, errorCode);
+                logger.error("Failed to process DeleteValidationRuleCommand: commandId={}", commandId);
                 throw ExceptionFactory.createValidationException(errorCode, errorMessage);
             }
 
-            // Bước 5: Mark as processed sau khi delete thành công
             idempotencyService.markAsProcessed(commandId, "Delete completed successfully");
-
-            // Bước 6: Publish success event
             publishDeleteSuccessEvent(commandId, campaignId, validationRuleId);
 
-            logger.info("Successfully processed DeleteValidationRuleCommand: commandId={}, campaignId={}",
-                    commandId, campaignId);
+            logger.info("Successfully processed DeleteValidationRuleCommand: commandId={}", commandId);
             return true;
 
         } catch (BusinessException e) {
-            // Re-throw BusinessException (validation errors) để promix-messaging xử lý
-            // BusinessException với BAD_REQUEST → DLQ ngay lập tức (non-retryable)
-            logger.error("Validation failed for DeleteValidationRuleCommand: commandId={}, error={}",
-                    commandId, e.getMessage(), e);
-            throw e; // NOSONAR - Exception được log đầy đủ trước khi rethrow
+            logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
-            logger.error("Unexpected error processing DeleteValidationRuleCommand: commandId={}", commandId, e);
+            logger.error("Unexpected error: commandId={}", commandId, e);
             String campaignId = command.getPayload() != null ? command.getPayload().getCampaignId() : null;
             publishDeleteErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Validate command sử dụng Bean Validation annotations.
-     * <p>
-     * Validation flow:
-     * 1. Kiểm tra command và payload not null
-     * 2. Run Bean Validation
-     * 3. Throw ValidationException nếu có lỗi
-     *
-     * @param command Command cần validate
-     * @throws BusinessException nếu validation fails với error codes cụ thể
-     */
     private void validateCommand(DeleteValidationRuleCommand command) {
-        // Bước 1: Null check
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException(
-                    "INVALID_COMMAND",
-                    "Command or payload is null"
-            );
+            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
         }
 
-        // Bước 2: Bean Validation (có thể thêm DTO validation nếu cần)
-        // Hiện tại skip vì chưa có DTO mapper, validate trực tiếp payload
-
-        // Validate campaignId
         if (command.getPayload().getCampaignId() == null || command.getPayload().getCampaignId().isBlank()) {
             logger.error("DeleteValidationRuleCommand validation failed: campaignId is required");
-            throw ExceptionFactory.createValidationException(
-                    "INVALID_CAMPAIGN_ID",
-                    "campaignId is required"
-            );
+            throw ExceptionFactory.createValidationException("INVALID_CAMPAIGN_ID", "campaignId is required");
         }
 
         logger.debug("DeleteValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
-    /**
-     * Thực thi logic delete assignments.
-     *
-     * @param campaignId       Campaign ID để tìm assignments
-     * @param validationRuleId Assignment ID cụ thể để delete (optional)
-     * @param deleteAll        Nếu true, delete tất cả assignments của campaign
-     * @return true nếu thành công, false nếu thất bại
-     */
     private boolean executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
         try {
-            // Tìm assignments theo campaign ID (subject)
-            List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
+            // Find bindings by target (campaign)
+            List<RuleBinding> bindings = ruleBindingPort.findByTarget("campaign", campaignId);
 
-            if (assignments.isEmpty()) {
-                logger.warn("No assignments found for campaign: campaignId={}", campaignId);
-                // Không phải error - assignment có thể chưa được tạo
+            if (bindings.isEmpty()) {
+                logger.warn("No bindings found for campaign: campaignId={}", campaignId);
                 return true;
             }
 
-            // Filter assignments nếu có validationRuleId cụ thể
+            // Filter if specific binding ID provided
             if (!deleteAll && validationRuleId != null) {
-                assignments = assignments.stream()
-                        .filter(a -> validationRuleId.equals(a.getId()))
+                bindings = bindings.stream()
+                        .filter(b -> validationRuleId.equals(b.getId()))
                         .toList();
 
-                if (assignments.isEmpty()) {
-                    logger.warn("No assignment found with specific ID: validationRuleId={}", validationRuleId);
+                if (bindings.isEmpty()) {
+                    logger.warn("No binding found with ID: {}", validationRuleId);
                     return true;
                 }
             }
 
-            logger.info("Found {} assignment(s) to delete for campaign: campaignId={}", assignments.size(), campaignId);
+            logger.info("Found {} binding(s) to delete for campaign: {}", bindings.size(), campaignId);
 
-            // Delete từng assignment (soft delete)
-            for (Assignment assignment : assignments) {
-                deleteAssignment(assignment);
+            // Soft delete each binding
+            for (RuleBinding binding : bindings) {
+                deleteBinding(binding);
             }
 
             return true;
 
         } catch (Exception e) {
-            logger.error("Error executing delete for campaign: campaignId={}", campaignId, e);
+            logger.error("Error executing delete for campaign: {}", campaignId, e);
             return false;
         }
     }
 
-    /**
-     * Soft delete một assignment.
-     * Đánh dấu assignment là INACTIVE và undeploy khỏi validation-engine.
-     *
-     * @param assignment Assignment cần delete
-     */
-    private void deleteAssignment(Assignment assignment) {
+    private void deleteBinding(RuleBinding binding) {
         try {
-            logger.info("Deleting assignment: assignmentId={}, ruleId={}, subjectKey={}",
-                    assignment.getId(), assignment.getRuleId(), assignment.getSubject() != null ? assignment.getSubject().getKey() : null);
+            logger.info("Deleting binding: bindingId={}, ruleId={}, targetId={}",
+                    binding.getId(), binding.getRuleId(), binding.getTargetId());
 
-            // Soft delete: Set active = false thay vì xóa vật lý
-            assignment.setActive(false);
-            assignment.setUpdatedAt(Instant.now());
-            assignmentPort.save(assignment);
+            // Soft delete: deactivate
+            ruleBindingPort.deactivate(binding.getId(), "system");
 
-            logger.info("Marked assignment as inactive: assignmentId={}", assignment.getId());
+            logger.info("Marked binding as inactive: bindingId={}", binding.getId());
 
-            // Undeploy rule khỏi validation-engine
-            undeployRuleFromEngine(assignment);
+            // Undeploy from validation-engine
+            undeployRuleFromEngine(binding);
 
-            logger.info("Successfully deleted assignment: assignmentId={}", assignment.getId());
+            logger.info("Successfully deleted binding: bindingId={}", binding.getId());
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to delete assignment: " + assignment.getId() + " - " + e.getMessage(), e);
+            throw new ValidationException("Failed to delete binding: " + binding.getId(), e);
         }
     }
 
-    /**
-     * Undeploy rule khỏi validation-engine.
-     *
-     * @param assignment Assignment chứa rule cần undeploy
-     */
-    private void undeployRuleFromEngine(Assignment assignment) {
+    private void undeployRuleFromEngine(RuleBinding binding) {
         try {
-            String ruleId = assignment.getRuleId();
+            String ruleId = binding.getRuleId();
 
-            // Kiểm tra validation rule có tồn tại không
-            boolean ruleExists = validationRulePort.existsById(ruleId);
-            if (!ruleExists) {
-                logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
-                return;
+            if (ruleId != null && validationRulePort.existsById(ruleId)) {
+                logger.info("Rule removal requested: ruleId={}, bindingId={}", ruleId, binding.getId());
+            } else {
+                logger.warn("Rule not found for undeployment: ruleId={}", ruleId);
             }
-
-            // Note: removeRule() is deprecated và không làm gì
-            // Bundle management hiện tại là automatic trong validation-engine
-            logger.info("Rule removal requested (automatic management): ruleId={}, assignmentId={}",
-                    ruleId, assignment.getId());
-
         } catch (Exception e) {
-            logger.error("Error undeploying rule from validation-engine: assignmentId={}",
-                    assignment.getId(), e);
-            // Không fail toàn bộ delete vì undeployment issues
+            logger.error("Error undeploying rule: bindingId={}", binding.getId(), e);
         }
     }
 
-    /**
-     * Publish delete success event.
-     */
     private void publishDeleteSuccessEvent(String commandId, String campaignId, String validationRuleId) {
         try {
             eventPublisher.publishDeleteSuccessEvent(commandId, campaignId, validationRuleId);
@@ -291,9 +196,6 @@ public class DeleteValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Publish delete error event.
-     */
     private void publishDeleteErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
             eventPublisher.publishDeleteErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -302,33 +204,14 @@ public class DeleteValidationRuleCommandHandler {
         }
     }
 
-    /**
-     * Xử lý dead letter command từ DLQ topic.
-     * Log failed command để manual investigation và alerting.
-     *
-     * @param command Failed delete command từ DLQ
-     */
     public void handleDeadLetterCommand(DeleteValidationRuleCommand command) {
-        logger.error("Processing dead letter DeleteValidationRuleCommand: commandId={}, campaignId={}, reason={}",
-                command.getId(),
-                command.getPayload() != null ? command.getPayload().getCampaignId() : "unknown",
-                command.getPayload() != null ? command.getPayload().getDeleteReason() : "unknown");
+        logger.error("Processing dead letter DeleteValidationRuleCommand: commandId={}", command.getId());
 
-        // Log detailed information để debugging
-        if (command.getPayload() != null) {
-            logger.error("Dead letter delete details: validationRuleId={}, deleteAll={}, correlationId={}",
-                    command.getPayload().getValidationRuleId(),
-                    command.getPayload().getDeleteAll(),
-                    command.getPayload().getCorrelationId());
-        }
-
-        // Có thể trigger alerting system, lưu vào DB để manual processing, etc.
-        // Hiện tại chỉ log và acknowledge
         publishDeleteErrorEvent(
                 command.getId(),
                 command.getPayload() != null ? command.getPayload().getCampaignId() : null,
                 "DLQ_PROCESSING",
-                "Command moved to dead letter queue after multiple retries"
+                "Command moved to dead letter queue"
         );
     }
 }

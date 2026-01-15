@@ -5,7 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidateObjectValidityRequest;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.ValidationResult;
-import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
 import java.util.List;
@@ -14,25 +15,24 @@ import java.util.List;
  * Service for validating object validity.
  * Handles validation of objects (campaigns, promotions) against their validity timeframes.
  * <p>
- * Purpose: Check if an object is currently within its active time (start_ts to end_ts).
- * If no temporal policy is configured for the object, it is considered VALID (no time restriction).
+ * Refactored to use unified RuleBinding model.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ObjectValidityService {
 
-    private final TemporalPolicyService temporalPolicyService;
+    private final RuleBindingPersistencePort ruleBindingPort;
 
     /**
      * Validate object validity within its timeframe.
-     * Checks if an object is currently valid based on its temporal policies (start_ts, end_ts).
+     * Checks if an object is currently valid based on its RuleBinding temporal constraints.
      * <p>
      * Logic:
-     * - If no temporal policy found for object -> PASS (no time restriction)
-     * - If temporal policy exists -> check if currentDateTime is within start_ts and end_ts
+     * - If no RuleBinding found for object -> PASS (no time restriction)
+     * - If RuleBinding exists -> check if currentDateTime is within validFrom and validTo
      *
-     * @param request Object validity request containing objectType (e.g., "CASHBACK"), objectId, and currentDateTime
+     * @param request Object validity request containing objectType, objectId, and currentDateTime
      * @return ValidationResult with validity status
      */
     public ValidationResult validateObjectValidity(ValidateObjectValidityRequest request) {
@@ -40,126 +40,96 @@ public class ObjectValidityService {
                 request.objectType(), request.objectId());
 
         try {
-            // Get temporal policies for this object
-            List<TemporalPolicyService.TemporalPolicyWithMode> temporalPolicies =
-                    temporalPolicyService.getTemporalPoliciesByObjectTypeAndId(
-                            request.objectType(),
-                            request.objectId()
-                    );
+            // Get rule bindings for this object
+            List<RuleBinding> bindings = ruleBindingPort.findByTarget(
+                    request.objectType(),
+                    request.objectId()
+            );
 
-            // If no temporal policy configured -> PASS (no time restriction)
-            if (temporalPolicies.isEmpty()) {
-                log.info("No temporal policy found for {}:{}, considering as VALID (no time restriction)",
+            // If no binding configured -> PASS (no time restriction)
+            if (bindings.isEmpty()) {
+                log.info("No rule binding found for {}:{}, considering as VALID (no time restriction)",
                         request.objectType(), request.objectId());
                 return ValidationResult.success();
             }
 
-            // Check each temporal policy
+            // Check each binding's temporal constraints
             Instant currentInstant = request.currentDateTime() != null
                     ? request.currentDateTime().toInstant()
                     : Instant.now();
 
-            for (TemporalPolicyService.TemporalPolicyWithMode policyWithMode : temporalPolicies) {
-                TemporalPolicy policy = policyWithMode.getTemporalPolicy();
-                String mode = policyWithMode.getMode(); // "ALLOW" or "DENY"
+            for (RuleBinding binding : bindings) {
+                // Skip if binding has no temporal constraints
+                if (!binding.hasTemporalConstraints()) {
+                    continue;
+                }
 
-                ValidationResult result = validateAgainstTemporalPolicy(policy, currentInstant, mode);
-                if (!result.isValid()) {
-                    return result;
+                // Check if within time range
+                if (binding.getValidFrom() != null && currentInstant.isBefore(binding.getValidFrom())) {
+                    log.info("Object {}:{} is not yet active (starts at {})",
+                            request.objectType(), request.objectId(), binding.getValidFrom());
+                    return ValidationResult.failure(
+                            "TIME_VALIDATION_FAILED",
+                            String.format("Object %s:%s is not yet active (starts at %s)",
+                                    request.objectType(), request.objectId(), binding.getValidFrom())
+                    );
+                }
+
+                if (binding.getValidTo() != null && currentInstant.isAfter(binding.getValidTo())) {
+                    log.info("Object {}:{} has expired (ended at {})",
+                            request.objectType(), request.objectId(), binding.getValidTo());
+                    return ValidationResult.failure(
+                            "TIME_VALIDATION_FAILED",
+                            String.format("Object %s:%s has expired (ended at %s)",
+                                    request.objectType(), request.objectId(), binding.getValidTo())
+                    );
+                }
+
+                // Check if within daily time windows
+                if (binding.getTimeWindows() != null && !binding.getTimeWindows().isEmpty()) {
+                    if (!isWithinTimeWindows(currentInstant, binding)) {
+                        log.info("Object {}:{} is outside active time windows",
+                                request.objectType(), request.objectId());
+                        return ValidationResult.failure(
+                                "TIME_VALIDATION_FAILED",
+                                String.format("Object %s:%s is outside active time windows",
+                                        request.objectType(), request.objectId())
+                        );
+                    }
                 }
             }
 
-            log.info("Object validity validation PASSED for objectType: {}, objectId: {}",
-                    request.objectType(), request.objectId());
+            log.info("Object {}:{} passed time validation", request.objectType(), request.objectId());
             return ValidationResult.success();
 
         } catch (Exception e) {
-            log.error("Object validity validation failed for objectType: {}, objectId: {}",
-                    request.objectType(), request.objectId(), e);
-            return ValidationResult.failure(
-                    "OBJECT_VALIDITY_PROCESSING_ERROR",
-                    "Failed to process object validity check: " + e.getMessage()
-            );
+            log.error("Error validating object validity for {}:{}: {}",
+                    request.objectType(), request.objectId(), e.getMessage(), e);
+            return ValidationResult.failure("VALIDATION_ERROR", "Error validating object validity: " + e.getMessage());
         }
     }
 
-    /**
-     * Validate current time against a temporal policy's start_ts and end_ts.
-     *
-     * @param policy         The temporal policy containing start_ts and end_ts
-     * @param currentInstant The current time to validate
-     * @param mode           The mode of the policy ("ALLOW" means time must be within range)
-     * @return ValidationResult
-     */
-    private ValidationResult validateAgainstTemporalPolicy(TemporalPolicy policy, Instant currentInstant, String mode) {
-        Instant startTs = policy.getStartTs();
-        Instant endTs = policy.getEndTs();
+    private boolean isWithinTimeWindows(Instant currentInstant, RuleBinding binding) {
+        // Simple implementation - check if current time of day is within any window
+        // For full implementation, would need to handle timezone and day of week
+        String timezone = binding.getTimezone() != null ? binding.getTimezone() : "Asia/Ho_Chi_Minh";
 
-        log.debug("Checking temporal policy: id={}, startTs={}, endTs={}, mode={}, currentTime={}",
-                policy.getId(), startTs, endTs, mode, currentInstant);
+        java.time.ZonedDateTime zdt = currentInstant.atZone(java.time.ZoneId.of(timezone));
+        java.time.LocalTime currentTime = zdt.toLocalTime();
 
-        // If no start/end time defined, consider as no restriction
-        if (startTs == null && endTs == null) {
-            log.debug("No start_ts/end_ts defined for policy {}, considering as VALID", policy.getId());
-            return ValidationResult.success();
+        for (RuleBinding.TimeWindow window : binding.getTimeWindows()) {
+            try {
+                java.time.LocalTime startTime = java.time.LocalTime.parse(window.getStart());
+                java.time.LocalTime endTime = java.time.LocalTime.parse(window.getEnd());
+
+                if (!currentTime.isBefore(startTime) && !currentTime.isAfter(endTime)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn("Invalid time window format: start={}, end={}", window.getStart(), window.getEnd());
+            }
         }
 
-        // Validate based on mode
-        if ("ALLOW".equalsIgnoreCase(mode)) {
-            return validateAllowMode(startTs, endTs, currentInstant);
-        }
-
-        if ("DENY".equalsIgnoreCase(mode)) {
-            return validateDenyMode(startTs, endTs, currentInstant);
-        }
-
-        return ValidationResult.success();
-    }
-
-    /**
-     * Validate for ALLOW mode: current time must be within [startTs, endTs].
-     */
-    private ValidationResult validateAllowMode(Instant startTs, Instant endTs, Instant currentInstant) {
-        // Check if not yet started
-        if (startTs != null && currentInstant.isBefore(startTs)) {
-            String message = String.format("Object is not yet active. Start time: %s", startTs);
-            log.info("Validation FAILED - not started yet: {}", message);
-            return ValidationResult.failure("OBJECT_NOT_STARTED", message);
-        }
-
-        // Check if already expired
-        if (endTs != null && currentInstant.isAfter(endTs)) {
-            String message = String.format("Object has expired. End time: %s", endTs);
-            log.info("Validation FAILED - expired: {}", message);
-            return ValidationResult.failure("OBJECT_EXPIRED", message);
-        }
-
-        return ValidationResult.success();
-    }
-
-    /**
-     * Validate for DENY mode: current time must NOT be within [startTs, endTs].
-     * This is for blackout periods.
-     */
-    private ValidationResult validateDenyMode(Instant startTs, Instant endTs, Instant currentInstant) {
-        boolean withinDenyPeriod = isWithinPeriod(startTs, endTs, currentInstant);
-
-        if (withinDenyPeriod) {
-            String message = String.format("Object is in blackout period: %s to %s", startTs, endTs);
-            log.info("Validation FAILED - in blackout period: {}", message);
-            return ValidationResult.failure("OBJECT_IN_BLACKOUT", message);
-        }
-
-        return ValidationResult.success();
-    }
-
-    /**
-     * Check if current time is within the period [startTs, endTs].
-     */
-    private boolean isWithinPeriod(Instant startTs, Instant endTs, Instant currentInstant) {
-        if (startTs != null && currentInstant.isBefore(startTs)) {
-            return false;
-        }
-        return endTs == null || !currentInstant.isAfter(endTs);
+        return false;
     }
 }

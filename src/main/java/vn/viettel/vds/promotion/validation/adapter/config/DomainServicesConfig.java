@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
 import vn.viettel.vds.promotion.validation.config.TenantProperties;
 import vn.viettel.vds.promotion.validation.application.service.RuleDeploymentPipelineService;
@@ -65,13 +65,13 @@ public class DomainServicesConfig {
             ValidationEngineClient validationEngineClient,
             RulePersistencePort rulePersistencePort,
             TenantProperties tenantProperties,
-            RuleTemporalLinkPersistencePort ruleTemporalLinkPort,
+            RuleBindingPersistencePort ruleBindingPersistencePort,
             ObjectMapper objectMapper) {
         return new RulePublishingService(
                 validationEngineClient,
                 rulePersistencePort,
                 tenantProperties,
-                ruleTemporalLinkPort,
+                ruleBindingPersistencePort,
                 objectMapper
         );
     }

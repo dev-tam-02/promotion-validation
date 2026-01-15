@@ -5,16 +5,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
-import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Service for managing integration and synchronization with validation-engine
+ * Service for managing integration and synchronization with validation-engine.
+ * <p>
+ * Refactored to use unified RuleBinding model.
  */
 @Service
 public class ValidationEngineIntegrationService {
@@ -27,15 +29,15 @@ public class ValidationEngineIntegrationService {
 
     private final ValidationEngineDeploymentService validationEngineClient;
     private final ValidationRuleRepositoryPort validationRulePort;
-    private final AssignmentPersistencePort assignmentPort;
+    private final RuleBindingPersistencePort ruleBindingPort;
 
     public ValidationEngineIntegrationService(
             ValidationEngineDeploymentService validationEngineClient,
             ValidationRuleRepositoryPort validationRulePort,
-            AssignmentPersistencePort assignmentPort) {
+            RuleBindingPersistencePort ruleBindingPort) {
         this.validationEngineClient = validationEngineClient;
         this.validationRulePort = validationRulePort;
-        this.assignmentPort = assignmentPort;
+        this.ruleBindingPort = ruleBindingPort;
     }
 
     /**
@@ -45,25 +47,30 @@ public class ValidationEngineIntegrationService {
     public void synchronizeAllRules() {
         logger.info("Starting full rule synchronization with validation-engine");
 
-        List<Assignment> activeAssignments = assignmentPort.findByActive(true);
+        List<RuleBinding> activeBindings = ruleBindingPort.findByActive(true);
 
-        long successCount = activeAssignments.stream()
-                .filter(this::synchronizeAssignment)
+        long successCount = activeBindings.stream()
+                .filter(this::synchronizeBinding)
                 .count();
 
         logger.info("Rule synchronization completed: success={}, failures={}, total={}",
-                successCount, activeAssignments.size() - successCount, activeAssignments.size());
+                successCount, activeBindings.size() - successCount, activeBindings.size());
 
         // Note: reloadRules() is deprecated and does nothing.
         // Bundle management is now automatic in validation-engine.
     }
 
-    private boolean synchronizeAssignment(Assignment assignment) {
+    private boolean synchronizeBinding(RuleBinding binding) {
         try {
-            var validationRuleOpt = validationRulePort.findById(assignment.getId());
+            if (binding.getRuleId() == null) {
+                logger.warn("Binding has no ruleId: bindingId={}", binding.getId());
+                return false;
+            }
+
+            var validationRuleOpt = validationRulePort.findById(binding.getRuleId());
             if (validationRuleOpt.isEmpty()) {
-                logger.warn("Validation rule not found for active assignment: ruleId={}, assignmentId={}",
-                        assignment.getId(), assignment.getId());
+                logger.warn("Validation rule not found for active binding: ruleId={}, bindingId={}",
+                        binding.getRuleId(), binding.getId());
                 return false;
             }
 
@@ -71,45 +78,50 @@ public class ValidationEngineIntegrationService {
 
             // Note: deployRule() is deprecated and does nothing.
             // Actual rule deployment is handled by RulePublishingService.publishRule()
-            logger.debug("Rule assignment found for synchronization: ruleId={}, assignmentId={}",
-                    rule.getId(), assignment.getId());
+            logger.debug("Rule binding found for synchronization: ruleId={}, bindingId={}",
+                    rule.getId(), binding.getId());
             return true;
 
         } catch (Exception e) {
-            logger.error("Error synchronizing rule for assignment: assignmentId={}",
-                    assignment.getId(), e);
+            logger.error("Error synchronizing rule for binding: bindingId={}",
+                    binding.getId(), e);
             return false;
         }
     }
 
     /**
-     * Deploy a specific rule assignment to validation-engine
+     * Deploy a specific rule binding to validation-engine
      */
     @Async("validationEngineExecutor")
-    public CompletableFuture<Boolean> deployRuleAssignment(String assignmentId) {
-        logger.info("Deploying specific rule assignment: assignmentId={}", assignmentId);
+    public CompletableFuture<Boolean> deployRuleBinding(String bindingId) {
+        logger.info("Deploying specific rule binding: bindingId={}", bindingId);
 
         try {
-            // Get the assignment via port
-            var assignmentOpt = assignmentPort.findById(assignmentId);
-            if (assignmentOpt.isEmpty()) {
-                logger.warn("Assignment not found: assignmentId={}", assignmentId);
+            // Get the binding via port
+            var bindingOpt = ruleBindingPort.findById(bindingId);
+            if (bindingOpt.isEmpty()) {
+                logger.warn("Binding not found: bindingId={}", bindingId);
                 return CompletableFuture.completedFuture(false);
             }
 
-            Assignment assignment = assignmentOpt.get();
+            RuleBinding binding = bindingOpt.get();
 
             // Only deploy if active
-            if (assignment.getActive() == null || !assignment.getActive()) {
-                logger.info("Skipping deployment - assignment is not active: assignmentId={}", assignmentId);
+            if (binding.getActive() == null || !binding.getActive()) {
+                logger.info("Skipping deployment - binding is not active: bindingId={}", bindingId);
                 return CompletableFuture.completedFuture(false);
             }
 
             // Get the validation rule via port
-            var validationRuleOpt = validationRulePort.findById(assignment.getId());
+            if (binding.getRuleId() == null) {
+                logger.warn("Binding has no ruleId: bindingId={}", bindingId);
+                return CompletableFuture.completedFuture(false);
+            }
+
+            var validationRuleOpt = validationRulePort.findById(binding.getRuleId());
             if (validationRuleOpt.isEmpty()) {
-                logger.warn("Validation rule not found for assignment: ruleId={}, assignmentId={}",
-                        assignment.getId(), assignmentId);
+                logger.warn("Validation rule not found for binding: ruleId={}, bindingId={}",
+                        binding.getRuleId(), bindingId);
                 return CompletableFuture.completedFuture(false);
             }
 
@@ -117,13 +129,13 @@ public class ValidationEngineIntegrationService {
 
             // Note: deployRule() is deprecated and does nothing.
             // Actual rule deployment is handled by RulePublishingService.publishRule()
-            logger.info("Rule assignment ready for deployment: ruleId={}, assignmentId={}",
-                    rule.getId(), assignmentId);
+            logger.info("Rule binding ready for deployment: ruleId={}, bindingId={}",
+                    rule.getId(), bindingId);
 
             return CompletableFuture.completedFuture(true);
 
         } catch (Exception e) {
-            logger.error("Error deploying rule assignment: assignmentId={}", assignmentId, e);
+            logger.error("Error deploying rule binding: bindingId={}", bindingId, e);
             return CompletableFuture.completedFuture(false);
         }
     }
@@ -164,14 +176,14 @@ public class ValidationEngineIntegrationService {
      */
     public SynchronizationStatus getSynchronizationStatus() {
         try {
-            // Count active assignments via port (tenantId is ignored in adapter)
-            long activeAssignments = assignmentPort.countByTenantIdAndActive(null, true);
+            // Count active bindings
+            long activeBindings = ruleBindingPort.countByActive(true);
 
             // Check validation-engine health
             boolean engineHealthy = isValidationEngineHealthy();
 
             return new SynchronizationStatus(
-                    activeAssignments,
+                    activeBindings,
                     engineHealthy,
                     engineHealthy ? STATUS_CONNECTED : STATUS_DISCONNECTED
             );

@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
-import vn.viettel.vds.promotion.validation.domain.model.Assignment;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.event.*;
 
 import java.time.Instant;
@@ -59,10 +59,10 @@ public class SettingValidationRuleEventPublisher {
         try {
             ValidationRuleSettingAppliedEvent event = createSuccessEvent(commandId, result);
 
-            publishAppliedEvent(event, result.getAssignment().getId());
+            publishAppliedEvent(event, result.getRuleBinding().getId());
 
-            logger.info("Published ValidationRuleSettingAppliedEvent: commandId={}, assignmentId={}",
-                    commandId, result.getAssignment().getId());
+            logger.info("Published ValidationRuleSettingAppliedEvent: commandId={}, bindingId={}",
+                    commandId, result.getRuleBinding().getId());
 
         } catch (Exception e) {
             throw new ValidationException("Failed to publish success event for commandId: " + commandId, e);
@@ -108,25 +108,25 @@ public class SettingValidationRuleEventPublisher {
             String commandId,
             SettingValidationRuleCommandHandler.CommandProcessingResult result) {
 
-        Assignment assignment = result.getAssignment();
+        RuleBinding binding = result.getRuleBinding();
         CommandMappingService.ApplicabilityStats stats =
                 mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
-        // Build Assignment Result
+        // Build Assignment Result (using binding data)
         ValidationRuleSettingAppliedEventPayload.AssignmentResult assignmentResult =
                 ValidationRuleSettingAppliedEventPayload.AssignmentResult.builder()
-                        .assignmentId(assignment.getId())
-                        .ruleId(assignment.getRuleId())
-                        .active(Boolean.TRUE.equals(assignment.getActive()))
-                        .trafficPercent(assignment.getTrafficPercent() != null ? assignment.getTrafficPercent() : 100)
-                        .priority(0) // Priority field can be added to assignment entity when needed
+                        .assignmentId(binding.getId())
+                        .ruleId(binding.getRuleId())
+                        .active(Boolean.TRUE.equals(binding.getActive()))
+                        .trafficPercent(binding.getTrafficPercent() != null ? binding.getTrafficPercent() : 100)
+                        .priority(binding.getPriority() != null ? binding.getPriority() : 0)
                         .build();
 
         // Build Applicability Result
         ValidationRuleSettingAppliedEventPayload.ApplicabilityResult applicabilityResult =
                 ValidationRuleSettingAppliedEventPayload.ApplicabilityResult.builder()
-                        .subjectType("PRODUCT") // Default subject type for applicability
-                        .subjectKey("*") // Default to all products
+                        .subjectType("PRODUCT")
+                        .subjectKey("*")
                         .includedItemsCount(stats.getIncludedItemsCount())
                         .excludedItemsCount(stats.getExcludedItemsCount())
                         .includedAll(stats.isIncludedAll())
@@ -157,7 +157,7 @@ public class SettingValidationRuleEventPublisher {
                 .aggregate(AGGREGATE_VALIDATION)
                 .type(EVENT_TYPE_APPLIED)
                 .source(serviceName)
-                .subject(assignment.getSubject().getKey())
+                .subject(binding.getTargetId())
                 .occurredAt(Instant.now())
                 .version(1)
                 .payload(payload)
@@ -350,29 +350,24 @@ public class SettingValidationRuleEventPublisher {
 
     private ValidationRuleSettingAppliedEventPayload.TimeframeResult buildTimeframeResultForApplied(
             SettingValidationRuleCommandHandler.CommandProcessingResult result) {
-        if (result.getTimeFrameId() == null) {
+        RuleBinding binding = result.getRuleBinding();
+
+        // Check if binding has temporal constraints
+        if (binding == null || !binding.hasTemporalConstraints()) {
             return null;
         }
 
-        TimeFrame timeframeData = result.getTimeframeData();
-        Long validFrom = null;
-        Long validTo = null;
-        String mode = "ALLOW";
-        String timezone = "UTC";
+        Long validFrom = binding.getValidFrom() != null ? binding.getValidFrom().toEpochMilli() : null;
+        Long validTo = binding.getValidTo() != null ? binding.getValidTo().toEpochMilli() : null;
+        String timezone = binding.getTimezone() != null ? binding.getTimezone() : "Asia/Ho_Chi_Minh";
 
-        if (timeframeData != null) {
-            if (timeframeData.getValidityTimeframe() != null) {
-                java.time.Instant startDate = timeframeData.getValidityTimeframe().getStartDate();
-                java.time.Instant expirationDate = timeframeData.getValidityTimeframe().getExpirationDate();
-                validFrom = startDate != null ? startDate.toEpochMilli() : null;
-                validTo = expirationDate != null ? expirationDate.toEpochMilli() : null;
-            }
-            mode = timeframeData.getMode().toString();
-            timezone = timeframeData.getTimezone();
-        }
+        TimeFrame timeframeData = result.getTimeframeData();
+        String mode = timeframeData != null && timeframeData.getMode() != null
+                ? timeframeData.getMode().toString()
+                : "REQUIRED";
 
         return ValidationRuleSettingAppliedEventPayload.TimeframeResult.builder()
-                .timeFrameId(result.getTimeFrameId())
+                .timeFrameId(binding.getId()) // Use binding ID as timeframe reference
                 .validFrom(validFrom)
                 .validTo(validTo)
                 .mode(mode)
