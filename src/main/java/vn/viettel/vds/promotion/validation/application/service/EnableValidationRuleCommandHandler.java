@@ -6,9 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.EnableValidationRuleCommand.EnableValidationRuleCommandPayload;
 
@@ -33,20 +33,20 @@ public class EnableValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(EnableValidationRuleCommandHandler.class);
 
-    private final AssignmentJpaRepository assignmentRepository;
-    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final AssignmentPersistencePort assignmentPort;
+    private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
     private final RulePublishingService rulePublishingService;
 
     public EnableValidationRuleCommandHandler(
-            AssignmentJpaRepository assignmentRepository,
-            ValidationRuleJpaRepository validationRuleRepository,
+            AssignmentPersistencePort assignmentPort,
+            ValidationRuleRepositoryPort validationRulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
             RulePublishingService rulePublishingService) {
-        this.assignmentRepository = assignmentRepository;
-        this.validationRuleRepository = validationRuleRepository;
+        this.assignmentPort = assignmentPort;
+        this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
         this.rulePublishingService = rulePublishingService;
@@ -169,12 +169,12 @@ public class EnableValidationRuleCommandHandler {
     private boolean executeEnable(String campaignId, String validationRuleId) {
         try {
             // Tìm assignment theo validationRuleId (assignment ID)
-            AssignmentEntity assignment = assignmentRepository.findById(validationRuleId)
+            Assignment assignment = assignmentPort.findById(validationRuleId)
                     .orElse(null);
 
-            // Nếu không tìm thấy theo ID, thử tìm theo campaignId
+            // Nếu không tìm thấy theo ID, thử tìm theo campaignId (subject)
             if (assignment == null) {
-                List<AssignmentEntity> assignments = assignmentRepository.findByEntityTypeAndEntityId("campaign", campaignId);
+                List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
                 if (assignments.isEmpty()) {
                     logger.warn("No assignment found for campaign: campaignId={}", campaignId);
                     return false;
@@ -189,7 +189,7 @@ public class EnableValidationRuleCommandHandler {
             // Enable assignment
             assignment.setActive(true);
             assignment.setUpdatedAt(Instant.now());
-            assignmentRepository.save(assignment);
+            assignmentPort.save(assignment);
 
             logger.info("Enabled assignment: assignmentId={}", assignment.getId());
 
@@ -214,7 +214,7 @@ public class EnableValidationRuleCommandHandler {
      *
      * @param assignment Assignment chứa rule cần deploy
      */
-    private void deployRuleToEngine(AssignmentEntity assignment) {
+    private void deployRuleToEngine(Assignment assignment) {
         try {
             String ruleId = assignment.getRuleId();
             String assignmentId = assignment.getId();
@@ -222,8 +222,8 @@ public class EnableValidationRuleCommandHandler {
             logger.info("Deploying rule to validation-engine: ruleId={}, assignmentId={}", ruleId, assignmentId);
 
             // Kiểm tra rule có tồn tại không
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
+            boolean ruleExists = validationRulePort.existsById(ruleId);
+            if (!ruleExists) {
                 logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
                 return;
             }
@@ -235,7 +235,7 @@ public class EnableValidationRuleCommandHandler {
             if (publishResult.isSuccess()) {
                 assignment.setTemporalBundleHash(publishResult.getBundleHash());
                 // Explicit save to persist temporalBundleHash - entity was saved before this method was called
-                assignmentRepository.save(assignment);
+                assignmentPort.save(assignment);
                 logger.info("Rule deployed successfully: ruleId={}, assignmentId={}, bundleHash={}",
                         ruleId, assignmentId, publishResult.getBundleHash());
             } else {

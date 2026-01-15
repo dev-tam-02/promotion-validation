@@ -6,10 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.DeleteValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
@@ -37,22 +37,22 @@ public class DeleteValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(DeleteValidationRuleCommandHandler.class);
 
-    private final AssignmentJpaRepository assignmentRepository;
-    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final AssignmentPersistencePort assignmentPort;
+    private final ValidationRuleRepositoryPort validationRulePort;
     @SuppressWarnings("unused") // Reserved for future use
-    private final ValidationEngineDeploymentService validationEngineClient;
+    private final ValidationEnginePort validationEnginePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
 
     public DeleteValidationRuleCommandHandler(
-            AssignmentJpaRepository assignmentRepository,
-            ValidationRuleJpaRepository validationRuleRepository,
-            ValidationEngineDeploymentService validationEngineClient,
+            AssignmentPersistencePort assignmentPort,
+            ValidationRuleRepositoryPort validationRulePort,
+            ValidationEnginePort validationEnginePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService) {
-        this.assignmentRepository = assignmentRepository;
-        this.validationRuleRepository = validationRuleRepository;
-        this.validationEngineClient = validationEngineClient;
+        this.assignmentPort = assignmentPort;
+        this.validationRulePort = validationRulePort;
+        this.validationEnginePort = validationEnginePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
     }
@@ -188,8 +188,8 @@ public class DeleteValidationRuleCommandHandler {
      */
     private boolean executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
         try {
-            // Tìm assignments theo campaign ID
-            List<AssignmentEntity> assignments = findAssignmentsByCampaignId(campaignId);
+            // Tìm assignments theo campaign ID (subject)
+            List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
 
             if (assignments.isEmpty()) {
                 logger.warn("No assignments found for campaign: campaignId={}", campaignId);
@@ -212,7 +212,7 @@ public class DeleteValidationRuleCommandHandler {
             logger.info("Found {} assignment(s) to delete for campaign: campaignId={}", assignments.size(), campaignId);
 
             // Delete từng assignment (soft delete)
-            for (AssignmentEntity assignment : assignments) {
+            for (Assignment assignment : assignments) {
                 deleteAssignment(assignment);
             }
 
@@ -230,15 +230,15 @@ public class DeleteValidationRuleCommandHandler {
      *
      * @param assignment Assignment cần delete
      */
-    private void deleteAssignment(AssignmentEntity assignment) {
+    private void deleteAssignment(Assignment assignment) {
         try {
-            logger.info("Deleting assignment: assignmentId={}, ruleId={}, campaignId={}",
-                    assignment.getId(), assignment.getRuleId(), assignment.getEntityId());
+            logger.info("Deleting assignment: assignmentId={}, ruleId={}, subjectKey={}",
+                    assignment.getId(), assignment.getRuleId(), assignment.getSubject() != null ? assignment.getSubject().getKey() : null);
 
             // Soft delete: Set active = false thay vì xóa vật lý
             assignment.setActive(false);
             assignment.setUpdatedAt(Instant.now());
-            assignmentRepository.save(assignment);
+            assignmentPort.save(assignment);
 
             logger.info("Marked assignment as inactive: assignmentId={}", assignment.getId());
 
@@ -253,28 +253,17 @@ public class DeleteValidationRuleCommandHandler {
     }
 
     /**
-     * Tìm assignments theo campaign ID.
-     *
-     * @param campaignId Campaign ID để search
-     * @return List assignments của campaign đó
-     */
-    private List<AssignmentEntity> findAssignmentsByCampaignId(String campaignId) {
-        // Sử dụng optimized query method thay vì findAll() + filter in memory
-        return assignmentRepository.findByEntityTypeAndEntityId("campaign", campaignId);
-    }
-
-    /**
      * Undeploy rule khỏi validation-engine.
      *
      * @param assignment Assignment chứa rule cần undeploy
      */
-    private void undeployRuleFromEngine(AssignmentEntity assignment) {
+    private void undeployRuleFromEngine(Assignment assignment) {
         try {
             String ruleId = assignment.getRuleId();
 
             // Kiểm tra validation rule có tồn tại không
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
+            boolean ruleExists = validationRulePort.existsById(ruleId);
+            if (!ruleExists) {
                 logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
                 return;
             }

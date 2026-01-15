@@ -6,11 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,6 +25,8 @@ import java.util.List;
  * - Publish events thông báo kết quả
  * <p>
  * Lưu ý: Disable khác với Delete - Disable có thể Enable lại, Delete là soft delete vĩnh viễn
+ * <p>
+ * Refactored to use Ports instead of JPA repositories directly (hexagonal architecture compliance).
  *
  * @author Validation Team
  * @since 1.0.0
@@ -36,18 +38,18 @@ public class DisableValidationRuleCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(DisableValidationRuleCommandHandler.class);
     private static final String UNKNOWN = "unknown";
 
-    private final AssignmentJpaRepository assignmentRepository;
-    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final AssignmentPersistencePort assignmentPort;
+    private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
 
     public DisableValidationRuleCommandHandler(
-            AssignmentJpaRepository assignmentRepository,
-            ValidationRuleJpaRepository validationRuleRepository,
+            AssignmentPersistencePort assignmentPort,
+            ValidationRuleRepositoryPort validationRulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService) {
-        this.assignmentRepository = assignmentRepository;
-        this.validationRuleRepository = validationRuleRepository;
+        this.assignmentPort = assignmentPort;
+        this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
     }
@@ -171,12 +173,12 @@ public class DisableValidationRuleCommandHandler {
     private boolean executeDisable(String campaignId, String validationRuleId) {
         try {
             // Tìm assignment theo validationRuleId (assignment ID)
-            AssignmentEntity assignment = assignmentRepository.findById(validationRuleId)
+            Assignment assignment = assignmentPort.findById(validationRuleId)
                     .orElse(null);
 
-            // Nếu không tìm thấy theo ID, thử tìm theo campaignId
+            // Nếu không tìm thấy theo ID, thử tìm theo campaignId (subject)
             if (assignment == null) {
-                List<AssignmentEntity> assignments = assignmentRepository.findByEntityTypeAndEntityId("campaign", campaignId);
+                List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
                 if (assignments.isEmpty()) {
                     logger.warn("No assignment found for campaign: campaignId={}", campaignId);
                     return false;
@@ -191,7 +193,7 @@ public class DisableValidationRuleCommandHandler {
             // Disable assignment
             assignment.setActive(false);
             assignment.setUpdatedAt(Instant.now());
-            assignmentRepository.save(assignment);
+            assignmentPort.save(assignment);
 
             logger.info("Disabled assignment: assignmentId={}", assignment.getId());
 
@@ -212,7 +214,7 @@ public class DisableValidationRuleCommandHandler {
      *
      * @param assignment Assignment chứa rule cần undeploy
      */
-    private void undeployRuleFromEngine(AssignmentEntity assignment) {
+    private void undeployRuleFromEngine(Assignment assignment) {
         try {
             String ruleId = assignment.getRuleId();
 
@@ -222,8 +224,8 @@ public class DisableValidationRuleCommandHandler {
                 return;
             }
 
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
+            boolean ruleExists = validationRulePort.existsById(ruleId);
+            if (!ruleExists) {
                 logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
                 return;
             }
