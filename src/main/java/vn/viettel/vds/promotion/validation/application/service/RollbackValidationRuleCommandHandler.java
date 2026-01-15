@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.AssignmentEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.AssignmentJpaRepository;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.AssignmentPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Assignment;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
@@ -33,26 +33,26 @@ public class RollbackValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(RollbackValidationRuleCommandHandler.class);
 
-    private final AssignmentJpaRepository assignmentRepository;
-    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final AssignmentPersistencePort assignmentPort;
+    private final ValidationRuleRepositoryPort validationRulePort;
     @SuppressWarnings("unused") // Reserved for future use
-    private final ValidationEngineDeploymentService validationEngineClient;
+    private final ValidationEnginePort validationEnginePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
     private final Validator validator;
     private final RollbackValidationRuleCommandDTOMapper dtoMapper;
 
     public RollbackValidationRuleCommandHandler(
-            AssignmentJpaRepository assignmentRepository,
-            ValidationRuleJpaRepository validationRuleRepository,
-            ValidationEngineDeploymentService validationEngineClient,
+            AssignmentPersistencePort assignmentPort,
+            ValidationRuleRepositoryPort validationRulePort,
+            ValidationEnginePort validationEnginePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
             Validator validator,
             RollbackValidationRuleCommandDTOMapper dtoMapper) {
-        this.assignmentRepository = assignmentRepository;
-        this.validationRuleRepository = validationRuleRepository;
-        this.validationEngineClient = validationEngineClient;
+        this.assignmentPort = assignmentPort;
+        this.validationRulePort = validationRulePort;
+        this.validationEnginePort = validationEnginePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
         this.validator = validator;
@@ -206,8 +206,8 @@ public class RollbackValidationRuleCommandHandler {
      */
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {
         try {
-            // Find assignments by campaign ID
-            List<AssignmentEntity> assignments = findAssignmentsByCampaignId(campaignId);
+            // Find assignments by campaign ID (subject)
+            List<Assignment> assignments = assignmentPort.findAllBySubjectTypeAndSubjectKey("campaign", campaignId);
 
             if (assignments.isEmpty()) {
                 logger.warn("No assignments found for campaign: campaignId={}", campaignId);
@@ -230,7 +230,7 @@ public class RollbackValidationRuleCommandHandler {
             logger.info("Found {} assignment(s) to rollback for campaign: campaignId={}", assignments.size(), campaignId);
 
             // Rollback each assignment
-            for (AssignmentEntity assignment : assignments) {
+            for (Assignment assignment : assignments) {
                 rollbackAssignment(assignment);
             }
 
@@ -248,15 +248,16 @@ public class RollbackValidationRuleCommandHandler {
      *
      * @param assignment The assignment to rollback
      */
-    private void rollbackAssignment(AssignmentEntity assignment) {
+    private void rollbackAssignment(Assignment assignment) {
         try {
-            logger.info("Rolling back assignment: assignmentId={}, ruleId={}, campaignId={}",
-                    assignment.getId(), assignment.getId(), assignment.getEntityId());
+            String subjectKey = assignment.getSubject() != null ? assignment.getSubject().getKey() : null;
+            logger.info("Rolling back assignment: assignmentId={}, ruleId={}, subjectKey={}",
+                    assignment.getId(), assignment.getRuleId(), subjectKey);
 
             // Mark assignment as INACTIVE (soft delete)
             assignment.setActive(false);
             assignment.setUpdatedAt(Instant.now());
-            assignmentRepository.save(assignment);
+            assignmentPort.save(assignment);
 
             logger.info("Marked assignment as inactive: assignmentId={}", assignment.getId());
 
@@ -271,29 +272,17 @@ public class RollbackValidationRuleCommandHandler {
     }
 
     /**
-     * Find assignments by campaign ID
-     * Searches for assignments where entityType = "campaign" AND entityId = campaignId
-     *
-     * @param campaignId The campaign ID to search for
-     * @return List of assignments for the campaign
-     */
-    private List<AssignmentEntity> findAssignmentsByCampaignId(String campaignId) {
-        // Use optimized query method instead of findAll() + filter in memory
-        return assignmentRepository.findByEntityTypeAndEntityId("campaign", campaignId);
-    }
-
-    /**
      * Undeploy rule from validation-engine
      *
      * @param assignment The assignment containing the rule to undeploy
      */
-    private void undeployRuleFromEngine(AssignmentEntity assignment) {
+    private void undeployRuleFromEngine(Assignment assignment) {
         try {
-            String ruleId = assignment.getId();
+            String ruleId = assignment.getRuleId();
 
             // Get the validation rule details
-            var ruleOpt = validationRuleRepository.findById(ruleId);
-            if (ruleOpt.isEmpty()) {
+            boolean ruleExists = validationRulePort.existsById(ruleId);
+            if (!ruleExists) {
                 handleMissingRule(ruleId);
                 return;
             }
@@ -309,7 +298,7 @@ public class RollbackValidationRuleCommandHandler {
         logger.warn("Validation rule not found for undeployment: ruleId={}", ruleId);
     }
 
-    private void removeRuleFromEngine(String ruleId, AssignmentEntity assignment) {
+    private void removeRuleFromEngine(String ruleId, Assignment assignment) {
         logger.info("Removing rule from validation-engine: ruleId={}, assignmentId={}",
                 ruleId, assignment.getId());
 
@@ -319,7 +308,7 @@ public class RollbackValidationRuleCommandHandler {
                 ruleId, assignment.getId());
     }
 
-    private void handleUndeployException(Exception e, AssignmentEntity assignment) {
+    private void handleUndeployException(Exception e, Assignment assignment) {
         logger.error("Error undeploying rule from validation-engine: assignmentId={}",
                 assignment.getId(), e);
         // Don't fail the entire rollback for undeployment issues

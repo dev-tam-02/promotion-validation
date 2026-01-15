@@ -10,7 +10,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand.RevertValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertFailedEvent;
@@ -42,7 +43,7 @@ public class RevertValidationRuleCommandHandler {
     private static final String SOURCE = "validation-service";
 
     private final ValidationRuleSnapshotService snapshotService;
-    private final ValidationRuleJpaRepository validationRuleRepository;
+    private final ValidationRuleRepositoryPort validationRulePort;
     private final IdempotencyService idempotencyService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
@@ -86,7 +87,7 @@ public class RevertValidationRuleCommandHandler {
                     validationRuleId, currentVersion, targetVersion, sagaId);
 
             // Validate rule exists
-            ValidationRuleEntity rule = validationRuleRepository.findById(validationRuleId)
+            Rule rule = validationRulePort.findById(validationRuleId)
                     .orElseThrow(() -> {
                         log.error("Validation rule not found: ruleId={}", validationRuleId);
                         return ExceptionFactory.createValidationException(
