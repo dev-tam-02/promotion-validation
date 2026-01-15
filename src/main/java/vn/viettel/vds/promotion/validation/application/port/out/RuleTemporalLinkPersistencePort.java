@@ -58,4 +58,14 @@ public interface RuleTemporalLinkPersistencePort {
      * @return List of distinct entity IDs
      */
     List<String> findEntityIdsByEntityTypeAndTimeRange(String entityType, java.time.Instant startTs, java.time.Instant endTs);
+
+    /**
+     * Find temporal links by assignment ID with embedded TemporalPolicy data.
+     * This method eagerly loads the associated temporal policy for each link,
+     * avoiding N+1 query issues when full policy details are needed.
+     *
+     * @param assignmentId The assignment ID to search for
+     * @return List of RuleTemporalLink objects with temporalPolicy field populated
+     */
+    List<RuleTemporalLink> findByAssignmentIdWithPolicy(String assignmentId);
 }

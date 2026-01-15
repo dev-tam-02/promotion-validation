@@ -5,10 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.*;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleTemporalLinkEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.TemporalPolicyEntity;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleTemporalLinkJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleTemporalLinkPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
+import vn.viettel.vds.promotion.validation.domain.model.TemporalPolicy;
+import vn.viettel.vds.promotion.validation.domain.model.TimeOfDayWindow;
 import vn.viettel.vds.promotion.validation.domain.exception.BundleWarmupException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleCompilationException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleExecutionException;
@@ -41,18 +42,18 @@ public class RulePublishingService {
     private final ValidationEngineClient validationEngineClient;
     private final RulePersistencePort rulePersistencePort;
     private final vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties;
-    private final RuleTemporalLinkJpaRepository ruleTemporalLinkRepository;
+    private final RuleTemporalLinkPersistencePort ruleTemporalLinkPort;
     private final ObjectMapper objectMapper;
 
     public RulePublishingService(ValidationEngineClient validationEngineClient,
                                  RulePersistencePort rulePersistencePort,
                                  vn.viettel.vds.promotion.validation.config.TenantProperties tenantProperties,
-                                 RuleTemporalLinkJpaRepository ruleTemporalLinkRepository,
+                                 RuleTemporalLinkPersistencePort ruleTemporalLinkPort,
                                  ObjectMapper objectMapper) {
         this.validationEngineClient = validationEngineClient;
         this.rulePersistencePort = rulePersistencePort;
         this.tenantProperties = tenantProperties;
-        this.ruleTemporalLinkRepository = ruleTemporalLinkRepository;
+        this.ruleTemporalLinkPort = ruleTemporalLinkPort;
         this.objectMapper = objectMapper;
     }
 
@@ -189,13 +190,13 @@ public class RulePublishingService {
         compileRequest.setOperatorsFingerprint("assignment-bundle-" + assignmentId);
 
         // Add temporal policy data
-        List<RuleTemporalLinkEntity> temporalLinks = ruleTemporalLinkRepository.findByAssignmentId(assignmentId);
+        List<RuleTemporalLink> temporalLinks = ruleTemporalLinkPort.findByAssignmentIdWithPolicy(assignmentId);
 
         if (!temporalLinks.isEmpty()) {
             logger.info("Found {} temporal links for assignment bundle: assignmentId={}", temporalLinks.size(), assignmentId);
 
-            RuleTemporalLinkEntity link = temporalLinks.get(0);
-            TemporalPolicyEntity policy = link.getTemporalPolicy();
+            RuleTemporalLink link = temporalLinks.get(0);
+            TemporalPolicy policy = link.getTemporalPolicy();
 
             CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
             String mappedMode = mapTemporalMode(link.getMode());
@@ -469,13 +470,13 @@ public class RulePublishingService {
 
         // Add temporal policy data if assignmentId is provided
         if (assignmentId != null) {
-            List<RuleTemporalLinkEntity> temporalLinks = ruleTemporalLinkRepository.findByAssignmentId(assignmentId);
+            List<RuleTemporalLink> temporalLinks = ruleTemporalLinkPort.findByAssignmentIdWithPolicy(assignmentId);
 
             if (!temporalLinks.isEmpty()) {
                 logger.info("Found {} temporal links for assignmentId={}", temporalLinks.size(), assignmentId);
 
-                RuleTemporalLinkEntity link = temporalLinks.get(0); // Assumption: 1 policy per assignment
-                TemporalPolicyEntity policy = link.getTemporalPolicy();
+                RuleTemporalLink link = temporalLinks.get(0); // Assumption: 1 policy per assignment
+                TemporalPolicy policy = link.getTemporalPolicy();
 
                 // Build TemporalPolicyData
                 CompileRequest.TemporalPolicyData temporalData = buildTemporalPolicyData(policy);
@@ -517,7 +518,7 @@ public class RulePublishingService {
         return mode;
     }
 
-    private CompileRequest.TemporalPolicyData buildTemporalPolicyData(TemporalPolicyEntity policy) {
+    private CompileRequest.TemporalPolicyData buildTemporalPolicyData(TemporalPolicy policy) {
         CompileRequest.TemporalPolicyData data = new CompileRequest.TemporalPolicyData();
         data.setTimezone(policy.getTz());
         data.setRrule(policy.getRrule());

@@ -22,6 +22,13 @@ public class RuleTemporalLink {
     String assignmentId;  // FIXED: was validationRuleId
     String temporalPolicyId;
 
+    /**
+     * Embedded temporal policy data. Optional - loaded when full policy details are needed.
+     * This allows the domain model to carry complete policy information without
+     * requiring additional queries when the data is already available.
+     */
+    TemporalPolicy temporalPolicy;
+
     // Audit fields
     Instant createdAt;
     String createdBy;

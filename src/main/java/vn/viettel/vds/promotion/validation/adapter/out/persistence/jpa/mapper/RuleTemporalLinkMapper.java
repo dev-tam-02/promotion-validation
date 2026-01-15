@@ -10,12 +10,23 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleTemporalLink;
  * MapStruct mapper for converting between RuleTemporalLink domain model and RuleTemporalLinkEntity.
  * FIXED: Changed to map assignment instead of validation rule
  */
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        uses = {TemporalPolicyMapper.class})
 public interface RuleTemporalLinkMapper {
 
     @Mapping(source = "assignment.id", target = "assignmentId")  // FIXED: was validationRule.id
     @Mapping(source = "temporalPolicy.id", target = "temporalPolicyId")
+    @Mapping(target = "temporalPolicy", ignore = true)  // Not loaded by default
     RuleTemporalLink toDomain(RuleTemporalLinkEntity entity);
+
+    /**
+     * Map entity to domain with embedded TemporalPolicy.
+     * Use this method when full policy details are needed.
+     */
+    @Mapping(source = "assignment.id", target = "assignmentId")
+    @Mapping(source = "temporalPolicy.id", target = "temporalPolicyId")
+    @Mapping(source = "temporalPolicy", target = "temporalPolicy")
+    RuleTemporalLink toDomainWithPolicy(RuleTemporalLinkEntity entity);
 
     @Mapping(target = "assignment", ignore = true)  // FIXED: was validationRule
     @Mapping(target = "temporalPolicy", ignore = true)
