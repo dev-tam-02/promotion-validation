@@ -60,28 +60,6 @@ springdoc:
 server:
   port: 16014
 
-# Eureka Configuration
-eureka:
-  client:
-    enabled: true
-    healthcheck:
-      enabled: true
-    fetch-registry: true
-    register-with-eureka: true
-    instance-info-replication-interval-seconds: 10
-    registry-fetch-interval-seconds: 10
-    service-url:
-      defaultZone: http://service-registry:8761/eureka
-  instance:
-    appname: promotion-${spring.application.name}
-    instanceId: promotion-${spring.application.name}:${spring.application.instance-id:${random.value}}
-    prefer-ip-address: true
-    lease-renewal-interval-in-seconds: 5
-    lease-expiration-duration-in-seconds: 10
-    status-page-url-path: ${management.endpoints.web.base-path}/info
-    health-check-url-path: ${management.endpoints.web.base-path}/health
-    virtual-host-name: promotion-${spring.application.name}
-
 # Feign Client Configuration
 feign:
   client:
@@ -110,6 +88,18 @@ management:
   zipkin:
     tracing:
       enabled: false  # Completely disable Zipkin
+
+# External Services Configuration (Direct URLs - no Eureka)
+external:
+  order-service:
+    url: ${ORDER_SERVICE_URL:http://order:8080}
+  customer-service:
+    url: ${CUSTOMER_SERVICE_URL:http://customer:8080}
+  catalog-service:
+    url: ${CATALOG_SERVICE_URL:http://product:8080}
+  services:
+    campaign:
+      url: ${CAMPAIGN_SERVICE_URL:http://campaign:8080}
 
 # Promix Platform Configuration
 promix:
