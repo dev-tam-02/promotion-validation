@@ -214,6 +214,13 @@ databaseChangeLog:
               - column:
                   name: parent_id
 
+        - createIndex:
+            indexName: idx_rule_nodes_node_order
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: node_order
+
         - addForeignKeyConstraint:
             baseTableName: rule_nodes
             baseColumnNames: parent_id
@@ -270,6 +277,21 @@ databaseChangeLog:
                   name: updated_at
                   type: timestamp
                   defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(100)
+                  remarks: Creator user ID
+              - column:
+                  name: updated_by
+                  type: varchar(100)
+                  remarks: Last updater user ID
+              - column:
+                  name: version
+                  type: bigint
+                  remarks: Optimistic locking version
+                  defaultValueNumeric: 0
                   constraints:
                     nullable: false
 

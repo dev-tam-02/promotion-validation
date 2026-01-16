@@ -97,98 +97,6 @@ databaseChangeLog:
                   name: updated_at
                   valueDate: 2025-01-01T00:00:00
 
-  # Sample temporal policies
-  - changeSet:
-      id: 002-insert-sample-temporal-policies
-      author: harley hoang
-      changes:
-        - insert:
-            tableName: temporal_policies
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0002-7000-8000-000000000001
-              - column:
-                  name: name
-                  value: Weekend Mornings
-              - column:
-                  name: tz
-                  value: Asia/Bangkok
-              - column:
-                  name: rrule
-                  value: FREQ=WEEKLY;BYDAY=SA,SU
-              - column:
-                  name: rdate
-                  value: '[]'
-              - column:
-                  name: exdate
-                  value: '["2025-10-20T09:00:00+07:00"]'
-              - column:
-                  name: metadata
-                  value: '{}'
-
-        - insert:
-            tableName: temporal_policies
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0002-7000-8000-000000000002
-              - column:
-                  name: name
-                  value: Business Hours
-              - column:
-                  name: tz
-                  value: Asia/Bangkok
-              - column:
-                  name: rrule
-                  value: FREQ=DAILY
-              - column:
-                  name: rdate
-                  value: '[]'
-              - column:
-                  name: exdate
-                  value: '[]'
-              - column:
-                  name: metadata
-                  value: '{}'
-
-  # Sample temporal policy windows
-  - changeSet:
-      id: 002-insert-sample-policy-windows
-      author: harley hoang
-      changes:
-        - insert:
-            tableName: temporal_policy_windows
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0003-7000-8000-000000000001
-              - column:
-                  name: temporal_policy_id
-                  value: 01932b6f-0002-7000-8000-000000000001
-              - column:
-                  name: start_time
-                  value: 09:00:00
-              - column:
-                  name: end_time
-                  value: 12:00:00
-
-        - insert:
-            tableName: temporal_policy_windows
-            columns:
-              - column:
-                  name: id
-                  value: 01932b6f-0003-7000-8000-000000000002
-              - column:
-                  name: temporal_policy_id
-                  value: 01932b6f-0002-7000-8000-000000000002
-              - column:
-                  name: start_time
-                  value: 09:00:00
-              - column:
-                  name: end_time
-                  value: 17:00:00
-
   # Sample reason codes
   - changeSet:
       id: 002-insert-sample-reason-codes
@@ -294,7 +202,7 @@ databaseChangeLog:
                   name: active
                   valueBoolean: true
 
-  # Sample validation rule
+  # Sample validation rules
   - changeSet:
       id: 002-insert-sample-validation-rules
       author: harley hoang
@@ -361,7 +269,7 @@ databaseChangeLog:
                   name: updated_by
                   value: admin
 
-  # Sample rule nodes for first rule
+  # Sample rule nodes for first rule (WEEKEND_VIP_500K)
   - changeSet:
       id: 002-insert-sample-rule-nodes
       author: harley hoang
@@ -557,53 +465,29 @@ databaseChangeLog:
                   name: per_day
                   valueNumeric: 200
 
-  # Sample rule temporal link
-  # DISABLED: This changeset was inserting with validation_rule_id FK
-  # After migration 013, rule_temporal_links now links to assignments, not validation_rules
-  # Temporal policies will be created dynamically via Kafka commands, not seeded
-  #- changeSet:
-  #    id: 002-insert-sample-temporal-links
-  #    author: harley hoang
-  #    changes:
-  #      - insert:
-  #          tableName: rule_temporal_links
-  #          columns:
-  #            - column:
-  #                name: id
-  #                value: 01932b6f-0008-7000-8000-000000000001
-  #            - column:
-  #                name: validation_rule_id
-  #                value: 01932b6f-0005-7000-8000-000000000001
-  #            - column:
-  #                name: temporal_policy_id
-  #                value: 01932b6f-0002-7000-8000-000000000001
-  #            - column:
-  #                name: mode
-  #                value: ALLOW
-
-  # Sample rule assignment
+  # Sample rule bindings (replaces old rule_assignments)
   - changeSet:
-      id: 002-insert-sample-assignments
+      id: 002-insert-sample-rule-bindings
       author: harley hoang
       changes:
         - insert:
-            tableName: rule_assignments
+            tableName: rule_bindings
             columns:
               - column:
                   name: id
                   value: 01932b6f-0009-7000-8000-000000000001
               - column:
-                  name: validation_rule_id
+                  name: rule_id
                   value: 01932b6f-0005-7000-8000-000000000001
               - column:
-                  name: subject_type
-                  value: voucher
+                  name: object_type
+                  value: VOUCHER
               - column:
-                  name: subject_key
+                  name: object_id
                   value: SAVE20
               - column:
-                  name: assignment_version
-                  valueNumeric: 1
+                  name: priority
+                  valueNumeric: 0
               - column:
                   name: active
                   valueBoolean: true
@@ -614,8 +498,75 @@ databaseChangeLog:
                   name: valid_to
                   valueDate: 2025-12-31T23:59:59
               - column:
+                  name: timezone
+                  value: Asia/Ho_Chi_Minh
+              - column:
                   name: traffic_percent
                   valueNumeric: 100
+              - column:
+                  name: created_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: updated_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: created_by
+                  value: admin
+              - column:
+                  name: version
+                  valueNumeric: 0
+
+        - insert:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: id
+                  value: 01932b6f-0009-7000-8000-000000000002
+              - column:
+                  name: rule_id
+                  value: 01932b6f-0005-7000-8000-000000000002
+              - column:
+                  name: object_type
+                  value: CAMPAIGN
+              - column:
+                  name: object_id
+                  value: BUSINESS_HOURS_CAMPAIGN
+              - column:
+                  name: priority
+                  valueNumeric: 0
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: valid_from
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: valid_to
+                  valueDate: 2025-12-31T23:59:59
+              - column:
+                  name: timezone
+                  value: Asia/Ho_Chi_Minh
+              - column:
+                  name: rrule
+                  value: FREQ=DAILY
+              - column:
+                  name: time_windows
+                  value: '[{"start":"09:00","end":"17:00"}]'
+              - column:
+                  name: traffic_percent
+                  valueNumeric: 100
+              - column:
+                  name: created_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: updated_at
+                  valueDate: 2025-01-01T00:00:00
+              - column:
+                  name: created_by
+                  value: admin
+              - column:
+                  name: version
+                  valueNumeric: 0
 
   # Sample resources
   - changeSet:
