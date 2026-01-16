@@ -42,7 +42,16 @@ databaseChangeLog:
               - column:
                   name: description
                   type: text
-                  remarks: Category description
+                  remarks: Category description (English)
+              # I18n fields
+              - column:
+                  name: name_vi
+                  type: varchar(100)
+                  remarks: Vietnamese display name
+              - column:
+                  name: description_vi
+                  type: text
+                  remarks: Vietnamese description
               - column:
                   name: is_metadata_category
                   type: boolean

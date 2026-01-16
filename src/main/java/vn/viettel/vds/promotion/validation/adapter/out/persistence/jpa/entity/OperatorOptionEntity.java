@@ -79,6 +79,44 @@ public class OperatorOptionEntity {
     @Column(name = "pattern", length = 255)
     private String pattern;
 
+    // I18n fields
+    @Column(name = "name_vi", length = 100)
+    private String nameVi;
+
+    @Column(name = "description_vi", columnDefinition = "TEXT")
+    private String descriptionVi;
+
+    // Input configuration fields
+    @Column(name = "data_source_type", length = 50)
+    private String dataSourceType;
+
+    @Column(name = "data_source_endpoint", length = 255)
+    private String dataSourceEndpoint;
+
+    @Column(name = "input_type", length = 20)
+    private String inputType;
+
+    @Column(name = "input_multiple")
+    private Boolean inputMultiple = false;
+
+    @Column(name = "input_searchable")
+    private Boolean inputSearchable = false;
+
+    @Column(name = "input_step", length = 20)
+    private String inputStep;
+
+    @Column(name = "label_en", length = 100)
+    private String labelEn;
+
+    @Column(name = "label_vi", length = 100)
+    private String labelVi;
+
+    @Column(name = "placeholder_en", length = 255)
+    private String placeholderEn;
+
+    @Column(name = "placeholder_vi", length = 255)
+    private String placeholderVi;
+
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 

@@ -11,9 +11,11 @@ databaseChangeLog:
               - column: { name: id, value: "cat-audience-001" }
               - column: { name: code, value: "audience" }
               - column: { name: name, value: "Audience" }
+              - column: { name: name_vi, value: "Đối tượng" }
               - column: { name: display_order, valueNumeric: 1 }
               - column: { name: icon, value: "PeopleOutlined" }
               - column: { name: description, value: "Target specific customer segments and loyalty tiers" }
+              - column: { name: description_vi, value: "Nhắm đến các tập khách hàng và hạng thành viên cụ thể" }
               - column: { name: is_metadata_category, valueBoolean: false }
               - column: { name: is_active, valueBoolean: true }
 
@@ -24,9 +26,11 @@ databaseChangeLog:
               - column: { name: id, value: "cat-products-001" }
               - column: { name: code, value: "products" }
               - column: { name: name, value: "Products" }
+              - column: { name: name_vi, value: "Sản phẩm" }
               - column: { name: display_order, valueNumeric: 2 }
               - column: { name: icon, value: "ShoppingCartOutlined" }
               - column: { name: description, value: "Filter by product attributes in order items" }
+              - column: { name: description_vi, value: "Lọc theo thuộc tính sản phẩm trong đơn hàng" }
               - column: { name: is_metadata_category, valueBoolean: false }
               - column: { name: is_active, valueBoolean: true }
 
@@ -37,9 +41,11 @@ databaseChangeLog:
               - column: { name: id, value: "cat-prices-001" }
               - column: { name: code, value: "prices_quantities" }
               - column: { name: name, value: "Prices & Quantities" }
+              - column: { name: name_vi, value: "Giá & Số lượng" }
               - column: { name: display_order, valueNumeric: 3 }
               - column: { name: icon, value: "AttachMoneyOutlined" }
               - column: { name: description, value: "Set price and quantity thresholds" }
+              - column: { name: description_vi, value: "Thiết lập ngưỡng giá và số lượng" }
               - column: { name: is_metadata_category, valueBoolean: false }
               - column: { name: is_active, valueBoolean: true }
 
@@ -49,10 +55,12 @@ databaseChangeLog:
             columns:
               - column: { name: id, value: "cat-budget-001" }
               - column: { name: code, value: "budget_constraints" }
-              - column: { name: name, value: "Budget constraints" }
+              - column: { name: name, value: "Budget & Constraints" }
+              - column: { name: name_vi, value: "Ngân sách & Giới hạn" }
               - column: { name: display_order, valueNumeric: 4 }
-              - column: { name: icon, value: "AccountBalanceOutlined" }
+              - column: { name: icon, value: "AccountBalanceWalletOutlined" }
               - column: { name: description, value: "Limit redemptions and budget usage" }
+              - column: { name: description_vi, value: "Giới hạn số lần sử dụng và ngân sách" }
               - column: { name: is_metadata_category, valueBoolean: false }
               - column: { name: is_active, valueBoolean: true }
 
@@ -63,9 +71,11 @@ databaseChangeLog:
               - column: { name: id, value: "cat-redemptions-001" }
               - column: { name: code, value: "redemptions" }
               - column: { name: name, value: "Redemptions" }
+              - column: { name: name_vi, value: "Quy tắc sử dụng" }
               - column: { name: display_order, valueNumeric: 5 }
-              - column: { name: icon, value: "RedeemOutlined" }
+              - column: { name: icon, value: "ConfirmationNumberOutlined" }
               - column: { name: description, value: "Control redemption access and authorization" }
+              - column: { name: description_vi, value: "Kiểm soát quyền truy cập và xác thực sử dụng" }
               - column: { name: is_metadata_category, valueBoolean: false }
               - column: { name: is_active, valueBoolean: true }
 
@@ -75,10 +85,12 @@ databaseChangeLog:
             columns:
               - column: { name: id, value: "cat-customer-meta-001" }
               - column: { name: code, value: "customer_metadata" }
-              - column: { name: name, value: "Customer metadata" }
+              - column: { name: name, value: "Customer Metadata" }
+              - column: { name: name_vi, value: "Thuộc tính khách hàng" }
               - column: { name: display_order, valueNumeric: 6 }
-              - column: { name: icon, value: "PersonOutlined" }
+              - column: { name: icon, value: "AccountCircleOutlined" }
               - column: { name: description, value: "Filter by customer custom attributes" }
+              - column: { name: description_vi, value: "Lọc theo thuộc tính tùy chỉnh của khách hàng" }
               - column: { name: is_metadata_category, valueBoolean: true }
               - column: { name: metadata_schema_type, value: "customer" }
               - column: { name: is_active, valueBoolean: true }
@@ -89,43 +101,17 @@ databaseChangeLog:
             columns:
               - column: { name: id, value: "cat-order-meta-001" }
               - column: { name: code, value: "order_metadata" }
-              - column: { name: name, value: "Order metadata" }
+              - column: { name: name, value: "Order Metadata" }
+              - column: { name: name_vi, value: "Thuộc tính đơn hàng" }
               - column: { name: display_order, valueNumeric: 7 }
               - column: { name: icon, value: "ReceiptOutlined" }
               - column: { name: description, value: "Filter by order custom attributes" }
+              - column: { name: description_vi, value: "Lọc theo thuộc tính tùy chỉnh của đơn hàng" }
               - column: { name: is_metadata_category, valueBoolean: true }
               - column: { name: metadata_schema_type, value: "order" }
               - column: { name: is_active, valueBoolean: true }
 
-        # Redemption Metadata Category
-        - insert:
-            tableName: operator_categories
-            columns:
-              - column: { name: id, value: "cat-redemption-meta-001" }
-              - column: { name: code, value: "redemption_metadata" }
-              - column: { name: name, value: "Redemption metadata" }
-              - column: { name: display_order, valueNumeric: 8 }
-              - column: { name: icon, value: "CardGiftcardOutlined" }
-              - column: { name: description, value: "Filter by redemption custom attributes" }
-              - column: { name: is_metadata_category, valueBoolean: true }
-              - column: { name: metadata_schema_type, value: "redemption" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Custom Event Metadata Category
-        - insert:
-            tableName: operator_categories
-            columns:
-              - column: { name: id, value: "cat-event-meta-001" }
-              - column: { name: code, value: "custom_event_metadata" }
-              - column: { name: name, value: "Custom event metadata" }
-              - column: { name: display_order, valueNumeric: 9 }
-              - column: { name: icon, value: "EventOutlined" }
-              - column: { name: description, value: "Filter by custom event attributes" }
-              - column: { name: is_metadata_category, valueBoolean: true }
-              - column: { name: metadata_schema_type, value: "custom_event" }
-              - column: { name: is_active, valueBoolean: true }
-
-  # Seed operator options - Audience
+  # ==================== AUDIENCE OPTIONS ====================
   - changeSet:
       id: 022-seed-operator-options-audience
       author: harley hoang
@@ -138,8 +124,10 @@ databaseChangeLog:
               - column: { name: category_id, value: "cat-audience-001" }
               - column: { name: code, value: "customer_segment" }
               - column: { name: name, value: "Customer segment" }
+              - column: { name: name_vi, value: "Tập khách hàng" }
               - column: { name: display_order, valueNumeric: 1 }
               - column: { name: description, value: "Target customers by segment membership" }
+              - column: { name: description_vi, value: "Nhắm đến khách hàng theo tập khách hàng" }
               - column: { name: operator_name, value: "customer.in_segment" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "list" }
@@ -147,6 +135,14 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "in" }
               - column: { name: value_type, value: "list" }
               - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "SEGMENT" }
+              - column: { name: data_source_endpoint, value: "/segment/api/v1/segments" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select segments" }
+              - column: { name: label_vi, value: "Chọn tập khách hàng" }
+              - column: { name: placeholder_en, value: "Choose customer segments..." }
+              - column: { name: placeholder_vi, value: "Chọn tập khách hàng..." }
               - column: { name: is_active, valueBoolean: true }
 
         # Customer loyalty tier
@@ -157,16 +153,25 @@ databaseChangeLog:
               - column: { name: category_id, value: "cat-audience-001" }
               - column: { name: code, value: "customer_loyalty_tier" }
               - column: { name: name, value: "Customer loyalty tier" }
+              - column: { name: name_vi, value: "Hạng thành viên" }
               - column: { name: display_order, valueNumeric: 2 }
               - column: { name: description, value: "Target customers by loyalty tier" }
+              - column: { name: description_vi, value: "Nhắm đến khách hàng theo hạng thành viên" }
               - column: { name: operator_name, value: "customer.tier.equals" }
               - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
-              - column: { name: default_comparator, value: "equals" }
-              - column: { name: value_type, value: "string" }
-              - column: { name: value_source, value: "select" }
-              - column: { name: value_options, value: '[{"value":"BRONZE","label":"Bronze"},{"value":"SILVER","label":"Silver"},{"value":"GOLD","label":"Gold"},{"value":"PLATINUM","label":"Platinum"}]' }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "LOYALTY_TIER" }
+              - column: { name: data_source_endpoint, value: "/customer/api/v1/loyalty-tiers" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select loyalty tier" }
+              - column: { name: label_vi, value: "Chọn hạng thành viên" }
+              - column: { name: placeholder_en, value: "Choose loyalty tier..." }
+              - column: { name: placeholder_vi, value: "Chọn hạng thành viên..." }
               - column: { name: is_active, valueBoolean: true }
 
         # Redemption only by code holder
@@ -176,128 +181,37 @@ databaseChangeLog:
               - column: { name: id, value: "opt-code-holder-001" }
               - column: { name: category_id, value: "cat-audience-001" }
               - column: { name: code, value: "redemption_code_holder_only" }
-              - column: { name: name, value: "Redemption only by code holder" }
+              - column: { name: name, value: "Redemption by code holder" }
+              - column: { name: name_vi, value: "Chỉ người giữ mã" }
               - column: { name: display_order, valueNumeric: 3 }
               - column: { name: description, value: "Only the customer who received the code can redeem it" }
+              - column: { name: description_vi, value: "Chỉ khách hàng nhận được mã mới có thể sử dụng" }
               - column: { name: operator_name, value: "redemption.code_holder_only" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "boolean" }
-              - column: { name: available_comparators, value: '["equals"]' }
-              - column: { name: default_comparator, value: "equals" }
+              - column: { name: available_comparators, value: '["is_true", "is_false"]' }
+              - column: { name: default_comparator, value: "is_true" }
               - column: { name: value_type, value: "boolean" }
               - column: { name: value_source, value: "input" }
               - column: { name: is_active, valueBoolean: true }
 
-  # Seed operator options - Products
+  # ==================== PRODUCTS OPTIONS ====================
   - changeSet:
       id: 022-seed-operator-options-products
       author: harley hoang
       changes:
-        # Any order item
+        # Product category
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-any-item-001" }
+              - column: { name: id, value: "opt-product-category-001" }
               - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "any_order_item" }
-              - column: { name: name, value: "Any order item" }
+              - column: { name: code, value: "product_category" }
+              - column: { name: name, value: "Product category" }
+              - column: { name: name_vi, value: "Danh mục sản phẩm" }
               - column: { name: display_order, valueNumeric: 1 }
-              - column: { name: description, value: "At least one item in order matches criteria" }
-              - column: { name: operator_name, value: "order.item.product.applicable" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "list" }
-              - column: { name: available_comparators, value: '["in", "not_in"]' }
-              - column: { name: default_comparator, value: "in" }
-              - column: { name: value_type, value: "list" }
-              - column: { name: value_source, value: "multi_select" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Every order item
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-every-item-001" }
-              - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "every_order_item" }
-              - column: { name: name, value: "Every order item" }
-              - column: { name: display_order, valueNumeric: 2 }
-              - column: { name: description, value: "All items in order must match criteria" }
-              - column: { name: operator_name, value: "order.item.product.applicable.all" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "list" }
-              - column: { name: available_comparators, value: '["in", "not_in"]' }
-              - column: { name: default_comparator, value: "in" }
-              - column: { name: value_type, value: "list" }
-              - column: { name: value_source, value: "multi_select" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # None of the order items
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-none-item-001" }
-              - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "none_order_item" }
-              - column: { name: name, value: "None of the order items" }
-              - column: { name: display_order, valueNumeric: 3 }
-              - column: { name: description, value: "No items in order should match criteria" }
-              - column: { name: operator_name, value: "order.item.product.applicable.none" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "list" }
-              - column: { name: available_comparators, value: '["in"]' }
-              - column: { name: default_comparator, value: "in" }
-              - column: { name: value_type, value: "list" }
-              - column: { name: value_source, value: "multi_select" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Most expensive item
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-most-expensive-001" }
-              - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "most_expensive_item" }
-              - column: { name: name, value: "Most expensive of the order items" }
-              - column: { name: display_order, valueNumeric: 4 }
-              - column: { name: description, value: "Check the most expensive item in order" }
-              - column: { name: operator_name, value: "order.item.most_expensive" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "list" }
-              - column: { name: available_comparators, value: '["in", "not_in"]' }
-              - column: { name: default_comparator, value: "in" }
-              - column: { name: value_type, value: "list" }
-              - column: { name: value_source, value: "multi_select" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Cheapest item
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-cheapest-001" }
-              - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "cheapest_item" }
-              - column: { name: name, value: "Cheapest of the order items" }
-              - column: { name: display_order, valueNumeric: 5 }
-              - column: { name: description, value: "Check the cheapest item in order" }
-              - column: { name: operator_name, value: "order.item.cheapest" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "list" }
-              - column: { name: available_comparators, value: '["in", "not_in"]' }
-              - column: { name: default_comparator, value: "in" }
-              - column: { name: value_type, value: "list" }
-              - column: { name: value_source, value: "multi_select" }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Item category
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-item-category-001" }
-              - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "item_category" }
-              - column: { name: name, value: "Item category" }
-              - column: { name: display_order, valueNumeric: 6 }
-              - column: { name: description, value: "Filter by product category" }
+              - column: { name: description, value: "Filter by product categories" }
+              - column: { name: description_vi, value: "Lọc theo danh mục sản phẩm" }
               - column: { name: operator_name, value: "order.item.category.in" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "list" }
@@ -305,18 +219,28 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "in" }
               - column: { name: value_type, value: "list" }
               - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT_CATEGORY" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/categories" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select categories" }
+              - column: { name: label_vi, value: "Chọn danh mục" }
+              - column: { name: placeholder_en, value: "Choose categories..." }
+              - column: { name: placeholder_vi, value: "Chọn danh mục..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Item brand
+        # Product brand
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-item-brand-001" }
+              - column: { name: id, value: "opt-product-brand-001" }
               - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "item_brand" }
-              - column: { name: name, value: "Item brand" }
-              - column: { name: display_order, valueNumeric: 7 }
-              - column: { name: description, value: "Filter by product brand" }
+              - column: { name: code, value: "product_brand" }
+              - column: { name: name, value: "Product brand" }
+              - column: { name: name_vi, value: "Thương hiệu" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "Filter by product brands" }
+              - column: { name: description_vi, value: "Lọc theo thương hiệu sản phẩm" }
               - column: { name: operator_name, value: "order.item.brand.in" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "list" }
@@ -324,18 +248,57 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "in" }
               - column: { name: value_type, value: "list" }
               - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT_BRAND" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/brands" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select brands" }
+              - column: { name: label_vi, value: "Chọn thương hiệu" }
+              - column: { name: placeholder_en, value: "Choose brands..." }
+              - column: { name: placeholder_vi, value: "Chọn thương hiệu..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Item collection
+        # Product SKU
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-item-collection-001" }
+              - column: { name: id, value: "opt-product-sku-001" }
               - column: { name: category_id, value: "cat-products-001" }
-              - column: { name: code, value: "item_collection" }
-              - column: { name: name, value: "Item collection" }
-              - column: { name: display_order, valueNumeric: 8 }
-              - column: { name: description, value: "Filter by product collection" }
+              - column: { name: code, value: "product_sku" }
+              - column: { name: name, value: "Product SKU" }
+              - column: { name: name_vi, value: "Mã sản phẩm" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Filter by specific products" }
+              - column: { name: description_vi, value: "Lọc theo sản phẩm cụ thể" }
+              - column: { name: operator_name, value: "order.item.product.applicable" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select products" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: placeholder_en, value: "Choose products..." }
+              - column: { name: placeholder_vi, value: "Chọn sản phẩm..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Product collection
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-product-collection-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "product_collection" }
+              - column: { name: name, value: "Product collection" }
+              - column: { name: name_vi, value: "Bộ sưu tập" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "Filter by product collections" }
+              - column: { name: description_vi, value: "Lọc theo bộ sưu tập sản phẩm" }
               - column: { name: operator_name, value: "order.item.collection.in" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "list" }
@@ -343,9 +306,17 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "in" }
               - column: { name: value_type, value: "list" }
               - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "COLLECTION" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/collections" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select collections" }
+              - column: { name: label_vi, value: "Chọn bộ sưu tập" }
+              - column: { name: placeholder_en, value: "Choose collections..." }
+              - column: { name: placeholder_vi, value: "Chọn bộ sưu tập..." }
               - column: { name: is_active, valueBoolean: true }
 
-  # Seed operator options - Prices & Quantities
+  # ==================== PRICES & QUANTITIES OPTIONS ====================
   - changeSet:
       id: 022-seed-operator-options-prices
       author: harley hoang
@@ -356,10 +327,12 @@ databaseChangeLog:
             columns:
               - column: { name: id, value: "opt-total-amount-001" }
               - column: { name: category_id, value: "cat-prices-001" }
-              - column: { name: code, value: "total_amount" }
-              - column: { name: name, value: "Total amount" }
+              - column: { name: code, value: "order_total_amount" }
+              - column: { name: name, value: "Order total amount" }
+              - column: { name: name_vi, value: "Tổng giá trị đơn hàng" }
               - column: { name: display_order, valueNumeric: 1 }
-              - column: { name: description, value: "Order total amount after discounts" }
+              - column: { name: description, value: "Total order value after discounts" }
+              - column: { name: description_vi, value: "Tổng giá trị đơn hàng sau giảm giá" }
               - column: { name: operator_name, value: "order.total.gte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "range" }
@@ -367,7 +340,13 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "gte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000" }
+              - column: { name: label_en, value: "Amount" }
+              - column: { name: label_vi, value: "Số tiền" }
+              - column: { name: placeholder_en, value: "Enter amount..." }
+              - column: { name: placeholder_vi, value: "Nhập số tiền..." }
               - column: { name: is_active, valueBoolean: true }
 
         # Initial amount
@@ -376,10 +355,12 @@ databaseChangeLog:
             columns:
               - column: { name: id, value: "opt-initial-amount-001" }
               - column: { name: category_id, value: "cat-prices-001" }
-              - column: { name: code, value: "initial_amount" }
-              - column: { name: name, value: "Initial amount" }
+              - column: { name: code, value: "order_initial_amount" }
+              - column: { name: name, value: "Order initial amount" }
+              - column: { name: name_vi, value: "Giá trị ban đầu" }
               - column: { name: display_order, valueNumeric: 2 }
-              - column: { name: description, value: "Order total amount before any discounts" }
+              - column: { name: description, value: "Total order value before discounts" }
+              - column: { name: description_vi, value: "Tổng giá trị đơn hàng trước giảm giá" }
               - column: { name: operator_name, value: "order.initial.amount.gte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "range" }
@@ -387,19 +368,27 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "gte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000" }
+              - column: { name: label_en, value: "Amount" }
+              - column: { name: label_vi, value: "Số tiền" }
+              - column: { name: placeholder_en, value: "Enter amount..." }
+              - column: { name: placeholder_vi, value: "Nhập số tiền..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Items quantity
+        # Items count
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-items-quantity-001" }
+              - column: { name: id, value: "opt-items-count-001" }
               - column: { name: category_id, value: "cat-prices-001" }
-              - column: { name: code, value: "items_quantity" }
-              - column: { name: name, value: "Items quantity" }
+              - column: { name: code, value: "order_items_count" }
+              - column: { name: name, value: "Order items count" }
+              - column: { name: name_vi, value: "Tổng số sản phẩm" }
               - column: { name: display_order, valueNumeric: 3 }
               - column: { name: description, value: "Total number of items in order" }
+              - column: { name: description_vi, value: "Tổng số sản phẩm trong đơn hàng" }
               - column: { name: operator_name, value: "order.items.count.gte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "range" }
@@ -407,253 +396,346 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "gte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Count" }
+              - column: { name: label_vi, value: "Số lượng" }
+              - column: { name: placeholder_en, value: "Enter count..." }
+              - column: { name: placeholder_vi, value: "Nhập số lượng..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Price of each item
+        # Item quantity
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-price-each-item-001" }
+              - column: { name: id, value: "opt-item-quantity-001" }
               - column: { name: category_id, value: "cat-prices-001" }
-              - column: { name: code, value: "price_each_item" }
-              - column: { name: name, value: "Price of each item" }
+              - column: { name: code, value: "order_item_quantity" }
+              - column: { name: name, value: "Order item quantity" }
+              - column: { name: name_vi, value: "Số lượng sản phẩm" }
               - column: { name: display_order, valueNumeric: 4 }
-              - column: { name: description, value: "All items must meet price criteria" }
-              - column: { name: operator_name, value: "order.item.price.forall" }
+              - column: { name: description, value: "Quantity of specific items" }
+              - column: { name: description_vi, value: "Số lượng của sản phẩm cụ thể" }
+              - column: { name: operator_name, value: "order.item.quantity.gte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "range" }
-              - column: { name: available_comparators, value: '["gte", "lte", "between"]' }
+              - column: { name: available_comparators, value: '["gte", "lte", "between", "equals"]' }
               - column: { name: default_comparator, value: "gte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
-              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Quantity" }
+              - column: { name: label_vi, value: "Số lượng" }
+              - column: { name: placeholder_en, value: "Enter quantity..." }
+              - column: { name: placeholder_vi, value: "Nhập số lượng..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Price of any item
+        # Item price
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-price-any-item-001" }
+              - column: { name: id, value: "opt-item-price-001" }
               - column: { name: category_id, value: "cat-prices-001" }
-              - column: { name: code, value: "price_any_item" }
-              - column: { name: name, value: "Price of any item" }
+              - column: { name: code, value: "order_item_price" }
+              - column: { name: name, value: "Order item price" }
+              - column: { name: name_vi, value: "Đơn giá sản phẩm" }
               - column: { name: display_order, valueNumeric: 5 }
-              - column: { name: description, value: "At least one item meets price criteria" }
+              - column: { name: description, value: "Price of individual items" }
+              - column: { name: description_vi, value: "Giá của từng sản phẩm" }
               - column: { name: operator_name, value: "order.item.price.gte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "range" }
-              - column: { name: available_comparators, value: '["gte", "lte", "between"]' }
+              - column: { name: available_comparators, value: '["gte", "lte", "between", "equals"]' }
               - column: { name: default_comparator, value: "gte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000" }
+              - column: { name: label_en, value: "Price" }
+              - column: { name: label_vi, value: "Giá" }
+              - column: { name: placeholder_en, value: "Enter price..." }
+              - column: { name: placeholder_vi, value: "Nhập giá..." }
               - column: { name: is_active, valueBoolean: true }
 
-  # Seed operator options - Budget Constraints
+  # ==================== BUDGET CONSTRAINTS OPTIONS ====================
   - changeSet:
       id: 022-seed-operator-options-budget
       author: harley hoang
       changes:
-        # Total orders value
+        # Total redemptions limit
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-budget-orders-value-001" }
+              - column: { name: id, value: "opt-total-redemptions-001" }
               - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "total_orders_value" }
-              - column: { name: name, value: "Total orders value" }
+              - column: { name: code, value: "total_redemptions_limit" }
+              - column: { name: name, value: "Total redemptions limit" }
+              - column: { name: name_vi, value: "Giới hạn tổng số lần sử dụng" }
               - column: { name: display_order, valueNumeric: 1 }
-              - column: { name: description, value: "Maximum total value of orders using this promotion" }
-              - column: { name: operator_name, value: "budget.orders_value.total.lte" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
-              - column: { name: default_comparator, value: "lte" }
-              - column: { name: value_type, value: "number" }
-              - column: { name: value_source, value: "input" }
-              - column: { name: min_value, valueNumeric: 0 }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Total discounted amount
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-budget-discounted-001" }
-              - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "total_discounted_amount" }
-              - column: { name: name, value: "Total discounted amount" }
-              - column: { name: display_order, valueNumeric: 2 }
-              - column: { name: description, value: "Maximum total discount amount given" }
-              - column: { name: operator_name, value: "budget.discounted_amount.total.lte" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
-              - column: { name: default_comparator, value: "lte" }
-              - column: { name: value_type, value: "number" }
-              - column: { name: value_source, value: "input" }
-              - column: { name: min_value, valueNumeric: 0 }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Total number of redemptions
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-budget-redemptions-total-001" }
-              - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "total_redemptions" }
-              - column: { name: name, value: "Total number of redemptions" }
-              - column: { name: display_order, valueNumeric: 3 }
               - column: { name: description, value: "Maximum total redemptions allowed" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa cho toàn bộ chương trình" }
               - column: { name: operator_name, value: "budget.redemptions.total.lte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
               - column: { name: default_comparator, value: "lte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 1 }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Redemptions per day
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-budget-redemptions-day-001" }
-              - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "redemptions_per_day" }
-              - column: { name: name, value: "Redemptions per day" }
-              - column: { name: display_order, valueNumeric: 4 }
-              - column: { name: description, value: "Maximum redemptions per day" }
-              - column: { name: operator_name, value: "budget.redemptions.per_day.lte" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
-              - column: { name: default_comparator, value: "lte" }
-              - column: { name: value_type, value: "number" }
-              - column: { name: value_source, value: "input" }
-              - column: { name: min_value, valueNumeric: 1 }
-              - column: { name: is_active, valueBoolean: true }
-
-        # Redemptions per month
-        - insert:
-            tableName: operator_options
-            columns:
-              - column: { name: id, value: "opt-budget-redemptions-month-001" }
-              - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "redemptions_per_month" }
-              - column: { name: name, value: "Redemptions per month" }
-              - column: { name: display_order, valueNumeric: 5 }
-              - column: { name: description, value: "Maximum redemptions per month" }
-              - column: { name: operator_name, value: "budget.redemptions.per_month.lte" }
-              - column: { name: operator_version, valueNumeric: 1 }
-              - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
-              - column: { name: default_comparator, value: "lte" }
-              - column: { name: value_type, value: "number" }
-              - column: { name: value_source, value: "input" }
-              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Limit" }
+              - column: { name: label_vi, value: "Giới hạn" }
+              - column: { name: placeholder_en, value: "Enter limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn..." }
               - column: { name: is_active, valueBoolean: true }
 
         # Redemptions per customer
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-budget-per-customer-001" }
+              - column: { name: id, value: "opt-redemptions-per-customer-001" }
               - column: { name: category_id, value: "cat-budget-001" }
               - column: { name: code, value: "redemptions_per_customer" }
-              - column: { name: name, value: "Redemptions per customer in a campaign" }
-              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: name, value: "Redemptions per customer" }
+              - column: { name: name_vi, value: "Số lần sử dụng mỗi khách" }
+              - column: { name: display_order, valueNumeric: 2 }
               - column: { name: description, value: "Maximum redemptions per customer" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa mỗi khách hàng" }
               - column: { name: operator_name, value: "budget.redemptions.per_customer.lte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
               - column: { name: default_comparator, value: "lte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Limit" }
+              - column: { name: label_vi, value: "Giới hạn" }
+              - column: { name: placeholder_en, value: "Enter limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Redemptions per customer per day
+        # Daily redemptions limit
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-budget-per-customer-day-001" }
+              - column: { name: id, value: "opt-daily-redemptions-001" }
               - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "redemptions_per_customer_per_day" }
-              - column: { name: name, value: "Redemptions per customer per day" }
-              - column: { name: display_order, valueNumeric: 7 }
-              - column: { name: description, value: "Maximum daily redemptions per customer" }
+              - column: { name: code, value: "daily_redemptions_limit" }
+              - column: { name: name, value: "Daily redemptions limit" }
+              - column: { name: name_vi, value: "Giới hạn theo ngày" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Maximum redemptions per day" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa mỗi ngày" }
+              - column: { name: operator_name, value: "budget.redemptions.per_day.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Daily limit" }
+              - column: { name: label_vi, value: "Giới hạn ngày" }
+              - column: { name: placeholder_en, value: "Enter daily limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn ngày..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Monthly redemptions limit
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-monthly-redemptions-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "monthly_redemptions_limit" }
+              - column: { name: name, value: "Monthly redemptions limit" }
+              - column: { name: name_vi, value: "Giới hạn theo tháng" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "Maximum redemptions per month" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa mỗi tháng" }
+              - column: { name: operator_name, value: "budget.redemptions.per_month.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Monthly limit" }
+              - column: { name: label_vi, value: "Giới hạn tháng" }
+              - column: { name: placeholder_en, value: "Enter monthly limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn tháng..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Total budget limit
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-budget-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_budget_limit" }
+              - column: { name: name, value: "Total budget limit" }
+              - column: { name: name_vi, value: "Ngân sách tổng" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "Maximum total budget" }
+              - column: { name: description_vi, value: "Ngân sách tối đa cho toàn bộ chương trình" }
+              - column: { name: operator_name, value: "budget.amount.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000000" }
+              - column: { name: label_en, value: "Budget" }
+              - column: { name: label_vi, value: "Ngân sách" }
+              - column: { name: placeholder_en, value: "Enter budget..." }
+              - column: { name: placeholder_vi, value: "Nhập ngân sách..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Customer daily limit
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-customer-daily-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "customer_daily_limit" }
+              - column: { name: name, value: "Customer daily limit" }
+              - column: { name: name_vi, value: "Giới hạn ngày mỗi khách" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: description, value: "Maximum redemptions per customer per day" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa mỗi khách mỗi ngày" }
               - column: { name: operator_name, value: "budget.redemptions.per_customer.per_day.lte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
               - column: { name: default_comparator, value: "lte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Daily limit" }
+              - column: { name: label_vi, value: "Giới hạn ngày" }
+              - column: { name: placeholder_en, value: "Enter daily limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn ngày..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Redemptions per customer per month
+        # Customer monthly limit
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-budget-per-customer-month-001" }
+              - column: { name: id, value: "opt-customer-monthly-001" }
               - column: { name: category_id, value: "cat-budget-001" }
-              - column: { name: code, value: "redemptions_per_customer_per_month" }
-              - column: { name: name, value: "Redemptions per customer per month" }
-              - column: { name: display_order, valueNumeric: 8 }
-              - column: { name: description, value: "Maximum monthly redemptions per customer" }
+              - column: { name: code, value: "customer_monthly_limit" }
+              - column: { name: name, value: "Customer monthly limit" }
+              - column: { name: name_vi, value: "Giới hạn tháng mỗi khách" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: description, value: "Maximum redemptions per customer per month" }
+              - column: { name: description_vi, value: "Số lần sử dụng tối đa mỗi khách mỗi tháng" }
               - column: { name: operator_name, value: "budget.redemptions.per_customer.per_month.lte" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
-              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: available_comparators, value: '["lte", "equals"]' }
               - column: { name: default_comparator, value: "lte" }
               - column: { name: value_type, value: "number" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
               - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Monthly limit" }
+              - column: { name: label_vi, value: "Giới hạn tháng" }
+              - column: { name: placeholder_en, value: "Enter monthly limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn tháng..." }
               - column: { name: is_active, valueBoolean: true }
 
-  # Seed operator options - Redemptions
+  # ==================== REDEMPTIONS OPTIONS ====================
   - changeSet:
       id: 022-seed-operator-options-redemptions
       author: harley hoang
       changes:
-        # Redeeming user
+        # Redeeming user type
         - insert:
             tableName: operator_options
             columns:
               - column: { name: id, value: "opt-redeeming-user-001" }
               - column: { name: category_id, value: "cat-redemptions-001" }
-              - column: { name: code, value: "redeeming_user" }
-              - column: { name: name, value: "Redeeming user" }
+              - column: { name: code, value: "redeeming_user_type" }
+              - column: { name: name, value: "Redeeming user type" }
+              - column: { name: name_vi, value: "Loại người dùng" }
               - column: { name: display_order, valueNumeric: 1 }
-              - column: { name: description, value: "Filter by specific user who redeems" }
-              - column: { name: operator_name, value: "redemption.user.equals" }
+              - column: { name: description, value: "Type of user making the redemption" }
+              - column: { name: description_vi, value: "Loại người dùng thực hiện sử dụng" }
+              - column: { name: operator_name, value: "redemption.user.type.equals" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
               - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
               - column: { name: default_comparator, value: "equals" }
               - column: { name: value_type, value: "string" }
               - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "text" }
+              - column: { name: label_en, value: "User type" }
+              - column: { name: label_vi, value: "Loại người dùng" }
+              - column: { name: placeholder_en, value: "Enter user type..." }
+              - column: { name: placeholder_vi, value: "Nhập loại người dùng..." }
               - column: { name: is_active, valueBoolean: true }
 
-        # Redeeming API key
+        # Redemption API key
         - insert:
             tableName: operator_options
             columns:
-              - column: { name: id, value: "opt-redeeming-api-key-001" }
+              - column: { name: id, value: "opt-redemption-api-key-001" }
               - column: { name: category_id, value: "cat-redemptions-001" }
-              - column: { name: code, value: "redeeming_api_key" }
-              - column: { name: name, value: "Redeeming API key" }
+              - column: { name: code, value: "redemption_api_key" }
+              - column: { name: name, value: "Redemption API key" }
+              - column: { name: name_vi, value: "API key sử dụng" }
               - column: { name: display_order, valueNumeric: 2 }
-              - column: { name: description, value: "Filter by API key used for redemption" }
+              - column: { name: description, value: "API key used for redemption" }
+              - column: { name: description_vi, value: "API key được sử dụng để thực hiện" }
               - column: { name: operator_name, value: "redemption.api_key.equals" }
               - column: { name: operator_version, valueNumeric: 1 }
               - column: { name: comparison_type, value: "single" }
               - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
               - column: { name: default_comparator, value: "equals" }
               - column: { name: value_type, value: "string" }
-              - column: { name: value_source, value: "select" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "text" }
+              - column: { name: label_en, value: "API key" }
+              - column: { name: label_vi, value: "API key" }
+              - column: { name: placeholder_en, value: "Enter API key..." }
+              - column: { name: placeholder_vi, value: "Nhập API key..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # Code holder only
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-code-holder-only-001" }
+              - column: { name: category_id, value: "cat-redemptions-001" }
+              - column: { name: code, value: "code_holder_only" }
+              - column: { name: name, value: "Code holder only" }
+              - column: { name: name_vi, value: "Chỉ người giữ mã" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "Only code holder can redeem" }
+              - column: { name: description_vi, value: "Chỉ người giữ mã mới được sử dụng" }
+              - column: { name: operator_name, value: "redemption.code_holder.only" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "boolean" }
+              - column: { name: available_comparators, value: '["is_true", "is_false"]' }
+              - column: { name: default_comparator, value: "is_true" }
+              - column: { name: value_type, value: "boolean" }
+              - column: { name: value_source, value: "input" }
               - column: { name: is_active, valueBoolean: true }

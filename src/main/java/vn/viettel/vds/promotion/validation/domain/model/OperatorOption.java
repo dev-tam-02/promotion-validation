@@ -36,6 +36,22 @@ public class OperatorOption {
     BigDecimal maxValue;
     String pattern;
 
+    // I18n fields
+    String nameVi;
+    String descriptionVi;
+
+    // Input configuration
+    String dataSourceType;
+    String dataSourceEndpoint;
+    String inputType;
+    Boolean inputMultiple;
+    Boolean inputSearchable;
+    String inputStep;
+    String labelEn;
+    String labelVi;
+    String placeholderEn;
+    String placeholderVi;
+
     boolean active;
 
     // Audit fields

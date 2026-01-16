@@ -19,6 +19,11 @@ public class OperatorCategory {
     Integer displayOrder;
     String icon;
     String description;
+
+    // I18n fields
+    String nameVi;
+    String descriptionVi;
+
     boolean metadataCategory;
     String metadataSchemaType;
     boolean active;

@@ -91,6 +91,58 @@ databaseChangeLog:
                   name: pattern
                   type: varchar(255)
                   remarks: Regex pattern for validation
+              # I18n fields
+              - column:
+                  name: name_vi
+                  type: varchar(100)
+                  remarks: Vietnamese display name
+              - column:
+                  name: description_vi
+                  type: text
+                  remarks: Vietnamese description
+              # Input configuration fields
+              - column:
+                  name: data_source_type
+                  type: varchar(50)
+                  remarks: Data source type for UI (SEGMENT, PRODUCT, PRODUCT_CATEGORY, LOYALTY_TIER, etc.)
+              - column:
+                  name: data_source_endpoint
+                  type: varchar(255)
+                  remarks: API endpoint for fetching options (/segment/api/v1/segments)
+              - column:
+                  name: input_type
+                  type: varchar(20)
+                  remarks: Input type for UI (text, number, select, checkbox, date)
+              - column:
+                  name: input_multiple
+                  type: boolean
+                  remarks: Whether multiple selection is allowed
+                  defaultValueBoolean: false
+              - column:
+                  name: input_searchable
+                  type: boolean
+                  remarks: Whether input is searchable
+                  defaultValueBoolean: false
+              - column:
+                  name: input_step
+                  type: varchar(20)
+                  remarks: Step value for number inputs
+              - column:
+                  name: label_en
+                  type: varchar(100)
+                  remarks: English label for input field
+              - column:
+                  name: label_vi
+                  type: varchar(100)
+                  remarks: Vietnamese label for input field
+              - column:
+                  name: placeholder_en
+                  type: varchar(255)
+                  remarks: English placeholder text
+              - column:
+                  name: placeholder_vi
+                  type: varchar(255)
+                  remarks: Vietnamese placeholder text
               - column:
                   name: is_active
                   type: boolean

@@ -42,6 +42,13 @@ public class OperatorCategoryEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    // I18n fields
+    @Column(name = "name_vi", length = 100)
+    private String nameVi;
+
+    @Column(name = "description_vi", columnDefinition = "TEXT")
+    private String descriptionVi;
+
     @Column(name = "is_metadata_category", nullable = false)
     private Boolean metadataCategory = false;
 
