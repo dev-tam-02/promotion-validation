@@ -334,17 +334,17 @@ databaseChangeLog:
                   type: int
                   remarks: Pin to specific rule version (NULL = always use latest)
 
-              # Target (What this binding applies to)
+              # Object Reference (What this binding applies to)
               - column:
-                  name: target_type
+                  name: object_type
                   type: varchar(50)
-                  remarks: Target type (CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK, etc.)
+                  remarks: Object type (CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK, etc.)
                   constraints:
                     nullable: false
               - column:
-                  name: target_id
+                  name: object_id
                   type: varchar(100)
-                  remarks: Target identifier
+                  remarks: Object identifier
                   constraints:
                     nullable: false
 
@@ -470,13 +470,13 @@ databaseChangeLog:
 
         # Indexes for common queries
         - createIndex:
-            indexName: idx_rb_target
+            indexName: idx_rb_object
             tableName: rule_bindings
             columns:
               - column:
-                  name: target_type
+                  name: object_type
               - column:
-                  name: target_id
+                  name: object_id
 
         - createIndex:
             indexName: idx_rb_rule
@@ -497,13 +497,13 @@ databaseChangeLog:
                   name: valid_to
 
         - createIndex:
-            indexName: idx_rb_target_active
+            indexName: idx_rb_object_active
             tableName: rule_bindings
             columns:
               - column:
-                  name: target_type
+                  name: object_type
               - column:
-                  name: target_id
+                  name: object_id
               - column:
                   name: active
 
