@@ -157,7 +157,7 @@ public class SettingValidationRuleEventPublisher {
                 .aggregate(AGGREGATE_VALIDATION)
                 .type(EVENT_TYPE_APPLIED)
                 .source(serviceName)
-                .subject(binding.getTargetId())
+                .subject(binding.getObjectId())
                 .occurredAt(Instant.now())
                 .version(1)
                 .payload(payload)

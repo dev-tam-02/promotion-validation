@@ -119,8 +119,8 @@ public class DeleteValidationRuleCommandHandler {
 
     private boolean executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
         try {
-            // Find bindings by target (campaign)
-            List<RuleBinding> bindings = ruleBindingPort.findByTarget("campaign", campaignId);
+            // Find bindings by object (campaign)
+            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
 
             if (bindings.isEmpty()) {
                 logger.warn("No bindings found for campaign: campaignId={}", campaignId);
@@ -156,8 +156,8 @@ public class DeleteValidationRuleCommandHandler {
 
     private void deleteBinding(RuleBinding binding) {
         try {
-            logger.info("Deleting binding: bindingId={}, ruleId={}, targetId={}",
-                    binding.getId(), binding.getRuleId(), binding.getTargetId());
+            logger.info("Deleting binding: bindingId={}, ruleId={}, objectId={}",
+                    binding.getId(), binding.getRuleId(), binding.getObjectId());
 
             // Soft delete: deactivate
             ruleBindingPort.deactivate(binding.getId(), "system");

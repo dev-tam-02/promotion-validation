@@ -350,7 +350,7 @@ public class RuleService {
         logger.info("Getting rule by object: type={}, id={}", objectType, objectId);
 
         // Find binding for this object
-        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
             throw new ResourceNotFoundException();
@@ -370,7 +370,7 @@ public class RuleService {
         logger.info("Getting all rules by object: type={}, id={}", objectType, objectId);
 
         // Find all bindings for this object
-        List<RuleBinding> bindings = ruleBindingPort.findByTarget(objectType, objectId);
+        List<RuleBinding> bindings = ruleBindingPort.findByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
             throw new ResourceNotFoundException();
@@ -404,7 +404,7 @@ public class RuleService {
         logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
 
         // Find active binding for object
-        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
         if (bindings.isEmpty()) {
             logger.warn("No active binding found for object: type={}, id={}", objectType, objectId);
             throw new ResourceNotFoundException();
@@ -442,7 +442,7 @@ public class RuleService {
     @Transactional(readOnly = true)
     public Optional<RuleBinding> getBindingForObject(String objectType, String objectId) {
         logger.debug("Getting binding for object: type={}, id={}", objectType, objectId);
-        List<RuleBinding> bindings = ruleBindingPort.findActiveByTarget(objectType, objectId);
+        List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
         return bindings.isEmpty() ? Optional.empty() : Optional.of(bindings.get(0));
     }
 
@@ -456,6 +456,6 @@ public class RuleService {
     @Transactional(readOnly = true)
     public List<RuleBinding> getAllBindingsForObject(String objectType, String objectId) {
         logger.debug("Getting all bindings for object: type={}, id={}", objectType, objectId);
-        return ruleBindingPort.findByTarget(objectType, objectId);
+        return ruleBindingPort.findByObject(objectType, objectId);
     }
 }

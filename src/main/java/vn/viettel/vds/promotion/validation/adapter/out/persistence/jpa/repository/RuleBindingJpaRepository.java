@@ -20,36 +20,36 @@ import java.util.Optional;
 @Repository
 public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntity, String> {
 
-    // ========== Find by Target ==========
+    // ========== Find by Object ==========
 
     /**
-     * Find all bindings for a specific target
+     * Find all bindings for a specific object
      */
-    List<RuleBindingEntity> findByTargetTypeAndTargetId(String targetType, String targetId);
+    List<RuleBindingEntity> findByObjectTypeAndObjectId(String objectType, String objectId);
 
     /**
-     * Find all active bindings for a specific target, ordered by priority
+     * Find all active bindings for a specific object, ordered by priority
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType AND rb.targetId = :targetId AND rb.active = true " +
+            "WHERE rb.objectType = :objectType AND rb.objectId = :objectId AND rb.active = true " +
             "ORDER BY rb.priority DESC")
-    List<RuleBindingEntity> findActiveByTarget(
-            @Param("targetType") String targetType,
-            @Param("targetId") String targetId);
+    List<RuleBindingEntity> findActiveByObject(
+            @Param("objectType") String objectType,
+            @Param("objectId") String objectId);
 
     /**
-     * Find all bindings for a target type
+     * Find all bindings for an object type
      */
-    List<RuleBindingEntity> findByTargetType(String targetType);
+    List<RuleBindingEntity> findByObjectType(String objectType);
 
     /**
-     * Find all bindings for multiple target IDs of the same type
+     * Find all bindings for multiple object IDs of the same type
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType AND rb.targetId IN :targetIds")
-    List<RuleBindingEntity> findByTargetTypeAndTargetIdIn(
-            @Param("targetType") String targetType,
-            @Param("targetIds") List<String> targetIds);
+            "WHERE rb.objectType = :objectType AND rb.objectId IN :objectIds")
+    List<RuleBindingEntity> findByObjectTypeAndObjectIdIn(
+            @Param("objectType") String objectType,
+            @Param("objectIds") List<String> objectIds);
 
     // ========== Find by Rule ==========
 
@@ -69,33 +69,33 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
      * Find bindings effective at a specific time
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType " +
+            "WHERE rb.objectType = :objectType " +
             "AND rb.active = true " +
             "AND (rb.validFrom IS NULL OR rb.validFrom <= :timestamp) " +
             "AND (rb.validTo IS NULL OR rb.validTo >= :timestamp)")
     List<RuleBindingEntity> findEffectiveAtTime(
-            @Param("targetType") String targetType,
+            @Param("objectType") String objectType,
             @Param("timestamp") Instant timestamp);
 
     /**
-     * Find target IDs with bindings in a time range
+     * Find object IDs with bindings in a time range
      */
-    @Query("SELECT DISTINCT rb.targetId FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType " +
+    @Query("SELECT DISTINCT rb.objectId FROM RuleBindingEntity rb " +
+            "WHERE rb.objectType = :objectType " +
             "AND rb.active = true " +
             "AND ((:startTs IS NULL OR rb.validFrom IS NULL OR rb.validFrom <= :endTs) " +
             "     AND (:endTs IS NULL OR rb.validTo IS NULL OR rb.validTo >= :startTs))")
-    List<String> findTargetIdsByTypeAndTimeRange(
-            @Param("targetType") String targetType,
+    List<String> findObjectIdsByTypeAndTimeRange(
+            @Param("objectType") String objectType,
             @Param("startTs") Instant startTs,
             @Param("endTs") Instant endTs);
 
     // ========== Find with Pagination ==========
 
     /**
-     * Find all bindings for a target type with pagination
+     * Find all bindings for an object type with pagination
      */
-    Page<RuleBindingEntity> findByTargetType(String targetType, Pageable pageable);
+    Page<RuleBindingEntity> findByObjectType(String objectType, Pageable pageable);
 
     /**
      * Find all active bindings with pagination
@@ -103,16 +103,16 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     Page<RuleBindingEntity> findByActive(Boolean active, Pageable pageable);
 
     /**
-     * Search bindings by target type and optional filters
+     * Search bindings by object type and optional filters
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
-            "WHERE (:targetType IS NULL OR rb.targetType = :targetType) " +
-            "AND (:targetId IS NULL OR rb.targetId = :targetId) " +
+            "WHERE (:objectType IS NULL OR rb.objectType = :objectType) " +
+            "AND (:objectId IS NULL OR rb.objectId = :objectId) " +
             "AND (:ruleId IS NULL OR rb.ruleId = :ruleId) " +
             "AND (:active IS NULL OR rb.active = :active)")
     Page<RuleBindingEntity> searchBindings(
-            @Param("targetType") String targetType,
-            @Param("targetId") String targetId,
+            @Param("objectType") String objectType,
+            @Param("objectId") String objectId,
             @Param("ruleId") String ruleId,
             @Param("active") Boolean active,
             Pageable pageable);
@@ -127,21 +127,21 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     // ========== Existence Checks ==========
 
     /**
-     * Check if a binding exists for a target and rule combination
+     * Check if a binding exists for an object and rule combination
      */
-    boolean existsByTargetTypeAndTargetIdAndRuleId(String targetType, String targetId, String ruleId);
+    boolean existsByObjectTypeAndObjectIdAndRuleId(String objectType, String objectId, String ruleId);
 
     /**
-     * Check if any active binding exists for a target
+     * Check if any active binding exists for an object
      */
-    boolean existsByTargetTypeAndTargetIdAndActive(String targetType, String targetId, Boolean active);
+    boolean existsByObjectTypeAndObjectIdAndActive(String objectType, String objectId, Boolean active);
 
     // ========== Count Operations ==========
 
     /**
-     * Count bindings for a target
+     * Count bindings for an object
      */
-    long countByTargetTypeAndTargetId(String targetType, String targetId);
+    long countByObjectTypeAndObjectId(String objectType, String objectId);
 
     /**
      * Count active bindings for a rule
@@ -156,21 +156,21 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     // ========== Delete Operations ==========
 
     /**
-     * Delete all bindings for a target
+     * Delete all bindings for an object
      */
     @Modifying
-    @Query("DELETE FROM RuleBindingEntity rb WHERE rb.targetType = :targetType AND rb.targetId = :targetId")
-    int deleteByTarget(@Param("targetType") String targetType, @Param("targetId") String targetId);
+    @Query("DELETE FROM RuleBindingEntity rb WHERE rb.objectType = :objectType AND rb.objectId = :objectId")
+    int deleteByObject(@Param("objectType") String objectType, @Param("objectId") String objectId);
 
     /**
-     * Delete binding by target and rule
+     * Delete binding by object and rule
      */
     @Modifying
     @Query("DELETE FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType AND rb.targetId = :targetId AND rb.ruleId = :ruleId")
-    int deleteByTargetAndRule(
-            @Param("targetType") String targetType,
-            @Param("targetId") String targetId,
+            "WHERE rb.objectType = :objectType AND rb.objectId = :objectId AND rb.ruleId = :ruleId")
+    int deleteByObjectAndRule(
+            @Param("objectType") String objectType,
+            @Param("objectId") String objectId,
             @Param("ruleId") String ruleId);
 
     /**
@@ -184,18 +184,18 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     // ========== Find Single ==========
 
     /**
-     * Find a specific binding by target and rule
+     * Find a specific binding by object and rule
      */
-    Optional<RuleBindingEntity> findByTargetTypeAndTargetIdAndRuleId(
-            String targetType, String targetId, String ruleId);
+    Optional<RuleBindingEntity> findByObjectTypeAndObjectIdAndRuleId(
+            String objectType, String objectId, String ruleId);
 
     /**
-     * Find the highest priority active binding for a target
+     * Find the highest priority active binding for an object
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
-            "WHERE rb.targetType = :targetType AND rb.targetId = :targetId AND rb.active = true " +
+            "WHERE rb.objectType = :objectType AND rb.objectId = :objectId AND rb.active = true " +
             "ORDER BY rb.priority DESC LIMIT 1")
-    Optional<RuleBindingEntity> findTopActiveByTarget(
-            @Param("targetType") String targetType,
-            @Param("targetId") String targetId);
+    Optional<RuleBindingEntity> findTopActiveByObject(
+            @Param("objectType") String objectType,
+            @Param("objectId") String objectId);
 }

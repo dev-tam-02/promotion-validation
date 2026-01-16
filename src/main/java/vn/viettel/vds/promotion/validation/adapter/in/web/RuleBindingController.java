@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 @ResponseWrapper
 @RequestMapping("${spring.application.context-path}/api/v1/rule-bindings")
 @RequiredArgsConstructor
-@Tag(name = "Rule Bindings", description = "Unified API for managing rule bindings to targets")
+@Tag(name = "Rule Bindings", description = "Unified API for managing rule bindings to objects (campaigns, discounts, vouchers, etc.)")
 public class RuleBindingController {
 
     private final RuleBindingService bindingService;
@@ -50,7 +50,7 @@ public class RuleBindingController {
     // ========== Create Operations ==========
 
     @Operation(summary = "Create a new rule binding",
-            description = "Bind a validation rule to a target (campaign, discount, voucher, etc.) with time and product constraints")
+            description = "Bind a validation rule to an object (campaign, discount, voucher, etc.) with time and product constraints")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Binding created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request"),
@@ -64,8 +64,8 @@ public class RuleBindingController {
             @Parameter(description = "User making the request")
             @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
 
-        log.info("Creating rule binding: targetType={}, targetId={}, ruleId={}",
-                request.getTargetType(), request.getTargetId(), request.getRuleId());
+        log.info("Creating rule binding: objectType={}, objectId={}, ruleId={}",
+                request.getObjectType(), request.getObjectId(), request.getRuleId());
 
         RuleBinding binding = mapRequestToDomain(request);
         RuleBinding created = bindingService.createBinding(binding, userId);
@@ -90,27 +90,27 @@ public class RuleBindingController {
         return mapDomainToResponse(binding);
     }
 
-    @Operation(summary = "Get bindings by target",
-            description = "Retrieve all rule bindings for a specific target")
+    @Operation(summary = "Get bindings by object",
+            description = "Retrieve all rule bindings for a specific object")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved bindings")
     })
     @GetMapping
-    public List<RuleBindingResponse> getBindingsByTarget(
-            @Parameter(description = "Target type (CAMPAIGN, DISCOUNT, VOUCHER, etc.)", required = true)
-            @RequestParam String targetType,
-            @Parameter(description = "Target ID", required = true)
-            @RequestParam String targetId,
+    public List<RuleBindingResponse> getBindingsByObject(
+            @Parameter(description = "Object type (CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK)", required = true)
+            @RequestParam String objectType,
+            @Parameter(description = "Object ID", required = true)
+            @RequestParam String objectId,
             @Parameter(description = "Filter by active status")
             @RequestParam(required = false) Boolean active) {
 
-        log.info("Getting bindings for target: type={}, id={}, active={}", targetType, targetId, active);
+        log.info("Getting bindings for object: type={}, id={}, active={}", objectType, objectId, active);
 
         List<RuleBinding> bindings;
         if (Boolean.TRUE.equals(active)) {
-            bindings = bindingService.getActiveBindingsByTarget(targetType, targetId);
+            bindings = bindingService.getActiveBindingsByObject(objectType, objectId);
         } else {
-            bindings = bindingService.getBindingsByTarget(targetType, targetId);
+            bindings = bindingService.getBindingsByObject(objectType, objectId);
         }
 
         return bindings.stream()
@@ -118,26 +118,26 @@ public class RuleBindingController {
                 .toList();
     }
 
-    @Operation(summary = "Get bindings for multiple targets (batch)",
-            description = "Retrieve rule bindings for multiple targets at once")
+    @Operation(summary = "Get bindings for multiple objects (batch)",
+            description = "Retrieve rule bindings for multiple objects at once")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved bindings")
     })
     @GetMapping("/batch")
     public Map<String, List<RuleBindingResponse>> getBindingsBatch(
-            @Parameter(description = "Target type", required = true)
-            @RequestParam String targetType,
-            @Parameter(description = "Comma-separated list of target IDs", required = true)
-            @RequestParam String targetIds) {
+            @Parameter(description = "Object type", required = true)
+            @RequestParam String objectType,
+            @Parameter(description = "Comma-separated list of object IDs", required = true)
+            @RequestParam String objectIds) {
 
-        List<String> ids = Arrays.stream(targetIds.split(","))
+        List<String> ids = Arrays.stream(objectIds.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
 
-        log.info("Getting bindings for {} targets of type {}", ids.size(), targetType);
+        log.info("Getting bindings for {} objects of type {}", ids.size(), objectType);
 
-        Map<String, List<RuleBinding>> bindingsMap = bindingService.getBindingsByTargets(targetType, ids);
+        Map<String, List<RuleBinding>> bindingsMap = bindingService.getBindingsByObjects(objectType, ids);
 
         return bindingsMap.entrySet().stream()
                 .collect(Collectors.toMap(
@@ -153,10 +153,10 @@ public class RuleBindingController {
     })
     @GetMapping("/search")
     public Page<RuleBindingResponse> searchBindings(
-            @Parameter(description = "Target type")
-            @RequestParam(required = false) String targetType,
-            @Parameter(description = "Target ID")
-            @RequestParam(required = false) String targetId,
+            @Parameter(description = "Object type")
+            @RequestParam(required = false) String objectType,
+            @Parameter(description = "Object ID")
+            @RequestParam(required = false) String objectId,
             @Parameter(description = "Rule ID")
             @RequestParam(required = false) String ruleId,
             @Parameter(description = "Active status")
@@ -170,34 +170,34 @@ public class RuleBindingController {
             @Parameter(description = "Sort direction (ASC/DESC)")
             @RequestParam(defaultValue = "DESC") String sortDirection) {
 
-        log.info("Searching bindings: targetType={}, targetId={}, ruleId={}, active={}",
-                targetType, targetId, ruleId, active);
+        log.info("Searching bindings: objectType={}, objectId={}, ruleId={}, active={}",
+                objectType, objectId, ruleId, active);
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        return bindingService.searchBindings(targetType, targetId, ruleId, active, pageable)
+        return bindingService.searchBindings(objectType, objectId, ruleId, active, pageable)
                 .map(this::mapDomainToResponse);
     }
 
-    @Operation(summary = "Find target IDs by time range",
-            description = "Find targets that have rule bindings within a specific time range")
+    @Operation(summary = "Find object IDs by time range",
+            description = "Find objects that have rule bindings within a specific time range")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved target IDs")
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved object IDs")
     })
-    @GetMapping("/search-targets")
-    public List<String> findTargetIdsByTimeRange(
-            @Parameter(description = "Target type", required = true)
-            @RequestParam String targetType,
+    @GetMapping("/search-objects")
+    public List<String> findObjectIdsByTimeRange(
+            @Parameter(description = "Object type", required = true)
+            @RequestParam String objectType,
             @Parameter(description = "Start timestamp (ISO-8601)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startFrom,
             @Parameter(description = "End timestamp (ISO-8601)")
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endTo) {
 
-        log.info("Finding target IDs: type={}, startFrom={}, endTo={}", targetType, startFrom, endTo);
+        log.info("Finding object IDs: type={}, startFrom={}, endTo={}", objectType, startFrom, endTo);
 
-        return bindingService.findTargetIdsByTimeRange(
-                targetType,
+        return bindingService.findObjectIdsByTimeRange(
+                objectType,
                 startFrom != null ? startFrom.toInstant() : null,
                 endTo != null ? endTo.toInstant() : null
         );
@@ -247,27 +247,27 @@ public class RuleBindingController {
         bindingService.deleteBinding(id, userId);
     }
 
-    @Operation(summary = "Delete binding by target and rule",
-            description = "Delete a specific binding for a target and rule combination")
+    @Operation(summary = "Delete binding by object and rule",
+            description = "Delete a specific binding for an object and rule combination")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Binding deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Binding not found")
     })
-    @DeleteMapping("/by-target-rule")
+    @DeleteMapping("/by-object-rule")
     @ResponseCode(code = "RULE_BINDING_DELETED")
-    public void deleteBindingByTargetAndRule(
-            @Parameter(description = "Target type", required = true)
-            @RequestParam String targetType,
-            @Parameter(description = "Target ID", required = true)
-            @RequestParam String targetId,
+    public void deleteBindingByObjectAndRule(
+            @Parameter(description = "Object type", required = true)
+            @RequestParam String objectType,
+            @Parameter(description = "Object ID", required = true)
+            @RequestParam String objectId,
             @Parameter(description = "Rule ID", required = true)
             @RequestParam String ruleId,
             @Parameter(description = "User making the request")
             @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
 
-        log.info("Deleting binding: targetType={}, targetId={}, ruleId={}, userId={}",
-                targetType, targetId, ruleId, userId);
-        bindingService.deleteBindingByTargetAndRule(targetType, targetId, ruleId, userId);
+        log.info("Deleting binding: objectType={}, objectId={}, ruleId={}, userId={}",
+                objectType, objectId, ruleId, userId);
+        bindingService.deleteBindingByObjectAndRule(objectType, objectId, ruleId, userId);
     }
 
     @Operation(summary = "Deactivate a rule binding",
@@ -293,8 +293,8 @@ public class RuleBindingController {
         return RuleBinding.builder()
                 .ruleId(request.getRuleId())
                 .ruleVersionPinned(request.getRuleVersionPinned())
-                .targetType(request.getTargetType())
-                .targetId(request.getTargetId())
+                .objectType(request.getObjectType())
+                .objectId(request.getObjectId())
                 .priority(request.getPriority())
                 .active(request.getActive())
                 .validFrom(request.getValidFrom())
@@ -327,8 +327,8 @@ public class RuleBindingController {
                 .id(binding.getId())
                 .ruleId(binding.getRuleId())
                 .ruleVersionPinned(binding.getRuleVersionPinned())
-                .targetType(binding.getTargetType())
-                .targetId(binding.getTargetId())
+                .objectType(binding.getObjectType())
+                .objectId(binding.getObjectId())
                 .priority(binding.getPriority())
                 .active(binding.getActive())
                 .validFrom(binding.getValidFrom())

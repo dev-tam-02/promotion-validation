@@ -35,27 +35,27 @@ public interface RuleBindingPersistencePort {
      */
     Optional<RuleBinding> findById(String id);
 
-    // ========== Find by Target ==========
+    // ========== Find by Object ==========
 
     /**
-     * Find all bindings for a specific target
+     * Find all bindings for a specific object
      */
-    List<RuleBinding> findByTarget(String targetType, String targetId);
+    List<RuleBinding> findByObject(String objectType, String objectId);
 
     /**
-     * Find all active bindings for a target, ordered by priority
+     * Find all active bindings for an object, ordered by priority
      */
-    List<RuleBinding> findActiveByTarget(String targetType, String targetId);
+    List<RuleBinding> findActiveByObject(String objectType, String objectId);
 
     /**
-     * Find bindings for multiple targets
+     * Find bindings for multiple objects
      */
-    List<RuleBinding> findByTargetTypeAndTargetIdIn(String targetType, List<String> targetIds);
+    List<RuleBinding> findByObjectTypeAndObjectIdIn(String objectType, List<String> objectIds);
 
     /**
-     * Find the highest priority active binding for a target
+     * Find the highest priority active binding for an object
      */
-    Optional<RuleBinding> findTopActiveByTarget(String targetType, String targetId);
+    Optional<RuleBinding> findTopActiveByObject(String objectType, String objectId);
 
     // ========== Find by Rule ==========
 
@@ -74,36 +74,36 @@ public interface RuleBindingPersistencePort {
     /**
      * Find bindings effective at a specific time
      */
-    List<RuleBinding> findEffectiveAtTime(String targetType, Instant timestamp);
+    List<RuleBinding> findEffectiveAtTime(String objectType, Instant timestamp);
 
     /**
-     * Find target IDs with bindings in a time range
+     * Find object IDs with bindings in a time range
      */
-    List<String> findTargetIdsByTypeAndTimeRange(String targetType, Instant startTs, Instant endTs);
+    List<String> findObjectIdsByTypeAndTimeRange(String objectType, Instant startTs, Instant endTs);
 
     // ========== Search with Pagination ==========
 
     /**
      * Search bindings with filters and pagination
      */
-    Page<RuleBinding> search(String targetType, String targetId, String ruleId, Boolean active, Pageable pageable);
+    Page<RuleBinding> search(String objectType, String objectId, String ruleId, Boolean active, Pageable pageable);
 
     /**
-     * Find all bindings for a target type with pagination
+     * Find all bindings for an object type with pagination
      */
-    Page<RuleBinding> findByTargetType(String targetType, Pageable pageable);
+    Page<RuleBinding> findByObjectType(String objectType, Pageable pageable);
 
     // ========== Existence Checks ==========
 
     /**
-     * Check if a binding exists for a target and rule combination
+     * Check if a binding exists for an object and rule combination
      */
-    boolean existsByTargetAndRule(String targetType, String targetId, String ruleId);
+    boolean existsByObjectAndRule(String objectType, String objectId, String ruleId);
 
     /**
-     * Check if any active binding exists for a target
+     * Check if any active binding exists for an object
      */
-    boolean existsActiveByTarget(String targetType, String targetId);
+    boolean existsActiveByObject(String objectType, String objectId);
 
     // ========== Find by Active Status ==========
 
@@ -115,9 +115,9 @@ public interface RuleBindingPersistencePort {
     // ========== Count Operations ==========
 
     /**
-     * Count bindings for a target
+     * Count bindings for an object
      */
-    long countByTarget(String targetType, String targetId);
+    long countByObject(String objectType, String objectId);
 
     /**
      * Count active bindings for a rule
@@ -137,14 +137,14 @@ public interface RuleBindingPersistencePort {
     void deleteById(String id);
 
     /**
-     * Delete all bindings for a target
+     * Delete all bindings for an object
      */
-    int deleteByTarget(String targetType, String targetId);
+    int deleteByObject(String objectType, String objectId);
 
     /**
-     * Delete binding by target and rule
+     * Delete binding by object and rule
      */
-    int deleteByTargetAndRule(String targetType, String targetId, String ruleId);
+    int deleteByObjectAndRule(String objectType, String objectId, String ruleId);
 
     /**
      * Soft delete: deactivate binding
@@ -154,7 +154,7 @@ public interface RuleBindingPersistencePort {
     // ========== Find Single ==========
 
     /**
-     * Find a specific binding by target and rule
+     * Find a specific binding by object and rule
      */
-    Optional<RuleBinding> findByTargetAndRule(String targetType, String targetId, String ruleId);
+    Optional<RuleBinding> findByObjectAndRule(String objectType, String objectId, String ruleId);
 }

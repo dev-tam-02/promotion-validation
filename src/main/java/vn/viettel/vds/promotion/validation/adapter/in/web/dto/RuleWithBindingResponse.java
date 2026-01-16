@@ -26,8 +26,8 @@ public class RuleWithBindingResponse {
     @AllArgsConstructor
     public static class BindingDetails {
         private String bindingId;
-        private String targetType;
-        private String targetId;
+        private String objectType;
+        private String objectId;
         private String ruleId;
         private Integer ruleVersionPinned;
         private Boolean active;

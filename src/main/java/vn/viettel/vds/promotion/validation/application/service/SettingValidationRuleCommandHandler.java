@@ -185,7 +185,7 @@ public class SettingValidationRuleCommandHandler {
             // Save binding
             ruleBinding = ruleBindingPort.save(ruleBinding);
 
-            logger.info("Created rule binding: targetType={}, targetId={}, ruleId={}, bindingId={}",
+            logger.info("Created rule binding: objectType={}, objectId={}, ruleId={}, bindingId={}",
                     components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
             // Deploy to validation-engine
@@ -219,9 +219,9 @@ public class SettingValidationRuleCommandHandler {
         }
 
         // Check duplicate binding
-        if (ruleBindingPort.existsByTargetAndRule(objectType, objectId, ruleId != null ? ruleId : "")) {
+        if (ruleBindingPort.existsByObjectAndRule(objectType, objectId, ruleId != null ? ruleId : "")) {
             return Result.failure(ErrorCode.DUPLICATE_ASSIGNMENT_VALIDATION_RULE,
-                    "Binding already exists for targetType=" + objectType + ", targetId=" + objectId);
+                    "Binding already exists for objectType=" + objectType + ", objectId=" + objectId);
         }
 
         return Result.success(new ComponentsData(
@@ -243,8 +243,8 @@ public class SettingValidationRuleCommandHandler {
         RuleBinding.RuleBindingBuilder builder = RuleBinding.builder()
                 .id(IdGenerator.generateId())
                 .ruleId(components.ruleId())
-                .targetType(components.objectType())
-                .targetId(components.objectId())
+                .objectType(components.objectType())
+                .objectId(components.objectId())
                 .active(components.active() == null || components.active())
                 .trafficPercent(components.trafficPercent() != null ? components.trafficPercent() : 100)
                 .priority(components.priority() != null ? components.priority() : 0)

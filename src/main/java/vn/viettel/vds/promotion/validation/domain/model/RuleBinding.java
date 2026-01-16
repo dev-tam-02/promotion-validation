@@ -11,7 +11,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * Domain model representing a binding between a validation rule and a target entity.
+ * Domain model representing a binding between a validation rule and an object entity.
  * <p>
  * This is a unified model that replaces multiple legacy models:
  * - Assignment
@@ -21,7 +21,7 @@ import java.util.List;
  * <p>
  * A RuleBinding defines:
  * - WHAT rule to apply (ruleId)
- * - WHERE to apply it (targetType + targetId)
+ * - WHERE to apply it (objectType + objectId)
  * - WHEN it's valid (validFrom, validTo, rrule, timeWindows, excludedDates)
  * - WHICH products it applies to (includedAll, includedProducts, excludedProducts, etc.)
  * - HOW to control traffic (trafficPercent, stickyKeyStrategy)
@@ -46,16 +46,16 @@ public class RuleBinding {
      */
     private Integer ruleVersionPinned;
 
-    // ========== Target ==========
+    // ========== Object Reference ==========
     /**
-     * Target type: CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK, etc.
+     * Object type: CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK, etc.
      */
-    private String targetType;
+    private String objectType;
 
     /**
-     * Target identifier (e.g., campaign ID, discount ID)
+     * Object identifier (e.g., campaign ID, discount ID)
      */
-    private String targetId;
+    private String objectId;
 
     // ========== Priority & State ==========
     /**
@@ -190,9 +190,9 @@ public class RuleBinding {
     }
 
     /**
-     * Supported target types
+     * Supported object types
      */
-    public enum TargetType {
+    public enum ObjectType {
         CAMPAIGN,
         DISCOUNT,
         VOUCHER,

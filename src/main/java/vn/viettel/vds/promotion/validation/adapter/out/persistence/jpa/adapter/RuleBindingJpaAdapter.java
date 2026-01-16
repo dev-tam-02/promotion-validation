@@ -6,7 +6,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleBindingEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleBindingMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleBindingJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
@@ -34,11 +33,11 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
 
     @Override
     public RuleBinding save(RuleBinding binding) {
-        log.debug("Saving rule binding: id={}, targetType={}, targetId={}",
-                binding.getId(), binding.getTargetType(), binding.getTargetId());
+        log.debug("Saving rule binding: id={}, objectType={}, objectId={}",
+                binding.getId(), binding.getObjectType(), binding.getObjectId());
 
-        RuleBindingEntity entity = mapper.toEntity(binding);
-        RuleBindingEntity saved = repository.save(entity);
+        var entity = mapper.toEntity(binding);
+        var saved = repository.save(entity);
         return mapper.toDomain(saved);
     }
 
@@ -46,8 +45,8 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
     public List<RuleBinding> saveAll(List<RuleBinding> bindings) {
         log.debug("Saving {} rule bindings", bindings.size());
 
-        List<RuleBindingEntity> entities = mapper.toEntityList(bindings);
-        List<RuleBindingEntity> saved = repository.saveAll(entities);
+        var entities = mapper.toEntityList(bindings);
+        var saved = repository.saveAll(entities);
         return mapper.toDomainList(saved);
     }
 
@@ -60,34 +59,34 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
         return repository.findById(id).map(mapper::toDomain);
     }
 
-    // ========== Find by Target ==========
+    // ========== Find by Object ==========
 
     @Override
     @Transactional(readOnly = true)
-    public List<RuleBinding> findByTarget(String targetType, String targetId) {
-        log.debug("Finding rule bindings by target: type={}, id={}", targetType, targetId);
-        return mapper.toDomainList(repository.findByTargetTypeAndTargetId(targetType, targetId));
+    public List<RuleBinding> findByObject(String objectType, String objectId) {
+        log.debug("Finding rule bindings by object: type={}, id={}", objectType, objectId);
+        return mapper.toDomainList(repository.findByObjectTypeAndObjectId(objectType, objectId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RuleBinding> findActiveByTarget(String targetType, String targetId) {
-        log.debug("Finding active rule bindings by target: type={}, id={}", targetType, targetId);
-        return mapper.toDomainList(repository.findActiveByTarget(targetType, targetId));
+    public List<RuleBinding> findActiveByObject(String objectType, String objectId) {
+        log.debug("Finding active rule bindings by object: type={}, id={}", objectType, objectId);
+        return mapper.toDomainList(repository.findActiveByObject(objectType, objectId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RuleBinding> findByTargetTypeAndTargetIdIn(String targetType, List<String> targetIds) {
-        log.debug("Finding rule bindings by target type and IDs: type={}, count={}", targetType, targetIds.size());
-        return mapper.toDomainList(repository.findByTargetTypeAndTargetIdIn(targetType, targetIds));
+    public List<RuleBinding> findByObjectTypeAndObjectIdIn(String objectType, List<String> objectIds) {
+        log.debug("Finding rule bindings by object type and IDs: type={}, count={}", objectType, objectIds.size());
+        return mapper.toDomainList(repository.findByObjectTypeAndObjectIdIn(objectType, objectIds));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<RuleBinding> findTopActiveByTarget(String targetType, String targetId) {
-        log.debug("Finding top active rule binding by target: type={}, id={}", targetType, targetId);
-        return repository.findTopActiveByTarget(targetType, targetId).map(mapper::toDomain);
+    public Optional<RuleBinding> findTopActiveByObject(String objectType, String objectId) {
+        log.debug("Finding top active rule binding by object: type={}, id={}", objectType, objectId);
+        return repository.findTopActiveByObject(objectType, objectId).map(mapper::toDomain);
     }
 
     // ========== Find by Rule ==========
@@ -110,48 +109,48 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RuleBinding> findEffectiveAtTime(String targetType, Instant timestamp) {
-        log.debug("Finding effective rule bindings at time: type={}, timestamp={}", targetType, timestamp);
-        return mapper.toDomainList(repository.findEffectiveAtTime(targetType, timestamp));
+    public List<RuleBinding> findEffectiveAtTime(String objectType, Instant timestamp) {
+        log.debug("Finding effective rule bindings at time: type={}, timestamp={}", objectType, timestamp);
+        return mapper.toDomainList(repository.findEffectiveAtTime(objectType, timestamp));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<String> findTargetIdsByTypeAndTimeRange(String targetType, Instant startTs, Instant endTs) {
-        log.debug("Finding target IDs by type and time range: type={}, start={}, end={}", targetType, startTs, endTs);
-        return repository.findTargetIdsByTypeAndTimeRange(targetType, startTs, endTs);
+    public List<String> findObjectIdsByTypeAndTimeRange(String objectType, Instant startTs, Instant endTs) {
+        log.debug("Finding object IDs by type and time range: type={}, start={}, end={}", objectType, startTs, endTs);
+        return repository.findObjectIdsByTypeAndTimeRange(objectType, startTs, endTs);
     }
 
     // ========== Search with Pagination ==========
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RuleBinding> search(String targetType, String targetId, String ruleId, Boolean active, Pageable pageable) {
-        log.debug("Searching rule bindings: targetType={}, targetId={}, ruleId={}, active={}",
-                targetType, targetId, ruleId, active);
-        return repository.searchBindings(targetType, targetId, ruleId, active, pageable)
+    public Page<RuleBinding> search(String objectType, String objectId, String ruleId, Boolean active, Pageable pageable) {
+        log.debug("Searching rule bindings: objectType={}, objectId={}, ruleId={}, active={}",
+                objectType, objectId, ruleId, active);
+        return repository.searchBindings(objectType, objectId, ruleId, active, pageable)
                 .map(mapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RuleBinding> findByTargetType(String targetType, Pageable pageable) {
-        log.debug("Finding rule bindings by target type: {}", targetType);
-        return repository.findByTargetType(targetType, pageable).map(mapper::toDomain);
+    public Page<RuleBinding> findByObjectType(String objectType, Pageable pageable) {
+        log.debug("Finding rule bindings by object type: {}", objectType);
+        return repository.findByObjectType(objectType, pageable).map(mapper::toDomain);
     }
 
     // ========== Existence Checks ==========
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByTargetAndRule(String targetType, String targetId, String ruleId) {
-        return repository.existsByTargetTypeAndTargetIdAndRuleId(targetType, targetId, ruleId);
+    public boolean existsByObjectAndRule(String objectType, String objectId, String ruleId) {
+        return repository.existsByObjectTypeAndObjectIdAndRuleId(objectType, objectId, ruleId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsActiveByTarget(String targetType, String targetId) {
-        return repository.existsByTargetTypeAndTargetIdAndActive(targetType, targetId, true);
+    public boolean existsActiveByObject(String objectType, String objectId) {
+        return repository.existsByObjectTypeAndObjectIdAndActive(objectType, objectId, true);
     }
 
     // ========== Find by Active Status ==========
@@ -167,8 +166,8 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
-    public long countByTarget(String targetType, String targetId) {
-        return repository.countByTargetTypeAndTargetId(targetType, targetId);
+    public long countByObject(String objectType, String objectId) {
+        return repository.countByObjectTypeAndObjectId(objectType, objectId);
     }
 
     @Override
@@ -192,15 +191,15 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
     }
 
     @Override
-    public int deleteByTarget(String targetType, String targetId) {
-        log.info("Deleting rule bindings by target: type={}, id={}", targetType, targetId);
-        return repository.deleteByTarget(targetType, targetId);
+    public int deleteByObject(String objectType, String objectId) {
+        log.info("Deleting rule bindings by object: type={}, id={}", objectType, objectId);
+        return repository.deleteByObject(objectType, objectId);
     }
 
     @Override
-    public int deleteByTargetAndRule(String targetType, String targetId, String ruleId) {
-        log.info("Deleting rule binding by target and rule: type={}, id={}, ruleId={}", targetType, targetId, ruleId);
-        return repository.deleteByTargetAndRule(targetType, targetId, ruleId);
+    public int deleteByObjectAndRule(String objectType, String objectId, String ruleId) {
+        log.info("Deleting rule binding by object and rule: type={}, id={}, ruleId={}", objectType, objectId, ruleId);
+        return repository.deleteByObjectAndRule(objectType, objectId, ruleId);
     }
 
     @Override
@@ -213,9 +212,9 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<RuleBinding> findByTargetAndRule(String targetType, String targetId, String ruleId) {
-        log.debug("Finding rule binding by target and rule: type={}, id={}, ruleId={}", targetType, targetId, ruleId);
-        return repository.findByTargetTypeAndTargetIdAndRuleId(targetType, targetId, ruleId)
+    public Optional<RuleBinding> findByObjectAndRule(String objectType, String objectId, String ruleId) {
+        log.debug("Finding rule binding by object and rule: type={}, id={}, ruleId={}", objectType, objectId, ruleId);
+        return repository.findByObjectTypeAndObjectIdAndRuleId(objectType, objectId, ruleId)
                 .map(mapper::toDomain);
     }
 }

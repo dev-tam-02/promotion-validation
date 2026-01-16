@@ -484,8 +484,8 @@ public class RuleController {
     private RuleWithBindingResponse.BindingDetails mapToBindingDetails(RuleBinding binding) {
         return RuleWithBindingResponse.BindingDetails.builder()
                 .bindingId(binding.getId())
-                .targetType(binding.getTargetType())
-                .targetId(binding.getTargetId())
+                .objectType(binding.getObjectType())
+                .objectId(binding.getObjectId())
                 .ruleId(binding.getRuleId())
                 .ruleVersionPinned(binding.getRuleVersionPinned())
                 .active(binding.getActive())

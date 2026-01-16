@@ -121,9 +121,9 @@ public class EnableValidationRuleCommandHandler {
             // Find binding by ID first
             RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
 
-            // If not found by ID, search by target
+            // If not found by ID, search by object
             if (binding == null) {
-                List<RuleBinding> bindings = ruleBindingPort.findByTarget("campaign", campaignId);
+                List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
                 if (bindings.isEmpty()) {
                     logger.warn("No binding found for campaign: {}", campaignId);
                     return false;

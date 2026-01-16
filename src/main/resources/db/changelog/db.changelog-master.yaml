@@ -24,3 +24,7 @@ databaseChangeLog:
       file: db/changelog/changes/021-create-metadata-schemas-table.yaml
   - include:
       file: db/changelog/changes/022-seed-operator-categories-options.yaml
+
+  # Rename target_type/target_id to object_type/object_id for terminology consistency
+  - include:
+      file: db/changelog/changes/023-rename-target-to-object-columns.yaml

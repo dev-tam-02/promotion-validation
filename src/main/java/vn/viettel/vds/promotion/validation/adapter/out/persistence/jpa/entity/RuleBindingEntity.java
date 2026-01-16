@@ -29,10 +29,10 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "rule_bindings", indexes = {
-        @Index(name = "idx_rb_target", columnList = "target_type, target_id"),
+        @Index(name = "idx_rb_object", columnList = "object_type, object_id"),
         @Index(name = "idx_rb_rule", columnList = "rule_id"),
         @Index(name = "idx_rb_active_time", columnList = "active, valid_from, valid_to"),
-        @Index(name = "idx_rb_target_active", columnList = "target_type, target_id, active")
+        @Index(name = "idx_rb_object_active", columnList = "object_type, object_id, active")
 })
 public class RuleBindingEntity {
 
@@ -48,12 +48,12 @@ public class RuleBindingEntity {
     @Column(name = "rule_version_pinned")
     private Integer ruleVersionPinned;
 
-    // ========== Target ==========
-    @Column(name = "target_type", length = 50, nullable = false)
-    private String targetType;
+    // ========== Object Reference ==========
+    @Column(name = "object_type", length = 50, nullable = false)
+    private String objectType;
 
-    @Column(name = "target_id", length = 100, nullable = false)
-    private String targetId;
+    @Column(name = "object_id", length = 100, nullable = false)
+    private String objectId;
 
     // ========== Priority & State ==========
     @Column(name = "priority")

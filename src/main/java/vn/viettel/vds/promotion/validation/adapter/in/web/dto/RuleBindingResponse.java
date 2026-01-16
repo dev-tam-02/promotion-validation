@@ -30,13 +30,13 @@ public class RuleBindingResponse {
     @Schema(description = "Pinned rule version (null = always use latest)")
     private Integer ruleVersionPinned;
 
-    // ========== Target ==========
+    // ========== Object Reference ==========
 
-    @Schema(description = "Target type", example = "CAMPAIGN")
-    private String targetType;
+    @Schema(description = "Object type (CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK)", example = "CAMPAIGN")
+    private String objectType;
 
-    @Schema(description = "Target ID", example = "CAMP-001")
-    private String targetId;
+    @Schema(description = "Object ID", example = "CAMP-001")
+    private String objectId;
 
     // ========== Priority & State ==========
 

@@ -41,7 +41,7 @@ public class ObjectValidityService {
 
         try {
             // Get rule bindings for this object
-            List<RuleBinding> bindings = ruleBindingPort.findByTarget(
+            List<RuleBinding> bindings = ruleBindingPort.findByObject(
                     request.objectType(),
                     request.objectId()
             );

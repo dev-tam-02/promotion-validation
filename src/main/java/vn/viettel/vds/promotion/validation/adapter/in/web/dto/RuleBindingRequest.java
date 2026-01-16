@@ -31,15 +31,15 @@ public class RuleBindingRequest {
     @Schema(description = "Pin to specific rule version (null = always use latest)")
     private Integer ruleVersionPinned;
 
-    @Schema(description = "Target type", example = "CAMPAIGN", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "targetType is required")
-    @Size(max = 50, message = "targetType must not exceed 50 characters")
-    private String targetType;
+    @Schema(description = "Object type (CAMPAIGN, DISCOUNT, VOUCHER, CASHBACK)", example = "CAMPAIGN", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "objectType is required")
+    @Size(max = 50, message = "objectType must not exceed 50 characters")
+    private String objectType;
 
-    @Schema(description = "Target ID", example = "CAMP-001", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "targetId is required")
-    @Size(max = 100, message = "targetId must not exceed 100 characters")
-    private String targetId;
+    @Schema(description = "Object ID", example = "CAMP-001", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "objectId is required")
+    @Size(max = 100, message = "objectId must not exceed 100 characters")
+    private String objectId;
 
     @Schema(description = "Binding priority (higher = evaluated first)", example = "10")
     @Min(value = 0, message = "priority must be non-negative")

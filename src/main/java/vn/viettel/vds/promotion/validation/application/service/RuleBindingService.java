@@ -48,19 +48,19 @@ public class RuleBindingService {
      * Create a new rule binding
      */
     public RuleBinding createBinding(RuleBinding binding, String createdBy) {
-        log.info("Creating rule binding: targetType={}, targetId={}, ruleId={}",
-                binding.getTargetType(), binding.getTargetId(), binding.getRuleId());
+        log.info("Creating rule binding: objectType={}, objectId={}, ruleId={}",
+                binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
 
         // Validate rule exists
         validateRuleExists(binding.getRuleId());
 
         // Check for duplicate binding
-        if (bindingPersistencePort.existsByTargetAndRule(
-                binding.getTargetType(), binding.getTargetId(), binding.getRuleId())) {
+        if (bindingPersistencePort.existsByObjectAndRule(
+                binding.getObjectType(), binding.getObjectId(), binding.getRuleId())) {
             throw new BusinessException(new ResponseInfo(
                     "BINDING_ALREADY_EXISTS",
-                    String.format("A binding already exists for target %s/%s and rule %s",
-                            binding.getTargetType(), binding.getTargetId(), binding.getRuleId()),
+                    String.format("A binding already exists for object %s/%s and rule %s",
+                            binding.getObjectType(), binding.getObjectId(), binding.getRuleId()),
                     400));
         }
 
@@ -157,34 +157,34 @@ public class RuleBindingService {
     }
 
     /**
-     * Get all bindings for a target
+     * Get all bindings for an object
      */
     @Transactional(readOnly = true)
-    public List<RuleBinding> getBindingsByTarget(String targetType, String targetId) {
-        log.debug("Getting bindings for target: type={}, id={}", targetType, targetId);
-        return bindingPersistencePort.findByTarget(targetType, targetId);
+    public List<RuleBinding> getBindingsByObject(String objectType, String objectId) {
+        log.debug("Getting bindings for object: type={}, id={}", objectType, objectId);
+        return bindingPersistencePort.findByObject(objectType, objectId);
     }
 
     /**
-     * Get active bindings for a target (ordered by priority)
+     * Get active bindings for an object (ordered by priority)
      */
     @Transactional(readOnly = true)
-    public List<RuleBinding> getActiveBindingsByTarget(String targetType, String targetId) {
-        log.debug("Getting active bindings for target: type={}, id={}", targetType, targetId);
-        return bindingPersistencePort.findActiveByTarget(targetType, targetId);
+    public List<RuleBinding> getActiveBindingsByObject(String objectType, String objectId) {
+        log.debug("Getting active bindings for object: type={}, id={}", objectType, objectId);
+        return bindingPersistencePort.findActiveByObject(objectType, objectId);
     }
 
     /**
-     * Get bindings for multiple targets (batch)
+     * Get bindings for multiple objects (batch)
      */
     @Transactional(readOnly = true)
-    public Map<String, List<RuleBinding>> getBindingsByTargets(String targetType, List<String> targetIds) {
-        log.debug("Getting bindings for {} targets of type {}", targetIds.size(), targetType);
+    public Map<String, List<RuleBinding>> getBindingsByObjects(String objectType, List<String> objectIds) {
+        log.debug("Getting bindings for {} objects of type {}", objectIds.size(), objectType);
 
-        List<RuleBinding> bindings = bindingPersistencePort.findByTargetTypeAndTargetIdIn(targetType, targetIds);
+        List<RuleBinding> bindings = bindingPersistencePort.findByObjectTypeAndObjectIdIn(objectType, objectIds);
 
         return bindings.stream()
-                .collect(Collectors.groupingBy(RuleBinding::getTargetId));
+                .collect(Collectors.groupingBy(RuleBinding::getObjectId));
     }
 
     /**
@@ -197,32 +197,32 @@ public class RuleBindingService {
     }
 
     /**
-     * Get effective bindings for a target type at a specific time
+     * Get effective bindings for an object type at a specific time
      */
     @Transactional(readOnly = true)
-    public List<RuleBinding> getEffectiveBindings(String targetType, Instant timestamp) {
-        log.debug("Getting effective bindings for type {} at {}", targetType, timestamp);
-        return bindingPersistencePort.findEffectiveAtTime(targetType, timestamp);
+    public List<RuleBinding> getEffectiveBindings(String objectType, Instant timestamp) {
+        log.debug("Getting effective bindings for type {} at {}", objectType, timestamp);
+        return bindingPersistencePort.findEffectiveAtTime(objectType, timestamp);
     }
 
     /**
-     * Find target IDs with bindings in a time range
+     * Find object IDs with bindings in a time range
      */
     @Transactional(readOnly = true)
-    public List<String> findTargetIdsByTimeRange(String targetType, Instant startTs, Instant endTs) {
-        log.debug("Finding target IDs by time range: type={}, start={}, end={}", targetType, startTs, endTs);
-        return bindingPersistencePort.findTargetIdsByTypeAndTimeRange(targetType, startTs, endTs);
+    public List<String> findObjectIdsByTimeRange(String objectType, Instant startTs, Instant endTs) {
+        log.debug("Finding object IDs by time range: type={}, start={}, end={}", objectType, startTs, endTs);
+        return bindingPersistencePort.findObjectIdsByTypeAndTimeRange(objectType, startTs, endTs);
     }
 
     /**
      * Search bindings with filters
      */
     @Transactional(readOnly = true)
-    public Page<RuleBinding> searchBindings(String targetType, String targetId, String ruleId,
+    public Page<RuleBinding> searchBindings(String objectType, String objectId, String ruleId,
                                             Boolean active, Pageable pageable) {
-        log.debug("Searching bindings: targetType={}, targetId={}, ruleId={}, active={}",
-                targetType, targetId, ruleId, active);
-        return bindingPersistencePort.search(targetType, targetId, ruleId, active, pageable);
+        log.debug("Searching bindings: objectType={}, objectId={}, ruleId={}, active={}",
+                objectType, objectId, ruleId, active);
+        return bindingPersistencePort.search(objectType, objectId, ruleId, active, pageable);
     }
 
     // ========== Delete Operations ==========
@@ -241,20 +241,20 @@ public class RuleBindingService {
     }
 
     /**
-     * Delete binding by target and rule
+     * Delete binding by object and rule
      */
-    public void deleteBindingByTargetAndRule(String targetType, String targetId, String ruleId, String deletedBy) {
-        log.info("Deleting rule binding: targetType={}, targetId={}, ruleId={}, deletedBy={}",
-                targetType, targetId, ruleId, deletedBy);
+    public void deleteBindingByObjectAndRule(String objectType, String objectId, String ruleId, String deletedBy) {
+        log.info("Deleting rule binding: objectType={}, objectId={}, ruleId={}, deletedBy={}",
+                objectType, objectId, ruleId, deletedBy);
 
-        int deleted = bindingPersistencePort.deleteByTargetAndRule(targetType, targetId, ruleId);
+        int deleted = bindingPersistencePort.deleteByObjectAndRule(objectType, objectId, ruleId);
 
         if (deleted == 0) {
             throw new ResourceNotFoundException();
         }
 
-        log.info("Rule binding deleted successfully: targetType={}, targetId={}, ruleId={}",
-                targetType, targetId, ruleId);
+        log.info("Rule binding deleted successfully: objectType={}, objectId={}, ruleId={}",
+                objectType, objectId, ruleId);
     }
 
     /**
@@ -279,14 +279,14 @@ public class RuleBindingService {
     }
 
     /**
-     * Delete all bindings for a target
+     * Delete all bindings for an object
      */
-    public int deleteBindingsByTarget(String targetType, String targetId, String deletedBy) {
-        log.info("Deleting all bindings for target: type={}, id={}, deletedBy={}",
-                targetType, targetId, deletedBy);
+    public int deleteBindingsByObject(String objectType, String objectId, String deletedBy) {
+        log.info("Deleting all bindings for object: type={}, id={}, deletedBy={}",
+                objectType, objectId, deletedBy);
 
-        int deleted = bindingPersistencePort.deleteByTarget(targetType, targetId);
-        log.info("Deleted {} bindings for target: type={}, id={}", deleted, targetType, targetId);
+        int deleted = bindingPersistencePort.deleteByObject(objectType, objectId);
+        log.info("Deleted {} bindings for object: type={}, id={}", deleted, objectType, objectId);
         return deleted;
     }
 
@@ -304,13 +304,13 @@ public class RuleBindingService {
     // ========== Business Logic ==========
 
     /**
-     * Get the effective binding for a target (highest priority, currently effective)
+     * Get the effective binding for an object (highest priority, currently effective)
      */
     @Transactional(readOnly = true)
-    public Optional<RuleBinding> getEffectiveBindingForTarget(String targetType, String targetId) {
-        log.debug("Getting effective binding for target: type={}, id={}", targetType, targetId);
+    public Optional<RuleBinding> getEffectiveBindingForObject(String objectType, String objectId) {
+        log.debug("Getting effective binding for object: type={}, id={}", objectType, objectId);
 
-        return bindingPersistencePort.findTopActiveByTarget(targetType, targetId)
+        return bindingPersistencePort.findTopActiveByObject(objectType, objectId)
                 .filter(RuleBinding::isEffective);
     }
 

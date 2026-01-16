@@ -177,8 +177,8 @@ public class UpdateValidationRuleCommandHandler {
             }
         }
 
-        // Search by target
-        List<RuleBinding> bindings = ruleBindingPort.findByTarget(objectType, objectId);
+        // Search by object
+        List<RuleBinding> bindings = ruleBindingPort.findByObject(objectType, objectId);
         return bindings.isEmpty() ? null : bindings.get(0);
     }
 

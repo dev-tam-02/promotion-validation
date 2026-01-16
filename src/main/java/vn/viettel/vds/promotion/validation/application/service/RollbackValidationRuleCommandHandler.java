@@ -155,8 +155,8 @@ public class RollbackValidationRuleCommandHandler {
 
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {
         try {
-            // Find bindings by target
-            List<RuleBinding> bindings = ruleBindingPort.findByTarget("campaign", campaignId);
+            // Find bindings by object
+            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
 
             if (bindings.isEmpty()) {
                 logger.warn("No bindings found for campaign: {}", campaignId);
