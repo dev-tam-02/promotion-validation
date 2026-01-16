@@ -480,10 +480,10 @@ databaseChangeLog:
                   name: rule_id
                   value: 01932b6f-0005-7000-8000-000000000001
               - column:
-                  name: object_type
+                  name: target_type
                   value: VOUCHER
               - column:
-                  name: object_id
+                  name: target_id
                   value: SAVE20
               - column:
                   name: priority
@@ -526,10 +526,10 @@ databaseChangeLog:
                   name: rule_id
                   value: 01932b6f-0005-7000-8000-000000000002
               - column:
-                  name: object_type
+                  name: target_type
                   value: CAMPAIGN
               - column:
-                  name: object_id
+                  name: target_id
                   value: BUSINESS_HOURS_CAMPAIGN
               - column:
                   name: priority
