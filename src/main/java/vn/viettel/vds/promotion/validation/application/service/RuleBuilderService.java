@@ -119,6 +119,8 @@ public class RuleBuilderService {
                         option.getDescriptionVi() != null ? option.getDescriptionVi() : (option.getDescription() != null ? option.getDescription() : "")
                 )
                 .type(mapValueTypeToRuleType(option.getValueType(), option.getDataSourceType()))
+                .autoApply(option.getAutoApply())
+                .defaultOperator(option.getDefaultOperator())
                 .inputConfig(buildInputConfig(option))
                 .operators(buildOperators(option))
                 .build();

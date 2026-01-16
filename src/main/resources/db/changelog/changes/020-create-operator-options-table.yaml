@@ -143,6 +143,16 @@ databaseChangeLog:
                   name: placeholder_vi
                   type: varchar(255)
                   remarks: Vietnamese placeholder text
+              # Auto-apply configuration
+              - column:
+                  name: auto_apply
+                  type: boolean
+                  remarks: When true, rule is auto-applied without modal (for boolean rules)
+                  defaultValueBoolean: false
+              - column:
+                  name: default_operator
+                  type: varchar(50)
+                  remarks: Default operator when auto_apply is true (e.g., is_true, equals)
               - column:
                   name: is_active
                   type: boolean

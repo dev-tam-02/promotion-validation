@@ -71,6 +71,9 @@ public interface OperatorCategoryMapper {
                 .labelVi(entity.getLabelVi())
                 .placeholderEn(entity.getPlaceholderEn())
                 .placeholderVi(entity.getPlaceholderVi())
+                // Auto-apply configuration
+                .autoApply(entity.getAutoApply())
+                .defaultOperator(entity.getDefaultOperator())
                 .active(entity.getActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

@@ -15,6 +15,8 @@ public record RuleItemResponse(
         I18nLabel name,
         I18nLabel description,
         String type,
+        Boolean autoApply,
+        String defaultOperator,
         RuleInputConfigResponse inputConfig,
         List<OperatorResponse> operators
 ) {
@@ -28,6 +30,8 @@ public record RuleItemResponse(
         private I18nLabel name;
         private I18nLabel description;
         private String type;
+        private Boolean autoApply;
+        private String defaultOperator;
         private RuleInputConfigResponse inputConfig;
         private List<OperatorResponse> operators;
 
@@ -66,6 +70,16 @@ public record RuleItemResponse(
             return this;
         }
 
+        public Builder autoApply(Boolean autoApply) {
+            this.autoApply = autoApply;
+            return this;
+        }
+
+        public Builder defaultOperator(String defaultOperator) {
+            this.defaultOperator = defaultOperator;
+            return this;
+        }
+
         public Builder inputConfig(RuleInputConfigResponse inputConfig) {
             this.inputConfig = inputConfig;
             return this;
@@ -77,7 +91,7 @@ public record RuleItemResponse(
         }
 
         public RuleItemResponse build() {
-            return new RuleItemResponse(id, code, name, description, type, inputConfig, operators);
+            return new RuleItemResponse(id, code, name, description, type, autoApply, defaultOperator, inputConfig, operators);
         }
     }
 }

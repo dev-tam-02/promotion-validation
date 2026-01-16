@@ -52,6 +52,10 @@ public class OperatorOption {
     String placeholderEn;
     String placeholderVi;
 
+    // Auto-apply configuration
+    Boolean autoApply;
+    String defaultOperator;
+
     boolean active;
 
     // Audit fields

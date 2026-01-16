@@ -117,6 +117,13 @@ public class OperatorOptionEntity {
     @Column(name = "placeholder_vi", length = 255)
     private String placeholderVi;
 
+    // Auto-apply configuration
+    @Column(name = "auto_apply")
+    private Boolean autoApply = false;
+
+    @Column(name = "default_operator", length = 50)
+    private String defaultOperator;
+
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 

@@ -193,6 +193,8 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "is_true" }
               - column: { name: value_type, value: "boolean" }
               - column: { name: value_source, value: "input" }
+              - column: { name: auto_apply, valueBoolean: true }
+              - column: { name: default_operator, value: "is_true" }
               - column: { name: is_active, valueBoolean: true }
 
   # ==================== PRODUCTS OPTIONS ====================
@@ -738,4 +740,6 @@ databaseChangeLog:
               - column: { name: default_comparator, value: "is_true" }
               - column: { name: value_type, value: "boolean" }
               - column: { name: value_source, value: "input" }
+              - column: { name: auto_apply, valueBoolean: true }
+              - column: { name: default_operator, value: "is_true" }
               - column: { name: is_active, valueBoolean: true }
