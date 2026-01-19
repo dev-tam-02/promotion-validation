@@ -24,3 +24,7 @@ databaseChangeLog:
       file: db/changelog/changes/021-create-metadata-schemas-table.yaml
   - include:
       file: db/changelog/changes/022-seed-operator-categories-options.yaml
+
+  # Allow nullable rule_id for time-policy-only bindings
+  - include:
+      file: db/changelog/changes/023-allow-nullable-rule-id-in-bindings.yaml

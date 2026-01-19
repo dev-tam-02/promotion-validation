@@ -1,0 +1,25 @@
+databaseChangeLog:
+  # ============================================================================
+  # ALLOW NULLABLE rule_id IN rule_bindings TABLE
+  # ============================================================================
+  # Business requirement: Campaign can have only time policy without validation rule
+  # This migration removes the NOT NULL constraint and foreign key on rule_id column
+
+  - changeSet:
+      id: 023-drop-rule-bindings-fk
+      author: harley hoang
+      comment: Drop foreign key constraint to allow null rule_id
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: rule_bindings
+            constraintName: fk_rule_bindings_rule
+
+  - changeSet:
+      id: 023-allow-nullable-rule-id
+      author: harley hoang
+      comment: Allow rule_id to be nullable for time-policy-only bindings
+      changes:
+        - dropNotNullConstraint:
+            tableName: rule_bindings
+            columnName: rule_id
+            columnDataType: varchar(36)
