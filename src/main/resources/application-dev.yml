@@ -313,8 +313,8 @@ idempotency:
 # Feign client timeout is configured via Spring Cloud Feign properties (feign.client.config)
 integration:
   validation-engine:
-    url: ${VALIDATION_ENGINE_URL:http://validation-engine:8080}
-    service-path: ${VALIDATION_ENGINE_SERVICE_PATH:/promotion/promotion-validation-engine}
+    url: ${VALIDATION_ENGINE_URL:http://localhost:16013}
+    service-path: ${VALIDATION_ENGINE_SERVICE_PATH:/promotion/promotion-rule-engine}
     retry-attempts: 3
     circuit-breaker:
       failure-rate-threshold: 50
