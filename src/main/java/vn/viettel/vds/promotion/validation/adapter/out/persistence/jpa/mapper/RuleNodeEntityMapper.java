@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -127,10 +128,12 @@ public class RuleNodeEntityMapper {
     }
 
     /**
-     * Check if entity is a GROUP node with children.
+     * Check if entity is a GROUP node.
+     * Always returns true for GROUP nodes regardless of childrenIds column state,
+     * because children may be stored via parent FK instead of childrenIds column (legacy data format).
      */
     private boolean isGroupNodeWithChildren(RuleNodeEntity entity) {
-        return NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType()) && entity.getChildrenIds() != null;
+        return NODE_TYPE_GROUP.equalsIgnoreCase(entity.getType());
     }
 
     /**
@@ -138,10 +141,11 @@ public class RuleNodeEntityMapper {
      */
     private void logGroupNodeChildren(RuleNodeEntity entity) {
         if (logger.isTraceEnabled()) {
+            List<String> childIds = entity.getChildrenIds();
             logger.trace("[NODE_MAP_TREE] GROUP node '{}' has {} children IDs: [{}]",
                     entity.getNodeId(),
-                    entity.getChildrenIds().size(),
-                    String.join(", ", entity.getChildrenIds()));
+                    childIds != null ? childIds.size() : 0,
+                    childIds != null ? String.join(", ", childIds) : "none");
         }
     }
 
@@ -192,23 +196,46 @@ public class RuleNodeEntityMapper {
             logger.trace("[NODE_MAP_TREE] Building leaf COND node: {}", nodeId);
         }
 
-        RuleNode node = builder.build();
-        builtNodes.put(nodeId, node);
-        logger.trace("[NODE_MAP_TREE] Node '{}' built and cached (type={})", nodeId, node.getType());
-        return node;
+        try {
+            RuleNode node = builder.build();
+            builtNodes.put(nodeId, node);
+            logger.trace("[NODE_MAP_TREE] Node '{}' built and cached (type={})", nodeId, node.getType());
+            return node;
+        } catch (InvalidRuleStructureException e) {
+            logger.warn("[NODE_MAP_TREE] Skipping node '{}' with invalid structure (missing/corrupt children): {}",
+                    nodeId, e.getMessage());
+            return null;
+        }
     }
 
     /**
      * Build children for a GROUP node.
+     * Uses childrenIds column first; falls back to parent FK lookup for legacy data
+     * where childrenIds was not populated but children exist via parent_id FK.
      */
     private void buildGroupNodeChildren(RuleNodeEntity entity,
                                         RuleNode.Builder builder,
                                         Map<String, RuleNode.Builder> builderMap,
                                         Map<String, RuleNode> builtNodes,
                                         Map<String, RuleNodeEntity> entityMap) {
+        List<String> childIds = entity.getChildrenIds();
+
+        // Fallback: resolve children from parent FK when childrenIds is null/empty (legacy data format)
+        if (childIds == null || childIds.isEmpty()) {
+            childIds = entityMap.values().stream()
+                    .filter(e -> e.getParent() != null
+                            && entity.getNodeId().equals(e.getParent().getNodeId()))
+                    .map(RuleNodeEntity::getNodeId)
+                    .toList();
+            if (!childIds.isEmpty()) {
+                logger.debug("[NODE_MAP_TREE] GROUP node '{}' childrenIds empty, resolved {} children via parent FK (legacy format)",
+                        entity.getNodeId(), childIds.size());
+            }
+        }
+
         logger.debug("[NODE_MAP_TREE] Building GROUP node '{}' with {} children",
-                entity.getNodeId(), entity.getChildrenIds().size());
-        List<RuleNode> builtChildren = entity.getChildrenIds().stream()
+                entity.getNodeId(), childIds.size());
+        List<RuleNode> builtChildren = childIds.stream()
                 .map(childId -> buildNodeRecursively(childId, builderMap, builtNodes, entityMap))
                 .filter(n -> n != null)
                 .toList();
