@@ -1,8 +1,5 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ResponseInfo;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -13,9 +10,16 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateTransitionException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+
+import com.promix.platform.core.util.IdGenerator;
 
 import java.time.Instant;
 import java.util.List;
@@ -68,8 +72,7 @@ public class RuleService {
 
         // Check if rule with same code already exists
         if (rulePersistencePort.existsByCode(code)) {
-            throw new BusinessException(new ResponseInfo("RULE_CODE_EXISTS",
-                    "Rule with code '" + code + "' already exists", 400));
+            throw new RuleAlreadyExistsException(code);
         }
 
         // Validate rule nodes
@@ -105,8 +108,7 @@ public class RuleService {
 
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
-            throw new BusinessException(new ResponseInfo("RULE_STATE_LOCKED",
-                    "Cannot update rule in state: " + rule.getState(), 400));
+            throw new RuleStateNotEditableException(ruleId, rule.getState().name());
         }
 
         // Validate rule nodes if provided
@@ -159,8 +161,7 @@ public class RuleService {
 
         // Only allow activating draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
-            throw new BusinessException(new ResponseInfo("RULE_STATE_INVALID",
-                    "Can only activate rules in DRAFT state. Current state: " + rule.getState(), 400));
+            throw new InvalidRuleStateTransitionException("activate", rule.getState().name(), Rule.RuleState.DRAFT.name());
         }
 
         // Validate rule is complete before activation
@@ -205,10 +206,7 @@ public class RuleService {
         Rule rule = rulePersistencePort.findById(ruleId)
                 .orElseThrow(() -> {
                     logger.warn("[RULE_SERVICE] Rule not found: ruleId={}", ruleId);
-                    return new BusinessException(new ResponseInfo(
-                            "VALIDATION_RULE_NOT_FOUND",
-                            "Validation rule not found: " + ruleId,
-                            404));
+                    return new RuleNotFoundException(ruleId);
                 });
         logger.debug("[RULE_SERVICE] Rule retrieved: id={}, code={}, state={}, nodeCount={}",
                 rule.getId(), rule.getCode(), rule.getState(),
@@ -279,7 +277,7 @@ public class RuleService {
 
     private void validateRuleNodes(List<RuleNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
-            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Rule must have at least one node", 400));
+            throw new InvalidRuleStructureException("Rule must have at least one node");
         }
 
         // Validate each node
@@ -290,38 +288,35 @@ public class RuleService {
         // Check for node ID uniqueness
         long uniqueIds = nodes.stream().map(RuleNode::getId).distinct().count();
         if (uniqueIds != nodes.size()) {
-            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Rule node IDs must be unique", 400));
+            throw new InvalidRuleStructureException("Rule node IDs must be unique");
         }
     }
 
     private void validateRuleNode(RuleNode node) {
         if (node.getId() == null || node.getId().trim().isEmpty()) {
-            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Node ID is required", 400));
+            throw new InvalidRuleStructureException("Node ID is required");
         }
 
         if (node.getType() == null) {
-            throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE, "Node type is required", 400));
+            throw new InvalidRuleStructureException(node.getId(), "Node type is required");
         }
 
         if (node.getType() == RuleNode.NodeType.GROUP) {
             if (node.getGroupLogic() == null) {
-                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                        "Group logic is required for GROUP nodes", 400));
+                throw new InvalidRuleStructureException(node.getId(), "Group logic is required for GROUP nodes");
             }
         } else if (node.getType() == RuleNode.NodeType.COND) {
             if (node.getOperatorName() == null || node.getOperatorName().trim().isEmpty()) {
-                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                        "Operator name is required for COND nodes", 400));
+                throw new InvalidRuleStructureException(node.getId(), "Operator name is required for COND nodes");
             }
             if (node.getReasonCode() == null || node.getReasonCode().trim().isEmpty()) {
-                throw new BusinessException(new ResponseInfo(INVALID_RULE_STRUCTURE_CODE,
-                        "Reason code is required for COND nodes", 400));
+                throw new InvalidRuleStructureException(node.getId(), "Reason code is required for COND nodes");
             }
         }
     }
 
     private String generateRuleId(String code) {
-        return "rul_" + code + "_" + System.currentTimeMillis();
+        return IdGenerator.generateId();
     }
 
     /**
@@ -353,7 +348,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new ResourceNotFoundException();
+            throw new RuleNotFoundException("object", objectType + ":" + objectId);
         }
 
         // Get the rule from binding (first active binding)
@@ -373,7 +368,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new ResourceNotFoundException();
+            throw new RuleNotFoundException("object", objectType + ":" + objectId);
         }
 
         // Get all rules from bindings
@@ -407,7 +402,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
         if (bindings.isEmpty()) {
             logger.warn("No active binding found for object: type={}, id={}", objectType, objectId);
-            throw new ResourceNotFoundException();
+            throw new RuleNotFoundException("object", objectType + ":" + objectId);
         }
 
         // Get first binding (highest priority active binding)
@@ -416,7 +411,7 @@ public class RuleService {
         // Check if binding has bundleHash
         if (binding.getBundleHash() == null || binding.getBundleHash().isEmpty()) {
             logger.warn("Binding has no bundleHash: bindingId={}", binding.getId());
-            throw new ResourceNotFoundException();
+            throw new RuleNotFoundException("object", objectType + ":" + objectId);
         }
 
         logger.debug("Found bundle hash {} for object {}:{}",
