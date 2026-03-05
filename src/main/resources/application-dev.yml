@@ -12,7 +12,7 @@ spring:
 
   # MariaDB Secondary Database (for validation rules/metadata)
   datasource:
-    url: ${DB_URL:jdbc:mariadb://promotion-mariadb:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mariadb://mariadb:3306/validation?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
     username: root
     password: ${DB_PASSWORD:123123a@}
     driver-class-name: org.mariadb.jdbc.Driver
@@ -30,7 +30,7 @@ spring:
     properties:
       hibernate:
         format_sql: false
-        show_sql: false
+        show_sql: true
         jdbc:
           batch_size: 500
         order_inserts: true
@@ -103,6 +103,27 @@ external:
 
 # Promix Platform Configuration
 promix:
+  # Outbox Configuration
+  outbox:
+    jpa:
+      enabled: true
+    batch:
+      enabled: true
+      chunk-size: 100
+      page-size: 1000
+      interval-ms: 60000
+    cleanup:
+      enabled: true
+      retention-period: 7d
+      interval-ms: 21600000
+    retry:
+      max-attempts: 3
+      initial-delay: 1m
+      max-delay: 1h
+      multiplier: 2.0
+    monitoring:
+      enabled: true
+
   # Observer Configuration (Tracing, Logging, Metrics)
   observer:
     enabled: true
@@ -132,23 +153,11 @@ promix:
   jpa:
     enabled: true  # Primary database for validation documents and metadata
 
-  # Outbox Pattern Configuration (Custom Spring Batch implementation)
-  outbox:
-    batch:
-      enabled: true                        # Enable batch processing
-      chunk-size: 100                      # Events per processing batch
-      page-size: 1000                      # Events per database read
-      interval-ms: 60000                   # Processing interval in milliseconds (60000ms = 1 minute)
-    cleanup:
-      enabled: true                        # Enable automatic cleanup
-      retention-period: 7d                 # Keep processed events for 7 days
-      interval-ms: 21600000                # Cleanup interval in milliseconds (21600000ms = 6 hours)
-    retry:
-      max-attempts: 3                      # Maximum retry attempts
-
   # Kafka Configuration
   messaging:
     enabled: true
+    utils:
+      enabled: true
     avro:
       enabled: false  # Disable Avro support - using JSON instead
       producer:
@@ -369,4 +378,7 @@ logging:
     # Spring Batch logging - set to WARN to suppress verbose job execution logs
     org.springframework.batch.core: WARN
     # Application logging
-    vn.viettel.vds.promotion.validation: INFO
+    vn.viettel.vds.promotion.validation: DEBUG
+    # Hibernate SQL debugging - to diagnose findById issue
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
