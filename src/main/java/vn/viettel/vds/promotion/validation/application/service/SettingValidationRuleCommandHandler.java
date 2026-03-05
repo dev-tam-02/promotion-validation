@@ -1,13 +1,13 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ErrorDetail;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
+import com.promix.platform.core.exception.BusinessRuleException;
 import com.promix.platform.core.util.IdGenerator;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
  * <p>
  * Refactored to use unified RuleBinding model instead of legacy Assignment + TemporalPolicy + RuleTemporalLink.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 @Transactional
 public class SettingValidationRuleCommandHandler {
@@ -99,7 +100,7 @@ public class SettingValidationRuleCommandHandler {
                 publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
                 logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
                         commandId, result.getErrorCode(), result.getErrorMessage());
-                throw ExceptionFactory.createValidationException(result.getErrorCode(), result.getErrorMessage());
+                throw new InvalidCommandDataException(result.getErrorCode(), result.getErrorMessage());
             }
 
             // Publish success event
@@ -112,7 +113,7 @@ public class SettingValidationRuleCommandHandler {
             logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
             return true;
 
-        } catch (BusinessException e) {
+        } catch (BusinessRuleException e) {
             logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
                     commandId, e.getMessage(), e);
             throw e;
@@ -127,37 +128,31 @@ public class SettingValidationRuleCommandHandler {
     private void validateCommand(SettingValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
         }
 
         SettingValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
         if (dto == null) {
             logger.error("Failed to convert command to DTO: commandId={}", command.getId());
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Failed to convert command to DTO");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Failed to convert command to DTO");
         }
 
         Set<ConstraintViolation<SettingValidationRuleCommandDTO>> violations = validator.validate(dto);
 
         if (!violations.isEmpty()) {
-            List<ErrorDetail> errorDetails = violations.stream()
-                    .map(violation -> ErrorDetail.of(
+            String errorDetails = violations.stream()
+                    .map(violation -> String.format("%s: %s (value: %s)",
                             violation.getPropertyPath().toString(),
                             violation.getMessage(),
-                            String.format("Invalid value: %s", violation.getInvalidValue()),
-                            violation.getInvalidValue()
-                    ))
-                    .toList();
+                            violation.getInvalidValue()))
+                    .collect(Collectors.joining("; "));
 
-            String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
+            String errorMessage = String.format("Validation failed with %d error(s): %s", violations.size(), errorDetails);
 
             logger.error("SettingValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
                     command.getId(), violations.size(), errorDetails);
 
-            throw ExceptionFactory.createValidationException(
-                    "METHOD_ARGUMENT_NOT_VALID",
-                    errorMessage,
-                    errorDetails.toArray(new ErrorDetail[0])
-            );
+            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
         }
 
         logger.debug("SettingValidationRuleCommand validation passed: commandId={}", command.getId());
@@ -190,6 +185,16 @@ public class SettingValidationRuleCommandHandler {
 
             // Deploy to validation-engine
             ruleBinding = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
+
+            // If a ruleId was present (compile required), verify deployment succeeded
+            // Deploy failure is indicated by bundleHash being null after the attempt
+            if (components.ruleId() != null && !components.ruleId().isEmpty()
+                    && ruleBinding.getBundleHash() == null) {
+                logger.warn("Rule binding created but compilation to rule-engine failed: bindingId={}, ruleId={}",
+                        ruleBinding.getId(), components.ruleId());
+                return CommandProcessingResult.failure("COMPILE_DEPLOY_ERROR",
+                        "Rule binding created but compilation to rule-engine failed. RuleId: " + components.ruleId());
+            }
 
             // Create result
             return CommandProcessingResult.success(ruleBinding, components.applicableToData(), components.timeframeData());
