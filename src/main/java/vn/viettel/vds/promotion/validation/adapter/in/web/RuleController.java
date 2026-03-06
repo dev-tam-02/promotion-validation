@@ -26,6 +26,7 @@ import vn.viettel.vds.promotion.validation.application.service.RuleSimulationSer
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 
 import java.util.*;
 
@@ -402,7 +403,7 @@ public class RuleController {
         Optional<RuleBinding> binding = ruleService.getBindingForObject(objectType, objectId);
 
         if (binding.isEmpty()) {
-            throw new com.promix.platform.core.exception.ResourceNotFoundException();
+            throw new BindingNotFoundException(objectType, objectId);
         }
 
         RuleBinding b = binding.get();
@@ -433,7 +434,7 @@ public class RuleController {
         List<RuleBinding> bindings = ruleService.getAllBindingsForObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new com.promix.platform.core.exception.ResourceNotFoundException();
+            throw new BindingNotFoundException(objectType, objectId);
         }
 
         // Build response list with rule and binding details

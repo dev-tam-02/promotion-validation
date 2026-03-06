@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.messaging;
 import com.promix.platform.messaging.autoconfigure.utils.KafkaUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.RuleCreatedEvent;
 import vn.viettel.vds.promotion.validation.adapter.out.messaging.event.RuleDeployedEvent;
@@ -19,6 +20,7 @@ import java.util.UUID;
  * Adapter for publishing validation events to Kafka using KafkaUtils
  */
 @Slf4j
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Component
 @RequiredArgsConstructor
 public class ValidationEventPublisher implements EventPublisherPort {

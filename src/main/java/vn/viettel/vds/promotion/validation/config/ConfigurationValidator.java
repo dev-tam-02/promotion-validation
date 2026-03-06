@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.ConfigurationInvalidException;
 
 import java.time.Duration;
 
@@ -49,7 +50,7 @@ public class ConfigurationValidator {
 
         String strategy = db.getStrategy();
         if (!"JPA".equalsIgnoreCase(strategy) && !"MONGODB".equalsIgnoreCase(strategy)) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Invalid database strategy: " + strategy + ". Must be JPA or MONGODB"
             );
         }
@@ -66,27 +67,27 @@ public class ConfigurationValidator {
         }
 
         if (outbox.getChunkSize() <= 0) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Outbox chunk size must be positive, got: " + outbox.getChunkSize()
             );
         }
 
         if (outbox.getMaxRetryAttempts() < 1 || outbox.getMaxRetryAttempts() > 10) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Outbox max retry attempts must be between 1 and 10, got: " + outbox.getMaxRetryAttempts()
             );
         }
 
         Duration interval = outbox.getInterval();
         if (interval == null || interval.isNegative() || interval.isZero()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Outbox interval must be positive duration, got: " + interval
             );
         }
 
         Duration retention = outbox.getRetentionPeriod();
         if (retention == null || retention.isNegative()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Outbox retention period must be non-negative duration, got: " + retention
             );
         }
@@ -108,19 +109,19 @@ public class ConfigurationValidator {
         }
 
         if (cache.getPrefix() == null || cache.getPrefix().trim().isEmpty()) {
-            throw new IllegalStateException("Cache prefix cannot be empty");
+            throw new ConfigurationInvalidException("Cache prefix cannot be empty");
         }
 
         Duration defaultTtl = cache.getDefaultTtl();
         if (defaultTtl == null || defaultTtl.isNegative() || defaultTtl.isZero()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Cache default TTL must be positive duration, got: " + defaultTtl
             );
         }
 
         Duration ruleTtl = cache.getRuleTtl();
         if (ruleTtl == null || ruleTtl.isNegative() || ruleTtl.isZero()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Cache rule TTL must be positive duration, got: " + ruleTtl
             );
         }
@@ -161,20 +162,20 @@ public class ConfigurationValidator {
         ValidationModuleProperties.RuleConfig rule = properties.getRule();
 
         if (rule.getMaxDepth() < 1 || rule.getMaxDepth() > 20) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Rule max depth must be between 1 and 20, got: " + rule.getMaxDepth()
             );
         }
 
         if (rule.getMaxNodes() < 1 || rule.getMaxNodes() > 1000) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Rule max nodes must be between 1 and 1000, got: " + rule.getMaxNodes()
             );
         }
 
         Duration evalTimeout = rule.getEvaluationTimeout();
         if (evalTimeout == null || evalTimeout.isNegative() || evalTimeout.isZero()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     "Rule evaluation timeout must be positive duration, got: " + evalTimeout
             );
         }
@@ -189,13 +190,13 @@ public class ConfigurationValidator {
 
     private void validateServiceEndpoint(String serviceName, String baseUrl) {
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     serviceName + " base URL cannot be empty"
             );
         }
 
         if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     serviceName + " base URL must start with http:// or https://, got: " + baseUrl
             );
         }
@@ -203,7 +204,7 @@ public class ConfigurationValidator {
 
     private void validateTimeout(String name, Duration timeout) {
         if (timeout == null || timeout.isNegative() || timeout.isZero()) {
-            throw new IllegalStateException(
+            throw new ConfigurationInvalidException(
                     name + " timeout must be positive duration, got: " + timeout
             );
         }

@@ -1,9 +1,9 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ErrorDetail;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
+import com.promix.platform.core.exception.BusinessRuleException;
 import com.promix.platform.core.util.IdGenerator;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -100,7 +100,7 @@ public class UpdateValidationRuleCommandHandler {
                 String errorMessage = "Binding not found: assignmentId=" + assignmentId;
                 logger.error(errorMessage);
                 publishErrorEvent(commandId, objectId, "BINDING_NOT_FOUND", errorMessage);
-                throw ExceptionFactory.createValidationException("BINDING_NOT_FOUND", errorMessage);
+                throw new BindingNotFoundException(assignmentId);
             }
 
             // Update binding
@@ -118,7 +118,7 @@ public class UpdateValidationRuleCommandHandler {
             logger.info("Successfully processed UpdateValidationRuleCommand: commandId={}", commandId);
             return true;
 
-        } catch (BusinessException e) {
+        } catch (BusinessRuleException e) {
             logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
@@ -132,37 +132,31 @@ public class UpdateValidationRuleCommandHandler {
     private void validateCommand(UpdateValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
         }
 
         UpdateValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
         if (dto == null) {
             logger.error("Failed to convert command to DTO");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Failed to convert command to DTO");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Failed to convert command to DTO");
         }
 
         Set<ConstraintViolation<UpdateValidationRuleCommandDTO>> violations = validator.validate(dto);
 
         if (!violations.isEmpty()) {
-            List<ErrorDetail> errorDetails = violations.stream()
-                    .map(violation -> ErrorDetail.of(
+            String errorDetails = violations.stream()
+                    .map(violation -> String.format("%s: %s (value: %s)",
                             violation.getPropertyPath().toString(),
                             violation.getMessage(),
-                            String.format("Invalid value: %s", violation.getInvalidValue()),
-                            violation.getInvalidValue()
-                    ))
-                    .toList();
+                            violation.getInvalidValue()))
+                    .collect(Collectors.joining("; "));
 
-            String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
+            String errorMessage = String.format("Validation failed with %d error(s): %s", violations.size(), errorDetails);
 
             logger.error("UpdateValidationRuleCommand validation failed: commandId={}, errors={}",
                     command.getId(), errorDetails);
 
-            throw ExceptionFactory.createValidationException(
-                    "METHOD_ARGUMENT_NOT_VALID",
-                    errorMessage,
-                    errorDetails.toArray(new ErrorDetail[0])
-            );
+            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
         }
 
         logger.debug("UpdateValidationRuleCommand validation passed: commandId={}", command.getId());

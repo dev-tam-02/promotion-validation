@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.web;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import java.util.UUID;
  * <p>
  * Uses SettingValidationRuleCommandHandler directly instead of going through Kafka consumer.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @RestController
 @ResponseWrapper
 @RequestMapping("${spring.application.context-path}/v1/validation/commands")

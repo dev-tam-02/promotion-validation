@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.valueobject;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleNameException;
+
 import java.util.Objects;
 
 /**
@@ -15,9 +17,7 @@ public class RuleName {
         String trimmed = value.trim();
 
         if (trimmed.length() < MIN_LENGTH || trimmed.length() > MAX_LENGTH) {
-            throw new IllegalArgumentException(
-                    String.format("RuleName must be between %d and %d characters", MIN_LENGTH, MAX_LENGTH)
-            );
+            throw new InvalidRuleNameException(trimmed, MIN_LENGTH, MAX_LENGTH);
         }
         this.value = trimmed;
     }

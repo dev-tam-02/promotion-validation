@@ -1,10 +1,9 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ResponseInfo;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.viettel.vds.promotion.validation.domain.exception.ReasonCodeAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.ReasonCodeNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,8 +39,7 @@ public class ReasonCodeService {
 
         // Check if reason code already exists
         if (reasonCodePersistencePort.existsByIdAndTenant(tenantId, id)) {
-            throw new BusinessException(new ResponseInfo("REASON_CODE_EXISTS",
-                    "Reason code '" + id + "' already exists for tenant " + tenantId, 400));
+            throw new ReasonCodeAlreadyExistsException(id, tenantId);
         }
 
         Instant now = Instant.now();
@@ -66,7 +64,7 @@ public class ReasonCodeService {
     @Transactional(readOnly = true)
     public ReasonCode getReasonCode(String tenantId, String id) {
         return reasonCodePersistencePort.findByIdAndTenant(tenantId, id)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new ReasonCodeNotFoundException(id, tenantId));
     }
 
     /**

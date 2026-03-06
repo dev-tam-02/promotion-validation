@@ -1,9 +1,12 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ResponseInfo;
-import com.promix.platform.core.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.viettel.vds.promotion.validation.domain.exception.ArchivedRulePublishException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidPublishJobStateException;
+import vn.viettel.vds.promotion.validation.domain.exception.PublishJobAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.PublishJobNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
@@ -63,8 +66,7 @@ public class PublishService {
 
         // Check if job already exists for this version
         if (publishJobPersistencePort.existsByRuleIdAndTargetVersion(ruleId, nextVersion)) {
-            throw new BusinessException(new ResponseInfo("PUBLISH_JOB_EXISTS",
-                    "Publish job already exists for rule " + ruleId + " version " + nextVersion, 400));
+            throw new PublishJobAlreadyExistsException(ruleId, nextVersion);
         }
 
         // Create publish job
@@ -82,7 +84,7 @@ public class PublishService {
     @Transactional(readOnly = true)
     public PublishJob getPublishJob(String jobId) {
         return publishJobPersistencePort.findById(jobId)
-                .orElseThrow(() -> new BusinessException(new ResponseInfo("PUBLISH_JOB_NOT_FOUND", "Publish job not found: " + jobId, 404)));
+                .orElseThrow(() -> new PublishJobNotFoundException(jobId));
     }
 
     /**
@@ -102,8 +104,7 @@ public class PublishService {
         PublishJob job = self.getPublishJob(jobId);
 
         if (job.getStatus() != PublishJob.JobStatus.RUNNING) {
-            throw new BusinessException(new ResponseInfo("CANNOT_CANCEL_JOB",
-                    "Cannot cancel job in status: " + job.getStatus(), 400));
+            throw new InvalidPublishJobStateException("cancel", job.getStatus().name());
         }
 
         List<String> updatedErrors = new ArrayList<>(job.getErrors() != null ? job.getErrors() : List.of());
@@ -121,8 +122,7 @@ public class PublishService {
     private void validateRuleForPublishing(Rule rule) {
         // Validate rule state
         if (rule.getState() == Rule.RuleState.ARCHIVED) {
-            throw new BusinessException(new ResponseInfo("CANNOT_PUBLISH_ARCHIVED",
-                    "Cannot publish archived rule: " + rule.getId(), 400));
+            throw new ArchivedRulePublishException(rule.getId());
         }
 
         // Validate rule structure and operators
@@ -135,8 +135,7 @@ public class PublishService {
                     .reduce((a, b) -> a + "; " + b)
                     .orElse("Unknown validation error");
 
-            throw new BusinessException(new ResponseInfo("RULE_VALIDATION_FAILED",
-                    "Rule validation failed: " + errors, 400));
+            throw new RuleValidationFailedException(rule.getId(), errors);
         }
     }
 

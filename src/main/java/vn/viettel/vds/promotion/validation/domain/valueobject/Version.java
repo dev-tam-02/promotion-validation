@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.valueobject;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
+
 import java.util.Objects;
 
 /**
@@ -12,7 +14,7 @@ public class Version implements Comparable<Version> {
 
     private Version(int major, int minor, int patch) {
         if (major < 0 || minor < 0 || patch < 0) {
-            throw new IllegalArgumentException("Version numbers cannot be negative");
+            throw new InvalidVersionFormatException("Version numbers cannot be negative");
         }
         this.major = major;
         this.minor = minor;
@@ -31,7 +33,7 @@ public class Version implements Comparable<Version> {
         Objects.requireNonNull(versionString, "Version string cannot be null");
         String[] parts = versionString.split("\\.");
         if (parts.length != 3) {
-            throw new IllegalArgumentException("Version must be in format major.minor.patch");
+            throw new InvalidVersionFormatException("Version must be in format major.minor.patch");
         }
         try {
             return new Version(
@@ -40,7 +42,7 @@ public class Version implements Comparable<Version> {
                     Integer.parseInt(parts[2])
             );
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid version format: " + versionString);
+            throw new InvalidVersionFormatException(versionString, e);
         }
     }
 

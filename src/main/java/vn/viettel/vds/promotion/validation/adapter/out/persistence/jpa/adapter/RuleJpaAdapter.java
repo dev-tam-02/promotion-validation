@@ -1,6 +1,8 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -9,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleNodeEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
@@ -17,14 +20,24 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @ConditionalOnPromixJpa
 public class RuleJpaAdapter implements RulePersistencePort {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleJpaAdapter.class);
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final RuleJpaRepository repository;
     private final RuleEntityMapper mapper;
@@ -46,7 +59,70 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, state={}", entity.getId(), entity.getState());
         RuleJpaEntity saved = repository.save(entity);
         logger.info("[RULE_SAVE] Rule saved successfully: id={}, code={}", saved.getId(), saved.getCode());
+
+        // Save rule nodes if present
+        if (rule.getNodes() != null && !rule.getNodes().isEmpty()) {
+            logger.debug("[RULE_SAVE] Saving nodes for rule: {}", saved.getId());
+            // Delete existing nodes
+            List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(saved.getId());
+            if (!existing.isEmpty()) {
+                nodeRepository.deleteAll(existing);
+            }
+            // Build node map (exclude placeholders with null type)
+            Map<String, RuleNode> nodeMap = new HashMap<>();
+            for (RuleNode node : rule.getNodes()) {
+                if (node.getNodeId() != null && node.getType() != null) {
+                    nodeMap.put(node.getNodeId(), node);
+                }
+            }
+            // Find child IDs (referenced by GROUP nodes)
+            Set<String> childNodeIds = new HashSet<>();
+            for (RuleNode node : nodeMap.values()) {
+                if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+                    for (RuleNode child : node.getChildren()) {
+                        if (child.getNodeId() != null) childNodeIds.add(child.getNodeId());
+                    }
+                }
+            }
+            // Root nodes: not referenced as children by any GROUP
+            Set<String> rootNodeIds = nodeMap.keySet().stream()
+                    .filter(id -> !childNodeIds.contains(id))
+                    .collect(Collectors.toSet());
+            // Create ValidationRuleEntity proxy reference
+            ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, saved.getId());
+            // Save nodes in DFS order (parents before children)
+            List<RuleNodeEntity> savedNodes = new ArrayList<>();
+            for (String rootId : rootNodeIds) {
+                saveNodeDfs(rootId, nodeMap, ruleRef, null, savedNodes);
+            }
+            logger.info("[RULE_SAVE] Saved {} node entities for rule: {}", savedNodes.size(), saved.getId());
+        }
+
         return mapper.toDomain(saved);
+    }
+
+    /**
+     * Save a node and its children recursively (DFS), setting proper parent references.
+     */
+    private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
+                              ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
+                              List<RuleNodeEntity> savedEntities) {
+        RuleNode node = nodeMap.get(nodeId);
+        if (node == null) return;
+        RuleNodeEntity entity = nodeMapper.toEntity(node, parentEntity);
+        entity.setId(UUID.randomUUID().toString());
+        entity.setValidationRule(ruleRef);
+        RuleNodeEntity persistedEntity = nodeRepository.save(entity);
+        savedEntities.add(persistedEntity);
+        // Recursively save children of GROUP nodes
+        if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+            for (RuleNode childPlaceholder : node.getChildren()) {
+                String childId = childPlaceholder.getNodeId();
+                if (childId != null && nodeMap.containsKey(childId)) {
+                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, savedEntities);
+                }
+            }
+        }
     }
 
     @Override

@@ -1,12 +1,11 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ErrorDetail;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
+import com.promix.platform.core.exception.BusinessRuleException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
@@ -17,7 +16,8 @@ import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRe
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +28,7 @@ import java.util.Set;
  * <p>
  * Refactored to use unified RuleBinding model.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 @Transactional
 public class RollbackValidationRuleCommandHandler {
@@ -95,7 +96,7 @@ public class RollbackValidationRuleCommandHandler {
                 String errorMessage = "Failed to rollback validation rule binding";
                 publishRollbackErrorEvent(commandId, errorCode, errorMessage);
                 logger.error("Failed to process RollbackValidationRuleCommand: commandId={}", commandId);
-                throw ExceptionFactory.createValidationException(errorCode, errorMessage);
+                throw new InvalidCommandDataException(errorCode, errorMessage);
             }
 
             idempotencyService.markAsProcessed(commandId, "Rollback completed successfully");
@@ -104,7 +105,7 @@ public class RollbackValidationRuleCommandHandler {
             logger.info("Successfully processed RollbackValidationRuleCommand: commandId={}", commandId);
             return true;
 
-        } catch (BusinessException e) {
+        } catch (BusinessRuleException e) {
             logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
@@ -117,37 +118,31 @@ public class RollbackValidationRuleCommandHandler {
     private void validateCommand(RollbackValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
         }
 
         RollbackValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
         if (dto == null) {
             logger.error("Failed to convert command to DTO: commandId={}", command.getId());
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Failed to convert command to DTO");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Failed to convert command to DTO");
         }
 
         Set<ConstraintViolation<RollbackValidationRuleCommandDTO>> violations = validator.validate(dto);
 
         if (!violations.isEmpty()) {
-            List<ErrorDetail> errorDetails = violations.stream()
-                    .map(violation -> ErrorDetail.of(
+            String errorDetails = violations.stream()
+                    .map(violation -> String.format("%s: %s (value: %s)",
                             violation.getPropertyPath().toString(),
                             violation.getMessage(),
-                            String.format("Invalid value: %s", violation.getInvalidValue()),
-                            violation.getInvalidValue()
-                    ))
-                    .toList();
+                            violation.getInvalidValue()))
+                    .collect(java.util.stream.Collectors.joining("; "));
 
-            String errorMessage = String.format("Validation failed with %d error(s)", violations.size());
+            String errorMessage = String.format("Validation failed with %d error(s): %s", violations.size(), errorDetails);
 
             logger.error("RollbackValidationRuleCommand validation failed: commandId={}, errors={}",
                     command.getId(), errorDetails);
 
-            throw ExceptionFactory.createValidationException(
-                    "METHOD_ARGUMENT_NOT_VALID",
-                    errorMessage,
-                    errorDetails.toArray(new ErrorDetail[0])
-            );
+            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
         }
 
         logger.debug("RollbackValidationRuleCommand validation passed: commandId={}", command.getId());
@@ -200,7 +195,7 @@ public class RollbackValidationRuleCommandHandler {
             logger.info("Rolled back binding: bindingId={}", binding.getId());
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to rollback binding: " + binding.getId(), e);
+            throw new BindingDeactivationException(binding.getId(), e);
         }
     }
 

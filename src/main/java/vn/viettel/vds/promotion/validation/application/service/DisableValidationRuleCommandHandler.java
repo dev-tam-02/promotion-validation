@@ -1,9 +1,10 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
+import com.promix.platform.core.exception.BusinessRuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
@@ -20,6 +21,7 @@ import java.util.List;
  * <p>
  * Refactored to use unified RuleBinding model.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 @Transactional
 public class DisableValidationRuleCommandHandler {
@@ -75,7 +77,7 @@ public class DisableValidationRuleCommandHandler {
                 String errorMessage = "Failed to disable validation rule binding";
                 publishDisableErrorEvent(commandId, campaignId, errorCode, errorMessage);
                 logger.error("Failed to process DisableValidationRuleCommand: commandId={}", commandId);
-                throw ExceptionFactory.createValidationException(errorCode, errorMessage);
+                throw new InvalidCommandDataException(errorCode, errorMessage);
             }
 
             idempotencyService.markAsProcessed(commandId, "Disable completed successfully");
@@ -84,7 +86,7 @@ public class DisableValidationRuleCommandHandler {
             logger.info("Successfully processed DisableValidationRuleCommand: commandId={}", commandId);
             return true;
 
-        } catch (BusinessException e) {
+        } catch (BusinessRuleException e) {
             logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
@@ -98,16 +100,16 @@ public class DisableValidationRuleCommandHandler {
     private void validateCommand(DisableValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
         }
 
         DisableValidationRuleCommandPayload payload = command.getPayload();
         if (payload.getCampaignId() == null || payload.getCampaignId().isBlank()) {
-            throw ExceptionFactory.createValidationException("INVALID_CAMPAIGN_ID", "campaignId is required");
+            throw new InvalidCommandDataException("INVALID_CAMPAIGN_ID", "campaignId is required");
         }
 
         if (payload.getValidationRuleId() == null || payload.getValidationRuleId().isBlank()) {
-            throw ExceptionFactory.createValidationException("INVALID_VALIDATION_RULE_ID", "validationRuleId is required");
+            throw new InvalidCommandDataException("INVALID_VALIDATION_RULE_ID", "validationRuleId is required");
         }
 
         logger.debug("DisableValidationRuleCommand validation passed: commandId={}", command.getId());

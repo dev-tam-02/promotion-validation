@@ -209,7 +209,7 @@ promix:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
         group-id: validation-group
-        auto-offset-reset: earliest
+        auto-offset-reset: latest
         enable-auto-commit: false
         max-poll: 500
         max-poll-interval: 300000

@@ -1,9 +1,9 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
+import com.promix.platform.core.exception.BusinessRuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
@@ -12,7 +12,8 @@ import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRe
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.DeleteValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.List;
  * <p>
  * Refactored to use unified RuleBinding model.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 @Transactional
 public class DeleteValidationRuleCommandHandler {
@@ -83,7 +85,7 @@ public class DeleteValidationRuleCommandHandler {
                 String errorMessage = "Failed to delete validation rule binding";
                 publishDeleteErrorEvent(commandId, campaignId, errorCode, errorMessage);
                 logger.error("Failed to process DeleteValidationRuleCommand: commandId={}", commandId);
-                throw ExceptionFactory.createValidationException(errorCode, errorMessage);
+                throw new InvalidCommandDataException(errorCode, errorMessage);
             }
 
             idempotencyService.markAsProcessed(commandId, "Delete completed successfully");
@@ -92,7 +94,7 @@ public class DeleteValidationRuleCommandHandler {
             logger.info("Successfully processed DeleteValidationRuleCommand: commandId={}", commandId);
             return true;
 
-        } catch (BusinessException e) {
+        } catch (BusinessRuleException e) {
             logger.error("Validation failed: commandId={}, error={}", commandId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
@@ -106,12 +108,12 @@ public class DeleteValidationRuleCommandHandler {
     private void validateCommand(DeleteValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw ExceptionFactory.createValidationException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
         }
 
         if (command.getPayload().getCampaignId() == null || command.getPayload().getCampaignId().isBlank()) {
             logger.error("DeleteValidationRuleCommand validation failed: campaignId is required");
-            throw ExceptionFactory.createValidationException("INVALID_CAMPAIGN_ID", "campaignId is required");
+            throw new InvalidCommandDataException("INVALID_CAMPAIGN_ID", "campaignId is required");
         }
 
         logger.debug("DeleteValidationRuleCommand validation passed: commandId={}", command.getId());
@@ -170,7 +172,7 @@ public class DeleteValidationRuleCommandHandler {
             logger.info("Successfully deleted binding: bindingId={}", binding.getId());
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to delete binding: " + binding.getId(), e);
+            throw new BindingDeactivationException(binding.getId(), e);
         }
     }
 

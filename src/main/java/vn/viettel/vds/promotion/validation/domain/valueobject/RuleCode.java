@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.valueobject;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleCodeException;
+
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -14,7 +16,7 @@ public class RuleCode {
     private RuleCode(String value) {
         Objects.requireNonNull(value, "RuleCode cannot be null");
         if (!VALID_PATTERN.matcher(value).matches()) {
-            throw new IllegalArgumentException(
+            throw new InvalidRuleCodeException(
                     "RuleCode must follow pattern RULE_[A-Z0-9_]+ but was: " + value
             );
         }

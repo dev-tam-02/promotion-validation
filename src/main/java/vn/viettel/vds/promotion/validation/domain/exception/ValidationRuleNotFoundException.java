@@ -1,14 +1,19 @@
 package vn.viettel.vds.promotion.validation.domain.exception;
 
+import com.promix.platform.core.exception.ResourceNotFoundException;
+
 /**
- * Exception được throw khi validation rule không tồn tại.
+ * Exception thrown when validation rule is not found.
+ * HTTP Status: 404 Not Found
  */
-public class ValidationRuleNotFoundException extends RuntimeException {
+public class ValidationRuleNotFoundException extends ResourceNotFoundException {
+
+    private static final String ERROR_CODE = "VALIDATION_RULE_NOT_FOUND";
 
     private final String validationRuleId;
 
     public ValidationRuleNotFoundException(String validationRuleId) {
-        super(String.format("Validation rule not found with id: %s", validationRuleId));
+        super(ERROR_CODE, "ValidationRule", validationRuleId);
         this.validationRuleId = validationRuleId;
     }
 

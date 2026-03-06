@@ -1,5 +1,8 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateTransitionException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
@@ -128,7 +131,7 @@ public class RuleAggregate {
                 return nodes.stream().anyMatch(node -> node.evaluate(nodeContext));
             case NOT:
                 if (nodes.size() != 1) {
-                    throw new IllegalStateException("NOT logic requires exactly one node");
+                    throw new InvalidRuleStructureException("NOT logic requires exactly one node");
                 }
                 return !nodes.get(0).evaluate(nodeContext);
             case XOR:
@@ -146,7 +149,7 @@ public class RuleAggregate {
      */
     public void update(RuleName name, String description, LogicType logicType, List<RuleNode> nodes, String updatedBy) {
         if (!canBeModified()) {
-            throw new IllegalStateException("Rule cannot be modified in status: " + status);
+            throw new RuleStateNotEditableException(status.name());
         }
 
         this.name = Objects.requireNonNull(name, "Name cannot be null");
@@ -165,7 +168,7 @@ public class RuleAggregate {
      */
     public void submitForReview(String submittedBy) {
         if (status != RuleStatus.DRAFT) {
-            throw new IllegalStateException("Only draft rules can be submitted for review");
+            throw new InvalidRuleStateTransitionException("submitForReview", status.name(), RuleStatus.DRAFT.name());
         }
 
         this.status = RuleStatus.PENDING_REVIEW;
@@ -178,7 +181,7 @@ public class RuleAggregate {
      */
     public void approve(String approvedBy) {
         if (status != RuleStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Only rules pending review can be approved");
+            throw new InvalidRuleStateTransitionException("approve", status.name(), RuleStatus.PENDING_REVIEW.name());
         }
 
         this.status = RuleStatus.APPROVED;
@@ -191,7 +194,7 @@ public class RuleAggregate {
      */
     public void reject(String rejectedBy) {
         if (status != RuleStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Only rules pending review can be rejected");
+            throw new InvalidRuleStateTransitionException("reject", status.name(), RuleStatus.PENDING_REVIEW.name());
         }
 
         this.status = RuleStatus.DRAFT;
@@ -204,7 +207,7 @@ public class RuleAggregate {
      */
     public void publish(String publishedBy) {
         if (status != RuleStatus.APPROVED) {
-            throw new IllegalStateException("Only approved rules can be published");
+            throw new InvalidRuleStateTransitionException("publish", status.name(), RuleStatus.APPROVED.name());
         }
 
         this.status = RuleStatus.PUBLISHED;
@@ -222,7 +225,7 @@ public class RuleAggregate {
      */
     public void deprecate(String deprecatedBy) {
         if (status != RuleStatus.PUBLISHED) {
-            throw new IllegalStateException("Only published rules can be deprecated");
+            throw new InvalidRuleStateTransitionException("deprecate", status.name(), RuleStatus.PUBLISHED.name());
         }
 
         this.status = RuleStatus.DEPRECATED;
@@ -235,7 +238,7 @@ public class RuleAggregate {
      */
     public void archive(String archivedBy) {
         if (status == RuleStatus.ARCHIVED) {
-            throw new IllegalStateException("Rule is already archived");
+            throw new InvalidRuleStateTransitionException("archive", RuleStatus.ARCHIVED.name(), "any non-ARCHIVED");
         }
 
         this.status = RuleStatus.ARCHIVED;

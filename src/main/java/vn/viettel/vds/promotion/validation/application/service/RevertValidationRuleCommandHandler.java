@@ -1,8 +1,10 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.promix.platform.core.exception.factory.ExceptionFactory;
 import com.promix.platform.core.util.IdGenerator;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.SnapshotSerializationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -75,7 +77,7 @@ public class RevertValidationRuleCommandHandler {
             RevertValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 log.error("Command payload is null: commandId={}", commandId);
-                throw ExceptionFactory.createValidationException("INVALID_PAYLOAD", "Command payload is missing");
+                throw new InvalidCommandDataException("INVALID_PAYLOAD", "Command payload is missing");
             }
 
             String validationRuleId = payload.getValidationRuleId();
@@ -90,9 +92,7 @@ public class RevertValidationRuleCommandHandler {
             Rule rule = validationRulePort.findById(validationRuleId)
                     .orElseThrow(() -> {
                         log.error("Validation rule not found: ruleId={}", validationRuleId);
-                        return ExceptionFactory.createValidationException(
-                                "VALIDATION_RULE_NOT_FOUND",
-                                "Validation rule not found: " + validationRuleId);
+                        return new RuleNotFoundException(validationRuleId);
                     });
 
             // Validate current version matches (optimistic lock check)
@@ -128,8 +128,7 @@ public class RevertValidationRuleCommandHandler {
             if (!snapshotService.snapshotExists(validationRuleId, targetVersion)) {
                 log.error("Snapshot not found for targetVersion: ruleId={}, version={}",
                         validationRuleId, targetVersion);
-                throw ExceptionFactory.createValidationException(
-                        "SNAPSHOT_NOT_FOUND",
+                throw new SnapshotSerializationException(
                         String.format("Snapshot not found for rule %s version %d", validationRuleId, targetVersion));
             }
 

@@ -1,7 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionNotFoundException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,7 @@ public class RuleVersionService {
      */
     public RuleVersion getRuleVersion(String ruleId, Integer version) {
         return ruleVersionPersistencePort.findByRuleIdAndVersion(ruleId, version)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new RuleVersionNotFoundException(ruleId, version));
     }
 
     /**

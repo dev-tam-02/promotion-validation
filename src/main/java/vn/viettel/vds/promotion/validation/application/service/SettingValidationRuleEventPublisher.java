@@ -5,6 +5,7 @@ import com.promix.platform.messaging.autoconfigure.utils.KafkaUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
@@ -21,6 +22,7 @@ import java.util.Map;
  * - ValidationRuleSettingAppliedEvent: khi setting rule thành công
  * - ValidationRuleSettingFailedEvent: khi setting rule thất bại
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 public class SettingValidationRuleEventPublisher {
 

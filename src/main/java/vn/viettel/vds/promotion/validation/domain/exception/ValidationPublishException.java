@@ -1,29 +1,21 @@
 package vn.viettel.vds.promotion.validation.domain.exception;
 
+import com.promix.platform.core.exception.ExternalServiceException;
+
 /**
  * Exception thrown when publishing validation results fails.
- *
- * @author Validation Team
- * @since 1.0.0
+ * HTTP Status: 502 Bad Gateway
  */
-public class ValidationPublishException extends RuntimeException {
+public class ValidationPublishException extends ExternalServiceException {
 
-    /**
-     * Constructs a new validation publish exception with the specified detail message.
-     *
-     * @param message the detail message
-     */
+    private static final String ERROR_CODE = "VALIDATION_PUBLISH_FAILED";
+    private static final String SERVICE_NAME = "validation-publisher";
+
     public ValidationPublishException(String message) {
-        super(message);
+        super(ERROR_CODE, message);
     }
 
-    /**
-     * Constructs a new validation publish exception with the specified detail message and cause.
-     *
-     * @param message the detail message
-     * @param cause   the cause
-     */
     public ValidationPublishException(String message, Throwable cause) {
-        super(message, cause);
+        super(ERROR_CODE, SERVICE_NAME, message, cause);
     }
 }

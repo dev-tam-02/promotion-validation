@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.valueobject;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleIdException;
+
 import java.util.Objects;
 import java.util.UUID;
 
@@ -12,7 +14,7 @@ public class RuleId {
     private RuleId(String value) {
         Objects.requireNonNull(value, "RuleId cannot be null");
         if (value.trim().isEmpty()) {
-            throw new IllegalArgumentException("RuleId cannot be empty");
+            throw new InvalidRuleIdException("RuleId cannot be empty");
         }
         this.value = value;
     }

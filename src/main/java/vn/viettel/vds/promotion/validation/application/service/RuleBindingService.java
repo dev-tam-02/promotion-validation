@@ -1,10 +1,11 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.core.error.ResponseInfo;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -57,11 +58,8 @@ public class RuleBindingService {
         // Check for duplicate binding
         if (bindingPersistencePort.existsByObjectAndRule(
                 binding.getObjectType(), binding.getObjectId(), binding.getRuleId())) {
-            throw new BusinessException(new ResponseInfo(
-                    "BINDING_ALREADY_EXISTS",
-                    String.format("A binding already exists for object %s/%s and rule %s",
-                            binding.getObjectType(), binding.getObjectId(), binding.getRuleId()),
-                    400));
+            throw new BindingAlreadyExistsException(
+                    binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
         }
 
         // Set defaults
@@ -153,7 +151,7 @@ public class RuleBindingService {
     @Transactional(readOnly = true)
     public RuleBinding getBindingById(String id) {
         return bindingPersistencePort.findById(id)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new BindingNotFoundException(id));
     }
 
     /**
@@ -250,7 +248,7 @@ public class RuleBindingService {
         int deleted = bindingPersistencePort.deleteByObjectAndRule(objectType, objectId, ruleId);
 
         if (deleted == 0) {
-            throw new ResourceNotFoundException();
+            throw new BindingNotFoundException(objectType, objectId, ruleId);
         }
 
         log.info("Rule binding deleted successfully: objectType={}, objectId={}, ruleId={}",
@@ -269,10 +267,7 @@ public class RuleBindingService {
         int updated = bindingPersistencePort.deactivate(id, updatedBy);
 
         if (updated == 0) {
-            throw new BusinessException(new ResponseInfo(
-                    "DEACTIVATION_FAILED",
-                    "Failed to deactivate binding: " + id,
-                    500));
+            throw new BindingDeactivationException(id);
         }
 
         log.info("Rule binding deactivated successfully: id={}", id);
@@ -297,7 +292,7 @@ public class RuleBindingService {
      */
     private void validateRuleExists(String ruleId) {
         if (!rulePersistencePort.existsById(ruleId)) {
-            throw new ResourceNotFoundException();
+            throw new RuleNotFoundException(ruleId);
         }
     }
 

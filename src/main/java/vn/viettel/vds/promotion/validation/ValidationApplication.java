@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation;
 
+import com.promix.platform.outbox.jpa.autoconfigure.PromixOutboxJpaAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
@@ -15,7 +16,8 @@ import vn.viettel.vds.promotion.validation.config.ValidationModuleProperties;
         MongoAutoConfiguration.class,
         MongoDataAutoConfiguration.class,
         MongoReactiveAutoConfiguration.class,
-        MongoReactiveDataAutoConfiguration.class
+        MongoReactiveDataAutoConfiguration.class,
+        PromixOutboxJpaAutoConfiguration.class
 })
 @EnableFeignClients
 @EnableJpaRepositories(basePackages = "vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository")

@@ -7,6 +7,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.application.service.*;
 import vn.viettel.vds.promotion.validation.command.*;
@@ -39,6 +40,7 @@ import vn.viettel.vds.promotion.validation.command.*;
  * @see RollbackValidationRuleCommandHandler
  * @see RevertValidationRuleCommandHandler
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Component
 public class ValidationRuleCommandConsumer {
 

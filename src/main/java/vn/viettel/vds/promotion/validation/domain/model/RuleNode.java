@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleEvaluationException;
 
 import java.util.ArrayList;
@@ -48,18 +49,16 @@ public class RuleNode {
     }
 
     private void validate() {
-        // Allow partial builds for placeholder nodes
-        if (nodeId == null) {
+        // Allow partial builds for placeholder nodes (nodeId null = no-op placeholder, type null = ID-reference placeholder)
+        if (nodeId == null || type == null) {
             return;
         }
-
-        Objects.requireNonNull(type, "NodeType cannot be null");
 
         if (type == NodeType.GROUP) {
             // Group nodes must have groupLogic and children
             Objects.requireNonNull(groupLogic, "GroupLogic cannot be null for GROUP nodes");
             if (children.isEmpty()) {
-                throw new IllegalArgumentException("GROUP node must have at least one child");
+                throw new InvalidRuleStructureException(nodeId, "GROUP node must have at least one child");
             }
         } else if (type == NodeType.COND) {
             // COND nodes must have operatorName and reasonCode
@@ -130,7 +129,7 @@ public class RuleNode {
                 return children.stream().anyMatch(child -> child.evaluate(context));
             case NOT:
                 if (children.size() != 1) {
-                    throw new IllegalStateException("NOT logic must have exactly one child");
+                    throw new InvalidRuleStructureException(nodeId, "NOT logic must have exactly one child");
                 }
                 return !children.get(0).evaluate(context);
             case XOR:

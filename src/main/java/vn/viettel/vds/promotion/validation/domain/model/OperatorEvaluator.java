@@ -1,5 +1,7 @@
 package vn.viettel.vds.promotion.validation.domain.model;
 
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidOperatorException;
+
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Objects;
@@ -16,7 +18,7 @@ public class OperatorEvaluator {
 
     public static boolean evaluate(String operator, Object fieldValue, Object expectedValue) {
         if (operator == null) {
-            throw new IllegalArgumentException("Operator cannot be null");
+            throw new InvalidOperatorException("Operator cannot be null");
         }
 
         return switch (operator.toUpperCase()) {
@@ -181,13 +183,13 @@ public class OperatorEvaluator {
 
         if (expectedValue instanceof Object[] range) {
             if (range.length != 2) {
-                throw new IllegalArgumentException("BETWEEN operator requires exactly 2 values");
+                throw new InvalidOperatorException("BETWEEN", "requires exactly 2 values");
             }
             return evaluateGreaterThanOrEquals(fieldValue, range[0]) &&
                     evaluateLessThanOrEquals(fieldValue, range[1]);
         }
 
-        throw new IllegalArgumentException("BETWEEN operator requires an array of 2 values");
+        throw new InvalidOperatorException("BETWEEN", "requires an array of 2 values");
     }
 
     private static boolean isNumeric(Object value) {

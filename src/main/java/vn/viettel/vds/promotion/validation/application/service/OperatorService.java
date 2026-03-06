@@ -6,11 +6,13 @@ import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-import com.promix.platform.core.error.ResponseInfo;
-import com.promix.platform.core.exception.BusinessException;
-import com.promix.platform.core.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidJsonSchemaException;
+import vn.viettel.vds.promotion.validation.domain.exception.OperatorAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.OperatorFingerprintException;
+import vn.viettel.vds.promotion.validation.domain.exception.OperatorNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.OperatorValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -58,8 +60,7 @@ public class OperatorService {
 
         // Check if operator with same name and version already exists
         if (operatorPersistencePort.existsByTenantIdAndNameAndVersion(null, name, version)) {
-            throw new BusinessException(new ResponseInfo("OPERATOR_EXISTS",
-                    "Operator " + name + "@" + version + " already exists", 400));
+            throw new OperatorAlreadyExistsException(name, version);
         }
 
         // Validate JSON schema
@@ -110,7 +111,7 @@ public class OperatorService {
     @Transactional(readOnly = true)
     public Operator getOperator(String tenantId, String name, Integer version) {
         return operatorPersistencePort.findByTenantIdAndNameAndVersion(tenantId, name, version)
-                .orElseThrow(ResourceNotFoundException::new);
+                .orElseThrow(() -> new OperatorNotFoundException(name, version));
     }
 
     /**
@@ -226,7 +227,7 @@ public class OperatorService {
 
         } catch (Exception e) {
             logger.error("Error calculating operators fingerprint", e);
-            throw new BusinessException(new ResponseInfo("FINGERPRINT_ERROR", "Failed to calculate operators fingerprint", 500));
+            throw new OperatorFingerprintException("Failed to calculate operators fingerprint", e);
         }
     }
 
@@ -235,7 +236,7 @@ public class OperatorService {
             JsonNode schemaNode = objectMapper.valueToTree(jsonSchema);
             schemaFactory.getSchema(schemaNode);
         } catch (Exception e) {
-            throw new BusinessException(new ResponseInfo("INVALID_JSON_SCHEMA", "Invalid JSON schema: " + e.getMessage(), 400));
+            throw new InvalidJsonSchemaException(e.getMessage(), e);
         }
     }
 
@@ -267,16 +268,13 @@ public class OperatorService {
                         .map(ValidateEngineOperatorsResponse.UnsupportedOperator::getReason)
                         .toList();
 
-                String errorMessage = String.format("Operator '%s' version %s is not supported by validation engine. Reasons: %s",
-                        operatorName, version, String.join(", ", reasons));
-
-                throw new BusinessException(new ResponseInfo("VALIDATION_ERROR", errorMessage, 400));
+                throw new OperatorValidationException(operatorName, version, String.join(", ", reasons));
             }
 
             logger.info("Operator {} version {} is supported by validation engine", operatorName, version);
 
-        } catch (BusinessException e) {
-            throw e; // Re-throw business exceptions
+        } catch (OperatorValidationException e) {
+            throw e; // Re-throw validation exceptions
         } catch (Exception e) {
             logger.error("Error validating operator support with validation engine: {}", e.getMessage(), e);
             // In case of integration error, log but don't fail operator creation
