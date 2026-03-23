@@ -13,6 +13,7 @@ import com.promix.platform.core.exception.BusinessRuleException;
  * - {@link CacheSerializationException} for serialization failures
  */
 @Deprecated(since = "1.0.0", forRemoval = true)
+@SuppressWarnings("java:S1133")
 public class ValidationException extends BusinessRuleException {
 
     private static final String ERROR_CODE = "VALIDATION_SERVICE_ERROR";

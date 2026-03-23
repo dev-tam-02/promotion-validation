@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,6 +19,8 @@ import java.util.Map;
         @Index(name = "idx_validation_rules_state_version", columnList = "state, rule_version"),
         @Index(name = "idx_validation_rules_code", columnList = "code", unique = true)
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class ValidationRuleEntity extends BaseEntity {
 
     @Column(name = "code", nullable = false, unique = true, length = 100)

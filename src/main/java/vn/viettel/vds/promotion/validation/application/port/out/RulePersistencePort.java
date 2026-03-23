@@ -48,4 +48,6 @@ public interface RulePersistencePort {
     void delete(Rule rule);
 
     void deleteById(String id);
+
+    void deleteNodesByRuleId(String ruleId);
 }

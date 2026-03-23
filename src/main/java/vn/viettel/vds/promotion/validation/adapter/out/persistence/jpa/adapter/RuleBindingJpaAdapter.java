@@ -217,4 +217,11 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
         return repository.findByObjectTypeAndObjectIdAndRuleId(objectType, objectId, ruleId)
                 .map(mapper::toDomain);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByRuleId(String ruleId) {
+        log.debug("Counting all bindings for rule: ruleId={}", ruleId);
+        return repository.countByRuleId(ruleId);
+    }
 }

@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,6 +13,8 @@ import lombok.Setter;
         @Index(name = "idx_rule_time_frames_rule_id", columnList = "validation_rule_id"),
         @Index(name = "idx_rule_time_frames_frame_id", columnList = "time_frame_id")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class RuleTimeFrameEntity extends BaseEntity {
 
     @Column(name = "time_frame_id", nullable = false, length = 100)

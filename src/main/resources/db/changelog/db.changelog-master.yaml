@@ -28,3 +28,7 @@ databaseChangeLog:
   # Allow nullable rule_id for time-policy-only bindings
   - include:
       file: db/changelog/changes/023-allow-nullable-rule-id-in-bindings.yaml
+
+  # Add context and description columns to validation_rules
+  - include:
+      file: db/changelog/changes/024-add-context-to-validation-rules.yaml

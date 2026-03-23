@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.promix.platform.jpa.converter.ListStringConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +18,8 @@ import java.util.List;
         @Index(name = "idx_publish_jobs_rule_ver", columnList = "rule_id, target_version"),
         @Index(name = "idx_publish_jobs_status_time", columnList = "status, requested_at")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class PublishJobEntity extends BaseEntity {
 
     @Column(name = "rule_id", nullable = false, length = 100)

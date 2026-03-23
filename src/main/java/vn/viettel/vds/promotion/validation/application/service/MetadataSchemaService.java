@@ -82,7 +82,7 @@ public class MetadataSchemaService {
                 .fieldName(request.fieldName())
                 .fieldType(request.fieldType())
                 .availableValues(request.availableValues())
-                .required(request.required() != null ? request.required() : false)
+                .required(Boolean.TRUE.equals(request.required()))
                 .displayOrder((int) count)
                 .active(true)
                 .createdAt(Instant.now())

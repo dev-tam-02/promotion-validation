@@ -32,8 +32,6 @@ public class StackableDiscountValidationService {
 
     private static final Logger log = LoggerFactory.getLogger(StackableDiscountValidationService.class);
 
-    private static final BigDecimal MAX_DISCOUNT_PERCENTAGE = new BigDecimal("100");
-    private static final BigDecimal MIN_FINAL_AMOUNT = BigDecimal.ZERO;
     private static final int DEFAULT_SCALE = 2;
 
     /**

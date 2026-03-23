@@ -226,7 +226,6 @@ public class OperatorService {
             return "sha256:" + hexString.toString();
 
         } catch (Exception e) {
-            logger.error("Error calculating operators fingerprint", e);
             throw new OperatorFingerprintException("Failed to calculate operators fingerprint", e);
         }
     }

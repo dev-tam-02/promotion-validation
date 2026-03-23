@@ -4,6 +4,7 @@ import com.promix.platform.jpa.converter.ListStringConverter;
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,6 +22,8 @@ import java.util.Map;
         @Index(name = "idx_rule_versions_bundle_hash", columnList = "bundle_hash"),
         @Index(name = "idx_rule_versions_code_version", columnList = "code, rule_version")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class RuleVersionEntity extends BaseEntity {
 
     @Column(name = "rule_id", nullable = false, length = 100)

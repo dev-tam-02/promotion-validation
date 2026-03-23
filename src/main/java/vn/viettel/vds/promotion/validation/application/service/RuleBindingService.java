@@ -328,10 +328,6 @@ public class RuleBindingService {
         }
 
         // Check traffic control
-        if (trafficKey != null && !binding.shouldApplyToTraffic(trafficKey)) {
-            return false;
-        }
-
-        return true;
+        return trafficKey == null || binding.shouldApplyToTraffic(trafficKey);
     }
 }

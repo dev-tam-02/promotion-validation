@@ -3,16 +3,18 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
 import java.util.Map;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "reason_codes")
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class ReasonCodeEntity extends BaseEntity {
 
     @Column(name = "category", length = 100)
@@ -26,9 +28,6 @@ public class ReasonCodeEntity extends BaseEntity {
     @Column(name = "labels", columnDefinition = "TEXT")
     @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
     private Map<String, Object> labels;
-
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
 
     public enum Severity {
         INFO, WARN, ERROR

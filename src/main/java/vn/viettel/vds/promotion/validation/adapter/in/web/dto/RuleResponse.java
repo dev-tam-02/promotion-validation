@@ -26,6 +26,26 @@ public class RuleResponse {
     @JsonProperty("state")
     private String state;
 
+    @Schema(description = "Rule context", example = "ORDER")
+    @JsonProperty("context")
+    private String context;
+
+    @Schema(description = "Rule description")
+    @JsonProperty("description")
+    private String description;
+
+    @Schema(description = "Number of condition nodes in the rule")
+    @JsonProperty("nodeCount")
+    private Integer nodeCount;
+
+    @Schema(description = "Number of campaigns assigned to this rule")
+    @JsonProperty("assignmentCount")
+    private Long assignmentCount;
+
+    @Schema(description = "Optimistic locking version")
+    @JsonProperty("version")
+    private Long version;
+
     @Schema(description = "Latest published version", example = "3")
     @JsonProperty("latestVersion")
     private Integer latestVersion;
@@ -50,19 +70,83 @@ public class RuleResponse {
     @JsonProperty("createdAt")
     private Instant createdAt;
 
-    @Schema(description = "Creator")
+    @Schema(description = "Creator user ID")
     @JsonProperty("createdBy")
     private String createdBy;
+
+    @Schema(description = "Creator display name")
+    @JsonProperty("createdByName")
+    private String createdByName;
 
     @Schema(description = "Last update timestamp")
     @JsonProperty("updatedAt")
     private Instant updatedAt;
 
-    @Schema(description = "Last updater")
+    @Schema(description = "Last updater user ID")
     @JsonProperty("updatedBy")
     private String updatedBy;
 
+    @Schema(description = "Last updater display name")
+    @JsonProperty("updatedByName")
+    private String updatedByName;
+
     // Getters and setters
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public Integer getNodeCount() {
+        return nodeCount;
+    }
+
+    public void setNodeCount(Integer nodeCount) {
+        this.nodeCount = nodeCount;
+    }
+
+    public Long getAssignmentCount() {
+        return assignmentCount;
+    }
+
+    public void setAssignmentCount(Long assignmentCount) {
+        this.assignmentCount = assignmentCount;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public String getCreatedByName() {
+        return createdByName;
+    }
+
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
+    }
+
+    public String getUpdatedByName() {
+        return updatedByName;
+    }
+
+    public void setUpdatedByName(String updatedByName) {
+        this.updatedByName = updatedByName;
+    }
+
     public String getRuleId() {
         return ruleId;
     }

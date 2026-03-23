@@ -125,6 +125,11 @@ public interface RuleBindingPersistencePort {
     long countActiveByRuleId(String ruleId);
 
     /**
+     * Count all bindings (active and inactive) for a rule
+     */
+    long countByRuleId(String ruleId);
+
+    /**
      * Count bindings by active status
      */
     long countByActive(boolean active);

@@ -37,6 +37,7 @@ public class Rule {
     // Descriptive Information
     private String name;
     private String description;
+    private String context;
     private String notes;
 
     // State Management

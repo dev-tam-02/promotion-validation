@@ -10,6 +10,7 @@ import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -46,8 +47,11 @@ public class HybridFactCacheService implements FactCacheService {
         String versionedKey = getCacheKeyWithVersion(key, CACHE_VERSION);
 
         // Try L1 cache first
-        return l1Cache.getIfPresent(versionedKey)
-                .thenCompose(cachedValue -> {
+        CompletableFuture<Object> l1Result = l1Cache.getIfPresent(versionedKey);
+        if (l1Result == null) {
+            l1Result = CompletableFuture.completedFuture(null);
+        }
+        return l1Result.thenCompose(cachedValue -> {
                     if (cachedValue != null) {
                         log.debug("L1 cache hit for key: {}", versionedKey);
                         return CompletableFuture.completedFuture(cachedValue);
@@ -139,8 +143,11 @@ public class HybridFactCacheService implements FactCacheService {
         String versionedKey = getCacheKeyWithVersion(key, CACHE_VERSION);
 
         // Check L1 first
-        return l1Cache.getIfPresent(versionedKey)
-                .thenCompose(cachedValue -> {
+        CompletableFuture<Object> l1Exists = l1Cache.getIfPresent(versionedKey);
+        if (l1Exists == null) {
+            l1Exists = CompletableFuture.completedFuture(null);
+        }
+        return l1Exists.thenCompose(cachedValue -> {
                     if (cachedValue != null) {
                         return CompletableFuture.completedFuture(true);
                     } else {
@@ -167,7 +174,7 @@ public class HybridFactCacheService implements FactCacheService {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            throw new vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException("Failed to serialize cache value", e);
+            throw new CacheSerializationException("Failed to serialize cache value", e);
         }
     }
 
@@ -175,7 +182,7 @@ public class HybridFactCacheService implements FactCacheService {
         try {
             return objectMapper.readValue(json, Object.class);
         } catch (JsonProcessingException e) {
-            throw new vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException("Failed to deserialize cache value", e);
+            throw new CacheSerializationException("Failed to deserialize cache value", e);
         }
     }
 }

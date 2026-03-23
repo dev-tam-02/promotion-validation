@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,8 @@ import java.util.Map;
 @Table(name = "operator_registry", indexes = {
         @Index(name = "idx_operator_registry_context", columnList = "context")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class OperatorRegistryEntity extends BaseEntity {
 
     @Column(name = "context", nullable = false, length = 100)

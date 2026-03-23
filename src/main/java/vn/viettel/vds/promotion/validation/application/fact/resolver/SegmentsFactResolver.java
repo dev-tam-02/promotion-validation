@@ -5,7 +5,8 @@ import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import java.time.Instant;
+import vn.viettel.vds.promotion.validation.domain.exception.FactResolutionException;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.SegmentsFact;
 
@@ -65,12 +66,12 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
             return SegmentsFact.builder()
                     .segmentIds(segmentIdsList)
                     .segments(null) // Segment details can be populated later if needed
-                    .evaluatedAt(java.time.Instant.now())
+                    .evaluatedAt(Instant.now())
                     .evaluationContext("SegmentsFact resolution for customer: " + customerId)
                     .build();
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to resolve segments for customer: " + customerId + " - " + e.getMessage(), e);
+            throw new FactResolutionException("Failed to resolve segments for customer: " + customerId + " - " + e.getMessage(), e);
         }
     }
 
@@ -105,12 +106,12 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
             return SegmentsFact.builder()
                     .segmentIds(segmentIdsList)
                     .segments(null) // Segment details can be populated later if needed
-                    .evaluatedAt(java.time.Instant.now())
+                    .evaluatedAt(Instant.now())
                     .evaluationContext("SegmentsFact resolution from embedded payload for customer: " + customerId)
                     .build();
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to resolve segments from embedded payload: " + e.getMessage(), e);
+            throw new FactResolutionException("Failed to resolve segments from embedded payload: " + e.getMessage(), e);
         }
     }
 
@@ -123,7 +124,7 @@ public class SegmentsFactResolver extends AbstractFactResolver<SegmentsFact> {
         return SegmentsFact.builder()
                 .segmentIds(new ArrayList<>())
                 .segments(null)
-                .evaluatedAt(java.time.Instant.now())
+                .evaluatedAt(Instant.now())
                 .evaluationContext("Fallback empty segments for customer: " + request.customerId())
                 .build();
     }

@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 024-add-context-to-validation-rules
+      author: dev-be
+      changes:
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: context
+                  type: VARCHAR(100)
+                  remarks: "Rule context (ORDER, CUSTOMER, VOUCHER, CAMPAIGN, PRODUCT, REDEMPTION)"
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: description
+                  type: VARCHAR(1000)
+                  remarks: "Rule description (max 1000 characters)"

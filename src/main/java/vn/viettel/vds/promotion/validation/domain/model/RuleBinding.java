@@ -32,6 +32,8 @@ import java.util.List;
 @AllArgsConstructor
 public class RuleBinding {
 
+    private static final String DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
+
     // ========== Identity ==========
     private String id;
 
@@ -85,7 +87,7 @@ public class RuleBinding {
      * Timezone for time evaluations
      */
     @Builder.Default
-    private String timezone = "Asia/Ho_Chi_Minh";
+    private String timezone = DEFAULT_TIMEZONE;
 
     /**
      * RFC 5545 recurrence rule.
@@ -233,7 +235,7 @@ public class RuleBinding {
 
         // Check excluded dates
         if (excludedDates != null && !excludedDates.isEmpty()) {
-            ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone != null ? timezone : "Asia/Ho_Chi_Minh"));
+            ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone != null ? timezone : DEFAULT_TIMEZONE));
             String dateStr = zonedTime.toLocalDate().toString();
             if (excludedDates.contains(dateStr)) {
                 return false;
@@ -259,7 +261,7 @@ public class RuleBinding {
      * Check if current time falls within any of the time windows
      */
     private boolean isWithinTimeWindows(Instant timestamp) {
-        ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone != null ? timezone : "Asia/Ho_Chi_Minh"));
+        ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone != null ? timezone : DEFAULT_TIMEZONE));
         int currentMinutes = zonedTime.getHour() * 60 + zonedTime.getMinute();
 
         for (TimeWindow window : timeWindows) {
@@ -293,52 +295,35 @@ public class RuleBinding {
      * @return true if the binding applies to this product
      */
     public boolean appliesToProduct(String productId, String categoryId, String brandId) {
-        // If includedAll is true, apply to all products (but check exclusions)
         if (Boolean.TRUE.equals(includedAll)) {
-            // Check exclusions
-            if (excludedProducts != null && excludedProducts.contains(productId)) {
-                return false;
-            }
-            if (categoryId != null && excludedCategories != null && excludedCategories.contains(categoryId)) {
-                return false;
-            }
-            if (brandId != null && excludedBrands != null && excludedBrands.contains(brandId)) {
-                return false;
-            }
-            return true;
+            return !isExcludedByAny(productId, categoryId, brandId);
         }
+        return isIncludedByProduct(productId)
+                || isIncludedByCategory(productId, categoryId)
+                || isIncludedByBrand(productId, brandId);
+    }
 
-        // If not includedAll, must be explicitly included
-        if (includedProducts != null && includedProducts.contains(productId)) {
-            // But still check exclusions
-            if (excludedProducts != null && excludedProducts.contains(productId)) {
-                return false;
-            }
-            return true;
-        }
+    private boolean isExcludedByAny(String productId, String categoryId, String brandId) {
+        return (excludedProducts != null && excludedProducts.contains(productId))
+                || (categoryId != null && excludedCategories != null && excludedCategories.contains(categoryId))
+                || (brandId != null && excludedBrands != null && excludedBrands.contains(brandId));
+    }
 
-        if (categoryId != null && includedCategories != null && includedCategories.contains(categoryId)) {
-            if (excludedCategories != null && excludedCategories.contains(categoryId)) {
-                return false;
-            }
-            if (excludedProducts != null && excludedProducts.contains(productId)) {
-                return false;
-            }
-            return true;
-        }
+    private boolean isIncludedByProduct(String productId) {
+        return includedProducts != null && includedProducts.contains(productId)
+                && (excludedProducts == null || !excludedProducts.contains(productId));
+    }
 
-        if (brandId != null && includedBrands != null && includedBrands.contains(brandId)) {
-            if (excludedBrands != null && excludedBrands.contains(brandId)) {
-                return false;
-            }
-            if (excludedProducts != null && excludedProducts.contains(productId)) {
-                return false;
-            }
-            return true;
-        }
+    private boolean isIncludedByCategory(String productId, String categoryId) {
+        return categoryId != null && includedCategories != null && includedCategories.contains(categoryId)
+                && (excludedCategories == null || !excludedCategories.contains(categoryId))
+                && (excludedProducts == null || !excludedProducts.contains(productId));
+    }
 
-        // No inclusion match found
-        return false;
+    private boolean isIncludedByBrand(String productId, String brandId) {
+        return brandId != null && includedBrands != null && includedBrands.contains(brandId)
+                && (excludedBrands == null || !excludedBrands.contains(brandId))
+                && (excludedProducts == null || !excludedProducts.contains(productId));
     }
 
     /**

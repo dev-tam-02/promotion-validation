@@ -9,6 +9,9 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersi
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
@@ -21,6 +24,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ObjectValidityService {
+
+    private static final String TIME_VALIDATION_FAILED = "TIME_VALIDATION_FAILED";
+    private static final String DEFAULT_TIMEZONE = "Asia/Ho_Chi_Minh";
 
     private final RuleBindingPersistencePort ruleBindingPort;
 
@@ -40,62 +46,25 @@ public class ObjectValidityService {
                 request.objectType(), request.objectId());
 
         try {
-            // Get rule bindings for this object
             List<RuleBinding> bindings = ruleBindingPort.findByObject(
                     request.objectType(),
                     request.objectId()
             );
 
-            // If no binding configured -> PASS (no time restriction)
             if (bindings.isEmpty()) {
                 log.info("No rule binding found for {}:{}, considering as VALID (no time restriction)",
                         request.objectType(), request.objectId());
                 return ValidationResult.success();
             }
 
-            // Check each binding's temporal constraints
             Instant currentInstant = request.currentDateTime() != null
                     ? request.currentDateTime().toInstant()
                     : Instant.now();
 
             for (RuleBinding binding : bindings) {
-                // Skip if binding has no temporal constraints
-                if (!binding.hasTemporalConstraints()) {
-                    continue;
-                }
-
-                // Check if within time range
-                if (binding.getValidFrom() != null && currentInstant.isBefore(binding.getValidFrom())) {
-                    log.info("Object {}:{} is not yet active (starts at {})",
-                            request.objectType(), request.objectId(), binding.getValidFrom());
-                    return ValidationResult.failure(
-                            "TIME_VALIDATION_FAILED",
-                            String.format("Object %s:%s is not yet active (starts at %s)",
-                                    request.objectType(), request.objectId(), binding.getValidFrom())
-                    );
-                }
-
-                if (binding.getValidTo() != null && currentInstant.isAfter(binding.getValidTo())) {
-                    log.info("Object {}:{} has expired (ended at {})",
-                            request.objectType(), request.objectId(), binding.getValidTo());
-                    return ValidationResult.failure(
-                            "TIME_VALIDATION_FAILED",
-                            String.format("Object %s:%s has expired (ended at %s)",
-                                    request.objectType(), request.objectId(), binding.getValidTo())
-                    );
-                }
-
-                // Check if within daily time windows
-                if (binding.getTimeWindows() != null && !binding.getTimeWindows().isEmpty()) {
-                    if (!isWithinTimeWindows(currentInstant, binding)) {
-                        log.info("Object {}:{} is outside active time windows",
-                                request.objectType(), request.objectId());
-                        return ValidationResult.failure(
-                                "TIME_VALIDATION_FAILED",
-                                String.format("Object %s:%s is outside active time windows",
-                                        request.objectType(), request.objectId())
-                        );
-                    }
+                ValidationResult result = checkTemporalConstraint(binding, currentInstant, request);
+                if (!result.isValid()) {
+                    return result;
                 }
             }
 
@@ -109,18 +78,56 @@ public class ObjectValidityService {
         }
     }
 
-    private boolean isWithinTimeWindows(Instant currentInstant, RuleBinding binding) {
-        // Simple implementation - check if current time of day is within any window
-        // For full implementation, would need to handle timezone and day of week
-        String timezone = binding.getTimezone() != null ? binding.getTimezone() : "Asia/Ho_Chi_Minh";
+    private ValidationResult checkTemporalConstraint(RuleBinding binding, Instant currentInstant,
+                                                      ValidateObjectValidityRequest request) {
+        if (!binding.hasTemporalConstraints()) {
+            return ValidationResult.success();
+        }
 
-        java.time.ZonedDateTime zdt = currentInstant.atZone(java.time.ZoneId.of(timezone));
-        java.time.LocalTime currentTime = zdt.toLocalTime();
+        if (binding.getValidFrom() != null && currentInstant.isBefore(binding.getValidFrom())) {
+            log.info("Object {}:{} is not yet active (starts at {})",
+                    request.objectType(), request.objectId(), binding.getValidFrom());
+            return ValidationResult.failure(
+                    TIME_VALIDATION_FAILED,
+                    String.format("Object %s:%s is not yet active (starts at %s)",
+                            request.objectType(), request.objectId(), binding.getValidFrom())
+            );
+        }
+
+        if (binding.getValidTo() != null && currentInstant.isAfter(binding.getValidTo())) {
+            log.info("Object {}:{} has expired (ended at {})",
+                    request.objectType(), request.objectId(), binding.getValidTo());
+            return ValidationResult.failure(
+                    TIME_VALIDATION_FAILED,
+                    String.format("Object %s:%s has expired (ended at %s)",
+                            request.objectType(), request.objectId(), binding.getValidTo())
+            );
+        }
+
+        if (binding.getTimeWindows() != null && !binding.getTimeWindows().isEmpty()
+                && !isWithinTimeWindows(currentInstant, binding)) {
+            log.info("Object {}:{} is outside active time windows",
+                    request.objectType(), request.objectId());
+            return ValidationResult.failure(
+                    TIME_VALIDATION_FAILED,
+                    String.format("Object %s:%s is outside active time windows",
+                            request.objectType(), request.objectId())
+            );
+        }
+
+        return ValidationResult.success();
+    }
+
+    private boolean isWithinTimeWindows(Instant currentInstant, RuleBinding binding) {
+        String timezone = binding.getTimezone() != null ? binding.getTimezone() : DEFAULT_TIMEZONE;
+
+        ZonedDateTime zdt = currentInstant.atZone(ZoneId.of(timezone));
+        LocalTime currentTime = zdt.toLocalTime();
 
         for (RuleBinding.TimeWindow window : binding.getTimeWindows()) {
             try {
-                java.time.LocalTime startTime = java.time.LocalTime.parse(window.getStart());
-                java.time.LocalTime endTime = java.time.LocalTime.parse(window.getEnd());
+                LocalTime startTime = LocalTime.parse(window.getStart());
+                LocalTime endTime = LocalTime.parse(window.getEnd());
 
                 if (!currentTime.isBefore(startTime) && !currentTime.isAfter(endTime)) {
                     return true;

@@ -56,10 +56,16 @@ public class RuleResponseMapper {
         response.setLimits(usageLimitsToMap(rule.getLimits()));
         response.setNodes(ruleNodesToDto(rule.getNodes()));
         response.setNotes(rule.getNotes());
+        response.setContext(rule.getContext());
+        response.setDescription(rule.getDescription());
+        response.setVersion(rule.getVersion());
+        response.setNodeCount(rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0);
         response.setCreatedAt(rule.getCreatedAt());
         response.setCreatedBy(rule.getCreatedBy());
+        response.setCreatedByName(rule.getCreatedBy()); // Fallback to userId until Keycloak integration
         response.setUpdatedAt(rule.getUpdatedAt());
         response.setUpdatedBy(rule.getUpdatedBy());
+        response.setUpdatedByName(rule.getUpdatedBy()); // Fallback to userId until Keycloak integration
 
         return response;
     }
@@ -202,6 +208,20 @@ public class RuleResponseMapper {
         } catch (IllegalArgumentException e) {
             return null; // Return null for invalid values
         }
+    }
+
+    /**
+     * Counts total nodes (including nested children) in a node list.
+     */
+    private int countAllNodes(List<RuleNode> nodes) {
+        int count = 0;
+        for (RuleNode node : nodes) {
+            count++;
+            if (node.getChildren() != null) {
+                count += countAllNodes(node.getChildren());
+            }
+        }
+        return count;
     }
 
     /**

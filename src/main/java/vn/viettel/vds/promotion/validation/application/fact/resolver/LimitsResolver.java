@@ -6,7 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.FactResolutionException;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.LimitsFact;
 
@@ -87,9 +87,9 @@ public class LimitsResolver extends AbstractFactResolver<LimitsFact> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Restore interrupted state
-            throw new ValidationException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
+            throw new FactResolutionException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         } catch (Exception e) {
-            throw new ValidationException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
+            throw new FactResolutionException("Failed to resolve limits facts for customerId: " + request.customerId(), e);
         }
     }
 

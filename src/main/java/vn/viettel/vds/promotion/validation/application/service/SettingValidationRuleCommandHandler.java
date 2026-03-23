@@ -23,7 +23,6 @@ import vn.viettel.vds.promotion.validation.domain.common.Result;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -259,57 +258,53 @@ public class SettingValidationRuleCommandHandler {
                 .updatedBy("system")
                 .version(0L);
 
-        // Process applicability data
-        if (components.applicableToData() != null) {
-            ApplicabilityScope scope = components.applicableToData();
-            builder.includedAll(Boolean.TRUE.equals(scope.getIncludedAll()));
-
-            if (scope.getIncluded() != null && !scope.getIncluded().isEmpty()) {
-                List<String> includedIds = scope.getIncluded().stream()
-                        .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                        .collect(Collectors.toList());
-                builder.includedProducts(includedIds);
-            }
-
-            if (scope.getExcluded() != null && !scope.getExcluded().isEmpty()) {
-                List<String> excludedIds = scope.getExcluded().stream()
-                        .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                        .collect(Collectors.toList());
-                builder.excludedProducts(excludedIds);
-            }
-        }
-
-        // Process timeframe data
-        if (components.timeframeData() != null) {
-            TimeFrame timeframe = components.timeframeData();
-            builder.timezone(timeframe.getTimezone() != null ? timeframe.getTimezone() : "Asia/Ho_Chi_Minh");
-
-            // Process validity timeframe
-            if (timeframe.getValidityTimeframe() != null) {
-                var validity = timeframe.getValidityTimeframe();
-                builder.validFrom(validity.getStartDate());
-                builder.validTo(validity.getExpirationDate());
-            }
-
-            // Process validity days of week as RRULE
-            if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
-                String rrule = buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek());
-                builder.rrule(rrule);
-            }
-
-            // Process validity hours per day as time windows
-            if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
-                List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
-                        .map(hours -> RuleBinding.TimeWindow.builder()
-                                .start(extractTimeOnly(hours.getStartTime()))
-                                .end(extractTimeOnly(hours.getExpirationTime()))
-                                .build())
-                        .collect(Collectors.toList());
-                builder.timeWindows(windows);
-            }
-        }
+        applyApplicabilityData(builder, components.applicableToData());
+        applyTimeframeData(builder, components.timeframeData());
 
         return builder.build();
+    }
+
+    private void applyApplicabilityData(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
+        if (scope == null) {
+            return;
+        }
+        builder.includedAll(Boolean.TRUE.equals(scope.getIncludedAll()));
+        if (scope.getIncluded() != null && !scope.getIncluded().isEmpty()) {
+            List<String> includedIds = scope.getIncluded().stream()
+                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
+                    .collect(Collectors.toList());
+            builder.includedProducts(includedIds);
+        }
+        if (scope.getExcluded() != null && !scope.getExcluded().isEmpty()) {
+            List<String> excludedIds = scope.getExcluded().stream()
+                    .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
+                    .collect(Collectors.toList());
+            builder.excludedProducts(excludedIds);
+        }
+    }
+
+    private void applyTimeframeData(RuleBinding.RuleBindingBuilder builder, TimeFrame timeframe) {
+        if (timeframe == null) {
+            return;
+        }
+        builder.timezone(timeframe.getTimezone() != null ? timeframe.getTimezone() : "Asia/Ho_Chi_Minh");
+        if (timeframe.getValidityTimeframe() != null) {
+            var validity = timeframe.getValidityTimeframe();
+            builder.validFrom(validity.getStartDate());
+            builder.validTo(validity.getExpirationDate());
+        }
+        if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
+            builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
+        }
+        if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
+            List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
+                    .map(hours -> RuleBinding.TimeWindow.builder()
+                            .start(extractTimeOnly(hours.getStartTime()))
+                            .end(extractTimeOnly(hours.getExpirationTime()))
+                            .build())
+                    .collect(Collectors.toList());
+            builder.timeWindows(windows);
+        }
     }
 
     private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {

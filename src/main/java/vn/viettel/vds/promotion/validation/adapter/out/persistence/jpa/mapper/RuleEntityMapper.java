@@ -135,10 +135,12 @@ public interface RuleEntityMapper {
     @Mapping(target = "bundleHash", source = "bundleHash")
     @Mapping(target = "publishedAt", source = "publishedAt")
     @Mapping(target = "publishedBy", source = "publishedBy")
+    @Mapping(target = "context", source = "context")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "version", source = "version")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
     @Mapping(target = "ruleCode", ignore = true)
-    @Mapping(target = "description", ignore = true)
     @Mapping(target = "notes", ignore = true)        // No longer exists in entity
     @Mapping(target = "active", ignore = true)
     @Mapping(target = "latestVersion", ignore = true) // No longer exists in entity
@@ -149,7 +151,6 @@ public interface RuleEntityMapper {
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "campaignId", ignore = true)
     @Mapping(target = "ruleSetId", ignore = true)
-    @Mapping(target = "version", ignore = true)
     Rule toDomain(RuleJpaEntity entity);
 
     @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")

@@ -149,6 +149,11 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     long countByRuleIdAndActive(String ruleId, Boolean active);
 
     /**
+     * Count all bindings (active and inactive) for a rule
+     */
+    long countByRuleId(String ruleId);
+
+    /**
      * Count bindings by active status
      */
     long countByActive(Boolean active);

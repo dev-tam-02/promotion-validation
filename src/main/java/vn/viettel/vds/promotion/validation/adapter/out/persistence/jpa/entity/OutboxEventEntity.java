@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.*;
 import lombok.*;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.CacheSerializationException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -92,7 +92,7 @@ public class OutboxEventEntity {
             return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException e) {
-            throw new ValidationException("Failed to deserialize payload", e);
+            throw new CacheSerializationException("Failed to deserialize payload", e);
         }
     }
 
@@ -107,7 +107,7 @@ public class OutboxEventEntity {
         try {
             this.payload = objectMapper.writeValueAsString(payloadMap);
         } catch (JsonProcessingException e) {
-            throw new ValidationException("Failed to serialize payload", e);
+            throw new CacheSerializationException("Failed to serialize payload", e);
         }
     }
 
@@ -122,7 +122,7 @@ public class OutboxEventEntity {
             return objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
             });
         } catch (JsonProcessingException e) {
-            throw new ValidationException("Failed to deserialize metadata", e);
+            throw new CacheSerializationException("Failed to deserialize metadata", e);
         }
     }
 
@@ -137,7 +137,7 @@ public class OutboxEventEntity {
         try {
             this.metadata = objectMapper.writeValueAsString(metadataMap);
         } catch (JsonProcessingException e) {
-            throw new ValidationException("Failed to serialize metadata", e);
+            throw new CacheSerializationException("Failed to serialize metadata", e);
         }
     }
 }

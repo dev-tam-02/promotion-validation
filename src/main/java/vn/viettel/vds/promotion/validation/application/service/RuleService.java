@@ -8,13 +8,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
+import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateTransitionException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
+import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -23,6 +28,7 @@ import com.promix.platform.core.util.IdGenerator;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -30,17 +36,19 @@ import java.util.Optional;
 public class RuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleService.class);
-    private static final String INVALID_RULE_STRUCTURE_CODE = "INVALID_RULE_STRUCTURE";
 
     private final RulePersistencePort rulePersistencePort;
     private final RuleBindingPersistencePort ruleBindingPort;
+    private final OutboxEventPersistencePort outboxEventPort;
     private final RuleService self;
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
+                       OutboxEventPersistencePort outboxEventPort,
                        @Lazy RuleService self) {
         this.rulePersistencePort = rulePersistencePort;
         this.ruleBindingPort = ruleBindingPort;
+        this.outboxEventPort = outboxEventPort;
         this.self = self;
     }
 
@@ -79,7 +87,7 @@ public class RuleService {
         validateRuleNodes(nodes);
 
         Rule rule = new Rule();
-        rule.setId(generateRuleId(code));
+        rule.setId(generateRuleId());
         rule.setCode(code);
         rule.setName(name);
         rule.setState(Rule.RuleState.DRAFT);
@@ -262,6 +270,57 @@ public class RuleService {
     }
 
     /**
+     * Delete a rule permanently (hard delete) with optimistic locking.
+     * SRS VRUL005: Delete rule_nodes → delete validation_rules → insert VALIDATION_RULE_DELETED outbox event
+     */
+    @Transactional
+    public void deleteRule(String ruleId, long version) {
+        logger.info("Deleting rule: id={}, version={}", ruleId, version);
+
+        // Step 1: Check rule exists
+        Rule rule = rulePersistencePort.findById(ruleId)
+                .orElseThrow(() -> {
+                    logger.warn("Rule not found for delete: id={}", ruleId);
+                    return new RuleNotFoundException(ruleId);
+                });
+
+        // Step 2: Check version (optimistic locking)
+        Long currentVersion = rule.getVersion();
+        if (currentVersion != null && currentVersion != version) {
+            logger.warn("Version conflict on delete: id={}, expected={}, actual={}", ruleId, version, currentVersion);
+            throw new InvalidVersionFormatException(
+                    String.format("Version conflict: expected %d but found %d", version, currentVersion)
+            );
+        }
+
+        // Step 3: Check no bindings exist
+        long bindingCount = ruleBindingPort.countByRuleId(ruleId);
+        if (bindingCount > 0) {
+            logger.warn("Cannot delete rule with bindings: id={}, bindingCount={}", ruleId, bindingCount);
+            throw new RuleHasBindingsException(ruleId, bindingCount);
+        }
+
+        // Step 4: Transaction - delete nodes, delete rule, insert outbox event
+        rulePersistencePort.deleteNodesByRuleId(ruleId);
+        rulePersistencePort.deleteById(ruleId);
+
+        OutboxEvent deletedEvent = OutboxEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregateType("ValidationRule")
+                .aggregateId(ruleId)
+                .eventType("VALIDATION_RULE_DELETED")
+                .payload(Map.of("ruleId", ruleId, "deletedAt", Instant.now().toString()))
+                .status(OutboxEventStatus.PENDING)
+                .attempts(0)
+                .maxAttempts(3)
+                .createdAt(Instant.now())
+                .build();
+        outboxEventPort.save(deletedEvent);
+
+        logger.info("Rule deleted successfully: id={}", ruleId);
+    }
+
+    /**
      * Mark rule as published (called by PublishService)
      */
     public Rule markRuleAsPublished(String ruleId, int newVersion) {
@@ -315,7 +374,7 @@ public class RuleService {
         }
     }
 
-    private String generateRuleId(String code) {
+    private String generateRuleId() {
         return IdGenerator.generateId();
     }
 

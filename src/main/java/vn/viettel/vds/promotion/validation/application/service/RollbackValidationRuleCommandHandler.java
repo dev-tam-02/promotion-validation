@@ -11,15 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -36,9 +33,6 @@ public class RollbackValidationRuleCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(RollbackValidationRuleCommandHandler.class);
 
     private final RuleBindingPersistencePort ruleBindingPort;
-    private final ValidationRuleRepositoryPort validationRulePort;
-    @SuppressWarnings("unused")
-    private final ValidationEnginePort validationEnginePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
     private final Validator validator;
@@ -46,15 +40,11 @@ public class RollbackValidationRuleCommandHandler {
 
     public RollbackValidationRuleCommandHandler(
             RuleBindingPersistencePort ruleBindingPort,
-            ValidationRuleRepositoryPort validationRulePort,
-            ValidationEnginePort validationEnginePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
             Validator validator,
             RollbackValidationRuleCommandDTOMapper dtoMapper) {
         this.ruleBindingPort = ruleBindingPort;
-        this.validationRulePort = validationRulePort;
-        this.validationEnginePort = validationEnginePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
         this.validator = validator;

@@ -8,12 +8,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -29,17 +27,14 @@ public class DisableValidationRuleCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(DisableValidationRuleCommandHandler.class);
 
     private final RuleBindingPersistencePort ruleBindingPort;
-    private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
 
     public DisableValidationRuleCommandHandler(
             RuleBindingPersistencePort ruleBindingPort,
-            ValidationRuleRepositoryPort validationRulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService) {
         this.ruleBindingPort = ruleBindingPort;
-        this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
     }

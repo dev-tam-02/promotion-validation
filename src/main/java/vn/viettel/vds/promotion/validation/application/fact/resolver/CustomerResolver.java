@@ -6,7 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.FactResolutionException;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 
@@ -82,9 +82,9 @@ public class CustomerResolver extends AbstractFactResolver<CustomerFact> {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Restore interrupted state
-            throw new ValidationException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
+            throw new FactResolutionException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
         } catch (Exception e) {
-            throw new ValidationException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
+            throw new FactResolutionException("Failed to resolve customer facts for customerId: " + request.customerId(), e);
         }
     }
 

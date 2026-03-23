@@ -8,19 +8,20 @@ import com.promix.platform.core.exception.ResourceNotFoundException;
 public class BindingNotFoundException extends ResourceNotFoundException {
 
     private static final String ERROR_CODE = "BINDING_NOT_FOUND";
+    private static final String ENTITY_NAME = "Binding";
 
     public BindingNotFoundException(String bindingId) {
-        super(ERROR_CODE, "Binding", bindingId);
+        super(ERROR_CODE, ENTITY_NAME, bindingId);
     }
 
     public BindingNotFoundException(String objectType, String objectId, String ruleId) {
-        super(ERROR_CODE, "Binding", objectType + "/" + objectId + "/" + ruleId,
+        super(ERROR_CODE, ENTITY_NAME, objectType + "/" + objectId + "/" + ruleId,
                 String.format("Binding not found for object %s/%s and rule %s",
                         objectType, objectId, ruleId));
     }
 
     public BindingNotFoundException(String objectType, String objectId) {
-        super(ERROR_CODE, "Binding", objectType + "/" + objectId,
+        super(ERROR_CODE, ENTITY_NAME, objectType + "/" + objectId,
                 String.format("Binding not found for object %s/%s", objectType, objectId));
     }
 }

@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,6 +10,8 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "rule_usage_limits")
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class RuleUsageLimitsEntity extends BaseEntity {
 
     @Column(name = "per_code_total")

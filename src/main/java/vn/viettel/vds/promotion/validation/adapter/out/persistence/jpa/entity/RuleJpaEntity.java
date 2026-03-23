@@ -76,6 +76,15 @@ public class RuleJpaEntity {
     @Column(name = "bundle_hash", length = 200)
     private String bundleHash;
 
+    @Column(name = "context", length = 100)
+    private String context;
+
+    @Column(name = "description", length = 1000)
+    private String description;
+
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @ElementCollection
     @CollectionTable(
             name = "rule_configuration",
@@ -116,6 +125,9 @@ public class RuleJpaEntity {
         }
         if (ruleVersion == null) {
             ruleVersion = 1L;
+        }
+        if (version == null) {
+            version = 0L;
         }
         if (state == null) {
             state = "DRAFT";

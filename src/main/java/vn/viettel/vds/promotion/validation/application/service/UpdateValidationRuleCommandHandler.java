@@ -16,6 +16,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.UpdateValida
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.UpdateValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.TimeFrame;
@@ -181,77 +182,68 @@ public class UpdateValidationRuleCommandHandler {
                 .updatedAt(Instant.now())
                 .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : "system");
 
-        // Update rule ID if provided
         if (payload.getRuleId() != null && !payload.getRuleId().isBlank()) {
             builder.ruleId(payload.getRuleId());
         }
-
-        // Update active status if provided
         if (payload.getActive() != null) {
             builder.active(payload.getActive());
         }
-
-        // Update traffic percent if provided
         if (payload.getTrafficPercent() != null) {
             builder.trafficPercent(payload.getTrafficPercent());
         }
-
-        // Update priority if provided
         if (payload.getPriority() != null) {
             builder.priority(payload.getPriority());
         }
 
-        // Update applicability data
-        ApplicabilityScope applicableToData = payload.getApplicableTo();
-        if (applicableToData != null) {
-            builder.includedAll(Boolean.TRUE.equals(applicableToData.getIncludedAll()));
+        applyApplicabilityUpdate(builder, payload.getApplicableTo());
+        applyTimeframeUpdate(builder, payload.getTimeframe());
 
-            if (applicableToData.getIncluded() != null) {
-                List<String> includedIds = applicableToData.getIncluded().stream()
-                        .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
-                        .collect(Collectors.toList());
-                builder.includedProducts(includedIds);
-            }
+        return ruleBindingPort.save(builder.build());
+    }
 
-            if (applicableToData.getExcluded() != null) {
-                List<String> excludedIds = applicableToData.getExcluded().stream()
-                        .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
-                        .collect(Collectors.toList());
-                builder.excludedProducts(excludedIds);
-            }
+    private void applyApplicabilityUpdate(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
+        if (scope == null) {
+            return;
         }
-
-        // Update timeframe data
-        TimeFrame timeframeData = payload.getTimeframe();
-        if (timeframeData != null) {
-            if (timeframeData.getTimezone() != null) {
-                builder.timezone(timeframeData.getTimezone());
-            }
-
-            if (timeframeData.getValidityTimeframe() != null) {
-                var validity = timeframeData.getValidityTimeframe();
-                builder.validFrom(validity.getStartDate());
-                builder.validTo(validity.getExpirationDate());
-            }
-
-            if (timeframeData.getValidityDaysOfWeek() != null && !timeframeData.getValidityDaysOfWeek().isEmpty()) {
-                String rrule = buildRRuleFromDaysOfWeek(timeframeData.getValidityDaysOfWeek());
-                builder.rrule(rrule);
-            }
-
-            if (timeframeData.getValidityHoursPerDay() != null && !timeframeData.getValidityHoursPerDay().isEmpty()) {
-                List<RuleBinding.TimeWindow> windows = timeframeData.getValidityHoursPerDay().stream()
-                        .map(hours -> RuleBinding.TimeWindow.builder()
-                                .start(extractTimeOnly(hours.getStartTime()))
-                                .end(extractTimeOnly(hours.getExpirationTime()))
-                                .build())
-                        .collect(Collectors.toList());
-                builder.timeWindows(windows);
-            }
+        builder.includedAll(Boolean.TRUE.equals(scope.getIncludedAll()));
+        if (scope.getIncluded() != null) {
+            List<String> includedIds = scope.getIncluded().stream()
+                    .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
+                    .collect(Collectors.toList());
+            builder.includedProducts(includedIds);
         }
+        if (scope.getExcluded() != null) {
+            List<String> excludedIds = scope.getExcluded().stream()
+                    .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
+                    .collect(Collectors.toList());
+            builder.excludedProducts(excludedIds);
+        }
+    }
 
-        RuleBinding updated = builder.build();
-        return ruleBindingPort.save(updated);
+    private void applyTimeframeUpdate(RuleBinding.RuleBindingBuilder builder, TimeFrame timeframe) {
+        if (timeframe == null) {
+            return;
+        }
+        if (timeframe.getTimezone() != null) {
+            builder.timezone(timeframe.getTimezone());
+        }
+        if (timeframe.getValidityTimeframe() != null) {
+            var validity = timeframe.getValidityTimeframe();
+            builder.validFrom(validity.getStartDate());
+            builder.validTo(validity.getExpirationDate());
+        }
+        if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
+            builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
+        }
+        if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
+            List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
+                    .map(hours -> RuleBinding.TimeWindow.builder()
+                            .start(extractTimeOnly(hours.getStartTime()))
+                            .end(extractTimeOnly(hours.getExpirationTime()))
+                            .build())
+                    .collect(Collectors.toList());
+            builder.timeWindows(windows);
+        }
     }
 
     private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
@@ -312,28 +304,30 @@ public class UpdateValidationRuleCommandHandler {
         }
     }
 
-    private vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope convertApplicabilityScope(
-            ApplicabilityScope source) {
+    private SettingValidationRuleCommand.ApplicabilityScope convertApplicabilityScope(ApplicabilityScope source) {
         if (source == null) {
             return null;
         }
 
-        return vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope.builder()
+        return SettingValidationRuleCommand.ApplicabilityScope.builder()
                 .includedAll(source.getIncludedAll())
-                .included(source.getIncluded() != null ? source.getIncluded().stream()
-                        .map(r -> vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule.builder()
-                                .id(r.getId())
-                                .object(r.getObject() != null ?
-                                        vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ObjectType.valueOf(r.getObject().name()) : null)
-                                .build())
-                        .toList() : null)
-                .excluded(source.getExcluded() != null ? source.getExcluded().stream()
-                        .map(r -> vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityRule.builder()
-                                .id(r.getId())
-                                .object(r.getObject() != null ?
-                                        vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ObjectType.valueOf(r.getObject().name()) : null)
-                                .build())
-                        .toList() : null)
+                .included(source.getIncluded() != null
+                        ? source.getIncluded().stream().map(this::convertApplicabilityRule).toList()
+                        : null)
+                .excluded(source.getExcluded() != null
+                        ? source.getExcluded().stream().map(this::convertApplicabilityRule).toList()
+                        : null)
+                .build();
+    }
+
+    private SettingValidationRuleCommand.ApplicabilityRule convertApplicabilityRule(
+            UpdateValidationRuleCommand.ApplicabilityRule r) {
+        SettingValidationRuleCommand.ObjectType objectType = r.getObject() != null
+                ? SettingValidationRuleCommand.ObjectType.valueOf(r.getObject().name())
+                : null;
+        return SettingValidationRuleCommand.ApplicabilityRule.builder()
+                .id(r.getId())
+                .object(objectType)
                 .build();
     }
 

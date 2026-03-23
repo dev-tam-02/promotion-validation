@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,6 +13,8 @@ import lombok.Setter;
         @Index(name = "idx_operator_resources_operator_name", columnList = "operator_name"),
         @Index(name = "idx_operator_resources_resource_id", columnList = "resource_id")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class OperatorResourceEntity extends BaseEntity {
 
     @Column(name = "operator_name", nullable = false, length = 100)

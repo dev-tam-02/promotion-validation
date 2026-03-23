@@ -57,7 +57,7 @@ public class OperatorCategoryJpaAdapter implements OperatorCategoryPersistencePo
         return repository.findByCode(code)
                 .map(entity -> {
                     // Force load options
-                    entity.getOptions().size();
+                    entity.getOptions().forEach(opt -> { /* trigger lazy load */ });
                     return mapper.toDomain(entity);
                 });
     }

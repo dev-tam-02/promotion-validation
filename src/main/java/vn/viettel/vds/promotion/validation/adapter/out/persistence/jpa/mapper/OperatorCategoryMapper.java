@@ -9,7 +9,6 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Op
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;

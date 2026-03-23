@@ -1,18 +1,17 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
+import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * JPA entity for rule_bindings table.
@@ -34,12 +33,9 @@ import java.util.UUID;
         @Index(name = "idx_rb_active_time", columnList = "active, valid_from, valid_to"),
         @Index(name = "idx_rb_object_active", columnList = "object_type, object_id, active")
 })
-public class RuleBindingEntity {
-
-    // ========== Identity ==========
-    @Id
-    @Column(name = "id", length = 36)
-    private String id;
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
+public class RuleBindingEntity extends BaseEntity {
 
     // ========== Rule Reference ==========
     @Column(name = "rule_id", length = 36, nullable = false)
@@ -120,36 +116,10 @@ public class RuleBindingEntity {
     @Column(name = "bundle_hash", length = 255)
     private String bundleHash;
 
-    // ========== Audit ==========
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @Column(name = "created_by", length = 100)
-    private String createdBy;
-
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
-
-    @Version
-    @Column(name = "version", nullable = false)
-    private Long version = 0L;
-
     // ========== Lifecycle Callbacks ==========
 
     @PrePersist
     public void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID().toString();
-        }
-        if (createdAt == null) {
-            createdAt = Instant.now();
-        }
-        if (updatedAt == null) {
-            updatedAt = Instant.now();
-        }
         if (active == null) {
             active = true;
         }
@@ -165,13 +135,5 @@ public class RuleBindingEntity {
         if (timezone == null) {
             timezone = "Asia/Ho_Chi_Minh";
         }
-        if (version == null) {
-            version = 0L;
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = Instant.now();
     }
 }

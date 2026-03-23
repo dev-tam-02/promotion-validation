@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 import com.promix.platform.jpa.converter.MapStringObjectConverter;
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,6 +15,8 @@ import java.util.Map;
 @Setter
 @Entity
 @Table(name = "resources")
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class ResourceEntity extends BaseEntity {
 
     @Column(name = "label", nullable = false, length = 500)

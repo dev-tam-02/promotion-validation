@@ -23,6 +23,7 @@ import java.util.Optional;
 public class OperatorConfigService {
 
     private static final Logger logger = LoggerFactory.getLogger(OperatorConfigService.class);
+    private static final String OP_EQUALS = "equals";
 
     private final OperatorCategoryPersistencePort categoryPort;
     private final MetadataSchemaPersistencePort metadataSchemaPort;
@@ -157,9 +158,9 @@ public class OperatorConfigService {
         };
 
         List<String> comparators = switch (field.getFieldType()) {
-            case NUMBER -> List.of("equals", "not_equals", "gte", "lte", "between");
-            case BOOLEAN -> List.of("equals");
-            default -> List.of("equals", "not_equals", "in", "not_in");
+            case NUMBER -> List.of(OP_EQUALS, "not_equals", "gte", "lte", "between");
+            case BOOLEAN -> List.of(OP_EQUALS);
+            default -> List.of(OP_EQUALS, "not_equals", "in", "not_in");
         };
 
         OperatorOption.ValueType valueType = switch (field.getFieldType()) {

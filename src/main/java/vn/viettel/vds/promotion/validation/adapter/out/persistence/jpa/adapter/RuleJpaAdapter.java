@@ -60,45 +60,60 @@ public class RuleJpaAdapter implements RulePersistencePort {
         RuleJpaEntity saved = repository.save(entity);
         logger.info("[RULE_SAVE] Rule saved successfully: id={}, code={}", saved.getId(), saved.getCode());
 
-        // Save rule nodes if present
         if (rule.getNodes() != null && !rule.getNodes().isEmpty()) {
-            logger.debug("[RULE_SAVE] Saving nodes for rule: {}", saved.getId());
-            // Delete existing nodes
-            List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(saved.getId());
-            if (!existing.isEmpty()) {
-                nodeRepository.deleteAll(existing);
-            }
-            // Build node map (exclude placeholders with null type)
-            Map<String, RuleNode> nodeMap = new HashMap<>();
-            for (RuleNode node : rule.getNodes()) {
-                if (node.getNodeId() != null && node.getType() != null) {
-                    nodeMap.put(node.getNodeId(), node);
-                }
-            }
-            // Find child IDs (referenced by GROUP nodes)
-            Set<String> childNodeIds = new HashSet<>();
-            for (RuleNode node : nodeMap.values()) {
-                if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
-                    for (RuleNode child : node.getChildren()) {
-                        if (child.getNodeId() != null) childNodeIds.add(child.getNodeId());
-                    }
-                }
-            }
-            // Root nodes: not referenced as children by any GROUP
-            Set<String> rootNodeIds = nodeMap.keySet().stream()
-                    .filter(id -> !childNodeIds.contains(id))
-                    .collect(Collectors.toSet());
-            // Create ValidationRuleEntity proxy reference
-            ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, saved.getId());
-            // Save nodes in DFS order (parents before children)
-            List<RuleNodeEntity> savedNodes = new ArrayList<>();
-            for (String rootId : rootNodeIds) {
-                saveNodeDfs(rootId, nodeMap, ruleRef, null, savedNodes);
-            }
-            logger.info("[RULE_SAVE] Saved {} node entities for rule: {}", savedNodes.size(), saved.getId());
+            saveRuleNodes(saved.getId(), rule.getNodes());
         }
 
         return mapper.toDomain(saved);
+    }
+
+    private void saveRuleNodes(String ruleId, List<RuleNode> nodes) {
+        logger.debug("[RULE_SAVE] Saving nodes for rule: {}", ruleId);
+        deleteExistingNodes(ruleId);
+
+        Map<String, RuleNode> nodeMap = buildNodeMap(nodes);
+        Set<String> childNodeIds = findChildNodeIds(nodeMap);
+        Set<String> rootNodeIds = nodeMap.keySet().stream()
+                .filter(id -> !childNodeIds.contains(id))
+                .collect(Collectors.toSet());
+
+        ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, ruleId);
+        List<RuleNodeEntity> savedNodes = new ArrayList<>();
+        for (String rootId : rootNodeIds) {
+            saveNodeDfs(rootId, nodeMap, ruleRef, null, savedNodes);
+        }
+        logger.info("[RULE_SAVE] Saved {} node entities for rule: {}", savedNodes.size(), ruleId);
+    }
+
+    private void deleteExistingNodes(String ruleId) {
+        List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(ruleId);
+        if (!existing.isEmpty()) {
+            nodeRepository.deleteAll(existing);
+        }
+    }
+
+    private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
+        Map<String, RuleNode> nodeMap = new HashMap<>();
+        for (RuleNode node : nodes) {
+            if (node.getNodeId() != null && node.getType() != null) {
+                nodeMap.put(node.getNodeId(), node);
+            }
+        }
+        return nodeMap;
+    }
+
+    private Set<String> findChildNodeIds(Map<String, RuleNode> nodeMap) {
+        Set<String> childNodeIds = new HashSet<>();
+        for (RuleNode node : nodeMap.values()) {
+            if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+                for (RuleNode child : node.getChildren()) {
+                    if (child.getNodeId() != null) {
+                        childNodeIds.add(child.getNodeId());
+                    }
+                }
+            }
+        }
+        return childNodeIds;
     }
 
     /**
@@ -311,6 +326,13 @@ public class RuleJpaAdapter implements RulePersistencePort {
     @Override
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public void deleteNodesByRuleId(String ruleId) {
+        logger.debug("[RULE_DELETE] Deleting nodes for rule: {}", ruleId);
+        nodeRepository.deleteByValidationRuleId(ruleId);
+        logger.info("[RULE_DELETE] Deleted nodes for rule: {}", ruleId);
     }
 
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {

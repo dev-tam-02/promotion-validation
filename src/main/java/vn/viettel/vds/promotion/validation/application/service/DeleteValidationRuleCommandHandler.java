@@ -15,7 +15,6 @@ import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.D
 import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
-import java.time.Instant;
 import java.util.List;
 
 /**

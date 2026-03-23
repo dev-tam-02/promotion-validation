@@ -103,6 +103,10 @@ external:
 
 # Promix Platform Configuration
 promix:
+  security:
+    jwt:
+      enabled: true
+      verify-signature: false
   # Outbox Configuration
   outbox:
     jpa:
@@ -149,7 +153,6 @@ promix:
     enabled: false
 
   # JPA/MariaDB Configuration - Toggle ON/OFF
-  # Set to false to disable JPA/MariaDB completely
   jpa:
     enabled: true  # Primary database for validation documents and metadata
 

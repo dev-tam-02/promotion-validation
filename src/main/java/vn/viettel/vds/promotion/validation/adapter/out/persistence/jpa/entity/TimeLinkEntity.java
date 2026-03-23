@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity;
 
 import com.promix.platform.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,6 +12,8 @@ import lombok.Setter;
 @Table(name = "time_links", indexes = {
         @Index(name = "idx_time_links_rule_version", columnList = "rule_version_id")
 })
+@EntityListeners(IdGenerationListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class TimeLinkEntity extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
-import vn.viettel.vds.promotion.validation.domain.exception.ValidationException;
+import vn.viettel.vds.promotion.validation.domain.exception.EventPublishingException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.event.*;
 
@@ -67,7 +67,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, result.getRuleBinding().getId());
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish success event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish success event for commandId: " + commandId, e);
         }
     }
 
@@ -84,7 +84,7 @@ public class SettingValidationRuleEventPublisher {
                     commandId, campaignId, errorCode);
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish error event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish error event for commandId: " + commandId, e);
         }
     }
 
@@ -278,7 +278,7 @@ public class SettingValidationRuleEventPublisher {
 
         } catch (Exception e) {
             logger.error("Error publishing rollback success event: commandId={}, campaignId={}", commandId, campaignId, e);
-            throw new ValidationException("Failed to publish rollback success event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish rollback success event for commandId: " + commandId, e);
         }
     }
 
@@ -292,7 +292,7 @@ public class SettingValidationRuleEventPublisher {
             logger.info("Published rollback error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
                     commandId, errorCode);
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish rollback error event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish rollback error event for commandId: " + commandId, e);
         }
     }
 
@@ -314,12 +314,12 @@ public class SettingValidationRuleEventPublisher {
                         } else {
                             logger.error("Failed to publish ValidationRuleSettingAppliedEvent to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
-                            throw new ValidationException("Failed to publish event to Kafka", ex);
+                            throw new EventPublishingException("Failed to publish event to Kafka", ex);
                         }
                     });
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish ValidationRuleSettingAppliedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
+            throw new EventPublishingException("Failed to publish ValidationRuleSettingAppliedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
         }
     }
 
@@ -341,12 +341,12 @@ public class SettingValidationRuleEventPublisher {
                         } else {
                             logger.error("Failed to publish ValidationRuleSettingFailedEvent to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
-                            throw new ValidationException("Failed to publish event to Kafka", ex);
+                            throw new EventPublishingException("Failed to publish event to Kafka", ex);
                         }
                     });
 
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish ValidationRuleSettingFailedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
+            throw new EventPublishingException("Failed to publish ValidationRuleSettingFailedEvent to Kafka - topic: " + eventTopic + ", key: " + key, e);
         }
     }
 
@@ -453,7 +453,7 @@ public class SettingValidationRuleEventPublisher {
 
         } catch (Exception e) {
             logger.error("Error publishing delete success event: commandId={}, campaignId={}", commandId, campaignId, e);
-            throw new ValidationException("Failed to publish delete success event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish delete success event for commandId: " + commandId, e);
         }
     }
 
@@ -472,7 +472,7 @@ public class SettingValidationRuleEventPublisher {
             logger.info("Published delete error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
                     commandId, errorCode);
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish delete error event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish delete error event for commandId: " + commandId, e);
         }
     }
 
@@ -551,7 +551,7 @@ public class SettingValidationRuleEventPublisher {
 
         } catch (Exception e) {
             logger.error("Error publishing enable success event: commandId={}, campaignId={}", commandId, campaignId, e);
-            throw new ValidationException("Failed to publish enable success event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish enable success event for commandId: " + commandId, e);
         }
     }
 
@@ -569,7 +569,7 @@ public class SettingValidationRuleEventPublisher {
             logger.info("Published enable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
                     commandId, errorCode);
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish enable error event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish enable error event for commandId: " + commandId, e);
         }
     }
 
@@ -648,7 +648,7 @@ public class SettingValidationRuleEventPublisher {
 
         } catch (Exception e) {
             logger.error("Error publishing disable success event: commandId={}, campaignId={}", commandId, campaignId, e);
-            throw new ValidationException("Failed to publish disable success event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish disable success event for commandId: " + commandId, e);
         }
     }
 
@@ -666,7 +666,7 @@ public class SettingValidationRuleEventPublisher {
             logger.info("Published disable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
                     commandId, errorCode);
         } catch (Exception e) {
-            throw new ValidationException("Failed to publish disable error event for commandId: " + commandId, e);
+            throw new EventPublishingException("Failed to publish disable error event for commandId: " + commandId, e);
         }
     }
 

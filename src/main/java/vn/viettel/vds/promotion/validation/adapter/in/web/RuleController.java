@@ -24,6 +24,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMap
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
+import vn.viettel.vds.promotion.validation.domain.enums.RuleContextType;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
@@ -205,6 +206,37 @@ public class RuleController {
 
         Rule rule = ruleService.activateRule(ruleId, userId);
         return ruleMapper.toRuleResponse(rule);
+    }
+
+    @Operation(summary = "Get available contexts", description = "Return list of available validation rule contexts for dropdown")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Contexts retrieved successfully")
+    })
+    @GetMapping("/contexts")
+    public List<ContextOptionResponse> getContexts() {
+        logger.info("Getting rule context options");
+        return Arrays.stream(RuleContextType.values())
+                .map(ctx -> new ContextOptionResponse(ctx.name(), ctx.getLabel()))
+                .toList();
+    }
+
+    @Operation(summary = "Delete rule", description = "Permanently delete a rule (hard delete). Rule must not be assigned to any campaigns.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Rule deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+            @ApiResponse(responseCode = "409", description = "Version conflict (CONFLICTED)"),
+            @ApiResponse(responseCode = "400", description = "Rule has active bindings (RULE_HAS_BINDINGS)")
+    })
+    @DeleteMapping("/{ruleId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteRule(
+            @Parameter(description = "Rule ID") @PathVariable String ruleId,
+            @Parameter(description = "Current version for optimistic locking", required = true)
+            @RequestParam long version,
+            @Parameter(description = "User making the request") @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
+
+        logger.info("Deleting rule: id={}, version={}, userId={}", ruleId, version, userId);
+        ruleService.deleteRule(ruleId, version);
     }
 
     @Operation(summary = "Archive rule", description = "Archive a rule (mark as inactive)")
