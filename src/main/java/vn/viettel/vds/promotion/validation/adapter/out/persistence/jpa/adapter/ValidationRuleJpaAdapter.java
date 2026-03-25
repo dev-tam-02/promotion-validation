@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper.ValidationRuleMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
@@ -74,9 +75,27 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     @Override
     public Rule save(Rule rule) {
         log.debug("Saving rule: {}", rule.getId());
-        // Note: Converting Rule to JPA entity is not fully supported
-        // This would need additional mapping logic for complete conversion
-        throw new UnsupportedOperationException("Save operation not fully supported for JPA adapter");
+
+        RuleJpaEntity entity = RuleJpaEntity.builder()
+                .id(rule.getId())
+                .code(rule.getCode())
+                .name(rule.getName())
+                .state(rule.getState() != null ? rule.getState().name() : "PUBLISHED")
+                .ruleVersion(rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L)
+                .logic(rule.getLogic() != null ? rule.getLogic().name() : null)
+                .description(rule.getDescription())
+                .publishedAt(rule.getPublishedAt())
+                .publishedBy(rule.getPublishedBy())
+                .bundleHash(rule.getBundleHash())
+                .createdAt(rule.getCreatedAt())
+                .updatedAt(rule.getUpdatedAt())
+                .createdBy(rule.getCreatedBy())
+                .updatedBy(rule.getUpdatedBy())
+                .version(rule.getVersion() != null ? rule.getVersion() : 0L)
+                .build();
+
+        RuleJpaEntity saved = jpaRepository.save(entity);
+        return mapper.jpaEntityToDomain(saved);
     }
 
     @Override

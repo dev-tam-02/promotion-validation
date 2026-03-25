@@ -13,7 +13,9 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * JPA adapter implementing RuleBindingPersistencePort.
@@ -37,6 +39,16 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
                 binding.getId(), binding.getObjectType(), binding.getObjectId());
 
         var entity = mapper.toEntity(binding);
+        var existingOpt = repository.findById(entity.getId());
+
+        if (existingOpt.isEmpty()) {
+            // New entity: set version to null so isNew()=true → persist() instead of merge()
+            entity.setVersion(null);
+        } else {
+            // Existing entity: use the current DB version to prevent OptimisticLockingFailure
+            entity.setVersion(existingOpt.get().getVersion());
+        }
+
         var saved = repository.save(entity);
         return mapper.toDomain(saved);
     }
@@ -46,6 +58,21 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
         log.debug("Saving {} rule bindings", bindings.size());
 
         var entities = mapper.toEntityList(bindings);
+        var ids = entities.stream()
+                .map(e -> e.getId())
+                .collect(Collectors.toList());
+        var existingMap = repository.findAllById(ids).stream()
+                .collect(Collectors.toMap(e -> e.getId(), e -> e));
+
+        for (var entity : entities) {
+            var existing = existingMap.get(entity.getId());
+            if (existing != null) {
+                entity.setVersion(existing.getVersion());
+            } else {
+                entity.setVersion(null);
+            }
+        }
+
         var saved = repository.saveAll(entities);
         return mapper.toDomainList(saved);
     }

@@ -20,10 +20,14 @@ import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
 import vn.viettel.vds.promotion.validation.domain.common.Result;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -173,6 +177,28 @@ public class SettingValidationRuleCommandHandler {
 
             ComponentsData components = componentsResult.getValue();
 
+            // Auto-create campaign validation rule when ruleId is not provided
+            if ((components.ruleId() == null || components.ruleId().isEmpty())
+                    && "DISCOUNT_COUPON".equals(components.objectType())) {
+
+                Rule campaignRule = createCampaignValidationRule(components);
+                campaignRule = validationRulePort.save(campaignRule);
+
+                logger.info("Auto-created campaign validation rule: ruleId={}, objectId={}",
+                        campaignRule.getId(), components.objectId());
+
+                components = new ComponentsData(
+                        campaignRule.getId(),
+                        components.objectType(),
+                        components.objectId(),
+                        components.active(),
+                        components.trafficPercent(),
+                        components.applicableToData(),
+                        components.timeframeData(),
+                        components.priority()
+                );
+            }
+
             // Create unified RuleBinding
             RuleBinding ruleBinding = createRuleBinding(components);
 
@@ -262,6 +288,52 @@ public class SettingValidationRuleCommandHandler {
         applyTimeframeData(builder, components.timeframeData());
 
         return builder.build();
+    }
+
+    /**
+     * Auto-create a campaign-specific validation rule when no ruleId is provided.
+     * Creates a minimal rule with a root GROUP node (ALL logic) and no business conditions.
+     * The temporal validation (date range, days of week, hours per day) is handled by
+     * the DRL compiler's temporal policy system based on the binding's temporal data.
+     */
+    private Rule createCampaignValidationRule(ComponentsData components) {
+        String ruleId = IdGenerator.generateId();
+        String objectId = components.objectId();
+        String code = "CAMPAIGN_" + objectId.replace("-", "").substring(0, Math.min(objectId.replace("-", "").length(), 20));
+
+        // No business condition nodes — temporal validation is handled by
+        // the DRL compiler's temporal policy based on the binding's temporal data
+        Instant now = Instant.now();
+        Instant effectiveFrom = null;
+        Instant effectiveTo = null;
+
+        TimeFrame timeframe = components.timeframeData();
+        if (timeframe != null && timeframe.getValidityTimeframe() != null) {
+            effectiveFrom = timeframe.getValidityTimeframe().getStartDate();
+            effectiveTo = timeframe.getValidityTimeframe().getExpirationDate();
+        }
+
+        return Rule.builder()
+                .id(ruleId)
+                .code(code)
+                .name("Campaign Rule - " + objectId)
+                .description("Auto-generated validation rule for campaign " + objectId)
+                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
+                .ruleVersion(1L)
+                .logic(Rule.LogicType.ALL)
+                .nodes(new ArrayList<>())
+                .effectiveFrom(effectiveFrom)
+                .effectiveTo(effectiveTo)
+                .campaignId(objectId)
+                .publishedAt(now)
+                .publishedBy("system")
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("system")
+                .updatedBy("system")
+                .version(0L)
+                .build();
     }
 
     private void applyApplicabilityData(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
@@ -363,6 +435,22 @@ public class SettingValidationRuleCommandHandler {
                     return binding;
                 }
 
+                var validationRule = validationRuleOpt.get();
+
+                // If rule has no business conditions (e.g., auto-created campaign rule),
+                // deploy temporal-only bundle instead of full rule compilation
+                if (validationRule.getNodes() == null || validationRule.getNodes().isEmpty()) {
+                    if (!hasApplicability && !hasTemporalPolicy) {
+                        logger.info("Rule has no conditions and no constraints, skipping deployment: bindingId={}", binding.getId());
+                        return binding;
+                    }
+                    logger.info("Rule has no business conditions, deploying temporal-only bundle: bindingId={}, ruleId={}",
+                            binding.getId(), ruleId);
+                    var publishResult = rulePublishingService.publishAssignmentBundle(
+                            binding.getId(), applicableToData, hasTemporalPolicy);
+                    return handlePublishResult(binding, publishResult);
+                }
+
                 logger.info("Deploying rule bundle: bindingId={}, ruleId={}", binding.getId(), ruleId);
 
                 var publishResult = rulePublishingService.publishRule(ruleId, binding.getId(), applicableToData);
@@ -377,7 +465,9 @@ public class SettingValidationRuleCommandHandler {
 
     private RuleBinding handlePublishResult(RuleBinding binding, RulePublishingService.RulePublishResult publishResult) {
         if (publishResult.isSuccess()) {
-            RuleBinding updated = binding.toBuilder()
+            // Re-fetch the binding from DB to get the managed entity and avoid OptimisticLockException
+            RuleBinding current = ruleBindingPort.findById(binding.getId()).orElse(binding);
+            RuleBinding updated = current.toBuilder()
                     .bundleHash(publishResult.getBundleHash())
                     .updatedAt(Instant.now())
                     .build();
