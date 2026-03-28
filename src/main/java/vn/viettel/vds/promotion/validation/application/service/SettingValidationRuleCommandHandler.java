@@ -202,14 +202,14 @@ public class SettingValidationRuleCommandHandler {
             // Create unified RuleBinding
             RuleBinding ruleBinding = createRuleBinding(components);
 
-            // Save binding
-            ruleBinding = ruleBindingPort.save(ruleBinding);
-
             logger.info("Created rule binding: objectType={}, objectId={}, ruleId={}, bindingId={}",
                     components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
-            // Deploy to validation-engine
+            // Deploy to validation-engine (does NOT save the binding)
             ruleBinding = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
+
+            // Save binding once (avoids double-save OptimisticLockException)
+            ruleBinding = ruleBindingPort.save(ruleBinding);
 
             // If a ruleId was present (compile required), verify deployment succeeded
             // Deploy failure is indicated by bundleHash being null after the attempt
@@ -471,7 +471,6 @@ public class SettingValidationRuleCommandHandler {
                     .bundleHash(publishResult.getBundleHash())
                     .updatedAt(Instant.now())
                     .build();
-            updated = ruleBindingPort.save(updated);
             logger.info("Rule deployed successfully: bindingId={}, bundleHash={}", updated.getId(), publishResult.getBundleHash());
             return updated;
         } else {
