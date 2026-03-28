@@ -92,14 +92,14 @@ management:
 # External Services Configuration (Direct URLs - no Eureka)
 external:
   order-service:
-    url: ${ORDER_SERVICE_URL:http://order:8080}
+    url: ${ORDER_SERVICE_URL:http://staging-promotion-order-api-java:8080}
   customer-service:
-    url: ${CUSTOMER_SERVICE_URL:http://customer:8080}
+    url: ${CUSTOMER_SERVICE_URL:http://staging-promotion-customer-api-java:8080}
   catalog-service:
-    url: ${CATALOG_SERVICE_URL:http://product:8080}
+    url: ${CATALOG_SERVICE_URL:http://staging-promotion-product-api-java:8080}
   services:
     campaign:
-      url: ${CAMPAIGN_SERVICE_URL:http://campaign:8080}
+      url: ${CAMPAIGN_SERVICE_URL:http://staging-promotion-campaign-api-java:8080}
 
 # Promix Platform Configuration
 promix:
@@ -142,10 +142,10 @@ promix:
   validation:
     external:
       customer:
-        url: ${CUSTOMER_SERVICE_URL:http://customer:8080}  # Direct URL to customer service
+        url: ${CUSTOMER_SERVICE_URL:http://staging-promotion-customer-api-java:8080}  # Direct URL to customer service
         path: ${CUSTOMER_SERVICE_PATH:/api/v1/customers}  # Base path for customer API
       order:
-        url: ${ORDER_SERVICE_URL:http://order:8080}  # Direct URL to order service
+        url: ${ORDER_SERVICE_URL:http://staging-promotion-order-api-java:8080}  # Direct URL to order service
         path: ${ORDER_SERVICE_PATH:/api/v1/orders}  # Base path for order API
 
   # MongoDB Configuration - DISABLED (using JPA as primary database)
@@ -210,7 +210,7 @@ promix:
       # Consumer Configuration
       consumer:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-        value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
         group-id: validation-group
         auto-offset-reset: latest
         enable-auto-commit: false
@@ -228,12 +228,12 @@ promix:
         use-avro: false
 
         # JSON deserializer configuration with error handling
+        # Note: promix-messaging auto-wraps with ErrorHandlingDeserializer,
+        # so value-deserializer should be the DELEGATE (JsonDeserializer), not ErrorHandlingDeserializer
         properties:
-          # ErrorHandlingDeserializer wraps JsonDeserializer to catch and log deserialization errors
-          spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
           spring.json.trusted.packages: "*"
           spring.json.use.type.headers: true
-          spring.json.add.type.headers: true
+          spring.json.value.default.type: vn.viettel.vds.promotion.validation.command.ValidationRuleCommand
 
         # Retry Configuration
         retry:
@@ -325,7 +325,7 @@ idempotency:
 # Feign client timeout is configured via Spring Cloud Feign properties (feign.client.config)
 integration:
   validation-engine:
-    url: ${VALIDATION_ENGINE_URL:http://localhost:16013}
+    url: ${VALIDATION_ENGINE_URL:http://staging-promotion-rule-engine-api-java:8080}
     service-path: ${VALIDATION_ENGINE_SERVICE_PATH:/promotion/promotion-rule-engine}
     retry-attempts: 3
     circuit-breaker:
