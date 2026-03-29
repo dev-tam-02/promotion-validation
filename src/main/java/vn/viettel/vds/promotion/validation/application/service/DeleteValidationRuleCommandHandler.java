@@ -206,10 +206,17 @@ public class DeleteValidationRuleCommandHandler {
     }
 
     public void handleDeadLetterCommand(DeleteValidationRuleCommand command) {
-        logger.error("Processing dead letter DeleteValidationRuleCommand: commandId={}", command.getId());
+        String commandId = command.getId();
+        logger.error("Processing dead letter DeleteValidationRuleCommand: commandId={}", commandId);
+
+        // If already successfully processed, skip failure event to prevent duplicate SUCCESS+FAILURE
+        if (idempotencyService.isProcessed(commandId)) {
+            logger.info("Delete command already processed successfully, skipping DLQ failure event: commandId={}", commandId);
+            return;
+        }
 
         publishDeleteErrorEvent(
-                command.getId(),
+                commandId,
                 command.getPayload() != null ? command.getPayload().getCampaignId() : null,
                 "DLQ_PROCESSING",
                 "Command moved to dead letter queue"

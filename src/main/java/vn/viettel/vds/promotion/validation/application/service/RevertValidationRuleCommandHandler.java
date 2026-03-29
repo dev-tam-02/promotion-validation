@@ -279,6 +279,12 @@ public class RevertValidationRuleCommandHandler {
         String commandId = command.getId();
         log.error("Processing dead letter RevertValidationRuleCommand: commandId={}", commandId);
 
+        // If already successfully processed, skip DLQ processing to prevent duplicate events
+        if (idempotencyService.isProcessed(commandId)) {
+            log.info("Revert command already processed successfully, skipping DLQ processing: commandId={}", commandId);
+            return;
+        }
+
         try {
             log.error("Dead letter command details: commandId={}, type={}, source={}, validationRuleId={}",
                     command.getId(),

@@ -206,10 +206,17 @@ public class RollbackValidationRuleCommandHandler {
     }
 
     public void handleDeadLetterCommand(RollbackValidationRuleCommand command) {
-        logger.error("Processing dead letter RollbackValidationRuleCommand: commandId={}", command.getId());
+        String commandId = command.getId();
+        logger.error("Processing dead letter RollbackValidationRuleCommand: commandId={}", commandId);
+
+        // If already successfully processed, skip failure event to prevent duplicate SUCCESS+FAILURE
+        if (idempotencyService.isProcessed(commandId)) {
+            logger.info("Rollback command already processed successfully, skipping DLQ failure event: commandId={}", commandId);
+            return;
+        }
 
         publishRollbackErrorEvent(
-                command.getId(),
+                commandId,
                 "DLQ_PROCESSING",
                 "Command moved to dead letter queue"
         );

@@ -499,6 +499,12 @@ public class SettingValidationRuleCommandHandler {
         String commandId = command.getId();
         logger.error("Processing dead letter command: commandId={}", commandId);
 
+        // If already successfully processed, skip failure event to prevent duplicate SUCCESS+FAILURE
+        if (idempotencyService.isProcessed(commandId)) {
+            logger.info("Command already processed successfully, skipping DLQ failure event: commandId={}", commandId);
+            return;
+        }
+
         try {
             eventPublisher.publishDeadLetterEvent(commandId);
         } catch (Exception e) {
