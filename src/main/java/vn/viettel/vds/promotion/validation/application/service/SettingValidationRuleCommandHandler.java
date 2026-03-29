@@ -83,12 +83,18 @@ public class SettingValidationRuleCommandHandler {
     public boolean handleCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
 
+        logger.info("[SAGA-DEBUG] ENTRY handleCommand: commandId={}, thread={}", commandId, Thread.currentThread().getName());
+
         try {
             logger.info("Processing SettingValidationRuleCommand: commandId={}", commandId);
 
             // Check idempotency
-            if (idempotencyService.isProcessed(commandId)) {
+            logger.info("[SAGA-DEBUG] BEFORE idempotencyService.isProcessed: commandId={}", commandId);
+            boolean alreadyProcessed = idempotencyService.isProcessed(commandId);
+            logger.info("[SAGA-DEBUG] AFTER idempotencyService.isProcessed: commandId={}, result={}", commandId, alreadyProcessed);
+            if (alreadyProcessed) {
                 logger.info("Command already processed (idempotent check): commandId={}", commandId);
+                logger.info("[SAGA-DEBUG] EXIT handleCommand (idempotent skip): commandId={}", commandId);
                 return true;
             }
 
@@ -99,6 +105,7 @@ public class SettingValidationRuleCommandHandler {
             if (payload == null) {
                 logger.error("Command payload is null: commandId={}", commandId);
                 publishErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
+                logger.info("[SAGA-DEBUG] EXIT handleCommand (null payload): commandId={}, success=false", commandId);
                 return false;
             }
 
@@ -106,45 +113,69 @@ public class SettingValidationRuleCommandHandler {
 
             // Process command within explicit transaction boundary.
             // Transaction commits when execute() returns — BEFORE we publish events.
+            logger.info("[SAGA-DEBUG] BEFORE transactionTemplate.execute: commandId={}", commandId);
             CommandProcessingResult result = transactionTemplate.execute(status -> {
-                return processCommand(commandId, payload);
+                logger.info("[SAGA-DEBUG] INSIDE TX execute callback: commandId={}, txStatus={}", commandId, status);
+                CommandProcessingResult txResult = processCommand(commandId, payload);
+                logger.info("[SAGA-DEBUG] INSIDE TX after processCommand: commandId={}, success={}", commandId, txResult != null ? txResult.isSuccess() : "null");
+                return txResult;
             });
+            logger.info("[SAGA-DEBUG] AFTER transactionTemplate.execute (TX COMMITTED): commandId={}, resultSuccess={}",
+                    commandId, result != null ? result.isSuccess() : "null");
 
             // --- Transaction has committed here ---
 
             if (result == null || !result.isSuccess()) {
                 String errorCode = result != null ? result.getErrorCode() : "PROCESSING_ERROR";
                 String errorMessage = result != null ? result.getErrorMessage() : "Processing returned null result";
+                logger.info("[SAGA-DEBUG] BEFORE publishErrorEvent (tx result failed): commandId={}, errorCode={}", commandId, errorCode);
                 publishErrorEvent(commandId, campaignId, errorCode, errorMessage);
                 logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
                         commandId, errorCode, errorMessage);
+                logger.info("[SAGA-DEBUG] EXIT handleCommand (tx result failed): commandId={}, success=false", commandId);
                 throw new InvalidCommandDataException(errorCode, errorMessage);
             }
 
             // Mark as processed FIRST — so DLQ handler sees it even if SUCCESS publish is slow
             IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
+            logger.info("[SAGA-DEBUG] BEFORE markAsProcessed: commandId={}, bindingId={}", commandId, idempotencyDto.getBindingId());
             idempotencyService.markAsProcessed(commandId, idempotencyDto);
+            logger.info("[SAGA-DEBUG] AFTER markAsProcessed: commandId={}", commandId);
 
             // Publish success event AFTER transaction committed and idempotency marked
+            logger.info("[SAGA-DEBUG] BEFORE publishSuccessEvent: commandId={}", commandId);
             publishSuccessEvent(commandId, result);
+            logger.info("[SAGA-DEBUG] AFTER publishSuccessEvent: commandId={}", commandId);
 
             logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
+            logger.info("[SAGA-DEBUG] EXIT handleCommand: commandId={}, success=true", commandId);
             return true;
 
         } catch (BusinessRuleException e) {
+            logger.info("[SAGA-DEBUG] CATCH BusinessRuleException: commandId={}, exceptionClass={}, message={}",
+                    commandId, e.getClass().getName(), e.getMessage());
             logger.error("Validation failed for SettingValidationRuleCommand: commandId={}, error={}",
                     commandId, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] CATCH Exception: commandId={}, exceptionClass={}, message={}",
+                    commandId, e.getClass().getName(), e.getMessage());
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
             // Only publish error if this command was NOT already successfully processed.
             // Prevents the race: SUCCESS event published -> post-processing fails -> FAILURE event.
-            if (!idempotencyService.isProcessed(commandId)) {
+            logger.info("[SAGA-DEBUG] CATCH checking isProcessed before error event: commandId={}", commandId);
+            boolean processedInCatch = idempotencyService.isProcessed(commandId);
+            logger.info("[SAGA-DEBUG] CATCH isProcessed result: commandId={}, processed={}", commandId, processedInCatch);
+            if (!processedInCatch) {
                 String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
+                logger.info("[SAGA-DEBUG] CATCH BEFORE publishErrorEvent: commandId={}", commandId);
                 publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+                logger.info("[SAGA-DEBUG] CATCH AFTER publishErrorEvent: commandId={}", commandId);
             } else {
                 logger.warn("Command already marked as processed, suppressing error event: commandId={}", commandId);
+                logger.info("[SAGA-DEBUG] CATCH suppressed error event (already processed): commandId={}", commandId);
             }
+            logger.info("[SAGA-DEBUG] EXIT handleCommand (exception): commandId={}, success=false", commandId);
             return false;
         }
     }
@@ -187,9 +218,12 @@ public class SettingValidationRuleCommandHandler {
      */
     private CommandProcessingResult processCommand(String commandId, SettingValidationRuleCommandPayload payload) {
         try {
+            logger.info("[SAGA-DEBUG] processCommand ENTRY: commandId={}", commandId);
+
             // Validate components
             Result<ComponentsData> componentsResult = validateCommandComponents(payload);
             if (componentsResult.isFailure()) {
+                logger.info("[SAGA-DEBUG] processCommand components validation FAILED: commandId={}", commandId);
                 return CommandProcessingResult.failure(
                         componentsResult.getFirstErrorCode().orElse(ErrorCode.COMMAND_VALIDATION_ERROR).name(),
                         componentsResult.getFirstErrorMessage().orElse("Command validation failed")
@@ -223,6 +257,7 @@ public class SettingValidationRuleCommandHandler {
             // Create unified RuleBinding
             RuleBinding ruleBinding = createRuleBinding(components);
 
+            logger.info("[SAGA-DEBUG] processCommand ruleBinding created: commandId={}, bindingId={}", commandId, ruleBinding.getId());
             logger.info("Created rule binding: objectType={}, objectId={}, ruleId={}, bindingId={}",
                     components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
@@ -230,7 +265,9 @@ public class SettingValidationRuleCommandHandler {
             ruleBinding = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
 
             // Save binding once (avoids double-save OptimisticLockException)
+            logger.info("[SAGA-DEBUG] BEFORE ruleBindingPort.save: commandId={}, bindingId={}", commandId, ruleBinding.getId());
             ruleBinding = ruleBindingPort.save(ruleBinding);
+            logger.info("[SAGA-DEBUG] AFTER ruleBindingPort.save: commandId={}, bindingId={}", commandId, ruleBinding.getId());
 
             // If a ruleId was present (compile required), verify deployment succeeded
             // Deploy failure is indicated by bundleHash being null after the attempt
@@ -243,9 +280,12 @@ public class SettingValidationRuleCommandHandler {
             }
 
             // Create result
+            logger.info("[SAGA-DEBUG] processCommand EXIT success: commandId={}, bindingId={}", commandId, ruleBinding.getId());
             return CommandProcessingResult.success(ruleBinding, components.applicableToData(), components.timeframeData());
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] processCommand EXCEPTION: commandId={}, exceptionClass={}, message={}",
+                    commandId, e.getClass().getName(), e.getMessage());
             logger.error("Error processing command: commandId={}", commandId, e);
             return CommandProcessingResult.failure("PROCESSING_ERROR", e.getMessage());
         }
@@ -518,10 +558,15 @@ public class SettingValidationRuleCommandHandler {
 
     public void handleDeadLetterCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
+        logger.info("[SAGA-DEBUG] DLQ handleDeadLetterCommand ENTRY: commandId={}", commandId);
         logger.error("Processing dead letter command: commandId={}", commandId);
 
         // If already successfully processed, skip failure event to prevent duplicate SUCCESS+FAILURE
-        if (idempotencyService.isProcessed(commandId)) {
+        logger.info("[SAGA-DEBUG] DLQ BEFORE idempotency check: commandId={}", commandId);
+        boolean idempotencyResult = idempotencyService.isProcessed(commandId);
+        logger.info("[SAGA-DEBUG] DLQ idempotency check result: commandId={}, processed={}", commandId, idempotencyResult);
+        if (idempotencyResult) {
+            logger.info("[SAGA-DEBUG] DLQ decision: SKIP (already processed in Redis): commandId={}", commandId);
             logger.info("Command already processed successfully, skipping DLQ failure event: commandId={}", commandId);
             return;
         }
@@ -533,18 +578,27 @@ public class SettingValidationRuleCommandHandler {
             String objectId = command.getPayload().getObjectId();
             String ruleId = command.getPayload().getRuleId();
             try {
-                if (ruleBindingPort.existsByObjectAndRule(objectType, objectId, ruleId != null ? ruleId : "")) {
+                logger.info("[SAGA-DEBUG] DLQ BEFORE DB fallback check: commandId={}, objectType={}, objectId={}, ruleId={}",
+                        commandId, objectType, objectId, ruleId);
+                boolean existsInDb = ruleBindingPort.existsByObjectAndRule(objectType, objectId, ruleId != null ? ruleId : "");
+                logger.info("[SAGA-DEBUG] DLQ DB fallback check result: commandId={}, existsInDb={}", commandId, existsInDb);
+                if (existsInDb) {
+                    logger.info("[SAGA-DEBUG] DLQ decision: SKIP (exists in DB): commandId={}", commandId);
                     logger.info("Binding exists in DB, command was processed successfully, skipping DLQ failure event: commandId={}", commandId);
                     return;
                 }
             } catch (Exception e) {
+                logger.info("[SAGA-DEBUG] DLQ DB fallback check EXCEPTION: commandId={}, error={}", commandId, e.getMessage());
                 logger.warn("Failed to check DB for binding existence, proceeding with DLQ event: commandId={}", commandId, e);
             }
         }
 
+        logger.info("[SAGA-DEBUG] DLQ decision: PROCESS (publishing dead letter event): commandId={}", commandId);
         try {
             eventPublisher.publishDeadLetterEvent(commandId);
+            logger.info("[SAGA-DEBUG] DLQ publishDeadLetterEvent OK: commandId={}", commandId);
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] DLQ publishDeadLetterEvent FAILED: commandId={}, error={}", commandId, e.getMessage());
             logger.error("Failed to publish dead letter event: commandId={}", commandId, e);
         }
     }

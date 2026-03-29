@@ -211,7 +211,7 @@ promix:
       consumer:
         key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
         value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-        group-id: validation-group
+        group-id: validation-group-local
         auto-offset-reset: latest
         enable-auto-commit: false
         max-poll: 500
@@ -309,7 +309,7 @@ kafka:
     validation-event-dlq: promotion_validation_event_dlq
 
   consumer:
-    group-id: validation-group
+    group-id: validation-group-local
 
   producer:
     client-id: validation-producer

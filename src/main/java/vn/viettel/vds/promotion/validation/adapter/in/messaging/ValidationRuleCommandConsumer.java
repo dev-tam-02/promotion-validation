@@ -107,6 +107,9 @@ public class ValidationRuleCommandConsumer {
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
 
+        logger.info("[SAGA-DEBUG] ENTRY consumeCommand: topic={}, partition={}, offset={}, thread={}",
+                topic, partition, offset, Thread.currentThread().getName());
+
         logger.info("Received command from topic={}, partition={}, offset={}",
                 topic, partition, offset);
 
@@ -116,28 +119,41 @@ public class ValidationRuleCommandConsumer {
             throw new IllegalArgumentException("Received null command from Kafka");
         }
 
+        logger.info("[SAGA-DEBUG] Command deserialized: commandId={}, type={}, offset={}, thread={}",
+                command.getId(), command.getType(), offset, Thread.currentThread().getName());
+
         logger.debug("Processing command: commandId={}, type={}, offset={}",
                 command.getId(), command.getType(), offset);
 
         // Type-based routing using Java 21 pattern matching
         // Handlers now throw BusinessException with error code if processing fails
         // Let exceptions propagate naturally to promix-messaging for proper error handling
-        switch (command) {
-            case SettingValidationRuleCommand c -> handleSettingCommand(c);
-            case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
-            case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
-            case RevertValidationRuleCommand c -> handleRevertCommand(c);
-            case DeleteValidationRuleCommand c -> handleDeleteCommand(c);
-            case EnableValidationRuleCommand c -> handleEnableCommand(c);
-            case DisableValidationRuleCommand c -> handleDisableCommand(c);
-            default -> handleUnknownCommand(command);
+        logger.info("[SAGA-DEBUG] BEFORE handler call: commandId={}, type={}", command.getId(), command.getType());
+        try {
+            switch (command) {
+                case SettingValidationRuleCommand c -> handleSettingCommand(c);
+                case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
+                case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
+                case RevertValidationRuleCommand c -> handleRevertCommand(c);
+                case DeleteValidationRuleCommand c -> handleDeleteCommand(c);
+                case EnableValidationRuleCommand c -> handleEnableCommand(c);
+                case DisableValidationRuleCommand c -> handleDisableCommand(c);
+                default -> handleUnknownCommand(command);
+            }
+            logger.info("[SAGA-DEBUG] AFTER handler return OK: commandId={}, type={}", command.getId(), command.getType());
+        } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] EXCEPTION from handler: commandId={}, type={}, exceptionClass={}, message={}",
+                    command.getId(), command.getType(), e.getClass().getName(), e.getMessage(), e);
+            throw e;
         }
 
         logger.debug("Successfully processed command: commandId={}, offset={}",
                 command.getId(), offset);
 
         // Acknowledge message after successful processing
+        logger.info("[SAGA-DEBUG] BEFORE ack: commandId={}", command.getId());
         acknowledgment.acknowledge();
+        logger.info("[SAGA-DEBUG] AFTER ack: commandId={}", command.getId());
         logger.info("Acknowledged command successfully: commandId={}", command.getId());
     }
 
@@ -146,8 +162,9 @@ public class ValidationRuleCommandConsumer {
      * Throws BusinessException with error code if processing fails.
      */
     private void handleSettingCommand(SettingValidationRuleCommand command) {
-        logger.debug("Routing to SettingValidationRuleCommandHandler: commandId={}", command.getId());
+        logger.info("[SAGA-DEBUG] BEFORE SettingValidationRuleCommandHandler.handleCommand: commandId={}", command.getId());
         settingCommandHandler.handleCommand(command);
+        logger.info("[SAGA-DEBUG] AFTER SettingValidationRuleCommandHandler.handleCommand: commandId={}", command.getId());
     }
 
     /**
@@ -244,6 +261,9 @@ public class ValidationRuleCommandConsumer {
             return;
         }
 
+        logger.info("[SAGA-DEBUG] DLQ ENTRY: commandId={}, type={}, topic={}, partition={}, offset={}, thread={}",
+                command.getId(), command.getType(), topic, partition, offset, Thread.currentThread().getName());
+
         logger.warn("Processing DLQ message: commandId={}, type={}, offset={}",
                 command.getId(), command.getType(), offset);
 
@@ -255,6 +275,7 @@ public class ValidationRuleCommandConsumer {
                     command.getSource());
 
             // Route to appropriate DLQ handler based on command type
+            logger.info("[SAGA-DEBUG] DLQ BEFORE handler routing: commandId={}, type={}", command.getId(), command.getType());
             switch (command) {
                 case SettingValidationRuleCommand c -> settingCommandHandler.handleDeadLetterCommand(c);
                 case UpdateValidationRuleCommand c -> updateCommandHandler.handleDeadLetterCommand(c);
@@ -265,13 +286,18 @@ public class ValidationRuleCommandConsumer {
                 case DisableValidationRuleCommand c -> disableCommandHandler.handleDeadLetterCommand(c);
                 default -> logger.error("Unknown command type in DLQ: {}", command.getType());
             }
+            logger.info("[SAGA-DEBUG] DLQ AFTER handler routing OK: commandId={}", command.getId());
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] DLQ handler EXCEPTION: commandId={}, exceptionClass={}, message={}",
+                    command.getId(), e.getClass().getName(), e.getMessage());
             logger.error("Error processing dead letter message: {}", e.getMessage(), e);
         }
 
         // Always acknowledge DLQ messages
+        logger.info("[SAGA-DEBUG] DLQ BEFORE ack: commandId={}", command.getId());
         acknowledgment.acknowledge();
+        logger.info("[SAGA-DEBUG] DLQ AFTER ack: commandId={}", command.getId());
         logger.info("Acknowledged DLQ message: commandId={}", command.getId());
     }
 }

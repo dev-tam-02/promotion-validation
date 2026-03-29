@@ -59,14 +59,18 @@ public class SettingValidationRuleEventPublisher {
      */
     public void publishSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         try {
+            logger.info("[SAGA-DEBUG] publishSuccessEvent ENTRY: commandId={}, topic={}", commandId, eventTopic);
             ValidationRuleSettingAppliedEvent event = createSuccessEvent(commandId, result);
 
             publishAppliedEvent(event, result.getRuleBinding().getId());
 
+            logger.info("[SAGA-DEBUG] publishSuccessEvent kafka send initiated: commandId={}, topic={}, bindingId={}",
+                    commandId, eventTopic, result.getRuleBinding().getId());
             logger.info("Published ValidationRuleSettingAppliedEvent: commandId={}, bindingId={}",
                     commandId, result.getRuleBinding().getId());
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] publishSuccessEvent FAILED: commandId={}, error={}", commandId, e.getMessage());
             throw new EventPublishingException("Failed to publish success event for commandId: " + commandId, e);
         }
     }
@@ -76,14 +80,19 @@ public class SettingValidationRuleEventPublisher {
      */
     public void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
+            logger.info("[SAGA-DEBUG] publishErrorEvent ENTRY: commandId={}, campaignId={}, errorCode={}, topic={}",
+                    commandId, campaignId, errorCode, eventTopic);
             ValidationRuleSettingFailedEvent event = createErrorEvent(commandId, campaignId, errorCode, errorMessage);
             String subject = campaignId != null ? campaignId : commandId;
             publishFailedEvent(event, subject);
 
+            logger.info("[SAGA-DEBUG] publishErrorEvent kafka send initiated: commandId={}, errorCode={}, topic={}",
+                    commandId, errorCode, eventTopic);
             logger.info("Published ValidationRuleSettingFailedEvent: commandId={}, campaignId={}, errorCode={}",
                     commandId, campaignId, errorCode);
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] publishErrorEvent FAILED: commandId={}, error={}", commandId, e.getMessage());
             throw new EventPublishingException("Failed to publish error event for commandId: " + commandId, e);
         }
     }
@@ -304,14 +313,21 @@ public class SettingValidationRuleEventPublisher {
             String key) {
         try {
             // Use KafkaUtils to send with JSON serialization
+            logger.info("[SAGA-DEBUG] Kafka send APPLIED event: topic={}, key={}", eventTopic, key);
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
+                            logger.info("[SAGA-DEBUG] Kafka send APPLIED callback SUCCESS: topic={}, key={}, partition={}, offset={}",
+                                    eventTopic, key,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
                             logger.debug("Published ValidationRuleSettingAppliedEvent to topic {}: key={}, partition={}, offset={}",
                                     eventTopic, key,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
+                            logger.info("[SAGA-DEBUG] Kafka send APPLIED callback FAIL: topic={}, key={}, error={}",
+                                    eventTopic, key, ex.getMessage());
                             logger.error("Failed to publish ValidationRuleSettingAppliedEvent to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
                             throw new EventPublishingException("Failed to publish event to Kafka", ex);
@@ -331,14 +347,21 @@ public class SettingValidationRuleEventPublisher {
             String key) {
         try {
             // Use KafkaUtils to send with JSON serialization
+            logger.info("[SAGA-DEBUG] Kafka send FAILED event: topic={}, key={}", eventTopic, key);
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
+                            logger.info("[SAGA-DEBUG] Kafka send FAILED callback SUCCESS: topic={}, key={}, partition={}, offset={}",
+                                    eventTopic, key,
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
                             logger.debug("Published ValidationRuleSettingFailedEvent to topic {}: key={}, partition={}, offset={}",
                                     eventTopic, key,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
+                            logger.info("[SAGA-DEBUG] Kafka send FAILED callback FAIL: topic={}, key={}, error={}",
+                                    eventTopic, key, ex.getMessage());
                             logger.error("Failed to publish ValidationRuleSettingFailedEvent to Kafka: topic={}, key={}",
                                     eventTopic, key, ex);
                             throw new EventPublishingException("Failed to publish event to Kafka", ex);

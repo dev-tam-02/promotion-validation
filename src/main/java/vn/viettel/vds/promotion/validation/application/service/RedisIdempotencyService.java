@@ -52,14 +52,17 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         try {
             String redisKey = buildRedisKey(idempotencyKey);
+            logger.info("[SAGA-DEBUG] isProcessed: key={}, redisKey={}", idempotencyKey, redisKey);
             RBucket<String> bucket = redissonClient.getBucket(redisKey);
             boolean processed = bucket.isExists();
 
+            logger.info("[SAGA-DEBUG] isProcessed result: key={}, processed={}", idempotencyKey, processed);
             logger.debug("Idempotency check: key={}, processed={}", idempotencyKey, processed);
 
             return processed;
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] isProcessed EXCEPTION (fail-open=false): key={}, error={}", idempotencyKey, e.getMessage());
             logger.error("Error checking idempotency key: {}", idempotencyKey, e);
             // In case of Redis failure, allow processing (fail-open strategy)
             return false;
@@ -75,15 +78,18 @@ public class RedisIdempotencyService implements IdempotencyService {
 
         try {
             String redisKey = buildRedisKey(idempotencyKey);
+            logger.info("[SAGA-DEBUG] markAsProcessed: key={}, redisKey={}", idempotencyKey, redisKey);
             String resultJson = serializeResult(result);
 
             RBucket<String> bucket = redissonClient.getBucket(redisKey);
             bucket.set(resultJson, ttl);
 
+            logger.info("[SAGA-DEBUG] markAsProcessed OK: key={}, ttl={}", idempotencyKey, ttl);
             logger.info("Marked command as processed: key={}, ttl={}", idempotencyKey, ttl);
             logger.debug("Stored result: key={}, result={}", idempotencyKey, resultJson);
 
         } catch (Exception e) {
+            logger.info("[SAGA-DEBUG] markAsProcessed EXCEPTION: key={}, error={}", idempotencyKey, e.getMessage());
             logger.error("Error marking idempotency key as processed: {}", idempotencyKey, e);
             // Don't fail the operation if Redis fails
         }
