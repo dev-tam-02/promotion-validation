@@ -9,7 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
@@ -38,7 +39,6 @@ import java.util.stream.Collectors;
  */
 @ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
-@Transactional
 public class SettingValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
@@ -50,6 +50,7 @@ public class SettingValidationRuleCommandHandler {
     private final RulePublishingService rulePublishingService;
     private final Validator validator;
     private final SettingValidationRuleCommandDTOMapper dtoMapper;
+    private final TransactionTemplate transactionTemplate;
 
     public SettingValidationRuleCommandHandler(
             RuleBindingPersistencePort ruleBindingPort,
@@ -58,7 +59,8 @@ public class SettingValidationRuleCommandHandler {
             IdempotencyService idempotencyService,
             RulePublishingService rulePublishingService,
             Validator validator,
-            SettingValidationRuleCommandDTOMapper dtoMapper) {
+            SettingValidationRuleCommandDTOMapper dtoMapper,
+            PlatformTransactionManager transactionManager) {
         this.ruleBindingPort = ruleBindingPort;
         this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
@@ -66,10 +68,16 @@ public class SettingValidationRuleCommandHandler {
         this.rulePublishingService = rulePublishingService;
         this.validator = validator;
         this.dtoMapper = dtoMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
-     * Handle SettingValidationRuleCommand
+     * Handle SettingValidationRuleCommand.
+     * <p>
+     * Uses TransactionTemplate for explicit transaction control to ensure that:
+     * - SUCCESS event is published ONLY AFTER the DB transaction commits
+     * - If transaction commit fails, no SUCCESS event is sent (prevents SUCCESS+FAILURE race)
+     * - Idempotency is marked BEFORE publishing SUCCESS (protects DLQ handler from race)
      */
     @SuppressWarnings("java:S2139")
     public boolean handleCommand(SettingValidationRuleCommand command) {
@@ -96,22 +104,29 @@ public class SettingValidationRuleCommandHandler {
 
             String campaignId = payload.getObjectId();
 
-            // Process command
-            CommandProcessingResult result = processCommand(commandId, payload);
+            // Process command within explicit transaction boundary.
+            // Transaction commits when execute() returns — BEFORE we publish events.
+            CommandProcessingResult result = transactionTemplate.execute(status -> {
+                return processCommand(commandId, payload);
+            });
 
-            if (!result.isSuccess()) {
-                publishErrorEvent(commandId, campaignId, result.getErrorCode(), result.getErrorMessage());
+            // --- Transaction has committed here ---
+
+            if (result == null || !result.isSuccess()) {
+                String errorCode = result != null ? result.getErrorCode() : "PROCESSING_ERROR";
+                String errorMessage = result != null ? result.getErrorMessage() : "Processing returned null result";
+                publishErrorEvent(commandId, campaignId, errorCode, errorMessage);
                 logger.error("Failed to process SettingValidationRuleCommand: commandId={}, errorCode={}, error={}",
-                        commandId, result.getErrorCode(), result.getErrorMessage());
-                throw new InvalidCommandDataException(result.getErrorCode(), result.getErrorMessage());
+                        commandId, errorCode, errorMessage);
+                throw new InvalidCommandDataException(errorCode, errorMessage);
             }
 
-            // Publish success event
-            publishSuccessEvent(commandId, result);
-
-            // Mark as processed
+            // Mark as processed FIRST — so DLQ handler sees it even if SUCCESS publish is slow
             IdempotencyResultDto idempotencyDto = result.toIdempotencyDto();
             idempotencyService.markAsProcessed(commandId, idempotencyDto);
+
+            // Publish success event AFTER transaction committed and idempotency marked
+            publishSuccessEvent(commandId, result);
 
             logger.info("Successfully processed SettingValidationRuleCommand: commandId={}", commandId);
             return true;
@@ -122,8 +137,14 @@ public class SettingValidationRuleCommandHandler {
             throw e;
         } catch (Exception e) {
             logger.error("Unexpected error processing SettingValidationRuleCommand: commandId={}", commandId, e);
-            String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
-            publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            // Only publish error if this command was NOT already successfully processed.
+            // Prevents the race: SUCCESS event published -> post-processing fails -> FAILURE event.
+            if (!idempotencyService.isProcessed(commandId)) {
+                String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
+                publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            } else {
+                logger.warn("Command already marked as processed, suppressing error event: commandId={}", commandId);
+            }
             return false;
         }
     }
@@ -503,6 +524,22 @@ public class SettingValidationRuleCommandHandler {
         if (idempotencyService.isProcessed(commandId)) {
             logger.info("Command already processed successfully, skipping DLQ failure event: commandId={}", commandId);
             return;
+        }
+
+        // Fallback: check DB for the binding in case Redis was unavailable during processing.
+        // Redis idempotency uses fail-open strategy, so this DB check prevents false negatives.
+        if (command.getPayload() != null) {
+            String objectType = command.getPayload().getObjectType();
+            String objectId = command.getPayload().getObjectId();
+            String ruleId = command.getPayload().getRuleId();
+            try {
+                if (ruleBindingPort.existsByObjectAndRule(objectType, objectId, ruleId != null ? ruleId : "")) {
+                    logger.info("Binding exists in DB, command was processed successfully, skipping DLQ failure event: commandId={}", commandId);
+                    return;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to check DB for binding existence, proceeding with DLQ event: commandId={}", commandId, e);
+            }
         }
 
         try {
