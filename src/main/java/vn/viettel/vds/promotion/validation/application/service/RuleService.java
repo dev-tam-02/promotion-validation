@@ -76,24 +76,39 @@ public class RuleService {
      */
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String createdBy) {
-        logger.info("Creating rule: code={}", code);
+        return createRule(code, name, logic, nodes, null, null, createdBy);
+    }
+
+    public Rule createRule(String code, String name, Rule.LogicType logic,
+                           List<RuleNode> nodes, String context, String description,
+                           String createdBy) {
+        // Auto-generate code if not provided
+        String effectiveCode = (code != null && !code.isBlank()) ? code : generateRuleId();
+        logger.info("Creating rule: code={}", effectiveCode);
 
         // Check if rule with same code already exists
-        if (rulePersistencePort.existsByCode(code)) {
-            throw new RuleAlreadyExistsException(code);
+        if (rulePersistencePort.existsByCode(effectiveCode)) {
+            throw new RuleAlreadyExistsException(effectiveCode);
         }
 
-        // Validate rule nodes
-        validateRuleNodes(nodes);
+        // Validate rule nodes only if provided
+        if (nodes != null && !nodes.isEmpty()) {
+            validateRuleNodes(nodes);
+        }
+
+        // Default logic to ALL if not provided
+        Rule.LogicType effectiveLogic = (logic != null) ? logic : Rule.LogicType.ALL;
 
         Rule rule = new Rule();
         rule.setId(generateRuleId());
-        rule.setCode(code);
+        rule.setCode(effectiveCode);
         rule.setName(name);
         rule.setState(Rule.RuleState.DRAFT);
         rule.setLatestVersion(0);
-        rule.setLogic(logic);
+        rule.setLogic(effectiveLogic);
         rule.setNodes(nodes);
+        rule.setContext(context);
+        rule.setDescription(description);
         rule.setCreatedAt(Instant.now());
         rule.setCreatedBy(createdBy);
         rule.setUpdatedAt(Instant.now());
@@ -103,6 +118,14 @@ public class RuleService {
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
+    }
+
+    /**
+     * Count binding assignments for a rule
+     */
+    @Transactional(readOnly = true)
+    public long countBindingsForRule(String ruleId) {
+        return ruleBindingPort.findByRuleId(ruleId).size();
     }
 
     /**

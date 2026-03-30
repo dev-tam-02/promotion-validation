@@ -15,7 +15,6 @@ import java.util.Map;
 public class CreateRuleRequest {
 
     @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K")
-    @NotBlank(message = "Rule code is required")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("code")
     private String code;
@@ -27,16 +26,23 @@ public class CreateRuleRequest {
     private String name;
 
     @Schema(description = "Root logic operator", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
-    @NotNull(message = "Logic is required")
     @JsonProperty("logic")
     private String logic;
+
+    @Schema(description = "Rule context (e.g., ORDER, CUSTOMER)", example = "ORDER")
+    @JsonProperty("context")
+    private String context;
+
+    @Schema(description = "Rule description")
+    @Size(max = 1000, message = "Description must not exceed 1000 characters")
+    @JsonProperty("description")
+    private String description;
 
     @Schema(description = "Rule limits configuration", example = "{\"perCodeTotal\": 1000, \"perCustomer\": 3}")
     @JsonProperty("limits")
     private Map<String, Object> limits;
 
     @Schema(description = "Rule nodes (conditions and groups)")
-    @NotEmpty(message = "Rule must have at least one node")
     @Valid
     @JsonProperty("nodes")
     private List<RuleNodeDto> nodes;
@@ -85,6 +91,22 @@ public class CreateRuleRequest {
 
     public void setNodes(List<RuleNodeDto> nodes) {
         this.nodes = nodes;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getNotes() {

@@ -78,11 +78,17 @@ public class RuleController {
 
         logger.info("Creating rule: code={}", request.getCode());
 
+        Rule.LogicType logic = (request.getLogic() != null && !request.getLogic().isBlank())
+                ? Rule.LogicType.valueOf(request.getLogic())
+                : null;
+
         Rule rule = ruleService.createRule(
                 request.getCode(),
                 request.getName(),
-                Rule.LogicType.valueOf(request.getLogic()),
+                logic,
                 ruleMapper.toRuleNodes(request.getNodes()),
+                request.getContext(),
+                request.getDescription(),
                 userId
         );
 
@@ -141,6 +147,13 @@ public class RuleController {
 
         Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
         Page<RuleResponse> responses = rules.map(ruleMapper::toRuleResponse);
+
+        // Enrich each response with binding assignment count
+        responses.forEach(response -> {
+            if (response.getRuleId() != null) {
+                response.setAssignmentCount(ruleService.countBindingsForRule(response.getRuleId()));
+            }
+        });
 
         return PageResponse.from(responses);
     }
