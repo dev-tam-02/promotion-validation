@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.D
 import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -77,9 +78,9 @@ public class DeleteValidationRuleCommandHandler {
             logger.info("Delete request: campaignId={}, validationRuleId={}, deleteAll={}",
                     campaignId, validationRuleId, deleteAll);
 
-            boolean success = executeDelete(campaignId, validationRuleId, deleteAll);
+            List<RuleBinding> deletedBindings = executeDelete(campaignId, validationRuleId, deleteAll);
 
-            if (!success) {
+            if (deletedBindings == null) {
                 String errorCode = "DELETE_FAILED";
                 String errorMessage = "Failed to delete validation rule binding";
                 publishDeleteErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -88,7 +89,7 @@ public class DeleteValidationRuleCommandHandler {
             }
 
             idempotencyService.markAsProcessed(commandId, "Delete completed successfully");
-            publishDeleteSuccessEvent(commandId, campaignId, validationRuleId);
+            publishDeleteSuccessEvent(commandId, campaignId, deletedBindings);
 
             logger.info("Successfully processed DeleteValidationRuleCommand: commandId={}", commandId);
             return true;
@@ -118,14 +119,14 @@ public class DeleteValidationRuleCommandHandler {
         logger.debug("DeleteValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
-    private boolean executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
+    private List<RuleBinding> executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
         try {
             // Find bindings by object (campaign)
             List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
 
             if (bindings.isEmpty()) {
                 logger.warn("No bindings found for campaign: campaignId={}", campaignId);
-                return true;
+                return new ArrayList<>();
             }
 
             // Filter if specific binding ID provided
@@ -136,7 +137,7 @@ public class DeleteValidationRuleCommandHandler {
 
                 if (bindings.isEmpty()) {
                     logger.warn("No binding found with ID: {}", validationRuleId);
-                    return true;
+                    return new ArrayList<>();
                 }
             }
 
@@ -147,11 +148,11 @@ public class DeleteValidationRuleCommandHandler {
                 deleteBinding(binding);
             }
 
-            return true;
+            return bindings;
 
         } catch (Exception e) {
             logger.error("Error executing delete for campaign: {}", campaignId, e);
-            return false;
+            return null;
         }
     }
 
@@ -189,9 +190,16 @@ public class DeleteValidationRuleCommandHandler {
         }
     }
 
-    private void publishDeleteSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    private void publishDeleteSuccessEvent(String commandId, String campaignId, List<RuleBinding> deletedBindings) {
         try {
-            eventPublisher.publishDeleteSuccessEvent(commandId, campaignId, validationRuleId);
+            if (deletedBindings == null || deletedBindings.isEmpty()) {
+                // Nothing matched — still notify the saga so it can progress; data plane no-ops.
+                eventPublisher.publishDeleteSuccessEvent(commandId, campaignId, (RuleBinding) null);
+                return;
+            }
+            for (RuleBinding binding : deletedBindings) {
+                eventPublisher.publishDeleteSuccessEvent(commandId, campaignId, binding);
+            }
         } catch (Exception e) {
             logger.error("Failed to publish delete success event: commandId={}", commandId, e);
         }

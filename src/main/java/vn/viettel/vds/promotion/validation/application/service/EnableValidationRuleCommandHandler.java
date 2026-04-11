@@ -73,9 +73,9 @@ public class EnableValidationRuleCommandHandler {
 
             logger.info("Enable request: campaignId={}, validationRuleId={}", campaignId, validationRuleId);
 
-            boolean success = executeEnable(campaignId, validationRuleId);
+            RuleBinding enabledBinding = executeEnable(campaignId, validationRuleId);
 
-            if (!success) {
+            if (enabledBinding == null) {
                 String errorCode = "ENABLE_FAILED";
                 String errorMessage = "Failed to enable validation rule binding";
                 publishEnableErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -84,7 +84,7 @@ public class EnableValidationRuleCommandHandler {
             }
 
             idempotencyService.markAsProcessed(commandId, "Enable completed successfully");
-            publishEnableSuccessEvent(commandId, campaignId, validationRuleId);
+            publishEnableSuccessEvent(commandId, campaignId, enabledBinding);
 
             logger.info("Successfully processed EnableValidationRuleCommand: commandId={}", commandId);
             return true;
@@ -118,7 +118,7 @@ public class EnableValidationRuleCommandHandler {
         logger.debug("EnableValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
-    private boolean executeEnable(String campaignId, String validationRuleId) {
+    private RuleBinding executeEnable(String campaignId, String validationRuleId) {
         try {
             // Find binding by ID first
             RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
@@ -128,7 +128,7 @@ public class EnableValidationRuleCommandHandler {
                 List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
                 if (bindings.isEmpty()) {
                     logger.warn("No binding found for campaign: {}", campaignId);
-                    return false;
+                    return null;
                 }
                 binding = bindings.get(0);
             }
@@ -146,20 +146,23 @@ public class EnableValidationRuleCommandHandler {
 
             logger.info("Enabled binding: bindingId={}", binding.getId());
 
-            // Deploy rule if binding has ruleId
+            // Deploy rule if binding has ruleId — may refresh the bundleHash.
             if (binding.getRuleId() != null && !binding.getRuleId().isBlank()) {
-                deployRuleToEngine(updated);
+                RuleBinding redeployed = deployRuleToEngine(updated);
+                if (redeployed != null) {
+                    updated = redeployed;
+                }
             }
 
-            return true;
+            return updated;
 
         } catch (Exception e) {
             logger.error("Error executing enable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
-            return false;
+            return null;
         }
     }
 
-    private void deployRuleToEngine(RuleBinding binding) {
+    private RuleBinding deployRuleToEngine(RuleBinding binding) {
         try {
             String ruleId = binding.getRuleId();
 
@@ -167,7 +170,7 @@ public class EnableValidationRuleCommandHandler {
 
             if (!validationRulePort.existsById(ruleId)) {
                 logger.warn("Rule not found for deployment: ruleId={}", ruleId);
-                return;
+                return null;
             }
 
             var publishResult = rulePublishingService.publishRule(ruleId, binding.getId(), null);
@@ -178,18 +181,20 @@ public class EnableValidationRuleCommandHandler {
                         .build();
                 ruleBindingPort.save(updated);
                 logger.info("Rule deployed: ruleId={}, bundleHash={}", ruleId, publishResult.getBundleHash());
-            } else {
-                logger.error("Failed to deploy rule: ruleId={}, error={}", ruleId, publishResult.getErrorMessage());
+                return updated;
             }
+            logger.error("Failed to deploy rule: ruleId={}, error={}", ruleId, publishResult.getErrorMessage());
+            return null;
 
         } catch (Exception e) {
             logger.error("Error deploying rule: bindingId={}", binding.getId(), e);
+            return null;
         }
     }
 
-    private void publishEnableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    private void publishEnableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
         try {
-            eventPublisher.publishEnableSuccessEvent(commandId, campaignId, validationRuleId);
+            eventPublisher.publishEnableSuccessEvent(commandId, campaignId, binding);
         } catch (Exception e) {
             logger.error("Failed to publish enable success event: commandId={}", commandId, e);
         }
