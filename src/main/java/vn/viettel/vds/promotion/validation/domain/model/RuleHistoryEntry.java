@@ -12,6 +12,9 @@ import java.util.Map;
  *   <li>When a rule is first created ({@code changeType = CREATE}).</li>
  *   <li>Before each update — capturing the state BEFORE the change
  *       ({@code changeType = UPDATE}).</li>
+ *   <li>Before a restore — capturing the pre-restore state
+ *       ({@code changeType = RESTORE}).</li>
+ *   <li>When a rule is archived ({@code changeType = ARCHIVE}).</li>
  * </ul>
  *
  * <p>These entries enable the {@code GET /v1/rules/{id}/history} listing and
@@ -26,7 +29,11 @@ public class RuleHistoryEntry {
         /** Rule was created for the first time. */
         CREATE,
         /** Rule was updated; this entry captures the state BEFORE the update. */
-        UPDATE
+        UPDATE,
+        /** Rule was restored to a prior version; this entry captures the pre-restore state. */
+        RESTORE,
+        /** Rule was archived. */
+        ARCHIVE
     }
 
     private final String id;
@@ -38,6 +45,7 @@ public class RuleHistoryEntry {
     private final Map<String, Object> dslSnapshot;
     private final String bundleHash;
     private final String state;
+    private final String changeReason;
 
     public RuleHistoryEntry(String id,
                             String ruleId,
@@ -47,7 +55,8 @@ public class RuleHistoryEntry {
                             Instant changedAt,
                             Map<String, Object> dslSnapshot,
                             String bundleHash,
-                            String state) {
+                            String state,
+                            String changeReason) {
         this.id = id;
         this.ruleId = ruleId;
         this.ruleVersion = ruleVersion;
@@ -57,6 +66,7 @@ public class RuleHistoryEntry {
         this.dslSnapshot = dslSnapshot;
         this.bundleHash = bundleHash;
         this.state = state;
+        this.changeReason = changeReason;
     }
 
     public String getId() { return id; }
@@ -68,4 +78,5 @@ public class RuleHistoryEntry {
     public Map<String, Object> getDslSnapshot() { return dslSnapshot; }
     public String getBundleHash() { return bundleHash; }
     public String getState() { return state; }
+    public String getChangeReason() { return changeReason; }
 }

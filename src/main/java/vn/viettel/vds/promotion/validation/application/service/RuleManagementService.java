@@ -115,7 +115,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         log.info("createRule: saved id={}", saved.getId());
 
         // Record CREATE history entry
-        recordHistory(saved, RuleHistoryEntry.ChangeType.CREATE, createdBy);
+        recordHistory(saved, RuleHistoryEntry.ChangeType.CREATE, createdBy, null);
 
         // Generate DSL snapshot and compile + register DRL
         saved = compilePipelineAndSave(saved, nodes != null ? nodes : List.of(), createdBy);
@@ -146,7 +146,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         }
 
         // Record UPDATE history BEFORE applying changes (captures pre-update state)
-        recordHistory(existing, RuleHistoryEntry.ChangeType.UPDATE, updatedBy);
+        recordHistory(existing, RuleHistoryEntry.ChangeType.UPDATE, updatedBy, null);
 
         long nextVersion = (existing.getRuleVersion() != null ? existing.getRuleVersion() : 1L) + 1L;
 
@@ -185,6 +185,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         log.info("archiveRule: id={} by={}", ruleId, archivedBy);
         Rule existing = rulePort.findById(ruleId)
                 .orElseThrow(() -> new RuleNotFoundException(ruleId));
+        recordHistory(existing, RuleHistoryEntry.ChangeType.ARCHIVE, archivedBy, null);
         existing.archive(archivedBy);
         return rulePort.save(existing);
     }
@@ -233,7 +234,8 @@ public class RuleManagementService implements RuleManagementUseCase {
      *
      * <p>Silently skips if the history port is not available (e.g., non-JPA profile).
      */
-    private void recordHistory(Rule rule, RuleHistoryEntry.ChangeType changeType, String actor) {
+    private void recordHistory(Rule rule, RuleHistoryEntry.ChangeType changeType,
+                               String actor, String changeReason) {
         historyPort.ifPresent(port -> {
             try {
                 RuleHistoryEntry entry = new RuleHistoryEntry(
@@ -245,7 +247,8 @@ public class RuleManagementService implements RuleManagementUseCase {
                         Instant.now(),
                         rule.getDsl(),
                         rule.getBundleHash(),
-                        rule.getState() != null ? rule.getState().name() : null
+                        rule.getState() != null ? rule.getState().name() : null,
+                        changeReason
                 );
                 port.save(entry);
                 log.debug("Recorded {} history for ruleId={}, version={}",
@@ -263,12 +266,15 @@ public class RuleManagementService implements RuleManagementUseCase {
      * <p>On success: sets rule.dsl, rule.bundleHash, rule.state=ACTIVE and saves.
      * On failure (compile error or engine down): leaves rule in DRAFT with bundleHash=null.
      *
+     * <p>Package-private so {@link RuleHistoryService} can invoke the same pipeline
+     * after a restore without duplicating compile/register logic.
+     *
      * @param rule   already-persisted rule
      * @param nodes  assembled node tree (first element = root)
      * @param userId user performing the action (for audit)
      * @return updated rule
      */
-    private Rule compilePipelineAndSave(Rule rule, List<RuleNode> nodes, String userId) {
+    Rule compilePipelineAndSave(Rule rule, List<RuleNode> nodes, String userId) {
         String ruleId = rule.getId();
 
         // Step 1: Generate DSL snapshot

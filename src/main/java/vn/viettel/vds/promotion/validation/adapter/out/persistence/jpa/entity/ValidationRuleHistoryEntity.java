@@ -51,4 +51,7 @@ public class ValidationRuleHistoryEntity {
 
     @Column(name = "state", length = 30)
     private String state;
+
+    @Column(name = "change_reason", length = 500)
+    private String changeReason;
 }

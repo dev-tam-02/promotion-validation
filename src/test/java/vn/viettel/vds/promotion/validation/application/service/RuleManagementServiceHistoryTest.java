@@ -179,6 +179,70 @@ class RuleManagementServiceHistoryTest {
     }
 
     // -----------------------------------------------------------------------
+    // archiveRule history recording (Fix 3)
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("archiveRule — history recording")
+    class ArchiveRuleTest {
+
+        @Test
+        @DisplayName("archiveRule: records ARCHIVE history entry with archivedBy actor")
+        void archiveRule_recordsHistoryWithArchiveChangeType() {
+            Rule publishedRule = Rule.builder()
+                    .id("rule-archive-01")
+                    .name("Rule to Archive")
+                    .logic(Rule.LogicType.ALL)
+                    .state(Rule.RuleState.PUBLISHED)
+                    .ruleVersion(2L)
+                    .bundleHash("bundle-abc")
+                    .nodes(List.of())
+                    .active(true)
+                    .build();
+
+            when(rulePort.findById("rule-archive-01")).thenReturn(Optional.of(publishedRule));
+
+            service.archiveRule("rule-archive-01", "admin-archiver");
+
+            ArgumentCaptor<RuleHistoryEntry> captor = ArgumentCaptor.forClass(RuleHistoryEntry.class);
+            verify(historyPort, atLeastOnce()).save(captor.capture());
+
+            RuleHistoryEntry archiveEntry = captor.getAllValues().stream()
+                    .filter(e -> e.getChangeType() == RuleHistoryEntry.ChangeType.ARCHIVE)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("Expected ARCHIVE history entry"));
+
+            assertThat(archiveEntry.getChangeType()).isEqualTo(RuleHistoryEntry.ChangeType.ARCHIVE);
+            assertThat(archiveEntry.getChangedBy()).isEqualTo("admin-archiver");
+            assertThat(archiveEntry.getRuleVersion()).isEqualTo(2L);
+            assertThat(archiveEntry.getBundleHash()).isEqualTo("bundle-abc");
+        }
+
+        @Test
+        @DisplayName("archiveRule: history failure does not abort archive operation")
+        void archiveRule_historyFailure_doesNotAbortArchive() {
+            Rule rule = Rule.builder()
+                    .id("rule-archive-02")
+                    .name("Rule 2")
+                    .logic(Rule.LogicType.ALL)
+                    .state(Rule.RuleState.PUBLISHED)
+                    .ruleVersion(1L)
+                    .nodes(List.of())
+                    .active(true)
+                    .build();
+
+            when(rulePort.findById("rule-archive-02")).thenReturn(Optional.of(rule));
+            doThrow(new RuntimeException("DB failure")).when(historyPort).save(any());
+
+            // Archive should still succeed despite history save failure
+            Rule result = service.archiveRule("rule-archive-02", "admin");
+
+            assertThat(result.getState()).isEqualTo(Rule.RuleState.ARCHIVED);
+            verify(rulePort, atLeastOnce()).save(any(Rule.class));
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // No history port (backward compat)
     // -----------------------------------------------------------------------
 

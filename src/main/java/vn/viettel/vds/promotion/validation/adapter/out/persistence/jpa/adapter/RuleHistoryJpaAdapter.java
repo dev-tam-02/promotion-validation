@@ -81,6 +81,7 @@ public class RuleHistoryJpaAdapter implements RuleHistoryPersistencePort {
                 .dslSnapshot(dslJson)
                 .bundleHash(entry.getBundleHash())
                 .state(entry.getState())
+                .changeReason(entry.getChangeReason())
                 .build();
     }
 
@@ -104,7 +105,8 @@ public class RuleHistoryJpaAdapter implements RuleHistoryPersistencePort {
                 entity.getChangedAt(),
                 dslMap,
                 entity.getBundleHash(),
-                entity.getState()
+                entity.getState(),
+                entity.getChangeReason()
         );
     }
 

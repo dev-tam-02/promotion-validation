@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
@@ -53,9 +54,8 @@ public class RuleBindingService {
                 binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
 
         // Load rule to validate existence and capture current version for pinning
-        vn.viettel.vds.promotion.validation.domain.model.Rule rule =
-                rulePersistencePort.findById(binding.getRuleId())
-                        .orElseThrow(() -> new RuleNotFoundException(binding.getRuleId()));
+        Rule rule = rulePersistencePort.findById(binding.getRuleId())
+                .orElseThrow(() -> new RuleNotFoundException(binding.getRuleId()));
 
         // Check for duplicate binding
         if (bindingPersistencePort.existsByObjectAndRule(

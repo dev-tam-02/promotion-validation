@@ -9,10 +9,12 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Application service for rule history — listing versions and restoring a rule to a prior version.
@@ -21,8 +23,11 @@ import java.util.Optional;
  * <ol>
  *   <li>Loads the history entry for the target version.</li>
  *   <li>Applies the snapshotted DSL back to the current rule.</li>
- *   <li>Records a new UPDATE history entry capturing the pre-restore state.</li>
+ *   <li>Records a new RESTORE history entry capturing the pre-restore state.</li>
  *   <li>Increments {@code ruleVersion} and saves.</li>
+ *   <li>Recompiles the DRL and re-registers with pp-rule-engine, updating
+ *       {@code bundleHash}. Without this step the runtime evaluation continues
+ *       executing the pre-restore bundle.</li>
  * </ol>
  */
 @Service
@@ -32,10 +37,14 @@ public class RuleHistoryService {
 
     private final RulePersistencePort rulePort;
     private final RuleHistoryPersistencePort historyPort;
+    private final RuleManagementService ruleManagementService;
 
-    public RuleHistoryService(RulePersistencePort rulePort, RuleHistoryPersistencePort historyPort) {
+    public RuleHistoryService(RulePersistencePort rulePort,
+                              RuleHistoryPersistencePort historyPort,
+                              RuleManagementService ruleManagementService) {
         this.rulePort = rulePort;
         this.historyPort = historyPort;
+        this.ruleManagementService = ruleManagementService;
     }
 
     /**
@@ -54,10 +63,15 @@ public class RuleHistoryService {
     /**
      * Restore a rule to the DSL snapshot captured at {@code targetVersion}.
      *
+     * <p>After applying the snapshot DSL, the rule is recompiled and re-registered
+     * with pp-rule-engine so that the runtime evaluation immediately uses the
+     * restored logic. The {@code bundleHash} on the returned rule reflects the
+     * newly compiled bundle, not the stale pre-restore hash.
+     *
      * @param ruleId        rule to restore
      * @param targetVersion version number to restore to
      * @param restoredBy    actor performing the restore
-     * @return the updated rule after restore
+     * @return the updated rule after restore and recompile
      */
     @Transactional
     public Rule restore(String ruleId, long targetVersion, String restoredBy) {
@@ -74,18 +88,19 @@ public class RuleHistoryService {
 
         RuleHistoryEntry snapshot = targetEntry.get();
 
-        // Record pre-restore state as an UPDATE history entry
+        // Record pre-restore state as a RESTORE history entry
         long nextVersion = (current.getRuleVersion() != null ? current.getRuleVersion() : 1L) + 1L;
         RuleHistoryEntry preRestoreEntry = new RuleHistoryEntry(
-                java.util.UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
                 ruleId,
                 current.getRuleVersion() != null ? current.getRuleVersion() : 1L,
-                RuleHistoryEntry.ChangeType.UPDATE,
+                RuleHistoryEntry.ChangeType.RESTORE,
                 restoredBy,
                 Instant.now(),
                 current.getDsl(),
                 current.getBundleHash(),
-                current.getState() != null ? current.getState().name() : null
+                current.getState() != null ? current.getState().name() : null,
+                "pre-restore snapshot before restoring to version " + targetVersion
         );
         historyPort.save(preRestoreEntry);
 
@@ -98,7 +113,14 @@ public class RuleHistoryService {
                 .build();
 
         Rule saved = rulePort.save(restored);
-        log.info("restore: rule {} restored to version {}, new version={}", ruleId, targetVersion, nextVersion);
-        return saved;
+
+        // Recompile DRL and re-register with pp-rule-engine so bundleHash reflects the
+        // restored logic. Without this, the runtime evaluation executes the pre-restore bundle.
+        List<RuleNode> nodes = saved.getNodes() != null ? saved.getNodes() : List.of();
+        Rule recompiled = ruleManagementService.compilePipelineAndSave(saved, nodes, restoredBy);
+
+        log.info("restore: rule {} restored to version {}, new version={}, bundleHash={}",
+                ruleId, targetVersion, nextVersion, recompiled.getBundleHash());
+        return recompiled;
     }
 }

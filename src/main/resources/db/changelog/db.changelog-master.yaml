@@ -68,3 +68,7 @@ databaseChangeLog:
   # Task 09 V2: Create validation_rules_history for per-version audit trail
   - include:
       file: db/changelog/changes/033-create-validation-rules-history.yaml
+
+  # Task 09 V2 Review-B: Add change_reason column to validation_rules_history
+  - include:
+      file: db/changelog/changes/034-add-change-reason-to-history.yaml

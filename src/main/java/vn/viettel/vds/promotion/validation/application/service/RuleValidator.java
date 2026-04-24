@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
-import java.io.IOException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -241,7 +241,7 @@ public class RuleValidator {
             }
         } catch (RuleValidationException ex) {
             throw ex;
-        } catch (IOException ex) {
+        } catch (JsonProcessingException ex) {
             log.warn("Failed to validate params for node={} operator={}: {}",
                     nodeId, operatorName, ex.getMessage());
         }
