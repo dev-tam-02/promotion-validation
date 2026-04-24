@@ -42,6 +42,7 @@ public class RuleBindingService {
 
     private final RuleBindingPersistencePort bindingPersistencePort;
     private final RulePersistencePort rulePersistencePort;
+    private final RuleValidator ruleValidator;
 
     // ========== Create Operations ==========
 
@@ -61,6 +62,12 @@ public class RuleBindingService {
             throw new BindingAlreadyExistsException(
                     binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
         }
+
+        // V3: validate structured scope fields against JSON Schema spec
+        ruleValidator.checkBindingScopeSchema(
+                binding.getScopeTimeWindows(),
+                binding.getScopeProductScope(),
+                binding.getScopeTrafficControl());
 
         // Set defaults
         RuleBinding toSave = binding.toBuilder()

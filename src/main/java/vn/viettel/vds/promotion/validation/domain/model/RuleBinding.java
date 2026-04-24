@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Domain model representing a binding between a validation rule and an object entity.
@@ -135,6 +136,44 @@ public class RuleBinding {
      * Ensures the same customer/order always gets the same decision.
      */
     private StickyKeyStrategy stickyKeyStrategy;
+
+    // ========== Structured Scope (V3 JSON Schema spec) ==========
+
+    /**
+     * Structured time-windows scope validated against {@code time_windows.schema.json}.
+     * <pre>
+     * {
+     *   "rrule": "FREQ=WEEKLY;BYDAY=MO,TU",  // required — RFC 5545
+     *   "duration": "PT2H",                   // optional — ISO 8601
+     *   "timezone": "Asia/Ho_Chi_Minh"        // optional — IANA tz
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeTimeWindows;
+
+    /**
+     * Structured product-scope validated against {@code product_scope.schema.json}.
+     * <pre>
+     * {
+     *   "include": { "product_ids": [...], "category_ids": [...] },
+     *   "exclude": { "tags": ["PREMIUM"] },
+     *   "match_logic": "ANY"
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeProductScope;
+
+    /**
+     * Structured traffic-control scope validated against {@code traffic_control.schema.json}.
+     * <pre>
+     * {
+     *   "bucket_algorithm": "HASH_SHA256",
+     *   "percentage": 50,
+     *   "rate_limit": { "per_second": 100, "per_minute": 5000 }
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeTrafficControl;
 
     // ========== Compiled ==========
     /**

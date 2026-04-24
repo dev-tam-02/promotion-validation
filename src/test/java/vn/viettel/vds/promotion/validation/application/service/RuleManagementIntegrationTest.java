@@ -72,7 +72,7 @@ class RuleManagementIntegrationTest {
         ruleManagementService = new RuleManagementService(
                 rulePort, assembler, validator, dslGenerator, drlCompiler,
                 ruleEngineClient, operatorPort);
-        bindingManagementService = new RuleBindingManagementService(bindingPort);
+        bindingManagementService = new RuleBindingManagementService(bindingPort, validator);
     }
 
     @Test
