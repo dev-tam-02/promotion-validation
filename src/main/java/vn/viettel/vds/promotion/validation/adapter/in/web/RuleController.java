@@ -323,33 +323,6 @@ public class RuleController {
         return response;
     }
 
-    @Operation(summary = "Simulate rule execution", description = "Test rule against provided context without publishing")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Simulation completed"),
-            @ApiResponse(responseCode = "404", description = "Rule not found")
-    })
-    @PostMapping("/{ruleId}/simulate")
-    public SimulationResponse simulateRule(
-            @Parameter(description = "Rule ID") @PathVariable String ruleId,
-            @Valid @RequestBody SimulateRuleRequest request) {
-
-        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion());
-
-        RuleSimulationService.SimulationResult result = ruleSimulationService.simulateRule(
-                ruleId,
-                request.getVersion(),
-                mapToSimulationContext(request.getContext()),
-                mapToExplainLevel(request.getExplain())
-        );
-
-        SimulationResponse response = new SimulationResponse();
-        response.setDecision(result.getDecision().name().toLowerCase());
-        response.setReasonCodes(result.getReasonCodes());
-        response.setExplain(result.getExplain());
-
-        return response;
-    }
-
     @Operation(summary = "Batch simulate rule", description = "Run multiple test cases against a rule")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Batch simulation completed"),

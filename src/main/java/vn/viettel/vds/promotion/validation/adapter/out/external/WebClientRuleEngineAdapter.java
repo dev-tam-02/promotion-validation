@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.out.external;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.promix.platform.web.template.ResponseTemplate;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -157,6 +159,65 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
         }
     }
 
+    @Override
+    @CircuitBreaker(name = "ruleEngine", fallbackMethod = "simulateFallback")
+    public SimulateResponse simulate(String ruleId, Map<String, Object> facts) {
+        log.info("Simulating rule via pp-rule-engine: ruleId={}", ruleId);
+
+        try {
+            Map<String, Object> requestBody = Map.of(
+                    "ruleIds", List.of(ruleId),
+                    "facts", facts,
+                    "mode", "SIMULATE"
+            );
+
+            ResponseTemplate<EvaluateRuleResponseBody> response = webClient.post()
+                    .uri("/v1/rules/evaluate")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class)
+                                    .map(body -> new RuleEngineException(
+                                            "Rule engine rejected simulate for ruleId=" + ruleId + ": " + body,
+                                            clientResponse.statusCode().value()))
+                    )
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<EvaluateRuleResponseBody>>() {})
+                    .timeout(TIMEOUT)
+                    .block();
+
+            if (response == null || response.getData() == null) {
+                throw new RuleEngineException("Rule engine returned empty simulate response for ruleId=" + ruleId, -1);
+            }
+
+            EvaluateRuleResponseBody body = response.getData();
+            log.info("Simulate completed: ruleId={}, verdict={}", ruleId, body.verdict());
+
+            List<SimulateResponse.TraceEntry> trace = body.trace() == null ? List.of()
+                    : body.trace().stream()
+                    .map(t -> new SimulateResponse.TraceEntry(
+                            t.nodeId(), t.type(), t.operator(), t.result(), t.reason()))
+                    .toList();
+
+            return new SimulateResponse(
+                    body.verdict(),
+                    trace,
+                    body.matchedNodes() != null ? body.matchedNodes() : List.of(),
+                    body.unmatchedNodes() != null ? body.unmatchedNodes() : List.of(),
+                    body.reasonCodes() != null ? body.reasonCodes() : List.of()
+            );
+
+        } catch (RuleEngineException ex) {
+            throw ex;
+        } catch (WebClientResponseException ex) {
+            throw new RuleEngineException(
+                    "Rule engine HTTP error on simulate for ruleId=" + ruleId + ": " + ex.getMessage(),
+                    ex.getStatusCode().value());
+        } catch (Exception ex) {
+            throw new RuleEngineException("Rule engine simulate call failed for ruleId=" + ruleId, ex);
+        }
+    }
+
     // ---------- Resilience4j fallback methods ----------
 
     @SuppressWarnings("unused")
@@ -181,4 +242,32 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                 ruleId, ex.getMessage());
         // Deletion failure is non-fatal; log and continue
     }
+
+    @SuppressWarnings("unused")
+    private SimulateResponse simulateFallback(String ruleId, Map<String, Object> facts, Throwable ex) {
+        log.warn("Circuit breaker OPEN — rule engine unavailable on simulate: ruleId={}, cause={}",
+                ruleId, ex.getMessage());
+        throw new RuleEngineException(
+                "Rule engine circuit breaker open; cannot simulate rule " + ruleId, ex);
+    }
+
+    // ---------- Internal DTO for deserializing engine response ----------
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record EvaluateRuleResponseBody(
+            String verdict,
+            List<TraceEntryBody> trace,
+            List<String> matchedNodes,
+            List<String> unmatchedNodes,
+            List<String> reasonCodes
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record TraceEntryBody(
+            String nodeId,
+            String type,
+            String operator,
+            boolean result,
+            String reason
+    ) {}
 }
