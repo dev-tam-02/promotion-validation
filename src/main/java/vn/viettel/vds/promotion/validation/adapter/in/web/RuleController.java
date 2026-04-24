@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
+import vn.viettel.vds.promotion.validation.application.port.in.RuleBindingUseCase;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
@@ -54,14 +55,17 @@ public class RuleController {
     private final RuleResponseMapper ruleMapper;
     private final RuleValidationService ruleValidationService;
     private final RuleSimulationService ruleSimulationService;
+    private final RuleBindingUseCase ruleBindingUseCase;
 
     public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
-                          RuleSimulationService ruleSimulationService) {
+                          RuleSimulationService ruleSimulationService,
+                          RuleBindingUseCase ruleBindingUseCase) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
         this.ruleSimulationService = ruleSimulationService;
+        this.ruleBindingUseCase = ruleBindingUseCase;
     }
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
@@ -253,6 +257,46 @@ public class RuleController {
 
         Rule rule = ruleService.archiveRule(ruleId, userId);
         return ruleMapper.toRuleResponse(rule);
+    }
+
+    @Operation(summary = "Bind rule to resource (Task 06)",
+            description = "Create a rule binding for a resource (CAMPAIGN, COUPON_CONFIG, COUPON_CODE)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Binding created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
+    })
+    @PostMapping("/{ruleId}/bindings")
+    @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.CREATED)
+    public RuleBindingResponse bindRuleToResource(
+            @Parameter(description = "Rule ID") @PathVariable String ruleId,
+            @Valid @RequestBody RuleBindingRequest request,
+            @Parameter(description = "User making the request") @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
+
+        logger.info("bindRuleToResource: ruleId={} resourceType={} resourceId={}",
+                ruleId, request.getObjectType(), request.getObjectId());
+
+        RuleBinding binding = ruleBindingUseCase.bindRuleToResource(
+                ruleId,
+                request.getObjectType(),
+                request.getObjectId(),
+                request.getValidFrom(),
+                request.getValidTo(),
+                request.getPriority() != null ? request.getPriority() : 100,
+                userId);
+
+        return RuleBindingResponse.builder()
+                .id(binding.getId())
+                .ruleId(binding.getRuleId())
+                .objectType(binding.getObjectType())
+                .objectId(binding.getObjectId())
+                .active(binding.getActive())
+                .priority(binding.getPriority())
+                .validFrom(binding.getValidFrom())
+                .validTo(binding.getValidTo())
+                .createdAt(binding.getCreatedAt())
+                .createdBy(binding.getCreatedBy())
+                .build();
     }
 
     @Operation(summary = "Lint rules", description = "Validate rule structure and parameters")

@@ -1,0 +1,103 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 06: Add operator registry v2 fields
+  # Spec: operator_categories.display_name + operators.(category_id, display_name,
+  #       ui_option, supported_verdicts, active, version)
+  # ============================================================================
+
+  - changeSet:
+      id: 025-add-display-name-to-operator-categories
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: operator_categories
+            columns:
+              - column:
+                  name: display_name
+                  type: TEXT
+                  remarks: JSON i18n display names ({"vi":"...","en":"..."})
+
+  - changeSet:
+      id: 025-add-v2-columns-to-operators
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: category_id
+                  type: varchar(36)
+                  remarks: FK to operator_categories.id
+
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: display_name
+                  type: TEXT
+                  remarks: JSON i18n display names ({"vi":"...","en":"..."})
+
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: ui_option
+                  type: TEXT
+                  remarks: JSON FE hints (comparisonType, valueSource, dataSourceType, endpoint)
+
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: supported_verdicts
+                  type: TEXT
+                  remarks: JSON array of supported verdicts e.g. ["ALLOW","DENY"]
+
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  remarks: Whether operator is active
+
+        - addColumn:
+            tableName: operators
+            columns:
+              - column:
+                  name: version
+                  type: INT
+                  defaultValueNumeric: 1
+                  remarks: Operator schema version (optimistic lock / evolution)
+
+  - changeSet:
+      id: 025-add-fk-op-cat
+      author: harley hoang
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: operators
+            baseColumnNames: category_id
+            constraintName: fk_op_cat
+            referencedTableName: operator_categories
+            referencedColumnNames: id
+            onDelete: SET NULL
+            onUpdate: CASCADE
+
+  - changeSet:
+      id: 025-add-unique-operators-name
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            indexExists:
+              indexName: idx_operators_name_unique
+              tableName: operators
+      changes:
+        - createIndex:
+            indexName: idx_operators_name_unique
+            tableName: operators
+            unique: true
+            columns:
+              - column:
+                  name: name

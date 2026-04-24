@@ -6,7 +6,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleCategoriesResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleOptionsResponse;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.OperatorResponse;
+import vn.viettel.vds.promotion.validation.application.port.in.RuleCatalogUseCase;
 import vn.viettel.vds.promotion.validation.application.service.RuleBuilderService;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Controller for Rule Builder API.
@@ -21,9 +27,12 @@ public class RuleBuilderController {
     private static final String DEFAULT_TENANT = "default";
 
     private final RuleBuilderService ruleBuilderService;
+    private final RuleCatalogUseCase ruleCatalogUseCase;
 
-    public RuleBuilderController(RuleBuilderService ruleBuilderService) {
+    public RuleBuilderController(RuleBuilderService ruleBuilderService,
+                                 RuleCatalogUseCase ruleCatalogUseCase) {
         this.ruleBuilderService = ruleBuilderService;
+        this.ruleCatalogUseCase = ruleCatalogUseCase;
     }
 
     /**
@@ -62,5 +71,33 @@ public class RuleBuilderController {
         logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, page, size, tenantId);
         return ruleBuilderService.getRuleOptions(ruleId, search, page, size, tenantId);
+    }
+
+    /**
+     * GET /v1/rule-builder/operators?categoryId= (Task 06)
+     * List active operators, optionally filtered by category id.
+     *
+     * @param categoryId optional category id to filter; null returns all
+     * @return list of operator responses
+     */
+    @GetMapping("/operators")
+    public List<OperatorResponse> listOperators(
+            @RequestParam(required = false) String categoryId) {
+        logger.debug("listOperators: categoryId={}", categoryId);
+        List<Operator> operators = ruleCatalogUseCase.listOperators(categoryId);
+        return operators.stream()
+                .map(op -> {
+                    OperatorResponse resp = new OperatorResponse();
+                    resp.setOperatorId(op.getId());
+                    resp.setName(op.getName());
+                    resp.setCompilerId(op.getCompilerId());
+                    resp.setStatus(op.getStatus() != null ? op.getStatus().name() : null);
+                    resp.setContext(op.getContext());
+                    resp.setJsonSchema(op.getJsonSchema());
+                    resp.setCreatedAt(op.getCreatedAt());
+                    resp.setUpdatedAt(op.getUpdatedAt());
+                    return resp;
+                })
+                .collect(Collectors.toList());
     }
 }

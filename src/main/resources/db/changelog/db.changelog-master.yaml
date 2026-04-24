@@ -32,3 +32,19 @@ databaseChangeLog:
   # Add context and description columns to validation_rules
   - include:
       file: db/changelog/changes/024-add-context-to-validation-rules.yaml
+
+  # Task 06: Operator registry v2 fields (category_id, display_name, ui_option, supported_verdicts)
+  - include:
+      file: db/changelog/changes/025-add-operator-registry-v2-fields.yaml
+
+  # Task 06: Validation rules + rule_nodes additional fields and indexes
+  - include:
+      file: db/changelog/changes/026-add-validation-rules-rule-nodes-fields.yaml
+
+  # Task 06: Rule bindings + reason_codes v2 fields (resource_type, display_message, etc.)
+  - include:
+      file: db/changelog/changes/027-add-rule-bindings-reason-codes-fields.yaml
+
+  # Task 06: Seed 5 spec operator categories (AUDIENCE/ORDER/PRODUCT/TIME/LOYALTY) + 8 core operators
+  - include:
+      file: db/changelog/changes/028-seed-spec-categories-operators.yaml
