@@ -52,3 +52,11 @@ databaseChangeLog:
   # Review-B: rule_nodes integrity constraints (self-ref check, type-field exclusion, FK cascade)
   - include:
       file: db/changelog/changes/029-add-rule-nodes-invariants.yaml
+
+  # Task 15: Seed customer.is_owner operator + VOUCHER_NOT_OWNED_BY_CUSTOMER reason code
+  - include:
+      file: db/changelog/changes/030-seed-owner-only-operator-reason-code.yaml
+
+  # Task 15: Seed system rule rule-sys-owner-only (state=PUBLISHED, bundle_hash deferred)
+  - include:
+      file: db/changelog/changes/031-seed-owner-only-system-rule.yaml

@@ -1,0 +1,49 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 15: Seed system rule rule-sys-owner-only
+  # Pre-built PUBLISHED rule with single COND node (customer.is_owner).
+  # bundle_hash is NULL — populated on first compile by RuleManagementService
+  # (republishSystemRules on startup, Task 07).
+  # Admin cannot delete system rules (system_rule_type flag enforced at service layer).
+  # ============================================================================
+
+  - changeSet:
+      id: 031-seed-system-rule-owner-only
+      author: harley hoang
+      comment: Seed system rule rule-sys-owner-only (state=PUBLISHED, bundle_hash deferred)
+      changes:
+        - insert:
+            tableName: validation_rules
+            columns:
+              - column: { name: id, value: "rule-sys-owner-only" }
+              - column: { name: code, value: "rule-sys-owner-only" }
+              - column: { name: name, value: "System — Owner Only" }
+              - column: { name: description, value: "Auto rule binding cho voucher cá nhân (Welcome/Loyalty/Gift-with-owner)." }
+              - column: { name: context, value: "VOUCHER" }
+              - column: { name: state, value: "PUBLISHED" }
+              - column: { name: rule_version, valueNumeric: 1 }
+              - column: { name: logic, value: "ALL" }
+              - column: { name: version, valueNumeric: 0 }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+  - changeSet:
+      id: 031-seed-system-rule-owner-only-node
+      author: harley hoang
+      comment: Seed single COND node for rule-sys-owner-only
+      changes:
+        - insert:
+            tableName: rule_nodes
+            columns:
+              - column: { name: id, value: "rn-sys-owner-only-cond-001" }
+              - column: { name: node_id, value: "n1" }
+              - column: { name: type, value: "COND" }
+              - column: { name: operator_name, value: "customer.is_owner" }
+              - column: { name: params, value: "{}" }
+              - column: { name: reason_code, value: "VOUCHER_NOT_OWNED_BY_CUSTOMER" }
+              - column: { name: validation_rule_id, value: "rule-sys-owner-only" }
+              - column: { name: node_order, valueNumeric: 0 }
+              - column: { name: display_order, valueNumeric: 0 }
+              - column: { name: version, valueNumeric: 0 }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
