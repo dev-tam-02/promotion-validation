@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,16 +11,19 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.in.RuleManagementUseCase;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.model.GroupNode;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -45,6 +49,7 @@ public class RuleManagementService implements RuleManagementUseCase {
     private final DrlCompiler drlCompiler;
     private final RuleEngineClient ruleEngineClient;
     private final OperatorPersistencePort operatorPort;
+    private final Optional<RuleHistoryPersistencePort> historyPort;
 
     public RuleManagementService(RulePersistencePort rulePort,
                                  RuleTreeAssembler assembler,
@@ -53,6 +58,19 @@ public class RuleManagementService implements RuleManagementUseCase {
                                  DrlCompiler drlCompiler,
                                  RuleEngineClient ruleEngineClient,
                                  OperatorPersistencePort operatorPort) {
+        this(rulePort, assembler, ruleValidator, dslGenerator, drlCompiler,
+                ruleEngineClient, operatorPort, Optional.empty());
+    }
+
+    @Autowired
+    public RuleManagementService(RulePersistencePort rulePort,
+                                 RuleTreeAssembler assembler,
+                                 RuleValidator ruleValidator,
+                                 DslGenerator dslGenerator,
+                                 DrlCompiler drlCompiler,
+                                 RuleEngineClient ruleEngineClient,
+                                 OperatorPersistencePort operatorPort,
+                                 Optional<RuleHistoryPersistencePort> historyPort) {
         this.rulePort = rulePort;
         this.assembler = assembler;
         this.ruleValidator = ruleValidator;
@@ -60,6 +78,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         this.drlCompiler = drlCompiler;
         this.ruleEngineClient = ruleEngineClient;
         this.operatorPort = operatorPort;
+        this.historyPort = historyPort;
     }
 
     @Override
@@ -95,6 +114,9 @@ public class RuleManagementService implements RuleManagementUseCase {
         Rule saved = rulePort.save(rule);
         log.info("createRule: saved id={}", saved.getId());
 
+        // Record CREATE history entry
+        recordHistory(saved, RuleHistoryEntry.ChangeType.CREATE, createdBy);
+
         // Generate DSL snapshot and compile + register DRL
         saved = compilePipelineAndSave(saved, nodes != null ? nodes : List.of(), createdBy);
 
@@ -123,10 +145,16 @@ public class RuleManagementService implements RuleManagementUseCase {
             ruleValidator.checkAllGroupsHaveChildren(newNodes);
         }
 
+        // Record UPDATE history BEFORE applying changes (captures pre-update state)
+        recordHistory(existing, RuleHistoryEntry.ChangeType.UPDATE, updatedBy);
+
+        long nextVersion = (existing.getRuleVersion() != null ? existing.getRuleVersion() : 1L) + 1L;
+
         Rule updated = existing.toBuilder()
                 .name(name != null ? name : existing.getName())
                 .logic(logic != null ? logic : existing.getLogic())
                 .nodes(newNodes)
+                .ruleVersion(nextVersion)
                 .updatedAt(Instant.now())
                 .updatedBy(updatedBy)
                 .build();
@@ -199,6 +227,35 @@ public class RuleManagementService implements RuleManagementUseCase {
     }
 
     // ---------- private helpers ----------
+
+    /**
+     * Record an immutable history entry for the given rule state.
+     *
+     * <p>Silently skips if the history port is not available (e.g., non-JPA profile).
+     */
+    private void recordHistory(Rule rule, RuleHistoryEntry.ChangeType changeType, String actor) {
+        historyPort.ifPresent(port -> {
+            try {
+                RuleHistoryEntry entry = new RuleHistoryEntry(
+                        UUID.randomUUID().toString(),
+                        rule.getId(),
+                        rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L,
+                        changeType,
+                        actor,
+                        Instant.now(),
+                        rule.getDsl(),
+                        rule.getBundleHash(),
+                        rule.getState() != null ? rule.getState().name() : null
+                );
+                port.save(entry);
+                log.debug("Recorded {} history for ruleId={}, version={}",
+                        changeType, rule.getId(), entry.getRuleVersion());
+            } catch (Exception ex) {
+                log.warn("Failed to record history for ruleId={}: {}", rule.getId(), ex.getMessage());
+                // History recording failure must not abort the main operation
+            }
+        });
+    }
 
     /**
      * Generate DSL snapshot, compile DRL, and register with pp-rule-engine.

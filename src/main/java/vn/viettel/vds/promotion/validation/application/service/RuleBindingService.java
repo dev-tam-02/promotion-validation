@@ -52,8 +52,10 @@ public class RuleBindingService {
         log.info("Creating rule binding: objectType={}, objectId={}, ruleId={}",
                 binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
 
-        // Validate rule exists
-        validateRuleExists(binding.getRuleId());
+        // Load rule to validate existence and capture current version for pinning
+        vn.viettel.vds.promotion.validation.domain.model.Rule rule =
+                rulePersistencePort.findById(binding.getRuleId())
+                        .orElseThrow(() -> new RuleNotFoundException(binding.getRuleId()));
 
         // Check for duplicate binding
         if (bindingPersistencePort.existsByObjectAndRule(
@@ -62,9 +64,17 @@ public class RuleBindingService {
                     binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
         }
 
+        // Pin the rule version at bind time (null-safe: default to 1 if not set)
+        Integer pinnedVersion = rule.getRuleVersion() != null
+                ? rule.getRuleVersion().intValue()
+                : 1;
+
         // Set defaults
         RuleBinding toSave = binding.toBuilder()
                 .id(binding.getId() != null ? binding.getId() : UUID.randomUUID().toString())
+                .ruleVersionPinned(binding.getRuleVersionPinned() != null
+                        ? binding.getRuleVersionPinned()
+                        : pinnedVersion)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .createdBy(createdBy)
@@ -73,7 +83,8 @@ public class RuleBindingService {
                 .build();
 
         RuleBinding saved = bindingPersistencePort.save(toSave);
-        log.info("Rule binding created successfully: id={}", saved.getId());
+        log.info("Rule binding created successfully: id={}, ruleVersionPinned={}",
+                saved.getId(), saved.getRuleVersionPinned());
         return saved;
     }
 

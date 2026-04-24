@@ -64,3 +64,7 @@ databaseChangeLog:
   # Review-B: Add is_system column + mark rule-sys-owner-only as system rule
   - include:
       file: db/changelog/changes/032-add-is-system-column.yaml
+
+  # Task 09 V2: Create validation_rules_history for per-version audit trail
+  - include:
+      file: db/changelog/changes/033-create-validation-rules-history.yaml
