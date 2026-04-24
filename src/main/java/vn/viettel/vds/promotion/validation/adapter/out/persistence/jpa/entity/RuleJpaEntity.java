@@ -85,6 +85,9 @@ public class RuleJpaEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
+    @Column(name = "is_system", nullable = false)
+    private boolean isSystem;
+
     @ElementCollection
     @CollectionTable(
             name = "rule_configuration",

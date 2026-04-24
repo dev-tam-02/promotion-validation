@@ -19,6 +19,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormat
 import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
+import vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -113,6 +114,11 @@ public class RuleService {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = self.getRuleById(ruleId);
+
+        // System rules are immutable
+        if (rule.isSystem()) {
+            throw new SystemRuleProtectedException(ruleId);
+        }
 
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
@@ -284,7 +290,13 @@ public class RuleService {
                     return new RuleNotFoundException(ruleId);
                 });
 
-        // Step 2: Check version (optimistic locking)
+        // Step 2: Guard — system rules cannot be deleted
+        if (rule.isSystem()) {
+            logger.warn("Rejected delete of system rule: id={}", ruleId);
+            throw new SystemRuleProtectedException(ruleId);
+        }
+
+        // Step 3: Check version (optimistic locking)
         Long currentVersion = rule.getVersion();
         if (currentVersion != null && currentVersion != version) {
             logger.warn("Version conflict on delete: id={}, expected={}, actual={}", ruleId, version, currentVersion);
@@ -293,14 +305,14 @@ public class RuleService {
             );
         }
 
-        // Step 3: Check no bindings exist
+        // Step 4: Check no bindings exist
         long bindingCount = ruleBindingPort.countByRuleId(ruleId);
         if (bindingCount > 0) {
             logger.warn("Cannot delete rule with bindings: id={}, bindingCount={}", ruleId, bindingCount);
             throw new RuleHasBindingsException(ruleId, bindingCount);
         }
 
-        // Step 4: Transaction - delete nodes, delete rule, insert outbox event
+        // Step 5: Transaction - delete nodes, delete rule, insert outbox event
         rulePersistencePort.deleteNodesByRuleId(ruleId);
         rulePersistencePort.deleteById(ruleId);
 

@@ -335,6 +335,13 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.info("[RULE_DELETE] Deleted nodes for rule: {}", ruleId);
     }
 
+    @Override
+    public List<Rule> findPublishedWithNullBundleHash() {
+        return repository.findPublishedWithNullBundleHash().stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {
         // Apply sorting from pageable
         List<RuleJpaEntity> sortedEntities = applySorting(entities, pageable);

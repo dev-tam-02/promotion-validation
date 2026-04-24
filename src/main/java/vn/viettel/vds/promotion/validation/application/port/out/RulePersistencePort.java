@@ -50,4 +50,10 @@ public interface RulePersistencePort {
     void deleteById(String id);
 
     void deleteNodesByRuleId(String ruleId);
+
+    /**
+     * Find PUBLISHED rules that have no compiled bundle hash yet.
+     * Used by the bootstrap runner to populate bundle_hash for seeded system rules.
+     */
+    List<Rule> findPublishedWithNullBundleHash();
 }

@@ -168,6 +168,36 @@ public class RuleManagementService implements RuleManagementUseCase {
         return rulePort.findWithFilters(state, null, name, pageable);
     }
 
+    // ---------- bootstrap ----------
+
+    /**
+     * Populate bundle_hash for any PUBLISHED rules that were seeded without a compiled bundle.
+     *
+     * <p>Called by {@link vn.viettel.vds.promotion.validation.adapter.config.SystemRuleBootstrapRunner}
+     * on application startup, after Liquibase migrations complete.
+     * On error for any individual rule the method logs and continues — it must not abort startup.
+     */
+    public void republishSystemRules() {
+        List<Rule> staleRules = rulePort.findPublishedWithNullBundleHash();
+        log.info("republishSystemRules: found {} PUBLISHED rule(s) with null bundleHash", staleRules.size());
+        for (Rule staleRule : staleRules) {
+            try {
+                // findById loads the full rule including its nodes from rule_nodes table
+                Rule ruleWithNodes = rulePort.findById(staleRule.getId()).orElse(null);
+                if (ruleWithNodes == null) {
+                    log.warn("republishSystemRules: rule disappeared during bootstrap: {}", staleRule.getId());
+                    continue;
+                }
+                List<RuleNode> nodes = ruleWithNodes.getNodes() != null ? ruleWithNodes.getNodes() : List.of();
+                compilePipelineAndSave(ruleWithNodes, nodes, "system-bootstrap");
+                log.info("republishSystemRules: rule {} compiled successfully", staleRule.getId());
+            } catch (Exception ex) {
+                log.error("republishSystemRules: failed for rule {}: {}", staleRule.getId(), ex.getMessage());
+                // Don't fail app startup; log + continue
+            }
+        }
+    }
+
     // ---------- private helpers ----------
 
     /**

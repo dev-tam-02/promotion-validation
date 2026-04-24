@@ -60,3 +60,7 @@ databaseChangeLog:
   # Task 15: Seed system rule rule-sys-owner-only (state=PUBLISHED, bundle_hash deferred)
   - include:
       file: db/changelog/changes/031-seed-owner-only-system-rule.yaml
+
+  # Review-B: Add is_system column + mark rule-sys-owner-only as system rule
+  - include:
+      file: db/changelog/changes/032-add-is-system-column.yaml

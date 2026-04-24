@@ -878,4 +878,89 @@ class RuleServiceTest {
                     .hasMessageContaining("Node ID is required");
         }
     }
+
+    // ========================================================================
+    // Review-B Fix: System rule deletion guard
+    // ========================================================================
+
+    @Nested
+    @DisplayName("System rule protection (deleteRule + updateRule)")
+    class SystemRuleProtectionTests {
+
+        @Test
+        @DisplayName("DELETE rule-sys-owner-only → 409 SystemRuleProtectedException")
+        void deleteSystemRule_throws409() {
+            Rule systemRule = Rule.builder()
+                    .id("rule-sys-owner-only")
+                    .code("rule-sys-owner-only")
+                    .name("System — Owner Only")
+                    .state(Rule.RuleState.PUBLISHED)
+                    .isSystem(true)
+                    .version(0L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "customer.is_owner", "VOUCHER_NOT_OWNED_BY_CUSTOMER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-sys-owner-only")).thenReturn(Optional.of(systemRule));
+
+            assertThatThrownBy(() -> sut.deleteRule("rule-sys-owner-only", 0L))
+                    .isInstanceOf(vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException.class)
+                    .hasMessageContaining("rule-sys-owner-only");
+
+            verify(rulePersistencePort, never()).deleteById(anyString());
+        }
+
+        @Test
+        @DisplayName("PATCH rule-sys-owner-only → 409 SystemRuleProtectedException")
+        void updateSystemRule_throws409() {
+            Rule systemRule = Rule.builder()
+                    .id("rule-sys-owner-only")
+                    .code("rule-sys-owner-only")
+                    .name("System — Owner Only")
+                    .state(Rule.RuleState.DRAFT)  // draft state, but isSystem blocks update
+                    .isSystem(true)
+                    .version(0L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "customer.is_owner", "VOUCHER_NOT_OWNED_BY_CUSTOMER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-sys-owner-only")).thenReturn(Optional.of(systemRule));
+
+            assertThatThrownBy(() -> sut.updateRule("rule-sys-owner-only", "New Name", null, null, "admin"))
+                    .isInstanceOf(vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException.class)
+                    .hasMessageContaining("rule-sys-owner-only");
+
+            verify(rulePersistencePort, never()).save(any(Rule.class));
+        }
+
+        @Test
+        @DisplayName("Non-system rule delete succeeds normally")
+        void deleteNonSystemRule_succeeds() {
+            Rule regularRule = Rule.builder()
+                    .id("rule-regular-001")
+                    .code("rule-regular")
+                    .name("Regular Rule")
+                    .state(Rule.RuleState.DRAFT)
+                    .isSystem(false)
+                    .version(1L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "order.total.gte", "MIN_ORDER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-regular-001")).thenReturn(Optional.of(regularRule));
+            when(ruleBindingPort.countByRuleId("rule-regular-001")).thenReturn(0L);
+            when(outboxEventPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            sut.deleteRule("rule-regular-001", 1L);
+
+            verify(rulePersistencePort).deleteNodesByRuleId("rule-regular-001");
+            verify(rulePersistencePort).deleteById("rule-regular-001");
+        }
+    }
 }

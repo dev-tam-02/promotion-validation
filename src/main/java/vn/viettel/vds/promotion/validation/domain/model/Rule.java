@@ -75,6 +75,10 @@ public class Rule {
     private String publishedBy;
     private String bundleHash;
 
+    // System-managed flag (set by changelog — cannot be deleted or updated via admin API)
+    @Builder.Default
+    private boolean isSystem = false;
+
     // Audit Trail
     private Instant createdAt;
     private Instant updatedAt;
