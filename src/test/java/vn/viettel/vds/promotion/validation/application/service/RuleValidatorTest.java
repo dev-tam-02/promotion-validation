@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -256,6 +257,98 @@ class RuleValidatorTest {
                     .build();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    //  DB constraint semantics (unit-level — no Testcontainers required)
+    //  Documents the invariants enforced by 029-add-rule-nodes-invariants.yaml
+    // -----------------------------------------------------------------------
+
+    /**
+     * Mirrors CHECK constraint {@code chk_rn_no_self}:
+     * {@code parent_id IS NULL OR parent_id <> id}
+     *
+     * <p>A row passes the constraint when the expression evaluates to true.
+     * A row violates it when parent_id is non-null and equals id.
+     */
+    @Nested
+    @DisplayName("chk_rn_no_self — parent_id <> id invariant")
+    class ChkRnNoSelf {
+
+        /** Evaluates: parent_id IS NULL OR parent_id <> id */
+        private boolean chkRnNoSelf(String id, String parentId) {
+            return parentId == null || !parentId.equals(id);
+        }
+
+        @Test
+        @DisplayName("null parent_id satisfies constraint (root node)")
+        void nullParent_passes() {
+            assertThat(chkRnNoSelf("node-1", null)).isTrue();
+        }
+
+        @Test
+        @DisplayName("parent_id pointing to different node satisfies constraint")
+        void differentParent_passes() {
+            assertThat(chkRnNoSelf("node-1", "node-2")).isTrue();
+        }
+
+        @Test
+        @DisplayName("parent_id == id violates constraint (self-loop)")
+        void selfReferencing_violates() {
+            assertThat(chkRnNoSelf("node-1", "node-1")).isFalse();
+        }
+    }
+
+    /**
+     * Mirrors CHECK constraint {@code chk_rn_type_fields}:
+     * {@code (type='GROUP' AND group_logic IS NOT NULL AND operator_name IS NULL)
+     *   OR (type='COND'  AND operator_name IS NOT NULL AND group_logic IS NULL)}
+     */
+    @Nested
+    @DisplayName("chk_rn_type_fields — GROUP/COND mutual exclusion")
+    class ChkRnTypeFields {
+
+        private boolean chkRnTypeFields(String type, String groupLogic, String operatorName) {
+            boolean groupOk = "GROUP".equals(type) && groupLogic != null && operatorName == null;
+            boolean condOk  = "COND".equals(type)  && operatorName != null && groupLogic == null;
+            return groupOk || condOk;
+        }
+
+        @Test
+        @DisplayName("GROUP with group_logic and no operator_name satisfies constraint")
+        void group_valid() {
+            assertThat(chkRnTypeFields("GROUP", "ALL", null)).isTrue();
+        }
+
+        @Test
+        @DisplayName("COND with operator_name and no group_logic satisfies constraint")
+        void cond_valid() {
+            assertThat(chkRnTypeFields("COND", null, "order.total.gte")).isTrue();
+        }
+
+        @Test
+        @DisplayName("GROUP with operator_name violates constraint")
+        void group_withOperator_violates() {
+            assertThat(chkRnTypeFields("GROUP", "ALL", "order.total.gte")).isFalse();
+        }
+
+        @Test
+        @DisplayName("GROUP without group_logic violates constraint")
+        void group_missingLogic_violates() {
+            assertThat(chkRnTypeFields("GROUP", null, null)).isFalse();
+        }
+
+        @Test
+        @DisplayName("COND with group_logic violates constraint")
+        void cond_withGroupLogic_violates() {
+            assertThat(chkRnTypeFields("COND", "ALL", "order.total.gte")).isFalse();
+        }
+
+        @Test
+        @DisplayName("COND without operator_name violates constraint")
+        void cond_missingOperator_violates() {
+            assertThat(chkRnTypeFields("COND", null, null)).isFalse();
         }
     }
 }

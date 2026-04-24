@@ -1,0 +1,63 @@
+databaseChangeLog:
+  # ============================================================================
+  # Review-B fixes for Task 06: rule_nodes DB integrity constraints
+  # - CHECK chk_rn_no_self      : parent_id IS NULL OR parent_id <> id
+  # - CHECK chk_rn_type_fields  : GROUP/COND mutual exclusion of group_logic/operator_name
+  # - fk_rule_nodes_validation_rule: re-create with ON DELETE CASCADE
+  # - fk_rule_nodes_parent          : re-create with ON DELETE CASCADE
+  # ============================================================================
+
+  - changeSet:
+      id: 029-add-chk-rn-no-self
+      author: harley hoang
+      comment: Prevent a rule_node from pointing to itself as its own parent
+      changes:
+        - addCheckConstraint:
+            constraintName: chk_rn_no_self
+            tableName: rule_nodes
+            constraintBody: "parent_id IS NULL OR parent_id <> id"
+
+  - changeSet:
+      id: 029-add-chk-rn-type-fields
+      author: harley hoang
+      comment: >
+        Enforce mutual exclusion: GROUP nodes must have group_logic and no operator_name;
+        COND nodes must have operator_name and no group_logic.
+      changes:
+        - addCheckConstraint:
+            constraintName: chk_rn_type_fields
+            tableName: rule_nodes
+            constraintBody: "(type = 'GROUP' AND group_logic IS NOT NULL AND operator_name IS NULL) OR (type = 'COND' AND operator_name IS NOT NULL AND group_logic IS NULL)"
+
+  - changeSet:
+      id: 029-recreate-fk-rule-nodes-validation-rule-cascade
+      author: harley hoang
+      comment: Re-create FK with ON DELETE CASCADE so deleting a validation_rule removes its nodes
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: rule_nodes
+            constraintName: fk_rule_nodes_validation_rule
+        - addForeignKeyConstraint:
+            constraintName: fk_rule_nodes_validation_rule
+            baseTableName: rule_nodes
+            baseColumnNames: validation_rule_id
+            referencedTableName: validation_rules
+            referencedColumnNames: id
+            onDelete: CASCADE
+            onUpdate: NO ACTION
+
+  - changeSet:
+      id: 029-recreate-fk-rule-nodes-parent-cascade
+      author: harley hoang
+      comment: Re-create self-ref FK with ON DELETE CASCADE so deleting a parent node removes its children
+      changes:
+        - dropForeignKeyConstraint:
+            baseTableName: rule_nodes
+            constraintName: fk_rule_nodes_parent
+        - addForeignKeyConstraint:
+            constraintName: fk_rule_nodes_parent
+            baseTableName: rule_nodes
+            baseColumnNames: parent_id
+            referencedTableName: rule_nodes
+            referencedColumnNames: id
+            onDelete: CASCADE

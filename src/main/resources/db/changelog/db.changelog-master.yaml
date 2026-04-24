@@ -48,3 +48,7 @@ databaseChangeLog:
   # Task 06: Seed 5 spec operator categories (AUDIENCE/ORDER/PRODUCT/TIME/LOYALTY) + 8 core operators
   - include:
       file: db/changelog/changes/028-seed-spec-categories-operators.yaml
+
+  # Review-B: rule_nodes integrity constraints (self-ref check, type-field exclusion, FK cascade)
+  - include:
+      file: db/changelog/changes/029-add-rule-nodes-invariants.yaml

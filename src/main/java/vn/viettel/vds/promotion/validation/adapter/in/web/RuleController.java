@@ -267,7 +267,7 @@ public class RuleController {
             @ApiResponse(responseCode = "404", description = "Rule not found")
     })
     @PostMapping("/{ruleId}/bindings")
-    @org.springframework.web.bind.annotation.ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.CREATED)
     public RuleBindingResponse bindRuleToResource(
             @Parameter(description = "Rule ID") @PathVariable String ruleId,
             @Valid @RequestBody RuleBindingRequest request,
