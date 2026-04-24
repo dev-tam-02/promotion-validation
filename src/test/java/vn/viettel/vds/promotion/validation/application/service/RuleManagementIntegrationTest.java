@@ -7,10 +7,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -31,6 +36,7 @@ import static org.mockito.Mockito.when;
  * Uses Mockito to stub the persistence ports so no database is required.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Rule management E2E flow (service-level)")
 class RuleManagementIntegrationTest {
 
@@ -40,14 +46,32 @@ class RuleManagementIntegrationTest {
     @Mock
     private RuleBindingPersistencePort bindingPort;
 
+    @Mock
+    private OperatorPersistencePort operatorPort;
+
+    @Mock
+    private RuleEngineClient ruleEngineClient;
+
     private RuleManagementService ruleManagementService;
     private RuleBindingManagementService bindingManagementService;
 
     @BeforeEach
     void setUp() {
+        ObjectMapper objectMapper = new ObjectMapper();
         RuleTreeAssembler assembler = new RuleTreeAssembler();
-        RuleValidator validator = new RuleValidator(new ObjectMapper());
-        ruleManagementService = new RuleManagementService(rulePort, assembler, validator);
+        RuleValidator validator = new RuleValidator(objectMapper);
+        DslGenerator dslGenerator = new DslGenerator(objectMapper);
+        DrlCompiler drlCompiler = new DrlCompiler();
+
+        // Stub: engine registers and returns a bundleHash
+        when(ruleEngineClient.register(anyString(), anyString())).thenReturn("test-bundle-hash");
+        // Stub: no operators (compilerId fallback will be used)
+        when(operatorPort.findGlobalOperatorsByStatus(Operator.OperatorStatus.ACTIVE))
+                .thenReturn(List.of());
+
+        ruleManagementService = new RuleManagementService(
+                rulePort, assembler, validator, dslGenerator, drlCompiler,
+                ruleEngineClient, operatorPort);
         bindingManagementService = new RuleBindingManagementService(bindingPort);
     }
 

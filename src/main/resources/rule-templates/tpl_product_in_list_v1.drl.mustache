@@ -1,0 +1,2 @@
+$item: CartItemFact(productId memberOf $productIds) from entry-point "cart"
+$productIds: List() from accumulate(String(this == "{{productId}}"), collectList())

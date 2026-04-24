@@ -333,6 +333,9 @@ integration:
       wait-duration-in-open-state: 60s
       sliding-window-size: 10
       minimum-number-of-calls: 10
+  rule-engine:
+    url: ${RULE_ENGINE_URL:http://staging-promotion-rule-engine-api-java:8080}
+    service-path: ${RULE_ENGINE_SERVICE_PATH:/promotion/promotion-rule-engine}
 
 # Tenant Configuration
 tenant:
@@ -343,6 +346,16 @@ tenant:
 resilience4j:
   circuitbreaker:
     instances:
+      ruleEngine:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        recordExceptions:
+          - java.lang.Exception
       segmentsCircuitBreaker:
         registerHealthIndicator: true
         slidingWindowSize: 10
