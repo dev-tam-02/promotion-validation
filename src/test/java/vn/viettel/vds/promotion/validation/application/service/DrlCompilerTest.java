@@ -54,15 +54,42 @@ class DrlCompilerTest {
     }
 
     @Test
-    @DisplayName("tpl_customer_in_segment_v1 renders segmentId")
+    @DisplayName("tpl_customer_in_segment_v1 renders single segment from array")
     void templateCustomerInSegment() {
         String snippet = compiler.renderCondTemplate(
                 "tpl_customer_in_segment_v1",
-                Map.of("segmentId", "VIP_GOLD"));
+                Map.of("segments", List.of("VIP_GOLD")));
 
         assertThat(snippet).contains("CustomerFact");
         assertThat(snippet).contains("segments");
         assertThat(snippet).contains("VIP_GOLD");
+    }
+
+    @Test
+    @DisplayName("tpl_customer_in_segment_v1 OR-joins multiple segments from array")
+    void templateCustomerInSegment_multipleSegments() {
+        String snippet = compiler.renderCondTemplate(
+                "tpl_customer_in_segment_v1",
+                Map.of("segments", List.of("VIP", "GOLD")));
+
+        assertThat(snippet).contains("CustomerFact");
+        assertThat(snippet).contains("segments contains \"VIP\"");
+        assertThat(snippet).contains("segments contains \"GOLD\"");
+        assertThat(snippet).contains(" || ");
+        // Verify bijectivity: both values present, joined with OR
+        assertThat(snippet).doesNotContain("segments contains \"VIP\" || segments contains \"VIP\"");
+    }
+
+    @Test
+    @DisplayName("tpl_order_items_count_gte_v1 renders item count constraint")
+    void templateOrderItemsCountGte() {
+        String snippet = compiler.renderCondTemplate(
+                "tpl_order_items_count_gte_v1",
+                Map.of("count", 3));
+
+        assertThat(snippet).contains("OrderFact");
+        assertThat(snippet).contains("items.size");
+        assertThat(snippet).contains("3");
     }
 
     @Test
@@ -133,7 +160,7 @@ class DrlCompilerTest {
                 "tpl_order_total_gte_v1", "RC-01");
 
         RuleNode cond2 = makeCond("c2", "customer.in_segment",
-                Map.of("segmentId", "SILVER"),
+                Map.of("segments", List.of("SILVER")),
                 "tpl_customer_in_segment_v1", "RC-02");
 
         RuleNode group = RuleNode.builder()
@@ -158,7 +185,7 @@ class DrlCompilerTest {
     @DisplayName("GROUP OR with 2 COND → (a) || (b)")
     void groupOrComposition() {
         RuleNode cond1 = makeCond("c1", "customer.in_segment",
-                Map.of("segmentId", "VIP"),
+                Map.of("segments", List.of("VIP")),
                 "tpl_customer_in_segment_v1", "RC-01");
 
         RuleNode cond2 = makeCond("c2", "customer.loyalty_tier.gte",
@@ -185,7 +212,7 @@ class DrlCompilerTest {
     @DisplayName("GROUP NONE with 2 COND → !((a) || (b))")
     void groupNoneNegation() {
         RuleNode cond1 = makeCond("c1", "customer.in_segment",
-                Map.of("segmentId", "BLOCKED"),
+                Map.of("segments", List.of("BLOCKED")),
                 "tpl_customer_in_segment_v1", "RC-01");
 
         RuleNode cond2 = makeCond("c2", "cart.has_product",
@@ -256,8 +283,9 @@ class DrlCompilerTest {
         // For these tests we rely on the convention that the node's operatorName
         // is unique enough that we can pre-set the compilerId
         // We use a lookup table matching our test data
-        Map<String, String> nameToCompilerId = Map.of(
+        Map<String, String> nameToCompilerId = new java.util.HashMap<>(Map.of(
                 "order.total.gte", "tpl_order_total_gte_v1",
+                "order.items.count.gte", "tpl_order_items_count_gte_v1",
                 "customer.in_segment", "tpl_customer_in_segment_v1",
                 "customer.loyalty_tier.gte", "tpl_customer_loyalty_tier_gte_v1",
                 "product.in_category", "tpl_product_in_category_v1",
@@ -265,7 +293,7 @@ class DrlCompilerTest {
                 "cart.has_product", "tpl_cart_has_product_v1",
                 "time.within_window", "tpl_time_within_window_v1",
                 "unknown.operator", "tpl_nonexistent_v999"
-        );
+        ));
         for (RuleNode node : condNodes) {
             String opName = node.getOperatorName();
             String compilerId = nameToCompilerId.getOrDefault(opName, "tpl_" + opName.replace(".", "_") + "_v1");

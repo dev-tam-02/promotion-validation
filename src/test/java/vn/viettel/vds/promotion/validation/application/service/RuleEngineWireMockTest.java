@@ -98,13 +98,13 @@ class RuleEngineWireMockTest {
     @Test
     @DisplayName("createRule: WireMock stub returns bundleHash, rule saved with PUBLISHED state")
     void createRule_wireMockStubReturns_bundleHash() throws Exception {
-        // Arrange: stub POST /v1/rules → {bundleHash: "abc123"}
+        // Arrange: stub POST /v1/rules → full ResponseTemplate wrapper (matches pp-rule-engine @ResponseWrapper)
         wireMock.stubFor(post(urlEqualTo("/v1/rules"))
                 .withHeader("Content-Type", containing("application/json"))
                 .willReturn(aResponse()
-                        .withStatus(200)
+                        .withStatus(201)
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"bundleHash\":\"abc123\"}")));
+                        .withBody("{\"status\":201,\"success\":true,\"data\":{\"ruleId\":\"stub-rule-id\",\"bundleHash\":\"abc123\"}}")));
 
         // Arrange: operator with compilerId
         Operator orderOp = Operator.builder()
@@ -209,9 +209,9 @@ class RuleEngineWireMockTest {
     void wireMockCapturesDrlBody_containsExpectedSnippet() throws Exception {
         wireMock.stubFor(post(urlEqualTo("/v1/rules"))
                 .willReturn(aResponse()
-                        .withStatus(200)
+                        .withStatus(201)
                         .withHeader("Content-Type", "application/json")
-                        .withBody("{\"bundleHash\":\"sha256-test\"}")));
+                        .withBody("{\"status\":201,\"success\":true,\"data\":{\"ruleId\":\"stub-rule-id\",\"bundleHash\":\"sha256-test\"}}")));
 
         Operator orderOp = Operator.builder()
                 .id("op1").name("order.total.gte")

@@ -1,9 +1,11 @@
 package vn.viettel.vds.promotion.validation.adapter.out.external;
 
+import com.promix.platform.web.template.ResponseTemplate;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -51,7 +53,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
         log.info("Registering rule with pp-rule-engine: ruleId={}", ruleId);
 
         try {
-            Map<?, ?> response = webClient.post()
+            ResponseTemplate<Map<String, Object>> response = webClient.post()
                     .uri("/v1/rules")
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("id", ruleId, "drl", drl))
@@ -62,15 +64,16 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                                             "Rule engine rejected DRL for ruleId=" + ruleId + ": " + body,
                                             clientResponse.statusCode().value()))
                     )
-                    .bodyToMono(Map.class)
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {})
                     .timeout(TIMEOUT)
                     .block();
 
-            if (response == null || !response.containsKey(BUNDLE_HASH_FIELD)) {
+            if (response == null || response.getData() == null
+                    || !response.getData().containsKey(BUNDLE_HASH_FIELD)) {
                 throw new RuleEngineException("Rule engine returned no bundleHash for ruleId=" + ruleId, -1);
             }
 
-            String bundleHash = (String) response.get(BUNDLE_HASH_FIELD);
+            String bundleHash = (String) response.getData().get(BUNDLE_HASH_FIELD);
             log.info("Rule registered successfully: ruleId={}, bundleHash={}", ruleId, bundleHash);
             return bundleHash;
 
@@ -91,7 +94,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
         log.info("Updating rule in pp-rule-engine: ruleId={}", ruleId);
 
         try {
-            Map<?, ?> response = webClient.put()
+            ResponseTemplate<Map<String, Object>> response = webClient.put()
                     .uri("/v1/rules/{id}", ruleId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("drl", drl))
@@ -102,15 +105,16 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                                             "Rule engine rejected DRL update for ruleId=" + ruleId + ": " + body,
                                             clientResponse.statusCode().value()))
                     )
-                    .bodyToMono(Map.class)
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {})
                     .timeout(TIMEOUT)
                     .block();
 
-            if (response == null || !response.containsKey(BUNDLE_HASH_FIELD)) {
+            if (response == null || response.getData() == null
+                    || !response.getData().containsKey(BUNDLE_HASH_FIELD)) {
                 throw new RuleEngineException("Rule engine returned no bundleHash on update for ruleId=" + ruleId, -1);
             }
 
-            String bundleHash = (String) response.get(BUNDLE_HASH_FIELD);
+            String bundleHash = (String) response.getData().get(BUNDLE_HASH_FIELD);
             log.info("Rule updated successfully: ruleId={}, bundleHash={}", ruleId, bundleHash);
             return bundleHash;
 

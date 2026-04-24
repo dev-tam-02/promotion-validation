@@ -1,1 +1,1 @@
-$c: CustomerFact(segments contains "{{segmentId}}")
+$c: CustomerFact({{#each segments}}{{#unless @first}} || {{/unless}}segments contains "{{this}}"{{/each}})

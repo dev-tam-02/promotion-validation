@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -245,7 +246,7 @@ public class RuleManagementService implements RuleManagementUseCase {
             List<Operator> operators = operatorPort.findGlobalOperatorsByStatus(Operator.OperatorStatus.ACTIVE);
             return operators.stream()
                     .collect(Collectors.toMap(Operator::getName, o -> o, (a, b) -> a));
-        } catch (Exception ex) {
+        } catch (DataAccessException ex) {
             log.warn("Failed to load operators for DRL compilation: {}; proceeding with empty map", ex.getMessage());
             return Map.of();
         }

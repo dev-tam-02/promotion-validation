@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,7 @@ public class DslGenerator {
     public String toJson(Map<String, Object> dsl) {
         try {
             return objectMapper.writeValueAsString(dsl);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.warn("Failed to serialize DSL to JSON: {}", e.getMessage());
             return "{}";
         }
