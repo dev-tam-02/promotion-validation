@@ -19,7 +19,9 @@ import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormat
 import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
 import vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException;
+import vn.viettel.vds.promotion.validation.domain.model.LintReport;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -42,6 +44,7 @@ public class RuleService {
     private final RuleBindingPersistencePort ruleBindingPort;
     private final OutboxEventPersistencePort outboxEventPort;
     private final RuleService self;
+    private final RuleLinter ruleLinter;
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
@@ -51,6 +54,7 @@ public class RuleService {
         this.ruleBindingPort = ruleBindingPort;
         this.outboxEventPort = outboxEventPort;
         this.self = self;
+        this.ruleLinter = new RuleLinter();
     }
 
     /**
@@ -86,6 +90,16 @@ public class RuleService {
 
         // Validate rule nodes
         validateRuleNodes(nodes);
+
+        // Static lint analysis — errors block save, warnings are logged
+        LintReport lintReport = ruleLinter.lint(null, nodes);
+        if (lintReport.hasErrors()) {
+            throw new RuleValidationFailedException(
+                    "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+        }
+        if (lintReport.hasWarnings()) {
+            logger.warn("createRule lint warnings for code={}: {}", code, lintReport.warnings());
+        }
 
         Rule rule = new Rule();
         rule.setId(generateRuleId());
@@ -128,6 +142,15 @@ public class RuleService {
         // Validate rule nodes if provided
         if (nodes != null) {
             validateRuleNodes(nodes);
+            // Static lint analysis — errors block save, warnings are logged
+            LintReport lintReport = ruleLinter.lint(rule, nodes);
+            if (lintReport.hasErrors()) {
+                throw new RuleValidationFailedException(
+                        "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+            }
+            if (lintReport.hasWarnings()) {
+                logger.warn("updateRule lint warnings for ruleId={}: {}", ruleId, lintReport.warnings());
+            }
             rule.setNodes(nodes);
         }
 

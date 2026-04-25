@@ -22,12 +22,17 @@ import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
 import vn.viettel.vds.promotion.validation.application.port.in.RuleBindingUseCase;
+import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
 import vn.viettel.vds.promotion.validation.domain.enums.RuleContextType;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.LintReportDto;
+import vn.viettel.vds.promotion.validation.domain.model.LintIssue;
+import vn.viettel.vds.promotion.validation.domain.model.LintReport;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 
 import java.util.*;
@@ -56,16 +61,19 @@ public class RuleController {
     private final RuleValidationService ruleValidationService;
     private final RuleSimulationService ruleSimulationService;
     private final RuleBindingUseCase ruleBindingUseCase;
+    private final RuleLinter ruleLinter;
 
     public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
                           RuleSimulationService ruleSimulationService,
-                          RuleBindingUseCase ruleBindingUseCase) {
+                          RuleBindingUseCase ruleBindingUseCase,
+                          RuleLinter ruleLinter) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
         this.ruleSimulationService = ruleSimulationService;
         this.ruleBindingUseCase = ruleBindingUseCase;
+        this.ruleLinter = ruleLinter;
     }
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
@@ -82,15 +90,22 @@ public class RuleController {
 
         logger.info("Creating rule: code={}", request.getCode());
 
+        List<RuleNode> nodes = ruleMapper.toRuleNodes(request.getNodes());
+
         Rule rule = ruleService.createRule(
                 request.getCode(),
                 request.getName(),
                 Rule.LogicType.valueOf(request.getLogic()),
-                ruleMapper.toRuleNodes(request.getNodes()),
+                nodes,
                 userId
         );
 
-        return ruleMapper.toRuleResponse(rule);
+        RuleResponse response = ruleMapper.toRuleResponse(rule);
+        LintReport lintReport = ruleLinter.lint(rule, nodes);
+        if (!lintReport.isClean()) {
+            response.setLint(toLintReportDto(lintReport));
+        }
+        return response;
     }
 
     @Operation(summary = "Get rule by ID", description = "Retrieve a specific rule by its ID")
@@ -164,16 +179,25 @@ public class RuleController {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule.LogicType logic = request.getLogic() != null ? Rule.LogicType.valueOf(request.getLogic()) : null;
+        List<RuleNode> nodes = request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null;
 
         Rule rule = ruleService.updateRule(
                 ruleId,
                 request.getName(),
                 logic,
-                request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null,
+                nodes,
                 userId
         );
 
-        return ruleMapper.toRuleResponse(rule);
+        RuleResponse response = ruleMapper.toRuleResponse(rule);
+        List<RuleNode> lintNodes = nodes != null ? nodes : rule.getNodes();
+        if (lintNodes != null) {
+            LintReport lintReport = ruleLinter.lint(rule, lintNodes);
+            if (!lintReport.isClean()) {
+                response.setLint(toLintReportDto(lintReport));
+            }
+        }
+        return response;
     }
 
     @Operation(summary = "Clone rule", description = "Clone an existing rule with new code and name")
@@ -568,5 +592,19 @@ public class RuleController {
                 .createdBy(binding.getCreatedBy())
                 .updatedBy(binding.getUpdatedBy())
                 .build();
+    }
+
+    // -------------------------------------------------------------------------
+    // Lint helpers
+    // -------------------------------------------------------------------------
+
+    private LintReportDto toLintReportDto(LintReport report) {
+        var warnings = report.warnings().stream().map(this::toIssueDto).toList();
+        var errors = report.errors().stream().map(this::toIssueDto).toList();
+        return new LintReportDto(warnings, errors);
+    }
+
+    private LintReportDto.LintIssueDto toIssueDto(LintIssue issue) {
+        return new LintReportDto.LintIssueDto(issue.severity(), issue.code(), issue.message(), issue.nodeId());
     }
 }
