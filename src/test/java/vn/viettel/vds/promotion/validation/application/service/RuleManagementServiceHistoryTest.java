@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersiste
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
 
@@ -62,7 +63,7 @@ class RuleManagementServiceHistoryTest {
         DrlCompiler drlCompiler = new DrlCompiler();
 
         service = new RuleManagementService(
-                rulePort, assembler, validator, dslGenerator, drlCompiler,
+                rulePort, assembler, validator, new RuleLinter(), dslGenerator, drlCompiler,
                 ruleEngineClient, operatorPort, Optional.of(historyPort));
 
         when(rulePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -252,9 +253,8 @@ class RuleManagementServiceHistoryTest {
         ObjectMapper om = new ObjectMapper();
         RuleManagementService serviceNoHistory = new RuleManagementService(
                 rulePort, new RuleTreeAssembler(), new RuleValidator(om),
-                new DslGenerator(om), new DrlCompiler(),
-                ruleEngineClient, operatorPort
-                // no historyPort arg — uses Optional.empty()
+                new RuleLinter(), new DslGenerator(om), new DrlCompiler(),
+                ruleEngineClient, operatorPort, Optional.empty()
         );
 
         // DrlCompiler throws for empty nodes — expected
