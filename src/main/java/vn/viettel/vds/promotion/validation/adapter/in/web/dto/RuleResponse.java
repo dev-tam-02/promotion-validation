@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -65,6 +66,11 @@ public class RuleResponse {
     @Schema(description = "Additional notes or comments")
     @JsonProperty("notes")
     private String notes;
+
+    @Schema(description = "Lint analysis report (null if no issues found)")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("lint")
+    private LintReportDto lint;
 
     @Schema(description = "Creation timestamp")
     @JsonProperty("createdAt")
@@ -249,5 +255,13 @@ public class RuleResponse {
 
     public void setUpdatedBy(String updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public LintReportDto getLint() {
+        return lint;
+    }
+
+    public void setLint(LintReportDto lint) {
+        this.lint = lint;
     }
 }

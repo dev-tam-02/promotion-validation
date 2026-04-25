@@ -253,8 +253,7 @@ class RuleManagementServiceHistoryTest {
         RuleManagementService serviceNoHistory = new RuleManagementService(
                 rulePort, new RuleTreeAssembler(), new RuleValidator(om),
                 new DslGenerator(om), new DrlCompiler(),
-                ruleEngineClient, operatorPort
-                // no historyPort arg — uses Optional.empty()
+                ruleEngineClient, operatorPort, Optional.empty()
         );
 
         // DrlCompiler throws for empty nodes — expected

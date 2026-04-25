@@ -66,12 +66,12 @@ public class DrlCompiler {
         return drl;
     }
 
-    // ---------- package-visible for tests ----------
+    // ---------- public for tests (including sub-packages) ----------
 
     /**
      * Render a single COND node's template snippet.
      */
-    String renderCondTemplate(String compilerId, Map<String, Object> params) {
+    public String renderCondTemplate(String compilerId, Map<String, Object> params) {
         try {
             Template template = handlebars.compile(compilerId);
             return template.apply(params != null ? params : Map.of()).trim();

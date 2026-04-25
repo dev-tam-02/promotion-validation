@@ -14,7 +14,9 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient
 import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
 import vn.viettel.vds.promotion.validation.domain.model.GroupNode;
+import vn.viettel.vds.promotion.validation.domain.model.LintReport;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
@@ -50,6 +52,7 @@ public class RuleManagementService implements RuleManagementUseCase {
     private final RuleEngineClient ruleEngineClient;
     private final OperatorPersistencePort operatorPort;
     private final Optional<RuleHistoryPersistencePort> historyPort;
+    private final RuleLinter ruleLinter;
 
     public RuleManagementService(RulePersistencePort rulePort,
                                  RuleTreeAssembler assembler,
@@ -79,6 +82,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         this.ruleEngineClient = ruleEngineClient;
         this.operatorPort = operatorPort;
         this.historyPort = historyPort;
+        this.ruleLinter = new RuleLinter();
     }
 
     @Override
@@ -92,6 +96,16 @@ public class RuleManagementService implements RuleManagementUseCase {
             ruleValidator.checkTreeDepth(nodes);
             ruleValidator.checkNoCircular(nodes);
             ruleValidator.checkAllGroupsHaveChildren(nodes);
+        }
+
+        // Static lint analysis — errors block save, warnings are logged
+        LintReport lintReport = ruleLinter.lint(null, nodes != null ? nodes : List.of());
+        if (lintReport.hasErrors()) {
+            throw new RuleValidationFailedException(
+                    "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+        }
+        if (lintReport.hasWarnings()) {
+            log.warn("createRule lint warnings for name={}: {}", name, lintReport.warnings());
         }
 
         Rule rule = Rule.builder()
@@ -143,6 +157,16 @@ public class RuleManagementService implements RuleManagementUseCase {
             ruleValidator.checkTreeDepth(newNodes);
             ruleValidator.checkNoCircular(newNodes);
             ruleValidator.checkAllGroupsHaveChildren(newNodes);
+        }
+
+        // Static lint analysis — errors block save, warnings are logged
+        LintReport lintReport = ruleLinter.lint(existing, newNodes != null ? newNodes : List.of());
+        if (lintReport.hasErrors()) {
+            throw new RuleValidationFailedException(
+                    "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+        }
+        if (lintReport.hasWarnings()) {
+            log.warn("updateRule lint warnings for ruleId={}: {}", ruleId, lintReport.warnings());
         }
 
         // Record UPDATE history BEFORE applying changes (captures pre-update state)
