@@ -22,9 +22,12 @@ public class RuleBindingManagementService implements RuleBindingUseCase {
     private static final Logger log = LoggerFactory.getLogger(RuleBindingManagementService.class);
 
     private final RuleBindingPersistencePort bindingPort;
+    private final RuleValidator ruleValidator;
 
-    public RuleBindingManagementService(RuleBindingPersistencePort bindingPort) {
+    public RuleBindingManagementService(RuleBindingPersistencePort bindingPort,
+                                        RuleValidator ruleValidator) {
         this.bindingPort = bindingPort;
+        this.ruleValidator = ruleValidator;
     }
 
     @Override
@@ -34,6 +37,9 @@ public class RuleBindingManagementService implements RuleBindingUseCase {
                                           int priority, String createdBy) {
         log.info("bindRuleToResource: ruleId={} resourceType={} resourceId={} by={}",
                 ruleId, resourceType, resourceId, createdBy);
+
+        // V3: validate scope fields (null here — no structured scopes via this entry point)
+        ruleValidator.checkBindingScopeSchema(null, null, null);
 
         RuleBinding binding = RuleBinding.builder()
                 .id(UUID.randomUUID().toString())

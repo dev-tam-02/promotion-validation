@@ -203,6 +203,118 @@ class RuleValidatorTest {
     }
 
     // -----------------------------------------------------------------------
+    //  checkBindingScopeSchema — V3 scope JSON Schema validation
+    // -----------------------------------------------------------------------
+
+    @Nested
+    @DisplayName("checkBindingScopeSchema — V3 scope JSON Schema")
+    class CheckBindingScopeSchema {
+
+        // --- time_windows ---
+
+        @Test
+        @DisplayName("valid time_windows with rrule passes")
+        void timeWindows_valid_passes() {
+            Map<String, Object> tw = Map.of(
+                    "rrule", "FREQ=WEEKLY;BYDAY=MO,TU",
+                    "duration", "PT2H",
+                    "timezone", "Asia/Ho_Chi_Minh");
+            assertThatCode(() -> validator.checkBindingScopeSchema(tw, null, null))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("time_windows missing rrule throws RuleValidationException")
+        void timeWindows_missingRrule_throws() {
+            Map<String, Object> tw = Map.of("duration", "PT2H");
+            assertThatThrownBy(() -> validator.checkBindingScopeSchema(tw, null, null))
+                    .isInstanceOf(RuleValidator.RuleValidationException.class)
+                    .hasMessageContaining("time_windows");
+        }
+
+        @Test
+        @DisplayName("time_windows with unknown property throws RuleValidationException")
+        void timeWindows_unknownProperty_throws() {
+            Map<String, Object> tw = new java.util.HashMap<>();
+            tw.put("rrule", "FREQ=DAILY");
+            tw.put("unexpected", "value");
+            assertThatThrownBy(() -> validator.checkBindingScopeSchema(tw, null, null))
+                    .isInstanceOf(RuleValidator.RuleValidationException.class)
+                    .hasMessageContaining("time_windows");
+        }
+
+        // --- product_scope ---
+
+        @Test
+        @DisplayName("valid product_scope with include/exclude passes")
+        void productScope_valid_passes() {
+            Map<String, Object> ps = Map.of(
+                    "include", Map.of("product_ids", new String[]{"P001"}, "category_ids", new String[]{"CAT-A"}),
+                    "match_logic", "ANY");
+            assertThatCode(() -> validator.checkBindingScopeSchema(null, ps, null))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("empty product_scope passes (all fields optional)")
+        void productScope_empty_passes() {
+            assertThatCode(() -> validator.checkBindingScopeSchema(null, Map.of(), null))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("product_scope with unknown property inside scope def throws")
+        void productScope_unknownPropertyInScope_throws() {
+            Map<String, Object> include = new java.util.HashMap<>();
+            include.put("unknown_key", "value");
+            Map<String, Object> ps = Map.of("include", include);
+            assertThatThrownBy(() -> validator.checkBindingScopeSchema(null, ps, null))
+                    .isInstanceOf(RuleValidator.RuleValidationException.class)
+                    .hasMessageContaining("product_scope");
+        }
+
+        // --- traffic_control ---
+
+        @Test
+        @DisplayName("valid traffic_control passes")
+        void trafficControl_valid_passes() {
+            Map<String, Object> tc = Map.of(
+                    "bucket_algorithm", "HASH_MURMUR3",
+                    "seed_field", "customerId",
+                    "percentage", 75);
+            assertThatCode(() -> validator.checkBindingScopeSchema(null, null, tc))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("traffic_control percentage 150 throws RuleValidationException")
+        void trafficControl_percentageOver100_throws() {
+            Map<String, Object> tc = Map.of(
+                    "bucket_algorithm", "HASH_SHA256",
+                    "percentage", 150);
+            assertThatThrownBy(() -> validator.checkBindingScopeSchema(null, null, tc))
+                    .isInstanceOf(RuleValidator.RuleValidationException.class)
+                    .hasMessageContaining("traffic_control");
+        }
+
+        @Test
+        @DisplayName("traffic_control missing percentage throws RuleValidationException")
+        void trafficControl_missingPercentage_throws() {
+            Map<String, Object> tc = Map.of("bucket_algorithm", "HASH_SHA256");
+            assertThatThrownBy(() -> validator.checkBindingScopeSchema(null, null, tc))
+                    .isInstanceOf(RuleValidator.RuleValidationException.class)
+                    .hasMessageContaining("traffic_control");
+        }
+
+        @Test
+        @DisplayName("all three null scopes passes without exception")
+        void allNullScopes_passes() {
+            assertThatCode(() -> validator.checkBindingScopeSchema(null, null, null))
+                    .doesNotThrowAnyException();
+        }
+    }
+
+    // -----------------------------------------------------------------------
     //  helpers
     // -----------------------------------------------------------------------
 

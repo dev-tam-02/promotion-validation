@@ -43,6 +43,7 @@ public class RuleBindingService {
 
     private final RuleBindingPersistencePort bindingPersistencePort;
     private final RulePersistencePort rulePersistencePort;
+    private final RuleValidator ruleValidator;
 
     // ========== Create Operations ==========
 
@@ -64,7 +65,13 @@ public class RuleBindingService {
                     binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
         }
 
-        // Pin the rule version at bind time (null-safe: default to 1 if not set)
+        // V3: validate structured scope fields against JSON Schema spec
+        ruleValidator.checkBindingScopeSchema(
+                binding.getScopeTimeWindows(),
+                binding.getScopeProductScope(),
+                binding.getScopeTrafficControl());
+
+        // V2: pin the rule version at bind time (null-safe: default to 1 if not set)
         Integer pinnedVersion = rule.getRuleVersion() != null
                 ? rule.getRuleVersion().intValue()
                 : 1;

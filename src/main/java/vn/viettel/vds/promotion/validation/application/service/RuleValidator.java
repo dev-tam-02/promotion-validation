@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+import vn.viettel.vds.promotion.validation.scope.ScopeSchemaRegistry;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.ArrayList;
@@ -122,6 +123,28 @@ public class RuleValidator {
         log.debug("checkOperatorParamsMatchSchema passed");
     }
 
+    /**
+     * Validate the three structured scope fields of a {@code rule_bindings} row
+     * against their respective JSON Schemas (draft-07) from pp-schema.
+     *
+     * <p>Each parameter is nullable — a {@code null} value means the scope field was not
+     * provided and is skipped.  When a field is present and invalid, a
+     * {@link RuleValidationException} is thrown immediately (fail-fast).
+     *
+     * @param scopeTimeWindows  structured time-windows object or {@code null}
+     * @param scopeProductScope structured product-scope object or {@code null}
+     * @param scopeTrafficControl structured traffic-control object or {@code null}
+     */
+    public void checkBindingScopeSchema(Map<String, Object> scopeTimeWindows,
+                                        Map<String, Object> scopeProductScope,
+                                        Map<String, Object> scopeTrafficControl) {
+        ScopeSchemaRegistry reg = ScopeSchemaRegistry.getInstance();
+        validateScopeField(reg, "time_windows", scopeTimeWindows);
+        validateScopeField(reg, "product_scope", scopeProductScope);
+        validateScopeField(reg, "traffic_control", scopeTrafficControl);
+        log.debug("checkBindingScopeSchema passed");
+    }
+
     // ---------- private helpers ----------
 
     private int measureDepth(RuleNode node, Set<String> visited) {
@@ -221,6 +244,31 @@ public class RuleValidator {
         }
     }
 
+    private void validateScopeField(ScopeSchemaRegistry reg, String fieldName,
+                                    Map<String, Object> value) {
+        if (value == null) {
+            return;
+        }
+        try {
+            JsonSchema schema = reg.getSchema(fieldName);
+            JsonNode node = objectMapper.valueToTree(value);
+            Set<ValidationMessage> errors = schema.validate(node);
+            if (!errors.isEmpty()) {
+                List<String> messages = new ArrayList<>();
+                for (ValidationMessage msg : errors) {
+                    messages.add(msg.getMessage());
+                }
+                throw new RuleValidationException(fieldName,
+                        "scope field '" + fieldName + "' failed JSON Schema validation: "
+                        + String.join("; ", messages));
+            }
+        } catch (RuleValidationException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.warn("Failed to validate scope field '{}': {}", fieldName, ex.getMessage());
+        }
+    }
+
     private void validateAgainstSchema(Map<String, Object> params,
                                        Map<String, Object> jsonSchemaMap,
                                        String operatorName, String nodeId) {
@@ -248,11 +296,34 @@ public class RuleValidator {
     }
 
     /**
-     * Thrown when a rule tree invariant is violated.
+     * Thrown when a rule tree invariant or scope schema validation is violated.
      */
     public static class RuleValidationException extends RuntimeException {
+
+        private final String field;
+
         public RuleValidationException(String message) {
             super(message);
+            this.field = null;
+        }
+
+        /**
+         * Construct with a field name (used by scope schema violations).
+         *
+         * @param field   the rule_bindings scope field that failed (e.g. {@code "time_windows"})
+         * @param message human-readable error detail
+         */
+        public RuleValidationException(String field, String message) {
+            super(message);
+            this.field = field;
+        }
+
+        /**
+         * Return the scope field name that caused this exception, or {@code null}
+         * if this is a generic tree-validation error.
+         */
+        public String getField() {
+            return field;
         }
     }
 }
