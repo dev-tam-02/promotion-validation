@@ -1,0 +1,139 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 09 V8: Merge ui_option → json_schema x-ui-* extensions
+  # Strategy: UPDATE each operator's json_schema to embed x-ui-* hints that were
+  # previously stored in the separate ui_option column.  After all rows are migrated
+  # the ui_option column is dropped — single source of truth.
+  #
+  # Operators covered (9):
+  #   order.total.gte, order.items.count.gte,
+  #   customer.in_segment, customer.loyalty_tier.gte, customer.is_owner,
+  #   product.in_category, product.in_list, cart.has_product,
+  #   time.within_window
+  # ============================================================================
+
+  - changeSet:
+      id: 035-xui-order-total-gte
+      author: harley hoang
+      comment: Embed x-ui-source/x-ui-value-type on amount property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["amount"],"properties":{"amount":{"type":"number","x-ui-source":"INPUT","x-ui-value-type":"NUMBER"},"currency":{"type":"string"}}}'
+            where: "name='order.total.gte' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-order-items-count-gte
+      author: harley hoang
+      comment: Embed x-ui-source/x-ui-value-type on count property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["count"],"properties":{"count":{"type":"integer","minimum":1,"x-ui-source":"INPUT","x-ui-value-type":"INTEGER"}}}'
+            where: "name='order.items.count.gte' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-customer-in-segment
+      author: harley hoang
+      comment: Embed x-ui SELECT hints on segments property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["segments"],"properties":{"segments":{"type":"array","items":{"type":"string"},"x-ui-source":"SELECT","x-ui-data-source-type":"SEGMENT","x-ui-endpoint":"/segment/api/v1/segments","x-ui-multiple":true}}}'
+            where: "name='customer.in_segment' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-customer-loyalty-tier-gte
+      author: harley hoang
+      comment: Embed x-ui SELECT hints on tier property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["tier"],"properties":{"tier":{"type":"string","enum":["BRONZE","SILVER","GOLD","PLATINUM","DIAMOND"],"x-ui-source":"SELECT","x-ui-data-source-type":"LOYALTY_TIER","x-ui-endpoint":"/customer/api/v1/loyalty-tiers"}}}'
+            where: "name='customer.loyalty_tier.gte' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-product-in-category
+      author: harley hoang
+      comment: Embed x-ui SELECT hints on categoryIds property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["categoryIds"],"properties":{"categoryIds":{"type":"array","items":{"type":"string"},"minItems":1,"x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT_CATEGORY","x-ui-endpoint":"/product/api/v1/categories","x-ui-multiple":true}}}'
+            where: "name='product.in_category' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-product-in-list
+      author: harley hoang
+      comment: Embed x-ui SELECT hints on productIds property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["productIds"],"properties":{"productIds":{"type":"array","items":{"type":"string"},"minItems":1,"x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT","x-ui-endpoint":"/product/api/v1/products","x-ui-multiple":true}}}'
+            where: "name='product.in_list' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-cart-has-product
+      author: harley hoang
+      comment: Embed x-ui SELECT hint on productId property
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["productId"],"properties":{"productId":{"type":"string","x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT","x-ui-endpoint":"/product/api/v1/products"},"minQuantity":{"type":"integer","minimum":1}}}'
+            where: "name='cart.has_product' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-time-within-window
+      author: harley hoang
+      comment: Embed x-ui INPUT/TIME hints on time properties
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","required":["startTime","endTime"],"properties":{"startTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$","x-ui-source":"INPUT","x-ui-value-type":"TIME"},"endTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$","x-ui-source":"INPUT","x-ui-value-type":"TIME"},"timezone":{"type":"string"}}}'
+            where: "name='time.within_window' AND operator_version=1"
+
+  - changeSet:
+      id: 035-xui-customer-is-owner
+      author: harley hoang
+      comment: Embed x-ui-source NONE at schema root (no properties needed)
+      changes:
+        - update:
+            tableName: operators
+            columns:
+              - column:
+                  name: json_schema
+                  value: '{"type":"object","x-ui-source":"NONE","properties":{},"additionalProperties":false}'
+            where: "name='customer.is_owner' AND operator_version=1"
+
+  - changeSet:
+      id: 035-drop-ui-option-column
+      author: harley hoang
+      comment: Drop ui_option column — x-ui-* extensions in json_schema are now the single source of truth
+      changes:
+        - dropColumn:
+            tableName: operators
+            columnName: ui_option

@@ -19,9 +19,8 @@ databaseChangeLog:
               - column: { name: context, value: "customer" }
               - column: { name: category_id, value: "spec-cat-audience-001" }
               - column: { name: display_name, value: '{"vi":"Chỉ chủ sở hữu voucher","en":"Owner only"}' }
-              - column: { name: json_schema, value: '{"type":"object","properties":{},"additionalProperties":false}' }
+              - column: { name: json_schema, value: '{"type":"object","x-ui-source":"NONE","properties":{},"additionalProperties":false}' }
               - column: { name: compiler_id, value: "tpl_customer_is_owner_v1" }
-              - column: { name: ui_option, value: '{"comparisonType":"BOOLEAN","valueSource":"NONE"}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
