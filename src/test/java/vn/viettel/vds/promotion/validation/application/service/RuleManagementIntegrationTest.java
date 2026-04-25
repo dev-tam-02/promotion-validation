@@ -15,7 +15,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersiste
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
@@ -71,7 +70,7 @@ class RuleManagementIntegrationTest {
                 .thenReturn(List.of());
 
         ruleManagementService = new RuleManagementService(
-                rulePort, assembler, validator, new RuleLinter(), dslGenerator, drlCompiler,
+                rulePort, assembler, validator, dslGenerator, drlCompiler,
                 ruleEngineClient, operatorPort, Optional.empty());
         bindingManagementService = new RuleBindingManagementService(bindingPort);
     }
