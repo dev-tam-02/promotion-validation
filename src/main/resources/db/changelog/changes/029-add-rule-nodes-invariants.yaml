@@ -1,10 +1,7 @@
 databaseChangeLog:
   # ============================================================================
   # Review-B fixes for Task 06: rule_nodes DB integrity constraints
-  # - CHECK chk_rn_no_self      : parent_id IS NULL OR parent_id <> id
-  # - CHECK chk_rn_type_fields  : GROUP/COND mutual exclusion of group_logic/operator_name
-  # - fk_rule_nodes_validation_rule: re-create with ON DELETE CASCADE
-  # - fk_rule_nodes_parent          : re-create with ON DELETE CASCADE
+  # Liquibase OSS doesn't support addCheckConstraint (commercial only) — use raw sql
   # ============================================================================
 
   - changeSet:
@@ -12,22 +9,24 @@ databaseChangeLog:
       author: harley hoang
       comment: Prevent a rule_node from pointing to itself as its own parent
       changes:
-        - addCheckConstraint:
-            constraintName: chk_rn_no_self
-            tableName: rule_nodes
-            constraintBody: "parent_id IS NULL OR parent_id <> id"
+        - sql:
+            sql: ALTER TABLE rule_nodes ADD CONSTRAINT chk_rn_no_self CHECK (parent_id IS NULL OR parent_id <> id)
+            stripComments: true
+      rollback:
+        - sql:
+            sql: ALTER TABLE rule_nodes DROP CONSTRAINT chk_rn_no_self
 
   - changeSet:
       id: 029-add-chk-rn-type-fields
       author: harley hoang
-      comment: >
-        Enforce mutual exclusion: GROUP nodes must have group_logic and no operator_name;
-        COND nodes must have operator_name and no group_logic.
+      comment: GROUP/COND mutual exclusion of group_logic/operator_name
       changes:
-        - addCheckConstraint:
-            constraintName: chk_rn_type_fields
-            tableName: rule_nodes
-            constraintBody: "(type = 'GROUP' AND group_logic IS NOT NULL AND operator_name IS NULL) OR (type = 'COND' AND operator_name IS NOT NULL AND group_logic IS NULL)"
+        - sql:
+            sql: ALTER TABLE rule_nodes ADD CONSTRAINT chk_rn_type_fields CHECK ((type = 'GROUP' AND group_logic IS NOT NULL AND operator_name IS NULL) OR (type = 'COND' AND operator_name IS NOT NULL AND group_logic IS NULL))
+            stripComments: true
+      rollback:
+        - sql:
+            sql: ALTER TABLE rule_nodes DROP CONSTRAINT chk_rn_type_fields
 
   - changeSet:
       id: 029-recreate-fk-rule-nodes-validation-rule-cascade

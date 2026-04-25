@@ -135,6 +135,17 @@
             <artifactId>resilience4j-spring-boot3</artifactId>
             <version>2.3.0</version>
         </dependency>
+        <!-- Force resilience4j-spring6 to 2.3.0 (BOM/transitive pulls 2.2.0 — missing RxJava3FallbackDecorator) -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring6</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.reactivex.rxjava3</groupId>
+            <artifactId>rxjava</artifactId>
+            <version>3.1.8</version>
+        </dependency>
 
         <!-- Mustache template engine for DRL compilation -->
         <dependency>
