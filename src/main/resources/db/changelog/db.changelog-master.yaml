@@ -72,3 +72,7 @@ databaseChangeLog:
   # Task 09 V2 Review-B: Add change_reason column to validation_rules_history
   - include:
       file: db/changelog/changes/034-add-change-reason-to-history.yaml
+
+  # Task 09 V8: Merge ui_option → json_schema x-ui-* extensions, DROP ui_option column
+  - include:
+      file: db/changelog/changes/035-migrate-ui-option-to-schema-x-ui.yaml

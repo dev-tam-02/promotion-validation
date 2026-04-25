@@ -71,13 +71,13 @@ databaseChangeLog:
       id: 028-seed-spec-operators-order
       author: harley hoang
       changes:
-        # order.total.gte — update existing row with category_id + new fields
+        # order.total.gte — update existing row with category_id + new fields; x-ui-* embedded in json_schema (V8)
         - update:
             tableName: operators
             columns:
               - column: { name: category_id, value: "spec-cat-order-001" }
               - column: { name: display_name, value: '{"vi":"Tổng đơn ≥","en":"Order total ≥"}' }
-              - column: { name: ui_option, value: '{"comparisonType":"GTE","valueType":"NUMBER","valueSource":"INPUT"}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["amount"],"properties":{"amount":{"type":"number","x-ui-source":"INPUT","x-ui-value-type":"NUMBER"},"currency":{"type":"string"}}}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: active, valueBoolean: true }
             where: name='order.total.gte' AND operator_version=1
@@ -92,9 +92,8 @@ databaseChangeLog:
               - column: { name: context, value: "order" }
               - column: { name: category_id, value: "spec-cat-order-001" }
               - column: { name: display_name, value: '{"vi":"Số lượng sản phẩm ≥","en":"Items count ≥"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["count"],"properties":{"count":{"type":"integer","minimum":1}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["count"],"properties":{"count":{"type":"integer","minimum":1,"x-ui-source":"INPUT","x-ui-value-type":"INTEGER"}}}' }
               - column: { name: compiler_id, value: "tpl_order_items_count_gte_v1" }
-              - column: { name: ui_option, value: '{"comparisonType":"GTE","valueType":"INTEGER","valueSource":"INPUT"}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
@@ -106,13 +105,13 @@ databaseChangeLog:
       id: 028-seed-spec-operators-audience
       author: harley hoang
       changes:
-        # customer.in_segment — update existing row
+        # customer.in_segment — update existing row; x-ui-* embedded in json_schema (V8)
         - update:
             tableName: operators
             columns:
               - column: { name: category_id, value: "spec-cat-audience-001" }
               - column: { name: display_name, value: '{"vi":"Thuộc tập khách hàng","en":"In segment"}' }
-              - column: { name: ui_option, value: '{"valueSource":"SELECT","dataSourceType":"SEGMENT","dataSourceEndpoint":"/segment/api/v1/segments","multiple":true}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["segments"],"properties":{"segments":{"type":"array","items":{"type":"string"},"x-ui-source":"SELECT","x-ui-data-source-type":"SEGMENT","x-ui-endpoint":"/segment/api/v1/segments","x-ui-multiple":true}}}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: active, valueBoolean: true }
             where: name='customer.in_segment' AND operator_version=1
@@ -127,9 +126,8 @@ databaseChangeLog:
               - column: { name: context, value: "customer" }
               - column: { name: category_id, value: "spec-cat-loyalty-001" }
               - column: { name: display_name, value: '{"vi":"Hạng thành viên ≥","en":"Loyalty tier ≥"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["tier"],"properties":{"tier":{"type":"string","enum":["BRONZE","SILVER","GOLD","PLATINUM","DIAMOND"]}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["tier"],"properties":{"tier":{"type":"string","enum":["BRONZE","SILVER","GOLD","PLATINUM","DIAMOND"],"x-ui-source":"SELECT","x-ui-data-source-type":"LOYALTY_TIER","x-ui-endpoint":"/customer/api/v1/loyalty-tiers"}}}' }
               - column: { name: compiler_id, value: "tpl_customer_loyalty_tier_gte_v1" }
-              - column: { name: ui_option, value: '{"comparisonType":"GTE","valueSource":"SELECT","dataSourceType":"LOYALTY_TIER","dataSourceEndpoint":"/customer/api/v1/loyalty-tiers"}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
@@ -151,9 +149,8 @@ databaseChangeLog:
               - column: { name: context, value: "product" }
               - column: { name: category_id, value: "spec-cat-product-001" }
               - column: { name: display_name, value: '{"vi":"Thuộc danh mục","en":"In category"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["categoryIds"],"properties":{"categoryIds":{"type":"array","items":{"type":"string"},"minItems":1}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["categoryIds"],"properties":{"categoryIds":{"type":"array","items":{"type":"string"},"minItems":1,"x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT_CATEGORY","x-ui-endpoint":"/product/api/v1/categories","x-ui-multiple":true}}}' }
               - column: { name: compiler_id, value: "tpl_product_in_category_v1" }
-              - column: { name: ui_option, value: '{"valueSource":"SELECT","dataSourceType":"PRODUCT_CATEGORY","dataSourceEndpoint":"/product/api/v1/categories","multiple":true}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
@@ -171,9 +168,8 @@ databaseChangeLog:
               - column: { name: context, value: "product" }
               - column: { name: category_id, value: "spec-cat-product-001" }
               - column: { name: display_name, value: '{"vi":"Trong danh sách sản phẩm","en":"In product list"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["productIds"],"properties":{"productIds":{"type":"array","items":{"type":"string"},"minItems":1}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["productIds"],"properties":{"productIds":{"type":"array","items":{"type":"string"},"minItems":1,"x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT","x-ui-endpoint":"/product/api/v1/products","x-ui-multiple":true}}}' }
               - column: { name: compiler_id, value: "tpl_product_in_list_v1" }
-              - column: { name: ui_option, value: '{"valueSource":"SELECT","dataSourceType":"PRODUCT","dataSourceEndpoint":"/product/api/v1/products","multiple":true}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
@@ -191,9 +187,8 @@ databaseChangeLog:
               - column: { name: context, value: "cart" }
               - column: { name: category_id, value: "spec-cat-product-001" }
               - column: { name: display_name, value: '{"vi":"Giỏ hàng có sản phẩm","en":"Cart has product"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["productId"],"properties":{"productId":{"type":"string"},"minQuantity":{"type":"integer","minimum":1}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["productId"],"properties":{"productId":{"type":"string","x-ui-source":"SELECT","x-ui-data-source-type":"PRODUCT","x-ui-endpoint":"/product/api/v1/products"},"minQuantity":{"type":"integer","minimum":1}}}' }
               - column: { name: compiler_id, value: "tpl_cart_has_product_v1" }
-              - column: { name: ui_option, value: '{"valueSource":"SELECT","dataSourceType":"PRODUCT","dataSourceEndpoint":"/product/api/v1/products"}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
@@ -215,9 +210,8 @@ databaseChangeLog:
               - column: { name: context, value: "time" }
               - column: { name: category_id, value: "spec-cat-time-001" }
               - column: { name: display_name, value: '{"vi":"Trong khung giờ","en":"Within time window"}' }
-              - column: { name: json_schema, value: '{"type":"object","required":["startTime","endTime"],"properties":{"startTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$"},"endTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$"},"timezone":{"type":"string"}}}' }
+              - column: { name: json_schema, value: '{"type":"object","required":["startTime","endTime"],"properties":{"startTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$","x-ui-source":"INPUT","x-ui-value-type":"TIME"},"endTime":{"type":"string","pattern":"^([01]\\d|2[0-3]):[0-5]\\d$","x-ui-source":"INPUT","x-ui-value-type":"TIME"},"timezone":{"type":"string"}}}' }
               - column: { name: compiler_id, value: "tpl_time_within_window_v1" }
-              - column: { name: ui_option, value: '{"comparisonType":"RANGE","valueType":"TIME","valueSource":"INPUT"}' }
               - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
               - column: { name: status, value: "ACTIVE" }
               - column: { name: active, valueBoolean: true }
