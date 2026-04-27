@@ -101,3 +101,7 @@ databaseChangeLog:
   # T13: Seed 6 counter operator_options + 5 reason codes (5 quota counter + max_pay_with_points)
   - include:
       file: db/changelog/changes/044-seed-counter-operators.yaml
+
+  # T17: Add current_version to validation_rules + change_type index to history
+  - include:
+      file: db/changelog/changes/045-extend-validation-rules-history.yaml

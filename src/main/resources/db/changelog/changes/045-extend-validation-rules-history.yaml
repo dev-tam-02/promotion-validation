@@ -1,0 +1,45 @@
+databaseChangeLog:
+  # ============================================================================
+  # T17: Extend validation_rules + validation_rules_history for V2 versioning.
+  #
+  # validation_rules.current_version tracks how many times a rule has been
+  # committed (config-level version, distinct from rule_version which tracks
+  # the published DRL bundle version). Default = 1 for all existing rows.
+  #
+  # idx_history_change_type added to support efficient audit queries filtered
+  # by change_type (e.g. fetch only CREATE or UPDATE_PRE rows).
+  # ============================================================================
+
+  - changeSet:
+      id: 045-extend-validation-rules-history
+      author: harley hoang
+      comment: "T17: Add current_version to validation_rules and change_type index to history"
+
+      changes:
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: current_version
+                  type: INT
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+                  remarks: >
+                    Config-level version counter — incremented on each rule save/update.
+                    Distinct from rule_version (which tracks published DRL bundle version).
+
+        - createIndex:
+            tableName: validation_rules_history
+            indexName: idx_history_change_type
+            columns:
+              - column:
+                  name: change_type
+
+      rollback:
+        - dropIndex:
+            tableName: validation_rules_history
+            indexName: idx_history_change_type
+        - dropColumn:
+            tableName: validation_rules
+            columnName: current_version
