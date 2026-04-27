@@ -25,8 +25,11 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -232,18 +235,15 @@ public class SettingValidationRuleCommandHandler {
 
             ComponentsData components = componentsResult.getValue();
 
-            // Auto-create campaign validation rule when ruleId is not provided
-            if ((components.ruleId() == null || components.ruleId().isEmpty())
-                    && "DISCOUNT_COUPON".equals(components.objectType())) {
-
-                Rule campaignRule = createCampaignValidationRule(components);
-                campaignRule = validationRulePort.save(campaignRule);
-
-                logger.info("Auto-created campaign validation rule: ruleId={}, objectId={}",
-                        campaignRule.getId(), components.objectId());
-
+            // Resolve or auto-create validation rule (2-path: Path A = load, Path B = auto-gen)
+            Rule resolvedRule = resolveOrCreateRule(payload);
+            if (payload.getRuleId() == null) {
+                // Path B: newly built rule — persist and update components with new ruleId
+                resolvedRule = validationRulePort.save(resolvedRule);
+                logger.info("[Path B] Saved auto-generated rule {} for campaign {}",
+                        resolvedRule.getId(), payload.getObjectId());
                 components = new ComponentsData(
-                        campaignRule.getId(),
+                        resolvedRule.getId(),
                         components.objectType(),
                         components.objectId(),
                         components.active(),
@@ -253,6 +253,7 @@ public class SettingValidationRuleCommandHandler {
                         components.priority()
                 );
             }
+            // Path A: rule already in DB; ruleId in components matches payload.ruleId
 
             // Create unified RuleBinding
             RuleBinding ruleBinding = createRuleBinding(components);
@@ -352,11 +353,131 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
+     * Two-path rule resolution:
+     *
+     * <ul>
+     *   <li><b>Path A</b>: {@code payload.ruleId != null} — load the existing rule from DB.
+     *       Throws {@link RuleNotFoundException} if the ID does not exist (saga compensation).</li>
+     *   <li><b>Path B</b>: {@code payload.ruleId == null} — auto-generate a skeleton rule whose
+     *       only condition is a {@code binding.validity_window} temporal gate built from the
+     *       payload's timeframe. The caller is responsible for persisting the returned rule.</li>
+     * </ul>
+     */
+    Rule resolveOrCreateRule(SettingValidationRuleCommandPayload payload) {
+        if (payload.getRuleId() != null) {
+            // ===== Path A: reuse existing rule =====
+            Rule existing = validationRulePort.findById(payload.getRuleId())
+                    .orElseThrow(() -> new RuleNotFoundException(payload.getRuleId()));
+            logger.info("[Path A] Reusing existing rule {} for campaign {}",
+                    payload.getRuleId(), payload.getObjectId());
+            return existing;
+        }
+
+        // ===== Path B: auto-generate timeframe-gate rule =====
+        String ruleId = IdGenerator.generateId();
+        String objectId = payload.getObjectId();
+        String code = "CAMPAIGN_" + objectId.replace("-", "").substring(
+                0, Math.min(objectId.replace("-", "").length(), 20));
+
+        List<RuleNode> nodes = buildTimeframeNodes(payload.getTimeframe());
+
+        Instant now = Instant.now();
+        Instant effectiveFrom = null;
+        Instant effectiveTo = null;
+        TimeFrame tf = payload.getTimeframe();
+        if (tf != null && tf.getValidityTimeframe() != null) {
+            effectiveFrom = tf.getValidityTimeframe().getStartDate();
+            effectiveTo = tf.getValidityTimeframe().getExpirationDate();
+        }
+
+        Rule rule = Rule.builder()
+                .id(ruleId)
+                .code(code)
+                .name("Campaign Rule - " + objectId)
+                .description("Auto-generated validation rule for campaign " + objectId)
+                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
+                .ruleVersion(1L)
+                .logic(Rule.LogicType.ALL)
+                .nodes(nodes)
+                .effectiveFrom(effectiveFrom)
+                .effectiveTo(effectiveTo)
+                .campaignId(objectId)
+                .publishedAt(now)
+                .publishedBy("system")
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("system")
+                .updatedBy("system")
+                .version(0L)
+                .build();
+
+        logger.info("[Path B] Auto-generated timeframe rule {} for campaign {} (nodes={})",
+                rule.getId(), objectId, nodes.size());
+        return rule;
+    }
+
+    /**
+     * Build a rule-node list containing a single {@code binding.validity_window} COND node
+     * wrapped in a root GROUP(ALL), derived from the payload's validity timeframe.
+     *
+     * <p>Returns an empty list when:
+     * <ul>
+     *   <li>{@code tf} is null</li>
+     *   <li>{@code tf.validityTimeframe} is null</li>
+     *   <li>Both {@code startDate} and {@code expirationDate} are null</li>
+     * </ul>
+     * In those cases the auto-generated DRL becomes an unconditional ALLOW skeleton.
+     */
+    private List<RuleNode> buildTimeframeNodes(TimeFrame tf) {
+        if (tf == null || tf.getValidityTimeframe() == null) {
+            return List.of();
+        }
+
+        Instant startDate = tf.getValidityTimeframe().getStartDate();
+        Instant endDate = tf.getValidityTimeframe().getExpirationDate();
+        String timezone = tf.getTimezone() != null ? tf.getTimezone() : "Asia/Ho_Chi_Minh";
+
+        if (startDate == null && endDate == null) {
+            return List.of();
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        if (startDate != null) {
+            params.put("startDate", startDate.toString());
+        }
+        if (endDate != null) {
+            params.put("endDate", endDate.toString());
+        }
+        params.put("timezone", timezone);
+
+        RuleNode condNode = RuleNode.builder()
+                .nodeId(IdGenerator.generateId())
+                .type(RuleNode.NodeType.COND)
+                .operatorName("binding.validity_window")
+                .reasonCode("OUTSIDE_VALIDITY_WINDOW")
+                .params(params)
+                .build();
+
+        RuleNode rootGroup = RuleNode.builder()
+                .nodeId(IdGenerator.generateId())
+                .type(RuleNode.NodeType.GROUP)
+                .groupLogic(Rule.LogicType.ALL)
+                .children(List.of(condNode))
+                .build();
+
+        return List.of(rootGroup);
+    }
+
+    /**
      * Auto-create a campaign-specific validation rule when no ruleId is provided.
      * Creates a minimal rule with a root GROUP node (ALL logic) and no business conditions.
      * The temporal validation (date range, days of week, hours per day) is handled by
      * the DRL compiler's temporal policy system based on the binding's temporal data.
+     *
+     * @deprecated Use {@link #resolveOrCreateRule(SettingValidationRuleCommandPayload)} instead.
      */
+    @Deprecated
     private Rule createCampaignValidationRule(ComponentsData components) {
         String ruleId = IdGenerator.generateId();
         String objectId = components.objectId();
