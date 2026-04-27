@@ -1,0 +1,116 @@
+databaseChangeLog:
+  # ============================================================================
+  # T14: Seed sample metadata_schemas (CUSTOMER + ORDER) — Pha 1
+  #
+  # Bảng metadata_schemas đã tồn tại (changeset 021). Seed 5 sample fields:
+  #   CUSTOMER_METADATA (3): vip_tier (STRING), loyalty_score (NUMBER), first_purchase_date (DATE)
+  #   ORDER_METADATA    (2): source_channel (STRING), gift_wrap_requested (BOOLEAN)
+  #
+  # T15 (RuleBuilderService virtual operator generation) consumes these rows.
+  #
+  # Column mapping (actual schema from MetadataSchemaEntity.java):
+  #   field_type      = STRING | NUMBER | BOOLEAN | DATE  (NOT data_type)
+  #   available_values = JSON array of static options     (NOT value_options)
+  # ============================================================================
+
+  - changeSet:
+      id: 042-seed-customer-metadata-schemas
+      author: harley hoang
+      comment: Seed 3 customer_metadata schema fields for T15 virtual operator generation
+      changes:
+        # vip_tier — STRING with static options (silver/gold/platinum)
+        - insert:
+            tableName: metadata_schemas
+            columns:
+              - column: { name: id, value: "msch-cust-vip-tier-001" }
+              - column: { name: tenant_id, value: "default" }
+              - column: { name: schema_type, value: "customer_metadata" }
+              - column: { name: field_key, value: "vip_tier" }
+              - column: { name: field_name, value: "VIP tier" }
+              - column: { name: field_type, value: "STRING" }
+              - column: { name: available_values, value: '[{"value":"silver","label":{"en":"Silver","vi":"Bạc"}},{"value":"gold","label":{"en":"Gold","vi":"Vàng"}},{"value":"platinum","label":{"en":"Platinum","vi":"Bạch kim"}}]' }
+              - column: { name: is_required, valueBoolean: false }
+              - column: { name: display_order, valueNumeric: 10 }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        # loyalty_score — NUMBER (free input, no static options)
+        - insert:
+            tableName: metadata_schemas
+            columns:
+              - column: { name: id, value: "msch-cust-loyalty-score-001" }
+              - column: { name: tenant_id, value: "default" }
+              - column: { name: schema_type, value: "customer_metadata" }
+              - column: { name: field_key, value: "loyalty_score" }
+              - column: { name: field_name, value: "Loyalty score" }
+              - column: { name: field_type, value: "NUMBER" }
+              - column: { name: is_required, valueBoolean: false }
+              - column: { name: display_order, valueNumeric: 20 }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        # first_purchase_date — DATE
+        - insert:
+            tableName: metadata_schemas
+            columns:
+              - column: { name: id, value: "msch-cust-first-purchase-001" }
+              - column: { name: tenant_id, value: "default" }
+              - column: { name: schema_type, value: "customer_metadata" }
+              - column: { name: field_key, value: "first_purchase_date" }
+              - column: { name: field_name, value: "First purchase date" }
+              - column: { name: field_type, value: "DATE" }
+              - column: { name: is_required, valueBoolean: false }
+              - column: { name: display_order, valueNumeric: 30 }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: metadata_schemas
+            where: "tenant_id = 'default' AND schema_type = 'customer_metadata' AND field_key IN ('vip_tier', 'loyalty_score', 'first_purchase_date')"
+
+  - changeSet:
+      id: 042-seed-order-metadata-schemas
+      author: harley hoang
+      comment: Seed 2 order_metadata schema fields for T15 virtual operator generation
+      changes:
+        # source_channel — STRING with static options (web/app/pos)
+        - insert:
+            tableName: metadata_schemas
+            columns:
+              - column: { name: id, value: "msch-order-source-channel-001" }
+              - column: { name: tenant_id, value: "default" }
+              - column: { name: schema_type, value: "order_metadata" }
+              - column: { name: field_key, value: "source_channel" }
+              - column: { name: field_name, value: "Order source channel" }
+              - column: { name: field_type, value: "STRING" }
+              - column: { name: available_values, value: '[{"value":"web","label":{"en":"Web","vi":"Website"}},{"value":"app","label":{"en":"Mobile app","vi":"Ứng dụng di động"}},{"value":"pos","label":{"en":"POS","vi":"POS cửa hàng"}}]' }
+              - column: { name: is_required, valueBoolean: false }
+              - column: { name: display_order, valueNumeric: 10 }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        # gift_wrap_requested — BOOLEAN
+        - insert:
+            tableName: metadata_schemas
+            columns:
+              - column: { name: id, value: "msch-order-gift-wrap-001" }
+              - column: { name: tenant_id, value: "default" }
+              - column: { name: schema_type, value: "order_metadata" }
+              - column: { name: field_key, value: "gift_wrap_requested" }
+              - column: { name: field_name, value: "Gift wrap requested" }
+              - column: { name: field_type, value: "BOOLEAN" }
+              - column: { name: is_required, valueBoolean: false }
+              - column: { name: display_order, valueNumeric: 20 }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: metadata_schemas
+            where: "tenant_id = 'default' AND schema_type = 'order_metadata' AND field_key IN ('source_channel', 'gift_wrap_requested')"

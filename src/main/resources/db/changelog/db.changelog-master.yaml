@@ -89,3 +89,7 @@ databaseChangeLog:
   # T8: Seed 2 operator_options for T6 (acquisition_channel) + T7 (gift_amount)
   - include:
       file: db/changelog/changes/041-seed-acquisition-gift-operators.yaml
+
+  # T14: Seed sample metadata_schemas (3 customer + 2 order) for T15 virtual operator generation
+  - include:
+      file: db/changelog/changes/042-seed-metadata-schemas.yaml
