@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,15 +71,46 @@ public class DrlCompiler {
 
     /**
      * Render a single COND node's template snippet.
+     *
+     * <p>For templates that require computed boolean context flags (e.g.
+     * {@code tpl_binding_validity_window_v1}), the render context is enriched
+     * automatically before passing to Handlebars — see {@link #buildRenderContext}.
      */
     public String renderCondTemplate(String compilerId, Map<String, Object> params) {
         try {
             Template template = handlebars.compile(compilerId);
-            return template.apply(params != null ? params : Map.of()).trim();
+            Map<String, Object> ctx = buildRenderContext(compilerId, params);
+            return template.apply(ctx).trim();
         } catch (IOException e) {
             throw new DrlCompileException(
                     "Cannot load or render DRL template for compilerId=" + compilerId + ": " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Build the full Handlebars render context for a given compilerId.
+     *
+     * <p>For most templates the context equals the raw {@code params}. Templates that
+     * rely on computed boolean flags (section guards) receive additional keys derived
+     * from the raw params here, keeping template logic pure Mustache (no helpers needed).
+     *
+     * <p>Currently enriched templates:
+     * <ul>
+     *   <li>{@code tpl_binding_validity_window_v1} — adds {@code hasStart}, {@code hasEnd},
+     *       {@code both}, {@code timezone} derived from {@code startDate} / {@code endDate}.</li>
+     * </ul>
+     */
+    private Map<String, Object> buildRenderContext(String compilerId, Map<String, Object> params) {
+        Map<String, Object> ctx = new HashMap<>(params != null ? params : Map.of());
+        if ("tpl_binding_validity_window_v1".equals(compilerId)) {
+            Object startDate = ctx.get("startDate");
+            Object endDate = ctx.get("endDate");
+            ctx.put("hasStart", startDate != null);
+            ctx.put("hasEnd", endDate != null);
+            ctx.put("both", startDate != null && endDate != null);
+            ctx.computeIfAbsent("timezone", k -> "Asia/Ho_Chi_Minh");
+        }
+        return ctx;
     }
 
     // ---------- private helpers ----------

@@ -150,6 +150,70 @@ class DrlCompilerTest {
         assertThat(snippet).contains("2026-12-31T23:59:59Z");
     }
 
+    // ─── tpl_binding_validity_window_v1 ───────────────────────────────────────
+
+    @Test
+    @DisplayName("tpl_binding_validity_window_v1 — both bounds renders isBefore AND isAfter")
+    void renderBindingValidityWindow_bothBounds() {
+        Map<String, Object> params = Map.of(
+                "startDate", "2026-04-26T00:00:00Z",
+                "endDate",   "2026-12-31T23:59:59Z"
+        );
+        String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
+
+        assertThat(drl).contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))");
+        assertThat(drl).contains("&&");
+        assertThat(drl).contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
+    }
+
+    @Test
+    @DisplayName("tpl_binding_validity_window_v1 — only startDate renders isBefore only")
+    void renderBindingValidityWindow_onlyStart() {
+        Map<String, Object> params = Map.of("startDate", "2026-04-26T00:00:00Z");
+        String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
+
+        assertThat(drl).contains("isBefore");
+        assertThat(drl).doesNotContain("isAfter");
+        assertThat(drl).doesNotContain("&&");
+    }
+
+    @Test
+    @DisplayName("tpl_binding_validity_window_v1 — only endDate renders isAfter only")
+    void renderBindingValidityWindow_onlyEnd() {
+        Map<String, Object> params = Map.of("endDate", "2026-12-31T23:59:59Z");
+        String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
+
+        assertThat(drl).contains("isAfter");
+        assertThat(drl).doesNotContain("isBefore");
+        assertThat(drl).doesNotContain("&&");
+    }
+
+    @Test
+    @DisplayName("tpl_binding_validity_window_v1 — null params renders eval with no conditions")
+    void renderBindingValidityWindow_nullParams() {
+        String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", null);
+
+        // Neither start nor end → no isBefore/isAfter, no &&
+        assertThat(drl).doesNotContain("isBefore");
+        assertThat(drl).doesNotContain("isAfter");
+        assertThat(drl).doesNotContain("&&");
+        // eval() wrapper still present
+        assertThat(drl).contains("eval(");
+    }
+
+    @Test
+    @DisplayName("tpl_binding_validity_window_v1 — ISO-8601 string with offset parses correctly")
+    void renderBindingValidityWindow_isoWithOffset() {
+        Map<String, Object> params = Map.of(
+                "startDate", "2026-04-26T00:00:00+07:00",
+                "endDate",   "2026-12-31T23:59:59+07:00"
+        );
+        String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
+
+        assertThat(drl).contains("Instant.parse(\"2026-04-26T00:00:00+07:00\")");
+        assertThat(drl).contains("Instant.parse(\"2026-12-31T23:59:59+07:00\")");
+    }
+
     // ─── GROUP AND composition ─────────────────────────────────────────────────
 
     @Test
