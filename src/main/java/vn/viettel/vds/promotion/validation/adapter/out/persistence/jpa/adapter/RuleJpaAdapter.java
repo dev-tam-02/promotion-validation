@@ -64,7 +64,18 @@ public class RuleJpaAdapter implements RulePersistencePort {
             saveRuleNodes(saved.getId(), rule.getNodes());
         }
 
-        return mapper.toDomain(saved);
+        // Reload nodes from DB so the returned Rule includes them in its response.
+        // mapper.toDomain(saved) only maps the rule row — nodes live in a separate
+        // table and must be fetched explicitly.
+        Rule result = mapper.toDomain(saved);
+        List<RuleNodeEntity> savedNodeEntities =
+                nodeRepository.findByValidationRuleIdOrderByOrder(saved.getId());
+        if (savedNodeEntities != null && !savedNodeEntities.isEmpty()) {
+            logger.debug("[RULE_SAVE] Reloading {} node(s) into returned rule: id={}",
+                    savedNodeEntities.size(), saved.getId());
+            result.setNodes(nodeMapper.toDomainList(savedNodeEntities));
+        }
+        return result;
     }
 
     private void saveRuleNodes(String ruleId, List<RuleNode> nodes) {
