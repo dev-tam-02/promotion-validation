@@ -1,501 +1,132 @@
-# validation
+# pp-validation
 
-Absolutely—here’s a MongoDB design that mirrors the “builder → publish → bundle” model (Voucherify-style), including
-time windows. I’ll show: collections, suggested schemas, indexes, sample docs, and a few operational tips. (English
-descriptions as requested.)
+Promotion Platform — Validation Rule Engine service.
 
----
-
-# Collections Overview
-
-1. `operator_registry` — catalog of operators (contexts + param schemas + compiler hooks).
-2. `validation_rules` — rule header + **embedded rule tree** (nodes) + optional time links.
-3. `rule_assignments` — attach a rule to a subject (voucher/campaign/tier…).
-4. `rule_bundles` — **immutable compiled artifacts** (Drools KieModule bytes).
-5. `metadata_schemas` — JSON Schemas for custom metadata (customer/order/item…).
-6. `resources` — external data sources (for selector options).
-7. `operator_resources` — which operator uses which resource (optional; can be embedded).
-8. **Time modeling** (choose one, or run both during migration):
-
-    * A) `time_frames`, `validity_day_of_weeks`, `time_exceptions`, `rule_time_frames`
-    * B) `temporal_policies`, `rule_temporal_links` (RRULE-style)
-
-> In MongoDB, prefer **embedding** when data is read together and has bounded growth (e.g., rule nodes), and *
-*referencing** when reused across many parents (e.g., a time frame used by many rules).
+Handles rule authoring (operator registry, rule tree CRUD), rule compilation (DSL → DRL), and evaluation orchestration (delegates Drools execution to `pp-rule-engine`). Acts as the **command-side** for validation rules; `pp-rule-engine` is the **evaluation-side**.
 
 ---
 
-# 1) `operator_registry`
+## Responsibilities
 
-**Purpose (EN):** Defines supported operators for the builder: their context, parameter JSON Schema, and how the
-compiler maps them to Drools (compiler template ID).
-
-**Document (sample):**
-
-```json
-{
-  "_id": "order.total.gte",
-  "context": "order",                          // "order" | "customer" | "time" | "metadata" | ...
-  "jsonSchema": {                              // JSON Schema for params
-    "type": "object",
-    "properties": {
-      "amount": { "type": "number" },
-      "currency": { "type": "string" }
-    },
-    "required": ["amount"]
-  },
-  "compilerId": "tpl_order_total_gte_v1",
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" },
-  "updatedAt": { "$date": "2025-09-19T10:00:00Z" }
-}
-```
-
-**Indexes:**
-
-* `_id` (natural); add `{ context: 1 }` for filtering by context.
+- **Operator registry** — catalog of typed operators (`order.total.gte`, `customer.in_segment`, …), each with a `json_schema` for params validation and a `compiler_id` mapping to a Mustache DRL template.
+- **Rule authoring** — CRUD for `validation_rules` + `rule_nodes` tree (GROUP/COND). Path A: admin-built via FE RuleBuilder. Path B: auto-generated with `binding.validity_window` gate (saga-driven).
+- **DRL compilation** — `DrlCompiler` renders Mustache templates → DRL text; delegates `POST /v1/rules` to `pp-rule-engine` for KieBase registration.
+- **Rule bindings** — link rules to campaign/voucher resources with scope + temporal constraints.
+- **Rule history** — append-only `validation_rules_history` for audit trail (version + change_type + snapshot).
+- **RuleBuilder API** — `GET /v1/rule-builder/categories` returns operator categories + rule items (including virtual operators from `metadata_schemas`).
 
 ---
 
-# 2) `validation_rules` (with embedded rule tree)
+## Two-Path Rule Resolution
 
-**Purpose (EN):** Stores rule header (state/version/limits) and a **tree of nodes** (GROUP/COND) that the builder edits;
-published later to bundles.
-
-**Document (sample):**
-
-```json
-{
-  "_id": "vr_abc123",
-  "code": "WEEKEND_VIP_500K",
-  "name": "Weekend VIP ≥500k, HCM express",
-  "state": "draft",                             // "draft" | "published" | "archived"
-  "version": 3,
-  "logic": "ALL",                               // root logic for implicit top-level
-  "limits": {                                   // optional; redemption-service enforces
-    "perCodeTotal": 1000,
-    "perCustomer": 3,
-    "perDay": 200
-  },
-  "dsl": { /* optional raw DSL snapshot for audit */ },
-
-  "nodes": [                                    // embedded rule tree (adjacency list in doc)
-    {
-      "id": "n1",
-      "type": "GROUP",
-      "groupLogic": "ALL",
-      "children": ["n2","n3","n4"],
-      "order": 0
-    },
-    {
-      "id": "n2",
-      "type": "COND",
-      "operatorName": "time.window.active",
-      "params": { "policyId": "tp_weekend_morning", "tz": "Asia/Bangkok" },
-      "reasonCode": "TIME_WINDOW"
-    },
-    {
-      "id": "n3",
-      "type": "COND",
-      "operatorName": "order.total.gte",
-      "params": { "amount": 500000, "currency": "VND" },
-      "reasonCode": "ORDER_TOTAL_MIN"
-    },
-    {
-      "id": "n4",
-      "type": "GROUP",
-      "groupLogic": "ALL",
-      "children": ["n5","n6"],
-      "order": 1
-    },
-    {
-      "id": "n5",
-      "type": "COND",
-      "operatorName": "customer.in_segment",
-      "params": { "segments": ["VIP"] },
-      "reasonCode": "AUDIENCE_SEGMENT"
-    },
-    {
-      "id": "n6",
-      "type": "COND",
-      "operatorName": "metadata.match.equals",
-      "params": { "path": "order.shipping.method", "value": "EXPRESS" },
-      "reasonCode": "META_MATCH"
-    }
-  ],
-
-  "publishedAt": null,
-  "publishedBy": null,
-
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" },
-  "createdBy": "admin",
-  "updatedAt": { "$date": "2025-09-19T10:00:00Z" },
-  "updatedBy": "admin"
-}
+```
+SettingValidationRuleCommand (saga)
+         │
+         ▼
+  ruleId present?
+    ├── YES → Path A: load Rule + RuleNodes from DB (admin-authored rule)
+    │             └── compileDrlAndRegisterInEngine()
+    └── NO  → Path B: auto-generate Rule with binding.validity_window gate
+                  └── persist + historyRepo.save(CREATE snapshot) + compileDrlAndRegisterInEngine()
 ```
 
-**Notes:**
+**Path A** — caller provides an existing `ruleId`; service loads the rule tree and registers the compiled DRL in KieBase.
 
-* Use **embedded nodes** for fast read by rules-service during compile.
-* Node ordering uses a simple `order` field; parent/child via IDs.
-* If the tree could become very large (hundreds of nodes), you can split into a `validation_rule_nodes` collection keyed
-  by `ruleId`, but most promotion trees stay moderate.
-
-**Indexes:**
-
-* `{ code: 1 }` unique.
-* `{ state: 1, version: -1 }` for admin listings.
+**Path B** — no `ruleId`; saga provides a `ValidityTimeframe`; service auto-creates a 1-GROUP-1-COND rule with `binding.validity_window` operator and registers it.
 
 ---
 
-# 3) `rule_assignments`
+## Key Components
 
-**Purpose (EN):** Attaches rules to “subjects” (voucher/campaign/tier/reward). Supports activation windows and canary
-rollout.
-
-**Document (sample):**
-
-```json
-{
-  "_id": "as_001",
-  "ruleId": "vr_abc123",
-  "subject": { "type": "voucher", "key": "SAVE20" },  // or {type:"campaign", key:"cmp_123"}
-  "assignmentVersion": 4,
-  "active": true,
-  "validFrom": { "$date": "2025-09-20T00:00:00Z" },
-  "validTo":   { "$date": "2025-12-31T23:59:59Z" },
-  "trafficPercent": 100,
-
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" },
-  "updatedAt": { "$date": "2025-09-19T10:00:00Z" }
-}
-```
-
-**Indexes:**
-
-* `{ "subject.type": 1, "subject.key": 1, "active": 1 }`
-* `{ ruleId: 1, assignmentVersion: -1 }`
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `DrlCompiler` | `application/service/DrlCompiler.java` | Compile Rule + RuleNode tree → DRL text using Mustache templates |
+| `SettingValidationRuleCommandHandler` | `application/service/` | Saga handler — Path A / Path B resolution + KieBase register |
+| `RuleBuilderService` | `application/service/RuleBuilderService.java` | Build operator category response (static + virtual metadata operators) |
+| `RuleRegistryBootstrapLoader` | `application/service/RuleRegistryBootstrapLoader.java` | ApplicationRunner @Order(100) — reload all active rules into KieBase on startup |
+| `EngineSimulationService` | `application/service/EngineSimulationService.java` | Proxy simulation requests to pp-rule-engine |
+| `RuleEngineClient` | `application/port/out/RuleEngineClient.java` | Output port — `POST /v1/rules` on pp-rule-engine |
+| `ValidationEngineClient` | `application/port/out/ValidationEngineClient.java` | Output port — `POST /v1/evaluate` on pp-rule-engine |
 
 ---
 
-# 4) `rule_bundles` (immutable)
+## DRL Templates
 
-**Purpose (EN):** Stores compiled Drools KieModule artifact bytes keyed by subject and versions. **Do not update**;
-always append new bundle.
+Mustache templates under `src/main/resources/rule-templates/`:
 
-**Document (sample):**
-
-```json
-{
-  "_id": "rb_9f4b",
-  "bundleHash": "sha256:5b8f...e1",                  // immutable key
-  "subject": { "type": "voucher", "key": "SAVE20" },
-  "ruleVersion": 3,
-  "assignmentVersion": 4,
-  "kieModuleBytes": { "$binary": { "base64": "AAECAwQ...", "subType": "00" } },
-  "createdAt": { "$date": "2025-09-19T10:05:00Z" }
-}
-```
-
-**Storage options:**
-
-* If artifacts are large, store them in **GridFS** (`fs.files`/`fs.chunks`) and keep only `bundleHash` + GridFS file ID
-  here.
-
-**Indexes:**
-
-* `{ "subject.type": 1, "subject.key": 1, "ruleVersion": -1, "assignmentVersion": -1 }`
-* `{ bundleHash: 1 }` unique
-
-**Typical runtime query (validation-service):**
-
-```js
-db.rule_bundles.findOne(
-  { "subject.type": "voucher", "subject.key": "SAVE20" },
-  { sort: { ruleVersion: -1, assignmentVersion: -1 } }
-)
-```
+| Template ID | Operator | Condition |
+|-------------|----------|-----------|
+| `tpl_binding_validity_window_v1` | `binding.validity_window` | `now ∈ [startDate, endDate]` |
+| `tpl_customer_in_segment_v1` | `customer.in_segment` | Customer segment membership |
+| `tpl_order_total_gte_v1` | `order.total.gte` | Order total ≥ amount |
+| `tpl_customer_loyalty_tier_gte_v1` | `customer.loyalty_tier.gte` | Loyalty tier rank |
+| `tpl_order_items_count_gte_v1` | `order.items.count.gte` | Item count ≥ N |
+| `tpl_product_in_category_v1` | `order.item.category.in` | Any item in category list |
+| `tpl_product_in_list_v1` | `order.item.sku.in` | Any item SKU in list |
+| `tpl_cart_has_product_v1` | `cart.has_product` | Cart contains product |
+| `tpl_time_within_window_v1` | `time.within_window` | Time within recurring window |
 
 ---
 
-# 5)
+## Database Schema (key tables)
 
-`metadata_schemas` (manager in metadata-schemas-service, this service store key-value pairs and references to metadata
-schemas)
-
-**Purpose (EN):** Declares JSON Schemas for custom metadata spaces used in rules (e.g., customer/order/item).
-
-**Document (sample in `metadata-schemas-service`):**
-
-```json
-{
-  "_id": "ms_order_v2",
-  "resourceType": "order",
-  "schema": { /* JSON Schema */ },
-  "version": 2,
-  "active": true,
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" },
-  "updatedAt": { "$date": "2025-09-19T10:00:00Z" }
-}
-```
-
-**Indexes:** `{ resourceType: 1, active: 1, version: -1 }`.
+- `operators` — operator catalog (name, context, category_id, json_schema, compiler_id, supported_verdicts)
+- `operator_categories` — grouping (AUDIENCE, ORDER, PRODUCT, TIME, LOYALTY, …)
+- `validation_rules` — rule header (state, bundle_hash, current_version, is_system)
+- `rule_nodes` — tree nodes (type=GROUP|COND, parent_id, operator_name, params, group_logic)
+- `rule_bindings` — link rule ↔ resource (resource_type, resource_id, active_from, active_to)
+- `reason_codes` — typed deny reasons (code, display_message, severity)
+- `validation_rules_history` — append-only audit trail (version, change_type, dsl_snapshot, bundle_hash)
+- `metadata_schemas` — custom fact schemas for dynamic operator generation (resource_type, fields)
 
 ---
 
-# 6) `resources` & `operator_resources` (optional)
+## Design Documentation
 
-**Purpose (EN):** External sources for selector options (collections, segments, etc.) and linkage to operators.
+- [DRL_AUTO_GENERATION_INDEX.md](./docs/design/DRL_AUTO_GENERATION_INDEX.md) — Task index for DRL auto-generation sprint (T0–T22)
+- [DRL_AUTO_GENERATION_FOR_DISCOUNT_COUPON.md](./docs/design/DRL_AUTO_GENERATION_FOR_DISCOUNT_COUPON.md) — Detailed design (v1.3): two-path resolution, operator registry, compilation pipeline
+- [DRL_AUTO_GENERATION_TASKS.md](./docs/design/DRL_AUTO_GENERATION_TASKS.md) — Task breakdown with AC and test plans
 
-**`resources` sample:**
-
-```json
-{
-  "_id": "res_segments",
-  "label": "CDP Segments",
-  "endpoint": "https://cdp.example.com/api/segments",
-  "method": "GET",
-  "authMethod": "bearer",
-  "authConfig": "secret/cdp-token",
-  "headers": { "Accept": "application/json" },
-  "fieldKey": "id",
-  "fieldValue": "name",
-  "timeoutSeconds": 5,
-  "retryCount": 2,
-  "backoffMs": 200,
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" }
-}
-```
-
-**`operator_resources` sample (or embed array into `operator_registry`):**
-
-```json
-{
-  "_id": "or_1",
-  "operatorName": "customer.in_segment",
-  "resourceId": "res_segments"
-}
-```
-
-**Indexes:** `{ operatorName: 1 }`, `{ resourceId: 1 }`.
+Cross-flow documentation:
+- [00-research-and-design.md §4.4](../../document/cross-flow/publication-flow/00-research-and-design.md) — pp-validation overview + gap analysis
+- [pp-validation-improvements.md](../../document/cross-flow/publication-flow/pp-validation-improvements.md) — Improvement roadmap V1-V10 with v1.3 status
 
 ---
 
-# 7A) Time via `time_frames` + `validity_day_of_weeks` (+ exceptions)
+## Running Locally
 
-**Purpose (EN):** Model absolute windows, weekly schedules, and blackout/override; link frames to rules.
-
-**`time_frames` sample:**
-
-```json
-{
-  "_id": "tf_001",
-  "campaignId": "cmp_123",
-  "tz": "Asia/Bangkok",
-  "startDate": { "$date": "2025-09-20T00:00:00Z" },   // absolute window (UTC instant)
-  "endDate":   { "$date": "2025-12-31T23:59:59Z" },
-  "validityInterval": "DAY",                           // optional semantic fields
-  "validityDuration": 30,
-  "activityDurationAfterPublishing": 0,
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" }
-}
+```bash
+cd domains/pp/services/pp-validation
+mvn spring-boot:run -Dspring.profiles.active=dev
 ```
 
-**`validity_day_of_weeks` sample:**
+Service port: **16007** (default). Swagger UI: `http://localhost:16007/swagger-ui/index.html`
 
-```json
-{
-  "_id": "vdow_1",
-  "timeFrameId": "tf_001",
-  "dayOfWeek": "SAT",          // "MON".."SUN"
-  "startTime": "09:00:00",
-  "endTime":   "12:00:00",
-  "weekOfMonth": null,         // 1..5 or -1 (last), optional
-  "monthOfYear": null,         // 1..12, optional
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" }
-}
-```
+### Dependencies
 
-**`time_exceptions` sample:**
-
-```json
-{
-  "_id": "tex_1",
-  "timeFrameId": "tf_001",
-  "fromTs": { "$date": "2025-10-20T09:00:00Z" },
-  "toTs":   { "$date": "2025-10-20T12:00:00Z" },
-  "mode": "DENY",              // or "ALLOW"
-  "reason": "Holiday"
-}
-```
-
-**`rule_time_frames` link:**
-
-```json
-{
-  "_id": "rtf_1",
-  "ruleId": "vr_abc123",
-  "timeFrameId": "tf_001",
-  "mode": "ALLOW"              // or "DENY" (blackout)
-}
-```
-
-**Indexes:**
-
-* `time_frames`: `{ tz: 1, startDate: 1, endDate: 1 }`
-* `validity_day_of_weeks`: `{ timeFrameId: 1, dayOfWeek: 1 }`
-* `rule_time_frames`: `{ ruleId: 1 }`, `{ timeFrameId: 1 }`
-* `time_exceptions`: `{ timeFrameId: 1, fromTs: 1 }`
+- **MariaDB** — primary store (rule definitions, bindings, history)
+- **pp-rule-engine** — KieBase host; receives `POST /v1/rules` (register DRL) and `POST /v1/evaluate` (evaluate facts)
+- **Kafka** — incoming saga commands (`SettingValidationRuleCommand`)
 
 ---
 
-# 7B) (Alternative) Time via `temporal_policies` + `rule_temporal_links` (RRULE)
+## Build & Test
 
-**Purpose (EN):** Single powerful structure to model complex recurrences + exceptions.
+```bash
+# Build
+mvn clean package -DskipTests
 
-**`temporal_policies` sample:**
+# Run all tests
+mvn test
 
-```json
-{
-  "_id": "tp_weekend_morning",
-  "name": "Weekend mornings",
-  "tz": "Asia/Bangkok",
-  "startTs": null,
-  "endTs": null,
-  "rrule": "FREQ=WEEKLY;BYDAY=SA,SU;BYHOUR=9,10,11;BYMINUTE=0;BYSECOND=0",
-  "rdate": [],
-  "exrule": null,
-  "exdate": ["2025-10-20T09:00:00+07:00"],
-  "timeOfDayWindows": [ { "start": "09:00", "end": "12:00" } ],
-  "metadata": {},
-  "createdAt": { "$date": "2025-09-19T10:00:00Z" }
-}
+# Run specific test class
+mvn test -Dtest=DrlCompilerComprehensiveTest
+mvn test -Dtest=RuleEvaluationIntegrationTest
 ```
 
-**`rule_temporal_links` sample:**
+Key test classes:
 
-```json
-{
-  "_id": "rtl_1",
-  "ruleId": "vr_abc123",
-  "policyId": "tp_weekend_morning",
-  "mode": "ALLOW"           // or "DENY"
-}
-```
-
-**Indexes:** `{ ruleId: 1 }`, `{ policyId: 1 }`.
-
----
-
-# JSON Schema Validation (collection-level, optional)
-
-MongoDB supports **\$jsonSchema** validators—use them for key collections to catch bad configs early.
-
-**Example (partial) validator for `validation_rules`:**
-
-```js
-db.runCommand({
-  collMod: "validation_rules",
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["state","version","nodes"],
-      properties: {
-        state: { enum: ["draft","published","archived"] },
-        version: { bsonType: "int" },
-        nodes: {
-          bsonType: "array",
-          items: {
-            oneOf: [
-              {
-                required: ["id","type","groupLogic"],
-                properties: {
-                  type: { enum: ["GROUP"] },
-                  groupLogic: { enum: ["ALL","ANY","NONE"] }
-                }
-              },
-              {
-                required: ["id","type","operatorName","params"],
-                properties: {
-                  type: { enum: ["COND"] },
-                  operatorName: { bsonType: "string" },
-                  params: { bsonType: "object" }
-                }
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-});
-```
-
----
-
-# Indexing & Sharding Guidance
-
-* **Hot read path (runtime):** `rule_bundles` by subject → index
-  `{ "subject.type": 1, "subject.key": 1, ruleVersion: -1, assignmentVersion: -1 }`.
-* **Admin UI:**
-
-    * `validation_rules` by `state`, `code`.
-    * `operator_registry` by `context`.
-* **If sharding:** shard `rule_bundles` by `{ "subject.type", "subject.key" }` to colocate bundles of same subject; low
-  cardinality? Consider hashed shard key on `bundleHash`.
-* **Large artifacts:** consider **GridFS**; store file id in `rule_bundles.kieModuleFileId`.
-
----
-
-# Publish Pipeline (recap)
-
-1. **Validate DSL** using `operator_registry.jsonSchema`.
-2. **Lower to IR**; **compile** to Drools (using `compilerId`), produce bytes.
-3. **Insert** new doc in `rule_bundles` (immutable) with `bundleHash`.
-4. (Optional) Emit `BundlePublished` event with `{subject, bundleHash}` for cache warm-up.
-
----
-
-# Example Queries
-
-* Get latest bundle for a voucher:
-
-```js
-db.rule_bundles.findOne(
-  { "subject.type": "voucher", "subject.key": "SAVE20" },
-  { sort: { ruleVersion: -1, assignmentVersion: -1 } }
-);
-```
-
-* List active assignments for a subject:
-
-```js
-db.rule_assignments.find({
-  "subject.type": "campaign",
-  "subject.key": "cmp_123",
-  active: true,
-  $or: [
-    { validFrom: null }, { validFrom: { $lte: new Date() } }
-  ],
-  $or: [
-    { validTo: null }, { validTo: { $gte: new Date() } }
-  ]
-});
-```
-
-* Resolve a rule tree to compile:
-
-```js
-const rule = db.validation_rules.findOne({ _id: "vr_abc123" });
-// rule.nodes is embedded → compile directly
-```
-
----
-
-# Operational Notes
-
-* **Immutability:** Never update `rule_bundles`; append for each publish/assignment change.
-* **Concurrency:** Keep publish/assignment changes in a single writer flow (transactions if you update multiple
-  collections together).
-* **Explainability:** Keep `reasonCode` per condition node; surface in validation responses.
-* **Time zones:** Always store instants in UTC; store `tz` in time frames or policies to evaluate local calendars.
-* **Testing:** Build golden tests (payload → expected decision) per rule version.
+| Test | Coverage |
+|------|----------|
+| `DrlCompilerComprehensiveTest` | 42 cases — render+compile gate for all operator templates (V7 type safety) |
+| `RuleEvaluationIntegrationTest` | 14 cases — Path A / Path B saga pipeline + DRL text assertions |
