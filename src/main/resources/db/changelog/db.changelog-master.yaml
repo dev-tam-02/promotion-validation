@@ -85,3 +85,7 @@ databaseChangeLog:
   # (1 update: product_sku → order.item.sku.in; 8 new inserts)
   - include:
       file: db/changelog/changes/040-seed-fe-mock-coverage.yaml
+
+  # T8: Seed 2 operator_options for T6 (acquisition_channel) + T7 (gift_amount)
+  - include:
+      file: db/changelog/changes/041-seed-acquisition-gift-operators.yaml

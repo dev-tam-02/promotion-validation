@@ -1,0 +1,126 @@
+databaseChangeLog:
+  # ============================================================================
+  # T8: Seed 2 operator_options for T6 + T7 translators
+  #
+  # T6: customer.acquisition_channel.equals (CustomerAcquisitionChannelEqualsOperatorTranslator)
+  #     Category: cat-customer-meta-001 (Customer Metadata)
+  #     Supports: equals, not_equals, in, not_in
+  #     Static value options: paid, organic, referral, social, email
+  #
+  # T7: budget.gift_amount.total.lte (BudgetGiftAmountTotalLteOperatorTranslator)
+  #     Category: cat-budget-001 (Budget Constraints)
+  #     Supports: lte (only, numeric maxValue param)
+  #     Uses LimitsCtx.totalGiftAmount (BigDecimal)
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # acquisition_channel — customer.acquisition_channel.equals
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 041-seed-acquisition-channel-operator-option
+      author: harley hoang
+      comment: Seed acquisition_channel operator_option + reason code for T6
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-acquisition-channel-001" }
+              - column: { name: category_id, value: "cat-customer-meta-001" }
+              - column: { name: code, value: "acquisition_channel" }
+              - column: { name: name, value: "Acquisition channel" }
+              - column: { name: name_vi, value: "Kênh thu hút khách" }
+              - column: { name: display_order, valueNumeric: 10 }
+              - column: { name: description, value: "Filter by the marketing channel that acquired the customer" }
+              - column: { name: description_vi, value: "Lọc theo kênh marketing đã thu hút khách hàng." }
+              - column: { name: operator_name, value: "customer.acquisition_channel.equals" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["equals", "not_equals", "in", "not_in"]' }
+              - column: { name: default_comparator, value: "equals" }
+              - column: { name: value_type, value: "string" }
+              - column: { name: value_source, value: "select" }
+              - column: { name: data_source_type, value: "STATIC" }
+              - column: { name: value_options, value: '[{"value":"paid","label":{"en":"Paid","vi":"Trả phí"}},{"value":"organic","label":{"en":"Organic","vi":"Tự nhiên"}},{"value":"referral","label":{"en":"Referral","vi":"Giới thiệu"}},{"value":"social","label":{"en":"Social","vi":"Mạng xã hội"}},{"value":"email","label":{"en":"Email","vi":"Email"}}]' }
+              - column: { name: input_type, value: "select" }
+              - column: { name: input_multiple, valueBoolean: false }
+              - column: { name: input_searchable, valueBoolean: false }
+              - column: { name: label_en, value: "Acquisition channel" }
+              - column: { name: label_vi, value: "Kênh thu hút" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-cust-acq-channel-001" }
+              - column: { name: code, value: "CUSTOMER_ACQUISITION_CHANNEL_MISMATCH" }
+              - column: { name: display_message, value: '{"vi":"Khách hàng không đến từ kênh thu hút yêu cầu","en":"Customer acquisition channel does not match required values"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-acquisition-channel-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-cust-acq-channel-001'"
+
+  # --------------------------------------------------------------------------
+  # total_redeemed_gift_amount — budget.gift_amount.total.lte
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 041-seed-gift-amount-operator-option
+      author: harley hoang
+      comment: Seed total_redeemed_gift_amount operator_option + reason code for T7
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-redeemed-gift-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_redeemed_gift_amount" }
+              - column: { name: name, value: "Total redeemed gift amount" }
+              - column: { name: name_vi, value: "Tổng giá trị quà tặng đã đổi" }
+              - column: { name: display_order, valueNumeric: 80 }
+              - column: { name: description, value: "Budget cap on total gift amount redeemed per customer per campaign" }
+              - column: { name: description_vi, value: "Hạn mức tổng giá trị quà tặng (đã quy đổi tiền) cho mỗi khách." }
+              - column: { name: operator_name, value: "budget.gift_amount.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000" }
+              - column: { name: label_en, value: "Limit (VND)" }
+              - column: { name: label_vi, value: "Hạn mức (VND)" }
+              - column: { name: placeholder_en, value: "Enter gift amount limit..." }
+              - column: { name: placeholder_vi, value: "Nhập hạn mức tiền quà tặng..." }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-gift-amount-001" }
+              - column: { name: code, value: "GIFT_AMOUNT_LIMIT_EXCEEDED" }
+              - column: { name: display_message, value: '{"vi":"Đã đạt hạn mức tổng tiền quà tặng","en":"Customer total redeemed gift amount exceeds the limit"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-total-redeemed-gift-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-gift-amount-001'"
