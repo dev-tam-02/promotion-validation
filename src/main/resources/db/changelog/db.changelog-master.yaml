@@ -93,3 +93,7 @@ databaseChangeLog:
   # T14: Seed sample metadata_schemas (3 customer + 2 order) for T15 virtual operator generation
   - include:
       file: db/changelog/changes/042-seed-metadata-schemas.yaml
+
+  # T16: Seed METADATA_MISMATCH reason code for generic metadata.access operator
+  - include:
+      file: db/changelog/changes/043-seed-metadata-access-operator.yaml
