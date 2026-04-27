@@ -105,3 +105,8 @@ databaseChangeLog:
   # T17: Add current_version to validation_rules + change_type index to history
   - include:
       file: db/changelog/changes/045-extend-validation-rules-history.yaml
+
+  # Fix: Move customer_life_time_value → cat-audience-001, acquisition_channel → cat-budget-001
+  # (were incorrectly seeded into cat-customer-meta-001; hidden by T15 metadata enrichment)
+  - include:
+      file: db/changelog/changes/046-fix-misplaced-operator-options.yaml
