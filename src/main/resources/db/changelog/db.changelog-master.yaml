@@ -76,3 +76,12 @@ databaseChangeLog:
   # Task 09 V8: Merge ui_option → json_schema x-ui-* extensions, DROP ui_option column
   - include:
       file: db/changelog/changes/035-migrate-ui-option-to-schema-x-ui.yaml
+
+  # T2: Seed binding.validity_window operator + OUTSIDE_VALIDITY_WINDOW reason code
+  - include:
+      file: db/changelog/changes/036-seed-binding-validity-operator.yaml
+
+  # T5: Seed 9 missing operator_options for FE mock coverage
+  # (1 update: product_sku → order.item.sku.in; 8 new inserts)
+  - include:
+      file: db/changelog/changes/040-seed-fe-mock-coverage.yaml
