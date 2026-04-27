@@ -1,6 +1,11 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
 import com.promix.platform.web.annotation.ResponseWrapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +26,7 @@ import java.util.stream.Collectors;
 @RestController
 @ResponseWrapper
 @RequestMapping("${spring.application.context-path}/v1/rule-builder")
+@Tag(name = "Rule Builder", description = "API for building validation rules — operator catalog, category listing, and option lookup")
 public class RuleBuilderController {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleBuilderController.class);
@@ -42,8 +48,14 @@ public class RuleBuilderController {
      * @param tenantId optional tenant ID (defaults to "default")
      * @return all categories with rules
      */
+    @Operation(summary = "Get all rule categories",
+            description = "Returns static operator categories (Audience, Order, Product, Time, Loyalty, Budget) plus dynamic categories generated from metadata_schemas. Each category contains its rule items with codes, comparators, and value types.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Categories returned successfully"),
+    })
     @GetMapping("/categories")
     public RuleCategoriesResponse getAllCategories(
+            @Parameter(description = "Tenant identifier", example = "default")
             @RequestHeader(value = "X-Tenant-ID", required = false, defaultValue = DEFAULT_TENANT) String tenantId) {
         logger.debug("Getting all rule categories for tenant: {}", tenantId);
         return ruleBuilderService.getAllCategories(tenantId);
@@ -61,12 +73,23 @@ public class RuleBuilderController {
      * @param tenantId optional tenant ID
      * @return paginated options for the rule
      */
+    @Operation(summary = "Get options for a rule",
+            description = "Fetches selectable options for a given rule ID. For rules with data_source_type=EXTERNAL the options come from downstream services (segment list, product catalogue, etc.). For STATIC rules, predefined options are returned.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Options returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Rule not found"),
+    })
     @GetMapping("/options/{ruleId}")
     public RuleOptionsResponse getRuleOptions(
+            @Parameter(description = "Rule item identifier (operator_options.code)", required = true)
             @PathVariable String ruleId,
+            @Parameter(description = "Optional search filter applied to option labels")
             @RequestParam(required = false) String search,
+            @Parameter(description = "Zero-based page number", example = "0")
             @RequestParam(required = false, defaultValue = "0") Integer page,
+            @Parameter(description = "Page size", example = "20")
             @RequestParam(required = false, defaultValue = "20") Integer size,
+            @Parameter(description = "Tenant identifier", example = "default")
             @RequestHeader(value = "X-Tenant-ID", required = false, defaultValue = DEFAULT_TENANT) String tenantId) {
         logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, page, size, tenantId);
@@ -80,8 +103,14 @@ public class RuleBuilderController {
      * @param categoryId optional category id to filter; null returns all
      * @return list of operator responses
      */
+    @Operation(summary = "List operators",
+            description = "Returns all active operators from the operators registry, optionally filtered by category ID. Each operator includes its compiler_id (Mustache template reference) and json_schema for parameter validation.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Operators returned successfully"),
+    })
     @GetMapping("/operators")
     public List<OperatorResponse> listOperators(
+            @Parameter(description = "Filter by operator category ID; omit to return all active operators")
             @RequestParam(required = false) String categoryId) {
         logger.debug("listOperators: categoryId={}", categoryId);
         List<Operator> operators = ruleCatalogUseCase.listOperators(categoryId);

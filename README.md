@@ -70,8 +70,8 @@ Mustache templates under `src/main/resources/rule-templates/`:
 
 ## Database Schema (key tables)
 
-- `operators` — operator catalog (name, context, category_id, json_schema, compiler_id, supported_verdicts)
 - `operator_categories` — grouping (AUDIENCE, ORDER, PRODUCT, TIME, LOYALTY, …)
+- `operator_options` — operator catalog per category (code, name, operator_name, comparison_type, value_type, available_comparators, input_type, json_schema, data_source_type)
 - `validation_rules` — rule header (state, bundle_hash, current_version, is_system)
 - `rule_nodes` — tree nodes (type=GROUP|COND, parent_id, operator_name, params, group_logic)
 - `rule_bindings` — link rule ↔ resource (resource_type, resource_id, active_from, active_to)
@@ -100,7 +100,7 @@ cd domains/pp/services/pp-validation
 mvn spring-boot:run -Dspring.profiles.active=dev
 ```
 
-Service port: **16007** (default). Swagger UI: `http://localhost:16007/swagger-ui/index.html`
+Service port: **16014**. Context-path: `/promotion/promotion-validation`. Swagger UI: `http://localhost:16014/promotion/promotion-validation/swagger-ui.html`
 
 ### Dependencies
 
