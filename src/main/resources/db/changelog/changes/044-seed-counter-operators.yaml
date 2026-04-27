@@ -1,0 +1,338 @@
+databaseChangeLog:
+  # ============================================================================
+  # T13: Seed 6 counter operator_options + 5 reason codes
+  #
+  # 5 counter budget operators (emit QuotaPolicy via T11 translators):
+  #   1. budget.redemptions.per_incentive.per_day.lte
+  #   2. budget.redemptions.per_incentive.per_month.lte
+  #   3. budget.redemptions.per_customer.in_campaign.lte
+  #   4. budget.redemptions.per_customer.in_campaign.per_day.lte
+  #   5. budget.redemptions.per_customer.in_campaign.per_month.lte
+  #
+  # 1 loyalty points cap:
+  #   6. customer.loyalty.points.lte  (MAXIMUM_PAY_WITH_POINTS)
+  #
+  # All 5 counter reason codes follow pattern: QUOTA_EXCEEDED_<UPPER>
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # 1. redemptions_per_incentive_per_day
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-counter-red-incentive-day
+      author: harley hoang
+      comment: Seed operator_option + reason code for budget.redemptions.per_incentive.per_day.lte
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-red-incentive-day-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_incentive_per_day" }
+              - column: { name: name, value: "Daily redemptions per incentive" }
+              - column: { name: name_vi, value: "Lượt đổi/ưu đãi/ngày" }
+              - column: { name: display_order, valueNumeric: 100 }
+              - column: { name: description, value: "Maximum number of total redemptions for a given incentive in a single day" }
+              - column: { name: description_vi, value: "Số lượt đổi tối đa cho một ưu đãi trong 1 ngày." }
+              - column: { name: operator_name, value: "budget.redemptions.per_incentive.per_day.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Daily limit" }
+              - column: { name: label_vi, value: "Hạn mức/ngày" }
+              - column: { name: placeholder_en, value: "e.g. 100" }
+              - column: { name: placeholder_vi, value: "VD: 100" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-quota-red-incentive-day-001" }
+              - column: { name: code, value: "QUOTA_EXCEEDED_REDEMPTIONS_PER_INCENTIVE_PER_DAY" }
+              - column: { name: display_message, value: '{"vi":"Đã vượt hạn mức số lượt đổi theo ngày cho ưu đãi này","en":"Daily redemption quota per incentive exceeded"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-red-incentive-day-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-quota-red-incentive-day-001'"
+
+  # --------------------------------------------------------------------------
+  # 2. redemptions_per_incentive_per_month
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-counter-red-incentive-month
+      author: harley hoang
+      comment: Seed operator_option + reason code for budget.redemptions.per_incentive.per_month.lte
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-red-incentive-month-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_incentive_per_month" }
+              - column: { name: name, value: "Monthly redemptions per incentive" }
+              - column: { name: name_vi, value: "Lượt đổi/ưu đãi/tháng" }
+              - column: { name: display_order, valueNumeric: 101 }
+              - column: { name: description, value: "Maximum number of total redemptions for a given incentive in a single month" }
+              - column: { name: description_vi, value: "Số lượt đổi tối đa cho một ưu đãi trong 1 tháng." }
+              - column: { name: operator_name, value: "budget.redemptions.per_incentive.per_month.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Monthly limit" }
+              - column: { name: label_vi, value: "Hạn mức/tháng" }
+              - column: { name: placeholder_en, value: "e.g. 1000" }
+              - column: { name: placeholder_vi, value: "VD: 1000" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-quota-red-incentive-month-001" }
+              - column: { name: code, value: "QUOTA_EXCEEDED_REDEMPTIONS_PER_INCENTIVE_PER_MONTH" }
+              - column: { name: display_message, value: '{"vi":"Đã vượt hạn mức số lượt đổi theo tháng cho ưu đãi này","en":"Monthly redemption quota per incentive exceeded"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-red-incentive-month-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-quota-red-incentive-month-001'"
+
+  # --------------------------------------------------------------------------
+  # 3. redemptions_per_customer_in_campaign
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-counter-red-cust-campaign
+      author: harley hoang
+      comment: Seed operator_option + reason code for budget.redemptions.per_customer.in_campaign.lte
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-red-cust-campaign-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer_in_campaign" }
+              - column: { name: name, value: "Total redemptions per customer in campaign" }
+              - column: { name: name_vi, value: "Tổng lượt đổi/khách/chiến dịch" }
+              - column: { name: display_order, valueNumeric: 102 }
+              - column: { name: description, value: "Maximum lifetime redemptions allowed per customer across the entire campaign" }
+              - column: { name: description_vi, value: "Số lượt đổi tối đa cho mỗi khách trong toàn bộ chiến dịch." }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.in_campaign.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Campaign limit per customer" }
+              - column: { name: label_vi, value: "Hạn mức/khách/chiến dịch" }
+              - column: { name: placeholder_en, value: "e.g. 5" }
+              - column: { name: placeholder_vi, value: "VD: 5" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-quota-red-cust-campaign-001" }
+              - column: { name: code, value: "QUOTA_EXCEEDED_REDEMPTIONS_PER_CUSTOMER_IN_CAMPAIGN" }
+              - column: { name: display_message, value: '{"vi":"Đã đạt giới hạn số lượt đổi trong chiến dịch","en":"Customer redemption quota for this campaign exceeded"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-red-cust-campaign-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-quota-red-cust-campaign-001'"
+
+  # --------------------------------------------------------------------------
+  # 4. redemptions_per_customer_in_campaign_per_day
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-counter-red-cust-camp-day
+      author: harley hoang
+      comment: Seed operator_option + reason code for budget.redemptions.per_customer.in_campaign.per_day.lte
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-red-cust-camp-day-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer_in_campaign_per_day" }
+              - column: { name: name, value: "Daily redemptions per customer in campaign" }
+              - column: { name: name_vi, value: "Lượt đổi/khách/chiến dịch/ngày" }
+              - column: { name: display_order, valueNumeric: 103 }
+              - column: { name: description, value: "Maximum redemptions per customer in a campaign within a single day" }
+              - column: { name: description_vi, value: "Số lượt đổi tối đa cho mỗi khách trong cùng chiến dịch trong 1 ngày." }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.in_campaign.per_day.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Daily limit per customer" }
+              - column: { name: label_vi, value: "Hạn mức/khách/ngày" }
+              - column: { name: placeholder_en, value: "e.g. 3" }
+              - column: { name: placeholder_vi, value: "VD: 3" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-quota-red-cust-camp-day-001" }
+              - column: { name: code, value: "QUOTA_EXCEEDED_REDEMPTIONS_PER_CUSTOMER_IN_CAMPAIGN_PER_DAY" }
+              - column: { name: display_message, value: '{"vi":"Đã vượt hạn mức đổi trong ngày cho chiến dịch này","en":"Daily redemption quota per customer in this campaign exceeded"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-red-cust-camp-day-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-quota-red-cust-camp-day-001'"
+
+  # --------------------------------------------------------------------------
+  # 5. redemptions_per_customer_in_campaign_per_month
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-counter-red-cust-camp-month
+      author: harley hoang
+      comment: Seed operator_option + reason code for budget.redemptions.per_customer.in_campaign.per_month.lte
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-red-cust-camp-month-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "redemptions_per_customer_in_campaign_per_month" }
+              - column: { name: name, value: "Monthly redemptions per customer in campaign" }
+              - column: { name: name_vi, value: "Lượt đổi/khách/chiến dịch/tháng" }
+              - column: { name: display_order, valueNumeric: 104 }
+              - column: { name: description, value: "Maximum redemptions per customer in a campaign within a single month" }
+              - column: { name: description_vi, value: "Số lượt đổi tối đa cho mỗi khách trong cùng chiến dịch trong 1 tháng." }
+              - column: { name: operator_name, value: "budget.redemptions.per_customer.in_campaign.per_month.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 1 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Monthly limit per customer" }
+              - column: { name: label_vi, value: "Hạn mức/khách/tháng" }
+              - column: { name: placeholder_en, value: "e.g. 10" }
+              - column: { name: placeholder_vi, value: "VD: 10" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-quota-red-cust-camp-month-001" }
+              - column: { name: code, value: "QUOTA_EXCEEDED_REDEMPTIONS_PER_CUSTOMER_IN_CAMPAIGN_PER_MONTH" }
+              - column: { name: display_message, value: '{"vi":"Đã vượt hạn mức đổi trong tháng cho chiến dịch này","en":"Monthly redemption quota per customer in this campaign exceeded"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-red-cust-camp-month-001'"
+        - delete:
+            tableName: reason_codes
+            where: "id = 'rc-quota-red-cust-camp-month-001'"
+
+  # --------------------------------------------------------------------------
+  # 6. maximum_pay_with_points — customer.loyalty.points.lte
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 042-seed-max-pay-with-points
+      author: harley hoang
+      comment: Seed operator_option for maximum_pay_with_points (customer.loyalty.points.lte)
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-max-pay-points-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "maximum_pay_with_points" }
+              - column: { name: name, value: "Maximum pay with loyalty points" }
+              - column: { name: name_vi, value: "Tối đa thanh toán bằng điểm tích lũy" }
+              - column: { name: display_order, valueNumeric: 105 }
+              - column: { name: description, value: "Cap on the loyalty points a customer can use in a single redemption" }
+              - column: { name: description_vi, value: "Hạn mức số điểm tích lũy được phép dùng trong một lần đổi." }
+              - column: { name: operator_name, value: "customer.loyalty.points.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1" }
+              - column: { name: label_en, value: "Max points" }
+              - column: { name: label_vi, value: "Điểm tối đa" }
+              - column: { name: placeholder_en, value: "e.g. 500" }
+              - column: { name: placeholder_vi, value: "VD: 500" }
+              - column: { name: is_active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_options
+            where: "id = 'opt-max-pay-points-001'"

@@ -97,3 +97,7 @@ databaseChangeLog:
   # T16: Seed METADATA_MISMATCH reason code for generic metadata.access operator
   - include:
       file: db/changelog/changes/043-seed-metadata-access-operator.yaml
+
+  # T13: Seed 6 counter operator_options + 5 reason codes (5 quota counter + max_pay_with_points)
+  - include:
+      file: db/changelog/changes/044-seed-counter-operators.yaml
