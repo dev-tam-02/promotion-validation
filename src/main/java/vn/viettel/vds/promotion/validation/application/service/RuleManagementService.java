@@ -230,6 +230,7 @@ public class RuleManagementService implements RuleManagementUseCase {
      * on application startup, after Liquibase migrations complete.
      * On error for any individual rule the method logs and continues — it must not abort startup.
      */
+    @Transactional
     public void republishSystemRules() {
         List<Rule> staleRules = rulePort.findPublishedWithNullBundleHash();
         log.info("republishSystemRules: found {} PUBLISHED rule(s) with null bundleHash", staleRules.size());
