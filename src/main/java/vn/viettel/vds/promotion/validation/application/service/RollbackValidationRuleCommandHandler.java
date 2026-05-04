@@ -14,7 +14,6 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersi
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
 import java.util.List;
@@ -140,31 +139,43 @@ public class RollbackValidationRuleCommandHandler {
 
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {
         try {
-            // Find bindings by object
-            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            if (rollbackAll || validationRuleId == null) {
+                // Delete all bindings for this campaign (objectType case-insensitive search)
+                int deletedUpper = ruleBindingPort.deleteByObject("CAMPAIGN", campaignId);
+                int deletedLower = ruleBindingPort.deleteByObject("campaign", campaignId);
+                int deletedDc = ruleBindingPort.deleteByObject("DISCOUNT_COUPON", campaignId);
+                int total = deletedUpper + deletedLower + deletedDc;
+                logger.info("Deleted {} rule_bindings for campaign: {}", total, campaignId);
+                return true;
+            }
+
+            // Find and delete specific binding by validationRuleId
+            List<RuleBinding> bindings = ruleBindingPort.findByObject("CAMPAIGN", campaignId);
+            if (bindings.isEmpty()) {
+                bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            }
+            if (bindings.isEmpty()) {
+                bindings = ruleBindingPort.findByObject("DISCOUNT_COUPON", campaignId);
+            }
 
             if (bindings.isEmpty()) {
                 logger.warn("No bindings found for campaign: {}", campaignId);
                 return true;
             }
 
-            // Filter if specific binding ID
-            if (!rollbackAll && validationRuleId != null) {
-                bindings = bindings.stream()
-                        .filter(b -> validationRuleId.equals(b.getId()))
-                        .toList();
+            // Filter to target binding by ID (validationRuleId is the bindingId)
+            List<RuleBinding> toDelete = bindings.stream()
+                    .filter(b -> validationRuleId.equals(b.getId()) || validationRuleId.equals(b.getRuleId()))
+                    .toList();
 
-                if (bindings.isEmpty()) {
-                    logger.warn("No binding found with ID: {}", validationRuleId);
-                    return true;
-                }
+            if (toDelete.isEmpty()) {
+                logger.warn("No binding found matching validationRuleId={} for campaign={}", validationRuleId, campaignId);
+                return true;
             }
 
-            logger.info("Found {} binding(s) to rollback for campaign: {}", bindings.size(), campaignId);
-
-            // Rollback each binding
-            for (RuleBinding binding : bindings) {
-                rollbackBinding(binding);
+            logger.info("Found {} binding(s) to delete for campaign: {}", toDelete.size(), campaignId);
+            for (RuleBinding binding : toDelete) {
+                deleteBinding(binding);
             }
 
             return true;
@@ -175,18 +186,10 @@ public class RollbackValidationRuleCommandHandler {
         }
     }
 
-    private void rollbackBinding(RuleBinding binding) {
-        try {
-            logger.info("Rolling back binding: bindingId={}, ruleId={}", binding.getId(), binding.getRuleId());
-
-            // Deactivate binding
-            ruleBindingPort.deactivate(binding.getId(), "system");
-
-            logger.info("Rolled back binding: bindingId={}", binding.getId());
-
-        } catch (Exception e) {
-            throw new BindingDeactivationException(binding.getId(), e);
-        }
+    private void deleteBinding(RuleBinding binding) {
+        logger.info("Deleting rule_binding: bindingId={}, ruleId={}", binding.getId(), binding.getRuleId());
+        ruleBindingPort.deleteById(binding.getId());
+        logger.info("Deleted rule_binding: bindingId={}", binding.getId());
     }
 
     private void publishRollbackSuccessEvent(String commandId, String campaignId, String validationRuleId) {

@@ -366,6 +366,7 @@ public class SettingValidationRuleCommandHandler {
                 .active(components.active() == null || components.active())
                 .trafficPercent(components.trafficPercent() != null ? components.trafficPercent() : 100)
                 .priority(components.priority() != null ? components.priority() : 0)
+                .stickyKeyStrategy(RuleBinding.StickyKeyStrategy.CUSTOMER_ID)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .createdBy("system")
@@ -631,14 +632,22 @@ public class SettingValidationRuleCommandHandler {
             return;
         }
         builder.timezone(timeframe.getTimezone() != null ? timeframe.getTimezone() : "Asia/Ho_Chi_Minh");
+
+        String interval = null;
+        String duration = null;
         if (timeframe.getValidityTimeframe() != null) {
             var validity = timeframe.getValidityTimeframe();
             builder.validFrom(validity.getStartDate());
             builder.validTo(validity.getExpirationDate());
+            interval = validity.getInterval();
+            duration = validity.getDuration();
         }
-        if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
-            builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
+
+        List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
+        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || interval != null || duration != null) {
+            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval, duration));
         }
+
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
             List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
                     .map(hours -> RuleBinding.TimeWindow.builder()
@@ -650,13 +659,70 @@ public class SettingValidationRuleCommandHandler {
         }
     }
 
-    private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
-        String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-        String byDay = daysOfWeek.stream()
-                .filter(day -> day >= 1 && day <= 7)
-                .map(day -> dayCodes[day - 1])
-                .collect(Collectors.joining(","));
-        return "FREQ=WEEKLY;BYDAY=" + byDay;
+    /**
+     * Build RFC 5545 RRULE string from timeframe fields.
+     * <p>
+     * Format: FREQ=DAILY;INTERVAL=X;BYDAY=MO,TU,...;DURATION=PTnH
+     * - If interval is null, defaults to FREQ=WEEKLY when BYDAY is specified, else FREQ=DAILY
+     * - BYDAY is omitted if daysOfWeek is null or empty
+     * - DURATION is omitted if duration is null
+     * - INTERVAL part: parsed from ISO 8601 duration string (P1D → 1)
+     */
+    private String buildRRuleFromTimeframe(List<Integer> daysOfWeek, String interval, String duration) {
+        StringBuilder rrule = new StringBuilder();
+
+        // Determine FREQ and INTERVAL
+        if (interval != null && !interval.isBlank()) {
+            // Parse ISO 8601 period like "P1D", "P7D", "P1W"
+            int intervalValue = parseIntervalValue(interval);
+            if (interval.endsWith("W")) {
+                rrule.append("FREQ=WEEKLY;INTERVAL=").append(intervalValue);
+            } else {
+                rrule.append("FREQ=DAILY;INTERVAL=").append(intervalValue);
+            }
+        } else if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            rrule.append("FREQ=WEEKLY");
+        } else {
+            rrule.append("FREQ=DAILY");
+        }
+
+        // Add BYDAY
+        if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
+            String byDay = daysOfWeek.stream()
+                    .filter(day -> day >= 1 && day <= 7)
+                    .map(day -> dayCodes[day - 1])
+                    .collect(Collectors.joining(","));
+            if (!byDay.isEmpty()) {
+                rrule.append(";BYDAY=").append(byDay);
+            }
+        }
+
+        // Add DURATION
+        if (duration != null && !duration.isBlank()) {
+            rrule.append(";DURATION=").append(duration);
+        }
+
+        return rrule.toString();
+    }
+
+    /**
+     * Parse interval value from ISO 8601 period string.
+     * Examples: "P1D" → 1, "P7D" → 7, "P2W" → 2, "P1" → 1
+     */
+    private int parseIntervalValue(String isoPeriod) {
+        if (isoPeriod == null || isoPeriod.length() < 2) {
+            return 1;
+        }
+        try {
+            // Remove leading 'P' and trailing letter, parse number
+            String inner = isoPeriod.startsWith("P") ? isoPeriod.substring(1) : isoPeriod;
+            String numStr = inner.replaceAll("[^0-9]", "");
+            return numStr.isEmpty() ? 1 : Integer.parseInt(numStr);
+        } catch (NumberFormatException e) {
+            logger.warn("Failed to parse interval value from: {}, defaulting to 1", isoPeriod);
+            return 1;
+        }
     }
 
     private String extractTimeOnly(String timeString) {
