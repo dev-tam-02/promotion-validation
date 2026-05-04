@@ -82,6 +82,9 @@ public class RuleJpaEntity {
     @Column(name = "description", length = 1000)
     private String description;
 
+    @Column(name = "fallback_error_message", columnDefinition = "TEXT")
+    private String fallbackErrorMessage;
+
     @Column(name = "version", nullable = false)
     private Long version;
 

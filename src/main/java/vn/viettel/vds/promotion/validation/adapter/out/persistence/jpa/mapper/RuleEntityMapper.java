@@ -137,6 +137,7 @@ public interface RuleEntityMapper {
     @Mapping(target = "publishedBy", source = "publishedBy")
     @Mapping(target = "context", source = "context")
     @Mapping(target = "description", source = "description")
+    @Mapping(target = "fallbackErrorMessage", source = "fallbackErrorMessage")
     @Mapping(target = "version", source = "version")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration

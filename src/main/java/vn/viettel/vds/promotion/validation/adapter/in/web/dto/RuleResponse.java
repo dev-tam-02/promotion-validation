@@ -35,6 +35,10 @@ public class RuleResponse {
     @JsonProperty("description")
     private String description;
 
+    @Schema(description = "Generic fallback error message shown to users when the rule fails")
+    @JsonProperty("fallbackErrorMessage")
+    private String fallbackErrorMessage;
+
     @Schema(description = "Number of condition nodes in the rule")
     @JsonProperty("nodeCount")
     private Integer nodeCount;
@@ -111,6 +115,14 @@ public class RuleResponse {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getFallbackErrorMessage() {
+        return fallbackErrorMessage;
+    }
+
+    public void setFallbackErrorMessage(String fallbackErrorMessage) {
+        this.fallbackErrorMessage = fallbackErrorMessage;
     }
 
     public Integer getNodeCount() {

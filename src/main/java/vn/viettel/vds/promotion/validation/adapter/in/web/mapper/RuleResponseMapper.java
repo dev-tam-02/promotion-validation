@@ -58,6 +58,7 @@ public class RuleResponseMapper {
         response.setNotes(rule.getNotes());
         response.setContext(rule.getContext());
         response.setDescription(rule.getDescription());
+        response.setFallbackErrorMessage(rule.getFallbackErrorMessage());
         response.setVersion(rule.getVersion());
         response.setNodeCount(rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0);
         response.setCreatedAt(rule.getCreatedAt());

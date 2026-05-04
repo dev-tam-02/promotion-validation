@@ -41,6 +41,23 @@ public class CreateRuleRequest {
     @JsonProperty("nodes")
     private List<RuleNodeDto> nodes;
 
+    @Schema(description = "Rule context indicating the trigger event",
+            example = "ORDER_CREATED",
+            allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED", "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
+    @Size(max = 100, message = "Context must not exceed 100 characters")
+    @JsonProperty("context")
+    private String context;
+
+    @Schema(description = "Human-readable description of the rule purpose")
+    @Size(max = 1000, message = "Description must not exceed 1000 characters")
+    @JsonProperty("description")
+    private String description;
+
+    @Schema(description = "Generic fallback error message shown to users when the rule fails")
+    @Size(max = 500, message = "Fallback error message must not exceed 500 characters")
+    @JsonProperty("fallbackErrorMessage")
+    private String fallbackErrorMessage;
+
     @Schema(description = "Additional notes or comments")
     @Size(max = 1000, message = "Notes must not exceed 1000 characters")
     @JsonProperty("notes")
@@ -85,6 +102,30 @@ public class CreateRuleRequest {
 
     public void setNodes(List<RuleNodeDto> nodes) {
         this.nodes = nodes;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getFallbackErrorMessage() {
+        return fallbackErrorMessage;
+    }
+
+    public void setFallbackErrorMessage(String fallbackErrorMessage) {
+        this.fallbackErrorMessage = fallbackErrorMessage;
     }
 
     public String getNotes() {

@@ -81,6 +81,15 @@ public class RuleService {
      */
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String createdBy) {
+        return createRule(code, name, logic, nodes, null, null, null, createdBy);
+    }
+
+    /**
+     * Create a new rule with optional context, description and fallbackErrorMessage
+     */
+    public Rule createRule(String code, String name, Rule.LogicType logic,
+                           List<RuleNode> nodes, String context, String description,
+                           String fallbackErrorMessage, String createdBy) {
         logger.info("Creating rule: code={}", code);
 
         // Check if rule with same code already exists
@@ -109,6 +118,9 @@ public class RuleService {
         rule.setLatestVersion(0);
         rule.setLogic(logic);
         rule.setNodes(nodes);
+        rule.setContext(context);
+        rule.setDescription(description);
+        rule.setFallbackErrorMessage(fallbackErrorMessage);
         rule.setCreatedAt(Instant.now());
         rule.setCreatedBy(createdBy);
         rule.setUpdatedAt(Instant.now());
@@ -125,6 +137,16 @@ public class RuleService {
      */
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String updatedBy) {
+        return updateRule(ruleId, name, logic, nodes, null, null, null, updatedBy);
+    }
+
+    /**
+     * Update an existing rule with optional context, description and fallbackErrorMessage.
+     * PATCH semantics: only fields that are non-null are updated.
+     */
+    public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
+                           List<RuleNode> nodes, String context, String description,
+                           String fallbackErrorMessage, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = self.getRuleById(ruleId);
@@ -160,6 +182,18 @@ public class RuleService {
 
         if (logic != null) {
             rule.setLogic(logic);
+        }
+
+        if (context != null) {
+            rule.setContext(context);
+        }
+
+        if (description != null) {
+            rule.setDescription(description);
+        }
+
+        if (fallbackErrorMessage != null) {
+            rule.setFallbackErrorMessage(fallbackErrorMessage);
         }
 
         rule.setUpdatedAt(Instant.now());

@@ -110,3 +110,7 @@ databaseChangeLog:
   # (were incorrectly seeded into cat-customer-meta-001; hidden by T15 metadata enrichment)
   - include:
       file: db/changelog/changes/046-fix-misplaced-operator-options.yaml
+
+  # Add fallback_error_message column to validation_rules (generic user-facing error message)
+  - include:
+      file: db/changelog/changes/047-add-fallback-error-message-to-validation-rules.yaml

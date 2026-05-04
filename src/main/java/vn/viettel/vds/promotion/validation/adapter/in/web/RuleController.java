@@ -97,6 +97,9 @@ public class RuleController {
                 request.getName(),
                 Rule.LogicType.valueOf(request.getLogic()),
                 nodes,
+                request.getContext(),
+                request.getDescription(),
+                request.getFallbackErrorMessage(),
                 userId
         );
 
@@ -186,6 +189,9 @@ public class RuleController {
                 request.getName(),
                 logic,
                 nodes,
+                request.getContext(),
+                request.getDescription(),
+                request.getFallbackErrorMessage(),
                 userId
         );
 

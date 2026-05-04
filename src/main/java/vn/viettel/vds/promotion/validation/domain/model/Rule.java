@@ -38,6 +38,7 @@ public class Rule {
     private String name;
     private String description;
     private String context;
+    private String fallbackErrorMessage;
     private String notes;
 
     // State Management
