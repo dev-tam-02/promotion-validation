@@ -16,6 +16,7 @@ import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -137,25 +138,26 @@ public class RollbackValidationRuleCommandHandler {
         logger.debug("RollbackValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
+    // Canonical object types that can be bound to a campaign-level object.
+    private static final List<String> CAMPAIGN_OBJECT_TYPES = List.of("CAMPAIGN", "DISCOUNT_COUPON", "CASHBACK");
+
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {
         try {
             if (rollbackAll || validationRuleId == null) {
-                // Delete all bindings for this campaign (objectType case-insensitive search)
-                int deletedUpper = ruleBindingPort.deleteByObject("CAMPAIGN", campaignId);
-                int deletedLower = ruleBindingPort.deleteByObject("campaign", campaignId);
-                int deletedDc = ruleBindingPort.deleteByObject("DISCOUNT_COUPON", campaignId);
-                int total = deletedUpper + deletedLower + deletedDc;
+                // Delete all bindings for this campaign across all supported object types
+                // (case-insensitive match covers any mixed-case rows from legacy writes)
+                int total = 0;
+                for (String objectType : CAMPAIGN_OBJECT_TYPES) {
+                    total += ruleBindingPort.deleteByObjectIgnoreCase(objectType, campaignId);
+                }
                 logger.info("Deleted {} rule_bindings for campaign: {}", total, campaignId);
                 return true;
             }
 
-            // Find and delete specific binding by validationRuleId
-            List<RuleBinding> bindings = ruleBindingPort.findByObject("CAMPAIGN", campaignId);
-            if (bindings.isEmpty()) {
-                bindings = ruleBindingPort.findByObject("campaign", campaignId);
-            }
-            if (bindings.isEmpty()) {
-                bindings = ruleBindingPort.findByObject("DISCOUNT_COUPON", campaignId);
+            // Find bindings across all supported object types (case-insensitive)
+            List<RuleBinding> bindings = new ArrayList<>();
+            for (String objectType : CAMPAIGN_OBJECT_TYPES) {
+                bindings.addAll(ruleBindingPort.findByObjectIgnoreCase(objectType, campaignId));
             }
 
             if (bindings.isEmpty()) {
@@ -163,9 +165,9 @@ public class RollbackValidationRuleCommandHandler {
                 return true;
             }
 
-            // Filter to target binding by ID (validationRuleId is the bindingId)
+            // Filter to target binding by ruleId only (F4: drop ambiguous id OR clause)
             List<RuleBinding> toDelete = bindings.stream()
-                    .filter(b -> validationRuleId.equals(b.getId()) || validationRuleId.equals(b.getRuleId()))
+                    .filter(b -> validationRuleId.equals(b.getRuleId()))
                     .toList();
 
             if (toDelete.isEmpty()) {

@@ -33,6 +33,8 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 
 import java.time.Instant;
+import java.time.Period;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -644,8 +646,19 @@ public class SettingValidationRuleCommandHandler {
         }
 
         List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
-        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || interval != null || duration != null) {
-            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval, duration));
+        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || interval != null) {
+            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
+        }
+
+        // F2: persist DURATION in scopeTimeWindows (not inside RRULE — RFC 5545 §3.3.10
+        // RECUR rule parts do not include DURATION; it is a separate iCal property)
+        if (duration != null && !duration.isBlank()) {
+            Map<String, Object> stw = new HashMap<>();
+            stw.put("duration", duration);
+            if (timeframe.getTimezone() != null) {
+                stw.put("timezone", timeframe.getTimezone());
+            }
+            builder.scopeTimeWindows(stw);
         }
 
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
@@ -662,24 +675,19 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Build RFC 5545 RRULE string from timeframe fields.
      * <p>
-     * Format: FREQ=DAILY;INTERVAL=X;BYDAY=MO,TU,...;DURATION=PTnH
+     * Format: FREQ=DAILY;INTERVAL=X;BYDAY=MO,TU,...
      * - If interval is null, defaults to FREQ=WEEKLY when BYDAY is specified, else FREQ=DAILY
      * - BYDAY is omitted if daysOfWeek is null or empty
-     * - DURATION is omitted if duration is null
-     * - INTERVAL part: parsed from ISO 8601 duration string (P1D → 1)
+     * - INTERVAL and FREQ are derived from ISO 8601 period (P1D/P1W/P1M/P1Y) via
+     *   {@link #parseFreqAndInterval(String)}
+     * - DURATION is NOT part of RRULE (RFC 5545 §3.3.10); persist it separately in scopeTimeWindows
      */
-    private String buildRRuleFromTimeframe(List<Integer> daysOfWeek, String interval, String duration) {
+    private String buildRRuleFromTimeframe(List<Integer> daysOfWeek, String interval) {
         StringBuilder rrule = new StringBuilder();
 
-        // Determine FREQ and INTERVAL
+        // Determine FREQ and INTERVAL from ISO 8601 period string
         if (interval != null && !interval.isBlank()) {
-            // Parse ISO 8601 period like "P1D", "P7D", "P1W"
-            int intervalValue = parseIntervalValue(interval);
-            if (interval.endsWith("W")) {
-                rrule.append("FREQ=WEEKLY;INTERVAL=").append(intervalValue);
-            } else {
-                rrule.append("FREQ=DAILY;INTERVAL=").append(intervalValue);
-            }
+            rrule.append(parseFreqAndInterval(interval));
         } else if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
             rrule.append("FREQ=WEEKLY");
         } else {
@@ -698,30 +706,64 @@ public class SettingValidationRuleCommandHandler {
             }
         }
 
-        // Add DURATION
-        if (duration != null && !duration.isBlank()) {
-            rrule.append(";DURATION=").append(duration);
-        }
-
         return rrule.toString();
     }
 
     /**
-     * Parse interval value from ISO 8601 period string.
-     * Examples: "P1D" → 1, "P7D" → 7, "P2W" → 2, "P1" → 1
+     * Parse ISO 8601 period/duration string into an RFC 5545 RRULE FREQ;INTERVAL fragment.
+     * <p>
+     * Supported mappings:
+     * <ul>
+     *   <li>P1D, P7D, PnD → FREQ=DAILY;INTERVAL=n</li>
+     *   <li>P1W, PnW     → FREQ=WEEKLY;INTERVAL=n  (PnW stored as 7n days by java.time.Period)</li>
+     *   <li>P1M, PnM     → FREQ=MONTHLY;INTERVAL=n</li>
+     *   <li>P1Y, PnY     → FREQ=YEARLY;INTERVAL=n</li>
+     *   <li>PT1H, PTnH   → FREQ=HOURLY;INTERVAL=n  (warn: use period, not duration, when possible)</li>
+     * </ul>
+     * Falls back to FREQ=DAILY;INTERVAL=1 on parse failure.
      */
-    private int parseIntervalValue(String isoPeriod) {
-        if (isoPeriod == null || isoPeriod.length() < 2) {
-            return 1;
+    String parseFreqAndInterval(String isoPeriod) {
+        if (isoPeriod == null || isoPeriod.isBlank()) {
+            return "FREQ=DAILY;INTERVAL=1";
         }
+
+        // Duration (PTnH / PTnM / PTnS) — warn and map to HOURLY for PT*H, else reject to DAILY
+        if (isoPeriod.startsWith("PT")) {
+            logger.warn("ISO 8601 duration '{}' supplied as interval; expected a period (P1D/P1W/P1M/P1Y). Mapping to HOURLY.", isoPeriod);
+            try {
+                java.time.Duration d = java.time.Duration.parse(isoPeriod);
+                long hours = d.toHours();
+                if (hours > 0) {
+                    return "FREQ=HOURLY;INTERVAL=" + hours;
+                }
+            } catch (DateTimeParseException ignored) {
+                // fall through
+            }
+            return "FREQ=DAILY;INTERVAL=1";
+        }
+
+        // Period (PnD / PnW / PnM / PnY)
         try {
-            // Remove leading 'P' and trailing letter, parse number
-            String inner = isoPeriod.startsWith("P") ? isoPeriod.substring(1) : isoPeriod;
-            String numStr = inner.replaceAll("[^0-9]", "");
-            return numStr.isEmpty() ? 1 : Integer.parseInt(numStr);
-        } catch (NumberFormatException e) {
-            logger.warn("Failed to parse interval value from: {}, defaulting to 1", isoPeriod);
-            return 1;
+            Period period = Period.parse(isoPeriod);
+            if (period.getYears() > 0) {
+                return "FREQ=YEARLY;INTERVAL=" + period.getYears();
+            }
+            if (period.getMonths() > 0) {
+                return "FREQ=MONTHLY;INTERVAL=" + period.getMonths();
+            }
+            int days = period.getDays();
+            if (days > 0) {
+                if (days % 7 == 0) {
+                    return "FREQ=WEEKLY;INTERVAL=" + (days / 7);
+                }
+                return "FREQ=DAILY;INTERVAL=" + days;
+            }
+            // Zero period — default
+            logger.warn("ISO 8601 period '{}' resolved to zero — defaulting to FREQ=DAILY;INTERVAL=1", isoPeriod);
+            return "FREQ=DAILY;INTERVAL=1";
+        } catch (DateTimeParseException e) {
+            logger.warn("Failed to parse ISO 8601 period '{}', defaulting to FREQ=DAILY;INTERVAL=1", isoPeriod);
+            return "FREQ=DAILY;INTERVAL=1";
         }
     }
 

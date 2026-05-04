@@ -147,6 +147,18 @@ public interface RuleBindingPersistencePort {
     int deleteByObject(String objectType, String objectId);
 
     /**
+     * Delete all bindings for an object, matching objectType case-insensitively.
+     * Use canonical UPPERCASE objectType values (CAMPAIGN, DISCOUNT_COUPON, CASHBACK, …).
+     */
+    int deleteByObjectIgnoreCase(String objectType, String objectId);
+
+    /**
+     * Find all bindings for an object, matching objectType case-insensitively.
+     * Use canonical UPPERCASE objectType values (CAMPAIGN, DISCOUNT_COUPON, CASHBACK, …).
+     */
+    List<RuleBinding> findByObjectIgnoreCase(String objectType, String objectId);
+
+    /**
      * Delete binding by object and rule
      */
     int deleteByObjectAndRule(String objectType, String objectId, String ruleId);

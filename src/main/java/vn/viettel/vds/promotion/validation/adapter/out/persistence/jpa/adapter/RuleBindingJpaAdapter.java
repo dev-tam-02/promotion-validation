@@ -224,6 +224,18 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
     }
 
     @Override
+    public int deleteByObjectIgnoreCase(String objectType, String objectId) {
+        log.info("Deleting rule bindings by object (case-insensitive): type={}, id={}", objectType, objectId);
+        return repository.deleteByObjectIgnoreCase(objectType, objectId);
+    }
+
+    @Override
+    public List<RuleBinding> findByObjectIgnoreCase(String objectType, String objectId) {
+        log.debug("Finding rule bindings by object (case-insensitive): type={}, id={}", objectType, objectId);
+        return mapper.toDomainList(repository.findByObjectIgnoreCase(objectType, objectId));
+    }
+
+    @Override
     public int deleteByObjectAndRule(String objectType, String objectId, String ruleId) {
         log.info("Deleting rule binding by object and rule: type={}, id={}, ruleId={}", objectType, objectId, ruleId);
         return repository.deleteByObjectAndRule(objectType, objectId, ruleId);
