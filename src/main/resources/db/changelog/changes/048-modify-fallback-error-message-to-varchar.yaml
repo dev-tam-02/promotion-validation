@@ -1,0 +1,32 @@
+databaseChangeLog:
+  # ============================================================================
+  # Align fallback_error_message column type with DTO constraint.
+  #
+  # DTO @Size(max=500) limits input to 500 chars, but the column was created as
+  # TEXT (up to 64KB in MariaDB). Using VARCHAR(500) avoids type drift, is more
+  # explicit about the storage contract, and matches the validation layer.
+  #
+  # UTF-8mb4 (Vietnamese): 500 chars × 4 bytes = 2000 bytes per row — within
+  # MariaDB's row-size limit.
+  # ============================================================================
+
+  - changeSet:
+      id: 048-modify-fallback-error-message-to-varchar
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          columnExists:
+            tableName: validation_rules
+            columnName: fallback_error_message
+      comment: Change fallback_error_message from TEXT to VARCHAR(500) to match DTO @Size(max=500) constraint
+      changes:
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: fallback_error_message
+            newDataType: VARCHAR(500)
+
+      rollback:
+        - modifyDataType:
+            tableName: validation_rules
+            columnName: fallback_error_message
+            newDataType: TEXT

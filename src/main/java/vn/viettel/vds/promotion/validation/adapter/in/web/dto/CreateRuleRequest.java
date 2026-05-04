@@ -44,6 +44,7 @@ public class CreateRuleRequest {
     @Schema(description = "Rule context indicating the trigger event",
             example = "ORDER_CREATED",
             allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED", "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
+    @NotBlank(message = "VALIDATION_RULE_CONTEXT_REQUIRED")
     @Size(max = 100, message = "Context must not exceed 100 characters")
     @JsonProperty("context")
     private String context;

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -1001,6 +1002,72 @@ class RuleServiceTest {
 
             // When & Then
             assertThat(sut.isRuleActive("unknown")).isFalse();
+        }
+    }
+
+    // ========================================================================
+    // FIX-M5: Optimistic locking — concurrent update conflict
+    // ========================================================================
+
+    @Nested
+    @DisplayName("Optimistic locking — concurrent update conflict")
+    class ConcurrentUpdateTests {
+
+        @Test
+        @DisplayName("Should propagate OptimisticLockingFailureException from persistence port when stale version on update")
+        void updateRule_concurrentUpdate_throwsConflict() {
+            // Given — two concurrent clients both hold rule at version=1
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setVersion(1L);
+
+            // The persistence port (backed by @Version JPA entity) throws when a
+            // concurrent save detects a stale version at DB level.
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class)))
+                    .thenThrow(new OptimisticLockingFailureException(
+                            "Row was updated or deleted by another transaction: [RuleJpaEntity#r1]"));
+
+            // When — User B tries to update after User A already committed a newer version
+            // Then — expect the optimistic locking failure to propagate
+            assertThatThrownBy(() -> sut.updateRule("r1", "New Name", null, null, "user-b"))
+                    .isInstanceOf(OptimisticLockingFailureException.class);
+        }
+
+        @Test
+        @DisplayName("Should propagate OptimisticLockingFailureException from persistence port when stale version on create")
+        void createRule_persistenceConflict_throwsOptimisticLockFailure() {
+            // Given
+            String code = "RULE_NEW";
+            when(rulePersistencePort.existsByCode(code)).thenReturn(false);
+            when(rulePersistencePort.save(any(Rule.class)))
+                    .thenThrow(new OptimisticLockingFailureException("Conflict on insert"));
+
+            // When & Then
+            assertThatThrownBy(() -> sut.createRule(
+                    code, "Name", Rule.LogicType.ALL,
+                    List.of(condNode("n1", "op1", "rc1")), "admin"))
+                    .isInstanceOf(OptimisticLockingFailureException.class);
+        }
+
+        @Test
+        @DisplayName("Should succeed on first update — no conflict when version matches")
+        void updateRule_firstUpdate_succeedsWithCorrectVersion() {
+            // Given — user holds version=1, DB also has version=1
+            Rule existing = draftRule("r1", "CODE_1", "Old Name");
+            existing.setVersion(1L);
+            Rule saved = draftRule("r1", "CODE_1", "New Name");
+            saved.setVersion(2L); // Hibernate increments after save
+
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenReturn(saved);
+
+            // When
+            Rule result = sut.updateRule("r1", "New Name", null, null, "user-a");
+
+            // Then — save should be called once, no exception
+            verify(rulePersistencePort).save(any(Rule.class));
+            assertThat(result.getName()).isEqualTo("New Name");
+            assertThat(result.getVersion()).isEqualTo(2L);
         }
     }
 

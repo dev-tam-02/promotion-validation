@@ -114,3 +114,7 @@ databaseChangeLog:
   # Add fallback_error_message column to validation_rules (generic user-facing error message)
   - include:
       file: db/changelog/changes/047-add-fallback-error-message-to-validation-rules.yaml
+
+  # Align fallback_error_message type with DTO @Size(max=500): TEXT → VARCHAR(500)
+  - include:
+      file: db/changelog/changes/048-modify-fallback-error-message-to-varchar.yaml

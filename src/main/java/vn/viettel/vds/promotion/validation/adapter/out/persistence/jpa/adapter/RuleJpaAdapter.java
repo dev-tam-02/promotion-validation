@@ -5,10 +5,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
@@ -57,7 +59,13 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.debug("[RULE_SAVE] Starting save rule: id={}, code={}", rule.getId(), rule.getCode());
         RuleJpaEntity entity = mapper.toEntity(rule);
         logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, state={}", entity.getId(), entity.getState());
-        RuleJpaEntity saved = repository.save(entity);
+        RuleJpaEntity saved;
+        try {
+            saved = repository.save(entity);
+        } catch (OptimisticLockingFailureException ex) {
+            logger.warn("[RULE_SAVE] Optimistic lock conflict for rule: id={}", rule.getId());
+            throw new RuleVersionConflictException(rule.getId());
+        }
         logger.info("[RULE_SAVE] Rule saved successfully: id={}, code={}", saved.getId(), saved.getCode());
 
         if (rule.getNodes() != null && !rule.getNodes().isEmpty()) {
