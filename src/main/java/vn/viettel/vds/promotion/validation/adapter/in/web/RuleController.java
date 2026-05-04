@@ -140,7 +140,7 @@ public class RuleController {
             @ApiResponse(responseCode = "200", description = "Rules retrieved successfully")
     })
     @GetMapping
-    public PageResponse<RuleResponse> listRules(
+    public PageResponse<RuleListItemResponse> listRules(
             @Parameter(description = "Filter by state") @RequestParam(required = false) String state,
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
@@ -162,7 +162,7 @@ public class RuleController {
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
         Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
-        Page<RuleResponse> responses = rules.map(ruleMapper::toRuleResponse);
+        Page<RuleListItemResponse> responses = rules.map(ruleMapper::toListItemResponse);
 
         return PageResponse.from(responses);
     }

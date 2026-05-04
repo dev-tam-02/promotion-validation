@@ -8,7 +8,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-@Schema(description = "Rule response")
+/**
+ * Full rule response DTO — used for single-rule detail endpoint ({@code GET /v1/rules/{id}}).
+ *
+ * <p>For the list endpoint ({@code GET /v1/rules}) use {@link RuleListItemResponse} instead,
+ * which omits heavy fields (description, fallbackErrorMessage, nodes, limits, logic)
+ * that are unnecessary when rendering table rows.</p>
+ */
+@Schema(description = "Full rule response (detail view). For list views use RuleListItemResponse.")
 public class RuleResponse {
 
     @Schema(description = "Rule ID", example = "rul_t1_WEEKEND_VIP_500K")
@@ -35,7 +42,8 @@ public class RuleResponse {
     @JsonProperty("description")
     private String description;
 
-    @Schema(description = "Generic fallback error message shown to users when the rule fails")
+    @Schema(description = "Generic fallback error message shown to users when the rule fails",
+            example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")
     @JsonProperty("fallbackErrorMessage")
     private String fallbackErrorMessage;
 

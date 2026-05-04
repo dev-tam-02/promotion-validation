@@ -204,14 +204,24 @@ public class PublishService {
                         .build();
                 publishJobPersistencePort.save(completedJob);
 
-                // Publish outbox event
-                Map<String, Object> eventPayload = Map.of(
-                        "ruleId", rule.getId(),
-                        "ruleVersion", job.getTargetVersion(),
-                        "code", rule.getCode(),
-                        "publishedBy", job.getRequestedBy(),
-                        "publishedAt", job.getCompletedAt().toString()
-                );
+                // Publish outbox event — include all rule fields so downstream services
+                // (audit log, search index) have full context without a follow-up fetch.
+                // context / description / fallbackErrorMessage may be null for older rules.
+                Map<String, Object> eventPayload = new HashMap<>();
+                eventPayload.put("ruleId", rule.getId());
+                eventPayload.put("ruleVersion", job.getTargetVersion());
+                eventPayload.put("code", rule.getCode());
+                eventPayload.put("publishedBy", job.getRequestedBy());
+                eventPayload.put("publishedAt", job.getCompletedAt().toString());
+                if (rule.getContext() != null) {
+                    eventPayload.put("context", rule.getContext());
+                }
+                if (rule.getDescription() != null) {
+                    eventPayload.put("description", rule.getDescription());
+                }
+                if (rule.getFallbackErrorMessage() != null) {
+                    eventPayload.put("fallbackErrorMessage", rule.getFallbackErrorMessage());
+                }
 
                 outboxEventService.createEvent(
                         "Rule",                          // aggregateType

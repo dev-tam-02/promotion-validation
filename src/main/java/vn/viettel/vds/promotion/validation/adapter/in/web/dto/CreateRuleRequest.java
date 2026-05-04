@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import vn.viettel.vds.promotion.validation.config.validator.ValidEnum;
+import vn.viettel.vds.promotion.validation.domain.enums.RuleContext;
 
 import java.util.List;
 import java.util.Map;
@@ -45,7 +47,7 @@ public class CreateRuleRequest {
             example = "ORDER_CREATED",
             allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED", "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
     @NotBlank(message = "VALIDATION_RULE_CONTEXT_REQUIRED")
-    @Size(max = 100, message = "Context must not exceed 100 characters")
+    @ValidEnum(value = RuleContext.class, message = "VALIDATION_RULE_CONTEXT_INVALID")
     @JsonProperty("context")
     private String context;
 
@@ -54,7 +56,8 @@ public class CreateRuleRequest {
     @JsonProperty("description")
     private String description;
 
-    @Schema(description = "Generic fallback error message shown to users when the rule fails")
+    @Schema(description = "Generic fallback error message shown to users when the rule fails",
+            example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")
     @Size(max = 500, message = "Fallback error message must not exceed 500 characters")
     @JsonProperty("fallbackErrorMessage")
     private String fallbackErrorMessage;
