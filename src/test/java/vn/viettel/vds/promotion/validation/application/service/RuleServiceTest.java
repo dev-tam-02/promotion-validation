@@ -489,6 +489,175 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.updateRule("r1", null, null, invalidNodes, "editor"))
                     .isInstanceOf(InvalidRuleStructureException.class);
         }
+
+        // ---- PATCH semantics for context / description / fallbackErrorMessage ----
+
+        @Test
+        @DisplayName("Should skip context when null (PATCH: null = no-op)")
+        void shouldSkipContext_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — passing null context → should NOT change context
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("ORDER_CREATED");
+        }
+
+        @Test
+        @DisplayName("Should clear context to empty string when \"\" passed (PATCH: empty = clear)")
+        void shouldClearContext_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — passing "" context → should set context to ""
+            Rule result = sut.updateRule("r1", null, null, null, "", null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new context value when non-empty string passed")
+        void shouldSetNewContext_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, "PAYMENT_COMPLETED", null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+        }
+
+        @Test
+        @DisplayName("Should skip description when null (PATCH: null = no-op)")
+        void shouldSkipDescription_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Original description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("Original description");
+        }
+
+        @Test
+        @DisplayName("Should clear description to empty string when \"\" passed")
+        void shouldClearDescription_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Original description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, "", null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new description when non-empty string passed")
+        void shouldSetNewDescription_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Old description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, "New description", null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("New description");
+        }
+
+        @Test
+        @DisplayName("Should skip fallbackErrorMessage when null (PATCH: null = no-op)")
+        void shouldSkipFallbackErrorMessage_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Original error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — null → no-op
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Original error message");
+        }
+
+        @Test
+        @DisplayName("Should clear fallbackErrorMessage to empty string when \"\" passed")
+        void shouldClearFallbackErrorMessage_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Original error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — "" → clear
+            Rule result = sut.updateRule("r1", null, null, null, null, null, "", "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new fallbackErrorMessage when non-empty string passed")
+        void shouldSetNewFallbackErrorMessage_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Old error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — "abc" → set
+            Rule result = sut.updateRule("r1", null, null, null, null, null, "Rule validation failed", "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Rule validation failed");
+        }
+
+        @Test
+        @DisplayName("Should update all 3 optional fields independently in single call")
+        void shouldUpdateAllThreeOptionalFields_inSingleCall() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("OLD_CTX");
+            existing.setDescription("Old desc");
+            existing.setFallbackErrorMessage("Old error");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule(
+                    "r1", null, null, null,
+                    "PAYMENT_COMPLETED", "New desc", "Payment required", "editor"
+            );
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+            assertThat(result.getDescription()).isEqualTo("New desc");
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Payment required");
+        }
     }
 
     // ========================================================================
