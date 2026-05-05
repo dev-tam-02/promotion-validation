@@ -76,6 +76,20 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
     public Rule save(Rule rule) {
         log.debug("Saving rule: {}", rule.getId());
 
+        // BUG-024: With @Version on RuleJpaEntity, Spring Data routes save() through
+        // persist() vs merge() based on Persistable.isNew() = (version == null).
+        //
+        // Many call sites (Path B auto-gen, RuleManagementService.createRule, etc.) build
+        // brand-new Rule domain objects with a non-null UUIDv7 id and a default
+        // version=0L. Without normalisation, isNew() returns false → merge() → UPDATE
+        // matches zero rows → StaleObjectStateException.
+        //
+        // Strategy: probe by id. If the row is not yet in DB, force version=null so the
+        // entity is treated as new and routed through persist() (INSERT). Otherwise pass
+        // the version through verbatim so merge() can run the optimistic-lock check.
+        boolean alreadyPersisted = rule.getId() != null && jpaRepository.existsById(rule.getId());
+        Long versionForSave = alreadyPersisted ? rule.getVersion() : null;
+
         RuleJpaEntity entity = RuleJpaEntity.builder()
                 .id(rule.getId())
                 .code(rule.getCode())
@@ -91,7 +105,7 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
                 .updatedAt(rule.getUpdatedAt())
                 .createdBy(rule.getCreatedBy())
                 .updatedBy(rule.getUpdatedBy())
-                .version(rule.getVersion() != null ? rule.getVersion() : 0L)
+                .version(versionForSave)
                 .build();
 
         RuleJpaEntity saved = jpaRepository.save(entity);

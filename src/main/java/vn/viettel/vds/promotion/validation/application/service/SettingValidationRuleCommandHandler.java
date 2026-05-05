@@ -438,7 +438,10 @@ public class SettingValidationRuleCommandHandler {
                 .updatedAt(now)
                 .createdBy("system")
                 .updatedBy("system")
-                .version(0L)
+                // BUG-024: leave version null so RuleJpaEntity.isNew() returns true and
+                // Spring Data uses persist() (INSERT) instead of merge() (UPDATE).
+                // @PrePersist will assign version=0 inside the persistence layer.
+                .version(null)
                 .build();
 
         logger.info("[Path B] Auto-generated timeframe rule {} for campaign {} (nodes={})",
