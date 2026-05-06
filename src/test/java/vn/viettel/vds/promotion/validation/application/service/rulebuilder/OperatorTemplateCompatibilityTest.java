@@ -72,15 +72,6 @@ class OperatorTemplateCompatibilityTest {
     private ObjectMapper objectMapper;
     private JsonSchemaFactory schemaFactory;
 
-    @BeforeEach
-    void setUp() {
-        compiler = new DrlCompiler();
-        objectMapper = new ObjectMapper();
-        schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
-    }
-
-    // ─── Operator sample definitions ─────────────────────────────────────────────
-
     /**
      * One entry per seeded operator.
      *
@@ -98,137 +89,146 @@ class OperatorTemplateCompatibilityTest {
     static Stream<Arguments> operatorSamples() {
         return Stream.of(
 
-            // ── 1. order.total.gte ────────────────────────────────────────────
-            Arguments.of(
-                "order.total.gte",
-                "tpl_order_total_gte_v1",
-                // json_schema (from 002-insert + 025-add-operator-registry-v2-fields):
-                "{\"type\":\"object\",\"properties\":{\"amount\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"amount\"]}",
-                // template uses: {{amount}} (number → BigDecimal in OrderFact.totalAmount), {{currency}} (String)
-                Map.of("amount", 500_000, "currency", "VND"),
-                /* schemaDrifted= */ false,
-                List.of("OrderFact", "totalAmount", "500000", "VND"),
-                // expectedFieldTypes: totalAmount → BigDecimal, currency → String
-                Map.of("totalAmount", "java.math.BigDecimal", "currency", "java.lang.String")
-            ),
+                // ── 1. order.total.gte ────────────────────────────────────────────
+                Arguments.of(
+                        "order.total.gte",
+                        "tpl_order_total_gte_v1",
+                        // json_schema (from 002-insert + 025-add-operator-registry-v2-fields):
+                        "{\"type\":\"object\",\"properties\":{\"amount\":{\"type\":\"number\"},\"currency\":{\"type\":\"string\"}},\"required\":[\"amount\"]}",
+                        // template uses: {{amount}} (number → BigDecimal in OrderFact.totalAmount), {{currency}} (String)
+                        Map.of("amount", 500_000, "currency", "VND"),
+                        /* schemaDrifted= */ false,
+                        List.of("OrderFact", "totalAmount", "500000", "VND"),
+                        // expectedFieldTypes: totalAmount → BigDecimal, currency → String
+                        Map.of("totalAmount", "java.math.BigDecimal", "currency", "java.lang.String")
+                ),
 
-            // ── 2. customer.in_segment ────────────────────────────────────────
-            Arguments.of(
-                "customer.in_segment",
-                "tpl_customer_in_segment_v1",
-                // json_schema (from 025):
-                "{\"type\":\"object\",\"properties\":{\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"segments\"]}",
-                // template iterates segments list: segments contains "VIP_GOLD"
-                Map.of("segments", List.of("VIP_GOLD")),
-                /* schemaDrifted= */ false,
-                List.of("CustomerFact", "segments contains", "VIP_GOLD"),
-                // expectedFieldTypes: segments → Set<String> (actual: Set<String> in CustomerFact)
-                Map.of("segments", "java.util.Set")
-            ),
+                // ── 2. customer.in_segment ────────────────────────────────────────
+                Arguments.of(
+                        "customer.in_segment",
+                        "tpl_customer_in_segment_v1",
+                        // json_schema (from 025):
+                        "{\"type\":\"object\",\"properties\":{\"segments\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"segments\"]}",
+                        // template iterates segments list: segments contains "VIP_GOLD"
+                        Map.of("segments", List.of("VIP_GOLD")),
+                        /* schemaDrifted= */ false,
+                        List.of("CustomerFact", "segments contains", "VIP_GOLD"),
+                        // expectedFieldTypes: segments → Set<String> (actual: Set<String> in CustomerFact)
+                        Map.of("segments", "java.util.Set")
+                ),
 
-            // ── 3. customer.loyalty_tier.gte ─────────────────────────────────
-            Arguments.of(
-                "customer.loyalty_tier.gte",
-                "tpl_customer_loyalty_tier_gte_v1",
-                // json_schema (from 028-seed-spec-operators-audience):
-                "{\"type\":\"object\",\"required\":[\"tier\"],\"properties\":{\"tier\":{\"type\":\"string\",\"enum\":[\"BRONZE\",\"SILVER\",\"GOLD\",\"PLATINUM\",\"DIAMOND\"]}}}",
-                // template: loyaltyTier.compareTo("{{tier}}") >= 0
-                Map.of("tier", "GOLD"),
-                /* schemaDrifted= */ false,
-                List.of("CustomerFact", "loyaltyTier", "GOLD", "compareTo"),
-                // expectedFieldTypes: loyaltyTier → String (compareTo-based comparison)
-                Map.of("loyaltyTier", "java.lang.String")
-            ),
+                // ── 3. customer.loyalty_tier.gte ─────────────────────────────────
+                Arguments.of(
+                        "customer.loyalty_tier.gte",
+                        "tpl_customer_loyalty_tier_gte_v1",
+                        // json_schema (from 028-seed-spec-operators-audience):
+                        "{\"type\":\"object\",\"required\":[\"tier\"],\"properties\":{\"tier\":{\"type\":\"string\",\"enum\":[\"BRONZE\",\"SILVER\",\"GOLD\",\"PLATINUM\",\"DIAMOND\"]}}}",
+                        // template: loyaltyTier.compareTo("{{tier}}") >= 0
+                        Map.of("tier", "GOLD"),
+                        /* schemaDrifted= */ false,
+                        List.of("CustomerFact", "loyaltyTier", "GOLD", "compareTo"),
+                        // expectedFieldTypes: loyaltyTier → String (compareTo-based comparison)
+                        Map.of("loyaltyTier", "java.lang.String")
+                ),
 
-            // ── 4. product.in_category ─────────────────────────────────────── ⚠️ DRIFT
-            // DRIFT: schema requires "categoryIds" (array), template uses {{categoryId}} (single string).
-            // When FE sends schema-valid params (categoryIds=[...]), template renders empty categoryId == "".
-            // Fix: align schema to use "categoryId": {type: string} to match template.
-            Arguments.of(
-                "product.in_category",
-                "tpl_product_in_category_v1",
-                // json_schema (from 028-seed-spec-operators-product) — has DRIFT with template:
-                "{\"type\":\"object\",\"required\":[\"categoryIds\"],\"properties\":{\"categoryIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"minItems\":1}}}",
-                // template-compatible params (what template actually expects):
-                Map.of("categoryId", "cat-electronics"),
-                /* schemaDrifted= */ true,   // schema "categoryIds" ≠ template "categoryId"
-                List.of("CartItemFact", "cat-electronics"),
-                // expectedFieldTypes: categoryId → String in CartItemFact
-                Map.of("categoryId", "java.lang.String")
-            ),
+                // ── 4. product.in_category ─────────────────────────────────────── ⚠️ DRIFT
+                // DRIFT: schema requires "categoryIds" (array), template uses {{categoryId}} (single string).
+                // When FE sends schema-valid params (categoryIds=[...]), template renders empty categoryId == "".
+                // Fix: align schema to use "categoryId": {type: string} to match template.
+                Arguments.of(
+                        "product.in_category",
+                        "tpl_product_in_category_v1",
+                        // json_schema (from 028-seed-spec-operators-product) — has DRIFT with template:
+                        "{\"type\":\"object\",\"required\":[\"categoryIds\"],\"properties\":{\"categoryIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"minItems\":1}}}",
+                        // template-compatible params (what template actually expects):
+                        Map.of("categoryId", "cat-electronics"),
+                        /* schemaDrifted= */ true,   // schema "categoryIds" ≠ template "categoryId"
+                        List.of("CartItemFact", "cat-electronics"),
+                        // expectedFieldTypes: categoryId → String in CartItemFact
+                        Map.of("categoryId", "java.lang.String")
+                ),
 
-            // ── 5. product.in_list ─────────────────────────────────────────── ⚠️ DRIFT
-            // DRIFT: schema requires "productIds" (array), template uses {{productId}} (single string).
-            // Fix: align schema to use "productId": {type: string} to match template.
-            Arguments.of(
-                "product.in_list",
-                "tpl_product_in_list_v1",
-                // json_schema (from 028) — has DRIFT with template:
-                "{\"type\":\"object\",\"required\":[\"productIds\"],\"properties\":{\"productIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"minItems\":1}}}",
-                // template-compatible params:
-                Map.of("productId", "prod-001"),
-                /* schemaDrifted= */ true,   // schema "productIds" ≠ template "productId"
-                List.of("CartItemFact", "prod-001"),
-                // expectedFieldTypes: productId → String in CartItemFact
-                Map.of("productId", "java.lang.String")
-            ),
+                // ── 5. product.in_list ─────────────────────────────────────────── ⚠️ DRIFT
+                // DRIFT: schema requires "productIds" (array), template uses {{productId}} (single string).
+                // Fix: align schema to use "productId": {type: string} to match template.
+                Arguments.of(
+                        "product.in_list",
+                        "tpl_product_in_list_v1",
+                        // json_schema (from 028) — has DRIFT with template:
+                        "{\"type\":\"object\",\"required\":[\"productIds\"],\"properties\":{\"productIds\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"minItems\":1}}}",
+                        // template-compatible params:
+                        Map.of("productId", "prod-001"),
+                        /* schemaDrifted= */ true,   // schema "productIds" ≠ template "productId"
+                        List.of("CartItemFact", "prod-001"),
+                        // expectedFieldTypes: productId → String in CartItemFact
+                        Map.of("productId", "java.lang.String")
+                ),
 
-            // ── 6. cart.has_product ───────────────────────────────────────────
-            Arguments.of(
-                "cart.has_product",
-                "tpl_cart_has_product_v1",
-                // json_schema (from 028):
-                "{\"type\":\"object\",\"required\":[\"productId\"],\"properties\":{\"productId\":{\"type\":\"string\"},\"minQuantity\":{\"type\":\"integer\",\"minimum\":1}}}",
-                Map.of("productId", "sku-abc"),
-                /* schemaDrifted= */ false,
-                List.of("CartItemFact", "productId", "sku-abc", "exists"),
-                // expectedFieldTypes: productId → String
-                Map.of("productId", "java.lang.String")
-            ),
+                // ── 6. cart.has_product ───────────────────────────────────────────
+                Arguments.of(
+                        "cart.has_product",
+                        "tpl_cart_has_product_v1",
+                        // json_schema (from 028):
+                        "{\"type\":\"object\",\"required\":[\"productId\"],\"properties\":{\"productId\":{\"type\":\"string\"},\"minQuantity\":{\"type\":\"integer\",\"minimum\":1}}}",
+                        Map.of("productId", "sku-abc"),
+                        /* schemaDrifted= */ false,
+                        List.of("CartItemFact", "productId", "sku-abc", "exists"),
+                        // expectedFieldTypes: productId → String
+                        Map.of("productId", "java.lang.String")
+                ),
 
-            // ── 7. time.within_window ─────────────────────────────────────── ⚠️ DRIFT
-            // DRIFT: schema requires "startTime"/"endTime", template uses {{from}}/{{to}}.
-            // Fix: align schema to use "from"/"to" to match template param keys.
-            Arguments.of(
-                "time.within_window",
-                "tpl_time_within_window_v1",
-                // json_schema (from 028) — has DRIFT with template:
-                "{\"type\":\"object\",\"required\":[\"startTime\",\"endTime\"],\"properties\":{\"startTime\":{\"type\":\"string\"},\"endTime\":{\"type\":\"string\"},\"timezone\":{\"type\":\"string\"}}}",
-                // template-compatible params:
-                Map.of("from", "2026-01-01T00:00:00Z", "to", "2026-12-31T23:59:59Z"),
-                /* schemaDrifted= */ true,   // schema "startTime/endTime" ≠ template "from/to"
-                List.of("ExecutionContextFact", "2026-01-01T00:00:00Z", "2026-12-31T23:59:59Z"),
-                // expectedFieldTypes: now → Instant/ZonedDateTime in ExecutionContextFact
-                Map.of("now", "java.time.Instant")
-            ),
+                // ── 7. time.within_window ─────────────────────────────────────── ⚠️ DRIFT
+                // DRIFT: schema requires "startTime"/"endTime", template uses {{from}}/{{to}}.
+                // Fix: align schema to use "from"/"to" to match template param keys.
+                Arguments.of(
+                        "time.within_window",
+                        "tpl_time_within_window_v1",
+                        // json_schema (from 028) — has DRIFT with template:
+                        "{\"type\":\"object\",\"required\":[\"startTime\",\"endTime\"],\"properties\":{\"startTime\":{\"type\":\"string\"},\"endTime\":{\"type\":\"string\"},\"timezone\":{\"type\":\"string\"}}}",
+                        // template-compatible params:
+                        Map.of("from", "2026-01-01T00:00:00Z", "to", "2026-12-31T23:59:59Z"),
+                        /* schemaDrifted= */ true,   // schema "startTime/endTime" ≠ template "from/to"
+                        List.of("ExecutionContextFact", "2026-01-01T00:00:00Z", "2026-12-31T23:59:59Z"),
+                        // expectedFieldTypes: now → Instant/ZonedDateTime in ExecutionContextFact
+                        Map.of("now", "java.time.Instant")
+                ),
 
-            // ── 8. order.items.count.gte ─────────────────────────────────────
-            Arguments.of(
-                "order.items.count.gte",
-                "tpl_order_items_count_gte_v1",
-                // json_schema (from 028):
-                "{\"type\":\"object\",\"required\":[\"count\"],\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":1}}}",
-                Map.of("count", 3),
-                /* schemaDrifted= */ false,
-                List.of("OrderFact", "items.size", "3"),
-                // expectedFieldTypes: items → List<OrderItemFact> (size checked as int)
-                Map.of("items", "java.util.List")
-            ),
+                // ── 8. order.items.count.gte ─────────────────────────────────────
+                Arguments.of(
+                        "order.items.count.gte",
+                        "tpl_order_items_count_gte_v1",
+                        // json_schema (from 028):
+                        "{\"type\":\"object\",\"required\":[\"count\"],\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":1}}}",
+                        Map.of("count", 3),
+                        /* schemaDrifted= */ false,
+                        List.of("OrderFact", "items.size", "3"),
+                        // expectedFieldTypes: items → List<OrderItemFact> (size checked as int)
+                        Map.of("items", "java.util.List")
+                ),
 
-            // ── 9. customer.is_owner ──────────────────────────────────────────
-            Arguments.of(
-                "customer.is_owner",
-                "tpl_customer_is_owner_v1",
-                // json_schema (from 030-seed-owner-only-operator-reason-code):
-                "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}",
-                // no params — operator derives ownership via cross-fact equality
-                Map.of(),
-                /* schemaDrifted= */ false,
-                List.of("VoucherFact", "CustomerFact", "ownerCustomerId", "id == $v.ownerCustomerId"),
-                // expectedFieldTypes: ownerCustomerId → String (VoucherFact), id → String (CustomerFact)
-                Map.of("ownerCustomerId", "java.lang.String", "id", "java.lang.String")
-            )
+                // ── 9. customer.is_owner ──────────────────────────────────────────
+                Arguments.of(
+                        "customer.is_owner",
+                        "tpl_customer_is_owner_v1",
+                        // json_schema (from 030-seed-owner-only-operator-reason-code):
+                        "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}",
+                        // no params — operator derives ownership via cross-fact equality
+                        Map.of(),
+                        /* schemaDrifted= */ false,
+                        List.of("VoucherFact", "CustomerFact", "ownerCustomerId", "id == $v.ownerCustomerId"),
+                        // expectedFieldTypes: ownerCustomerId → String (VoucherFact), id → String (CustomerFact)
+                        Map.of("ownerCustomerId", "java.lang.String", "id", "java.lang.String")
+                )
         );
+    }
+
+    // ─── Operator sample definitions ─────────────────────────────────────────────
+
+    @BeforeEach
+    void setUp() {
+        compiler = new DrlCompiler();
+        objectMapper = new ObjectMapper();
+        schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
     }
 
     // ─── Main compatibility matrix ────────────────────────────────────────────────
@@ -258,14 +258,14 @@ class OperatorTemplateCompatibilityTest {
         String drlSnippet = compiler.renderCondTemplate(compilerId, templateParams);
 
         assertThat(drlSnippet)
-            .as("Operator '%s' — DRL snippet must not be blank", operatorName)
-            .isNotBlank();
+                .as("Operator '%s' — DRL snippet must not be blank", operatorName)
+                .isNotBlank();
 
         // ── Step 2: Assert DRL contains expected fact class name and fields ──
         for (String token : expectedDrlTokens) {
             assertThat(drlSnippet)
-                .as("Operator '%s' — DRL must reference token '%s'", operatorName, token)
-                .contains(token);
+                    .as("Operator '%s' — DRL must reference token '%s'", operatorName, token)
+                    .contains(token);
         }
 
         // ── Step 3: Field-type alignment (string-level) ──────────────────────
@@ -273,9 +273,9 @@ class OperatorTemplateCompatibilityTest {
         // The value (Java type name) is documentation validated by code review + DrlCompilerTest.
         for (String fieldName : expectedFieldTypes.keySet()) {
             assertThat(drlSnippet)
-                .as("Operator '%s' — DRL must reference field '%s' (expected type: %s)",
-                    operatorName, fieldName, expectedFieldTypes.get(fieldName))
-                .contains(fieldName);
+                    .as("Operator '%s' — DRL must reference field '%s' (expected type: %s)",
+                            operatorName, fieldName, expectedFieldTypes.get(fieldName))
+                    .contains(fieldName);
         }
 
         // ── Step 4: JSON Schema validation of template params ─────────────────
@@ -289,15 +289,15 @@ class OperatorTemplateCompatibilityTest {
             // This is the expected state — it documents the known drift.
             // Fix: align the operator's json_schema param keys to match the template.
             assertThat(violations)
-                .as("Operator '%s' has known schema drift — schema validation SHOULD fail " +
-                    "for template-compatible params (fix: align json_schema param keys to template)",
-                    operatorName)
-                .isNotEmpty();
+                    .as("Operator '%s' has known schema drift — schema validation SHOULD fail " +
+                                    "for template-compatible params (fix: align json_schema param keys to template)",
+                            operatorName)
+                    .isNotEmpty();
         } else {
             // No drift: schema-valid params == template-compatible params.
             assertThat(violations)
-                .as("Operator '%s' — template params must satisfy json_schema (no violations)", operatorName)
-                .isEmpty();
+                    .as("Operator '%s' — template params must satisfy json_schema (no violations)", operatorName)
+                    .isEmpty();
         }
     }
 
@@ -325,8 +325,8 @@ class OperatorTemplateCompatibilityTest {
             Map<String, String> expectedFieldTypes
     ) {
         assertThatCode(() -> compiler.renderCondTemplate(compilerId, null))
-            .as("Operator '%s' — null params must not throw NPE", operatorName)
-            .doesNotThrowAnyException();
+                .as("Operator '%s' — null params must not throw NPE", operatorName)
+                .doesNotThrowAnyException();
     }
 
     // ─── Multi-value segment rendering ───────────────────────────────────────────
@@ -335,8 +335,8 @@ class OperatorTemplateCompatibilityTest {
     @DisplayName("customer.in_segment — OR-joins multiple segments")
     void customerInSegment_multipleSegments_orJoined() {
         String snippet = compiler.renderCondTemplate(
-            "tpl_customer_in_segment_v1",
-            Map.of("segments", List.of("VIP", "GOLD", "PLATINUM")));
+                "tpl_customer_in_segment_v1",
+                Map.of("segments", List.of("VIP", "GOLD", "PLATINUM")));
 
         assertThat(snippet).contains("CustomerFact");
         assertThat(snippet).contains("segments contains \"VIP\"");
@@ -368,11 +368,11 @@ class OperatorTemplateCompatibilityTest {
 
         // Template uses {{categoryId}} — not present in schemaValidParams — renders as empty string:
         assertThat(snippet)
-            .as("Drift confirmed: schema-valid params produce empty categoryId placeholder")
-            .contains("CartItemFact");
+                .as("Drift confirmed: schema-valid params produce empty categoryId placeholder")
+                .contains("CartItemFact");
         assertThat(snippet)
-            .as("Drift confirmed: 'cat-electronics' must NOT appear (schema key mismatch)")
-            .doesNotContain("cat-electronics");
+                .as("Drift confirmed: 'cat-electronics' must NOT appear (schema key mismatch)")
+                .doesNotContain("cat-electronics");
     }
 
     /**
@@ -389,11 +389,11 @@ class OperatorTemplateCompatibilityTest {
         String snippet = compiler.renderCondTemplate("tpl_product_in_list_v1", schemaValidParams);
 
         assertThat(snippet)
-            .as("Drift confirmed: schema-valid params produce empty productId placeholder")
-            .contains("CartItemFact");
+                .as("Drift confirmed: schema-valid params produce empty productId placeholder")
+                .contains("CartItemFact");
         assertThat(snippet)
-            .as("Drift confirmed: 'prod-001' must NOT appear (schema key mismatch)")
-            .doesNotContain("prod-001");
+                .as("Drift confirmed: 'prod-001' must NOT appear (schema key mismatch)")
+                .doesNotContain("prod-001");
     }
 
     /**
@@ -406,18 +406,18 @@ class OperatorTemplateCompatibilityTest {
     @DisplayName("[DRIFT] time.within_window — schema-valid params produce empty from/to in DRL")
     void drift_timeWithinWindow_schemaParamsProduceEmptyDrl() {
         Map<String, Object> schemaValidParams = Map.of(
-            "startTime", "08:00",
-            "endTime",   "22:00"
+                "startTime", "08:00",
+                "endTime", "22:00"
         );
 
         String snippet = compiler.renderCondTemplate("tpl_time_within_window_v1", schemaValidParams);
 
         assertThat(snippet)
-            .as("Drift confirmed: schema-valid params produce empty from/to placeholders")
-            .contains("ExecutionContextFact");
+                .as("Drift confirmed: schema-valid params produce empty from/to placeholders")
+                .contains("ExecutionContextFact");
         assertThat(snippet)
-            .as("Drift confirmed: '08:00' must NOT appear (schema key mismatch)")
-            .doesNotContain("08:00");
+                .as("Drift confirmed: '08:00' must NOT appear (schema key mismatch)")
+                .doesNotContain("08:00");
     }
 
     // ─── Missing required param produces broken DRL (not NPE) ────────────────────

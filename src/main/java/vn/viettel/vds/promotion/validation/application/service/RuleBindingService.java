@@ -2,16 +2,16 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 

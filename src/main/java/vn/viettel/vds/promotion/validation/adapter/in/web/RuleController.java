@@ -27,13 +27,8 @@ import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
 import vn.viettel.vds.promotion.validation.domain.enums.RuleContextType;
-import vn.viettel.vds.promotion.validation.adapter.in.web.dto.LintReportDto;
-import vn.viettel.vds.promotion.validation.domain.model.LintIssue;
-import vn.viettel.vds.promotion.validation.domain.model.LintReport;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.util.*;
 

@@ -77,7 +77,8 @@ public interface RuleEngineClient {
                 String operator,
                 boolean result,
                 String reason
-        ) {}
+        ) {
+        }
     }
 
     /**

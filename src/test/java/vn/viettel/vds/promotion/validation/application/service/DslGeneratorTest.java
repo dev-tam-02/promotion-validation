@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for {@link DslGenerator}.
- *
+ * <p>
  * Covers:
  * - Tree depth 0: single COND node (no GROUP wrapper)
  * - Tree depth 1: root GROUP with 2 COND children
@@ -63,7 +63,7 @@ class DslGeneratorTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> params = (Map<String, Object>) root.get("params");
         assertThat(params).containsEntry("amount", 500_000)
-                          .containsEntry("currency", "VND");
+                .containsEntry("currency", "VND");
     }
 
     // ─── Depth 1: root GROUP with 2 COND children ─────────────────────────────

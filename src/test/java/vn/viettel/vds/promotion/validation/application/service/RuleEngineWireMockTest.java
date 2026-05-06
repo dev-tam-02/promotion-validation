@@ -3,11 +3,7 @@ package vn.viettel.vds.promotion.validation.application.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,15 +16,12 @@ import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -36,10 +29,10 @@ import static org.mockito.Mockito.when;
  *
  * <p>Flow tested:
  * POST /validation/v1/rules → RuleManagementService.createRule()
- *   → DslGenerator.generate() → Rule.dsl set
- *   → DrlCompiler.compile() → DRL text
- *   → RuleEngineClient.register() → POST /v1/rules stub → bundleHash "abc123"
- *   → Rule saved with bundle_hash="abc123" and state=PUBLISHED
+ * → DslGenerator.generate() → Rule.dsl set
+ * → DrlCompiler.compile() → DRL text
+ * → RuleEngineClient.register() → POST /v1/rules stub → bundleHash "abc123"
+ * → Rule saved with bundle_hash="abc123" and state=PUBLISHED
  *
  * <p>WireMock stubs POST /v1/rules and captures the request body to verify
  * the DRL content matches the expected template render.

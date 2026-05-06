@@ -79,7 +79,7 @@ public class ObjectValidityService {
     }
 
     private ValidationResult checkTemporalConstraint(RuleBinding binding, Instant currentInstant,
-                                                      ValidateObjectValidityRequest request) {
+                                                     ValidateObjectValidityRequest request) {
         if (!binding.hasTemporalConstraints()) {
             return ValidationResult.success();
         }

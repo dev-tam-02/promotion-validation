@@ -22,20 +22,6 @@ import java.util.Map;
  */
 public class RuleHistoryEntry {
 
-    /**
-     * Type of change that produced this history entry.
-     */
-    public enum ChangeType {
-        /** Rule was created for the first time. */
-        CREATE,
-        /** Rule was updated; this entry captures the state BEFORE the update. */
-        UPDATE,
-        /** Rule was restored to a prior version; this entry captures the pre-restore state. */
-        RESTORE,
-        /** Rule was archived. */
-        ARCHIVE
-    }
-
     private final String id;
     private final String ruleId;
     private final long ruleVersion;
@@ -46,7 +32,6 @@ public class RuleHistoryEntry {
     private final String bundleHash;
     private final String state;
     private final String changeReason;
-
     public RuleHistoryEntry(String id,
                             String ruleId,
                             long ruleVersion,
@@ -69,14 +54,65 @@ public class RuleHistoryEntry {
         this.changeReason = changeReason;
     }
 
-    public String getId() { return id; }
-    public String getRuleId() { return ruleId; }
-    public long getRuleVersion() { return ruleVersion; }
-    public ChangeType getChangeType() { return changeType; }
-    public String getChangedBy() { return changedBy; }
-    public Instant getChangedAt() { return changedAt; }
-    public Map<String, Object> getDslSnapshot() { return dslSnapshot; }
-    public String getBundleHash() { return bundleHash; }
-    public String getState() { return state; }
-    public String getChangeReason() { return changeReason; }
+    public String getId() {
+        return id;
+    }
+
+    public String getRuleId() {
+        return ruleId;
+    }
+
+    public long getRuleVersion() {
+        return ruleVersion;
+    }
+
+    public ChangeType getChangeType() {
+        return changeType;
+    }
+
+    public String getChangedBy() {
+        return changedBy;
+    }
+
+    public Instant getChangedAt() {
+        return changedAt;
+    }
+
+    public Map<String, Object> getDslSnapshot() {
+        return dslSnapshot;
+    }
+
+    public String getBundleHash() {
+        return bundleHash;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public String getChangeReason() {
+        return changeReason;
+    }
+
+    /**
+     * Type of change that produced this history entry.
+     */
+    public enum ChangeType {
+        /**
+         * Rule was created for the first time.
+         */
+        CREATE,
+        /**
+         * Rule was updated; this entry captures the state BEFORE the update.
+         */
+        UPDATE,
+        /**
+         * Rule was restored to a prior version; this entry captures the pre-restore state.
+         */
+        RESTORE,
+        /**
+         * Rule was archived.
+         */
+        ARCHIVE
+    }
 }

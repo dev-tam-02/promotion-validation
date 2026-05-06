@@ -3,13 +3,13 @@ package vn.viettel.vds.promotion.validation.application.service;
 import com.promix.platform.core.exception.BusinessRuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.List;

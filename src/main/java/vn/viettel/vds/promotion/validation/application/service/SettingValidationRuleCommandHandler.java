@@ -2,7 +2,6 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.promix.platform.core.exception.BusinessRuleException;
 import com.promix.platform.core.util.IdGenerator;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -13,33 +12,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.SettingValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
-import vn.viettel.vds.promotion.validation.domain.model.Operator;
+import vn.viettel.vds.promotion.validation.application.port.out.*;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.common.ErrorCode;
 import vn.viettel.vds.promotion.validation.domain.common.Result;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.time.Instant;
 import java.time.Period;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -682,7 +669,7 @@ public class SettingValidationRuleCommandHandler {
      * - If interval is null, defaults to FREQ=WEEKLY when BYDAY is specified, else FREQ=DAILY
      * - BYDAY is omitted if daysOfWeek is null or empty
      * - INTERVAL and FREQ are derived from ISO 8601 period (P1D/P1W/P1M/P1Y) via
-     *   {@link #parseFreqAndInterval(String)}
+     * {@link #parseFreqAndInterval(String)}
      * - DURATION is NOT part of RRULE (RFC 5545 §3.3.10); persist it separately in scopeTimeWindows
      */
     private String buildRRuleFromTimeframe(List<Integer> daysOfWeek, String interval) {

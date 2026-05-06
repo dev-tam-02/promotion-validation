@@ -33,8 +33,8 @@ public record OperatorOptionResponse(
     public static OperatorOptionResponse from(OperatorOption option) {
         List<ValueOptionResponse> valueOptionResponses = option.getValueOptions() != null
                 ? option.getValueOptions().stream()
-                        .map(vo -> new ValueOptionResponse(vo.getValue(), vo.getLabel()))
-                        .toList()
+                .map(vo -> new ValueOptionResponse(vo.getValue(), vo.getLabel()))
+                .toList()
                 : List.of();
 
         return new OperatorOptionResponse(
@@ -61,5 +61,6 @@ public record OperatorOptionResponse(
     /**
      * Nested value option response.
      */
-    public record ValueOptionResponse(String value, String label) {}
+    public record ValueOptionResponse(String value, String label) {
+    }
 }

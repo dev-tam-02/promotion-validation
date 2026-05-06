@@ -8,11 +8,6 @@ import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidJsonSchemaException;
-import vn.viettel.vds.promotion.validation.domain.exception.OperatorAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.OperatorFingerprintException;
-import vn.viettel.vds.promotion.validation.domain.exception.OperatorNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.OperatorValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +16,7 @@ import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEng
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsRequest;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidateEngineOperatorsResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.time.Instant;

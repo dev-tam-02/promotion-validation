@@ -30,6 +30,10 @@ public class CondNode {
         this.createdAt = builder.createdAt;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public String getId() {
         return id;
     }
@@ -60,10 +64,6 @@ public class CondNode {
 
     public Instant getCreatedAt() {
         return createdAt;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public static class Builder {

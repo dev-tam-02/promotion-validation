@@ -12,9 +12,7 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * Unit tests for {@link RuleValidator} covering:
@@ -35,6 +33,82 @@ class RuleValidatorTest {
 
     // -----------------------------------------------------------------------
     //  checkTreeDepth
+    // -----------------------------------------------------------------------
+
+    /**
+     * Build a chain of GROUP → GROUP → ... → COND with the given depth.
+     */
+    private List<RuleNode> buildTree(int depth) {
+        if (depth <= 0) {
+            return List.of();
+        }
+        return List.of(buildChain(depth, 1));
+    }
+
+    // -----------------------------------------------------------------------
+    //  checkNoCircular
+    // -----------------------------------------------------------------------
+
+    private RuleNode buildChain(int depth, int level) {
+        if (level == depth) {
+            return condNode("node-" + level, "order.total.gte", null);
+        }
+        RuleNode child = buildChain(depth, level + 1);
+        return groupNode("node-" + level, Rule.LogicType.ALL, List.of(child));
+    }
+
+    // -----------------------------------------------------------------------
+    //  checkAllGroupsHaveChildren
+    // -----------------------------------------------------------------------
+
+    private RuleNode condNode(String id, String operatorName, Map<String, Object> params) {
+        return RuleNode.builder()
+                .nodeId(id)
+                .type(RuleNode.NodeType.COND)
+                .operatorName(operatorName)
+                .params(params)
+                .reasonCode("RC-001")
+                .build();
+    }
+
+    // -----------------------------------------------------------------------
+    //  checkOperatorParamsMatchSchema
+    // -----------------------------------------------------------------------
+
+    private RuleNode groupNode(String id, Rule.LogicType logic, List<RuleNode> children) {
+        RuleNode.Builder builder = RuleNode.builder()
+                .nodeId(id)
+                .type(RuleNode.NodeType.GROUP)
+                .groupLogic(logic)
+                .children(children);
+        // Use buildPartial() for empty-children groups so the domain model doesn't throw
+        // before the application-level validator gets a chance to check.
+        return children.isEmpty() ? builder.buildPartial() : builder.build();
+    }
+
+    // -----------------------------------------------------------------------
+    //  checkBindingScopeSchema — V3 scope JSON Schema validation
+    // -----------------------------------------------------------------------
+
+    @SuppressWarnings("unchecked")
+    private Operator operatorWithSchema(String name, String schemaJson) {
+        try {
+            ObjectMapper om = new ObjectMapper();
+            Map<String, Object> schemaMap = om.readValue(schemaJson, Map.class);
+            return Operator.builder()
+                    .id("op-" + name)
+                    .name(name)
+                    .jsonSchema(schemaMap)
+                    .compilerId("tpl")
+                    .status(Operator.OperatorStatus.ACTIVE)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    //  helpers
     // -----------------------------------------------------------------------
 
     @Nested
@@ -74,10 +148,6 @@ class RuleValidatorTest {
         }
     }
 
-    // -----------------------------------------------------------------------
-    //  checkNoCircular
-    // -----------------------------------------------------------------------
-
     @Nested
     @DisplayName("checkNoCircular")
     class CheckNoCircular {
@@ -98,10 +168,6 @@ class RuleValidatorTest {
                     .doesNotThrowAnyException();
         }
     }
-
-    // -----------------------------------------------------------------------
-    //  checkAllGroupsHaveChildren
-    // -----------------------------------------------------------------------
 
     @Nested
     @DisplayName("checkAllGroupsHaveChildren")
@@ -134,18 +200,14 @@ class RuleValidatorTest {
         }
     }
 
-    // -----------------------------------------------------------------------
-    //  checkOperatorParamsMatchSchema
-    // -----------------------------------------------------------------------
-
     @Nested
     @DisplayName("checkOperatorParamsMatchSchema — JSON Schema draft-07")
     class CheckOperatorParamsMatchSchema {
 
         private static final String ORDER_TOTAL_SCHEMA =
                 "{\"type\":\"object\",\"required\":[\"amount\",\"currency\"]," +
-                "\"properties\":{\"amount\":{\"type\":\"number\",\"minimum\":0}," +
-                "\"currency\":{\"type\":\"string\",\"enum\":[\"VND\",\"USD\"]}}}";
+                        "\"properties\":{\"amount\":{\"type\":\"number\",\"minimum\":0}," +
+                        "\"currency\":{\"type\":\"string\",\"enum\":[\"VND\",\"USD\"]}}}";
 
         @Test
         @DisplayName("valid params pass schema validation")
@@ -201,10 +263,6 @@ class RuleValidatorTest {
                     .doesNotThrowAnyException();
         }
     }
-
-    // -----------------------------------------------------------------------
-    //  checkBindingScopeSchema — V3 scope JSON Schema validation
-    // -----------------------------------------------------------------------
 
     @Nested
     @DisplayName("checkBindingScopeSchema — V3 scope JSON Schema")
@@ -315,64 +373,6 @@ class RuleValidatorTest {
     }
 
     // -----------------------------------------------------------------------
-    //  helpers
-    // -----------------------------------------------------------------------
-
-    /** Build a chain of GROUP → GROUP → ... → COND with the given depth. */
-    private List<RuleNode> buildTree(int depth) {
-        if (depth <= 0) {
-            return List.of();
-        }
-        return List.of(buildChain(depth, 1));
-    }
-
-    private RuleNode buildChain(int depth, int level) {
-        if (level == depth) {
-            return condNode("node-" + level, "order.total.gte", null);
-        }
-        RuleNode child = buildChain(depth, level + 1);
-        return groupNode("node-" + level, Rule.LogicType.ALL, List.of(child));
-    }
-
-    private RuleNode condNode(String id, String operatorName, Map<String, Object> params) {
-        return RuleNode.builder()
-                .nodeId(id)
-                .type(RuleNode.NodeType.COND)
-                .operatorName(operatorName)
-                .params(params)
-                .reasonCode("RC-001")
-                .build();
-    }
-
-    private RuleNode groupNode(String id, Rule.LogicType logic, List<RuleNode> children) {
-        RuleNode.Builder builder = RuleNode.builder()
-                .nodeId(id)
-                .type(RuleNode.NodeType.GROUP)
-                .groupLogic(logic)
-                .children(children);
-        // Use buildPartial() for empty-children groups so the domain model doesn't throw
-        // before the application-level validator gets a chance to check.
-        return children.isEmpty() ? builder.buildPartial() : builder.build();
-    }
-
-    @SuppressWarnings("unchecked")
-    private Operator operatorWithSchema(String name, String schemaJson) {
-        try {
-            ObjectMapper om = new ObjectMapper();
-            Map<String, Object> schemaMap = om.readValue(schemaJson, Map.class);
-            return Operator.builder()
-                    .id("op-" + name)
-                    .name(name)
-                    .jsonSchema(schemaMap)
-                    .compilerId("tpl")
-                    .status(Operator.OperatorStatus.ACTIVE)
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    // -----------------------------------------------------------------------
     //  DB constraint semantics (unit-level — no Testcontainers required)
     //  Documents the invariants enforced by 029-add-rule-nodes-invariants.yaml
     // -----------------------------------------------------------------------
@@ -388,7 +388,9 @@ class RuleValidatorTest {
     @DisplayName("chk_rn_no_self — parent_id <> id invariant")
     class ChkRnNoSelf {
 
-        /** Evaluates: parent_id IS NULL OR parent_id <> id */
+        /**
+         * Evaluates: parent_id IS NULL OR parent_id <> id
+         */
         private boolean chkRnNoSelf(String id, String parentId) {
             return parentId == null || !parentId.equals(id);
         }
@@ -415,7 +417,7 @@ class RuleValidatorTest {
     /**
      * Mirrors CHECK constraint {@code chk_rn_type_fields}:
      * {@code (type='GROUP' AND group_logic IS NOT NULL AND operator_name IS NULL)
-     *   OR (type='COND'  AND operator_name IS NOT NULL AND group_logic IS NULL)}
+     * OR (type='COND'  AND operator_name IS NOT NULL AND group_logic IS NULL)}
      */
     @Nested
     @DisplayName("chk_rn_type_fields — GROUP/COND mutual exclusion")
@@ -423,7 +425,7 @@ class RuleValidatorTest {
 
         private boolean chkRnTypeFields(String type, String groupLogic, String operatorName) {
             boolean groupOk = "GROUP".equals(type) && groupLogic != null && operatorName == null;
-            boolean condOk  = "COND".equals(type)  && operatorName != null && groupLogic == null;
+            boolean condOk = "COND".equals(type) && operatorName != null && groupLogic == null;
             return groupOk || condOk;
         }
 

@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Unit tests for {@link DrlCompiler}.
- *
+ * <p>
  * Covers:
  * - Template rendering for each of the 6 seeded operators
  * - GROUP AND composition: (a) && (b)
@@ -157,7 +157,7 @@ class DrlCompilerTest {
     void renderBindingValidityWindow_bothBounds() {
         Map<String, Object> params = Map.of(
                 "startDate", "2026-04-26T00:00:00Z",
-                "endDate",   "2026-12-31T23:59:59Z"
+                "endDate", "2026-12-31T23:59:59Z"
         );
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
@@ -206,7 +206,7 @@ class DrlCompilerTest {
     void renderBindingValidityWindow_isoWithOffset() {
         Map<String, Object> params = Map.of(
                 "startDate", "2026-04-26T00:00:00+07:00",
-                "endDate",   "2026-12-31T23:59:59+07:00"
+                "endDate", "2026-12-31T23:59:59+07:00"
         );
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
@@ -331,7 +331,7 @@ class DrlCompilerTest {
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
     private RuleNode makeCond(String id, String operatorName, Map<String, Object> params,
-                               String compilerId, String reasonCode) {
+                              String compilerId, String reasonCode) {
         return RuleNode.builder()
                 .nodeId(id)
                 .type(RuleNode.NodeType.COND)

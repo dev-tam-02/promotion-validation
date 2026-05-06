@@ -10,7 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
@@ -19,17 +18,11 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleNodeRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,14 +30,12 @@ import java.util.stream.Collectors;
 public class RuleJpaAdapter implements RulePersistencePort {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleJpaAdapter.class);
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
     private final RuleJpaRepository repository;
     private final RuleEntityMapper mapper;
     private final RuleNodeRepository nodeRepository;
     private final RuleNodeEntityMapper nodeMapper;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public RuleJpaAdapter(RuleJpaRepository repository, RuleEntityMapper mapper,
                           RuleNodeRepository nodeRepository, RuleNodeEntityMapper nodeMapper) {
@@ -139,8 +130,8 @@ public class RuleJpaAdapter implements RulePersistencePort {
      * Save a node and its children recursively (DFS), setting proper parent references.
      */
     private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
-                              ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
-                              List<RuleNodeEntity> savedEntities) {
+                             ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
+                             List<RuleNodeEntity> savedEntities) {
         RuleNode node = nodeMap.get(nodeId);
         if (node == null) return;
         RuleNodeEntity entity = nodeMapper.toEntity(node, parentEntity);

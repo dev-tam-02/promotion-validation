@@ -2,11 +2,7 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,11 +34,38 @@ import static org.mockito.Mockito.when;
 @DisplayName("EngineSimulationService — WireMock stub for /v1/rules/evaluate")
 class EngineSimulationServiceTest {
 
+    private static final String ALLOW_RESPONSE_BODY = """
+            {
+              "status": 200,
+              "success": true,
+              "data": {
+                "verdict": "ALLOW",
+                "trace": [
+                  {"nodeId": "$order",    "type": "COND", "operator": "order",    "result": true, "reason": null},
+                  {"nodeId": "$customer", "type": "COND", "operator": "customer", "result": true, "reason": null}
+                ],
+                "matchedNodes": ["$order", "$customer"],
+                "unmatchedNodes": [],
+                "reasonCodes": []
+              }
+            }
+            """;
+    private static final String DENY_RESPONSE_BODY = """
+            {
+              "status": 200,
+              "success": true,
+              "data": {
+                "verdict": "DENY",
+                "trace": [],
+                "matchedNodes": [],
+                "unmatchedNodes": ["spec-4-4-4-example"],
+                "reasonCodes": ["RULE_NOT_REGISTERED"]
+              }
+            }
+            """;
     private static WireMockServer wireMock;
-
     @Mock
     private RulePersistencePort rulePort;
-
     private EngineSimulationService engineSimulationService;
     private RuleSimulationController controller;
 
@@ -51,6 +74,10 @@ class EngineSimulationServiceTest {
         wireMock = new WireMockServer(WireMockConfiguration.options().dynamicPort());
         wireMock.start();
     }
+
+    // -----------------------------------------------------------------------
+    // Stub helpers
+    // -----------------------------------------------------------------------
 
     @AfterAll
     static void stopWireMock() {
@@ -70,41 +97,6 @@ class EngineSimulationServiceTest {
         engineSimulationService = new EngineSimulationService(rulePort, ruleEngineClient);
         controller = new RuleSimulationController(engineSimulationService);
     }
-
-    // -----------------------------------------------------------------------
-    // Stub helpers
-    // -----------------------------------------------------------------------
-
-    private static final String ALLOW_RESPONSE_BODY = """
-            {
-              "status": 200,
-              "success": true,
-              "data": {
-                "verdict": "ALLOW",
-                "trace": [
-                  {"nodeId": "$order",    "type": "COND", "operator": "order",    "result": true, "reason": null},
-                  {"nodeId": "$customer", "type": "COND", "operator": "customer", "result": true, "reason": null}
-                ],
-                "matchedNodes": ["$order", "$customer"],
-                "unmatchedNodes": [],
-                "reasonCodes": []
-              }
-            }
-            """;
-
-    private static final String DENY_RESPONSE_BODY = """
-            {
-              "status": 200,
-              "success": true,
-              "data": {
-                "verdict": "DENY",
-                "trace": [],
-                "matchedNodes": [],
-                "unmatchedNodes": ["spec-4-4-4-example"],
-                "reasonCodes": ["RULE_NOT_REGISTERED"]
-              }
-            }
-            """;
 
     private Rule buildPublishedRule(String id) {
         Rule rule = new Rule();

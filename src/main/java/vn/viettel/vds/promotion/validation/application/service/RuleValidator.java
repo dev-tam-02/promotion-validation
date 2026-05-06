@@ -1,11 +1,12 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -13,12 +14,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.scope.ScopeSchemaRegistry;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Core domain invariant validator for rule trees.
@@ -131,8 +127,8 @@ public class RuleValidator {
      * provided and is skipped.  When a field is present and invalid, a
      * {@link RuleValidationException} is thrown immediately (fail-fast).
      *
-     * @param scopeTimeWindows  structured time-windows object or {@code null}
-     * @param scopeProductScope structured product-scope object or {@code null}
+     * @param scopeTimeWindows    structured time-windows object or {@code null}
+     * @param scopeProductScope   structured product-scope object or {@code null}
      * @param scopeTrafficControl structured traffic-control object or {@code null}
      */
     public void checkBindingScopeSchema(Map<String, Object> scopeTimeWindows,
@@ -260,7 +256,7 @@ public class RuleValidator {
                 }
                 throw new RuleValidationException(fieldName,
                         "scope field '" + fieldName + "' failed JSON Schema validation: "
-                        + String.join("; ", messages));
+                                + String.join("; ", messages));
             }
         } catch (RuleValidationException ex) {
             throw ex;

@@ -32,6 +32,33 @@ class RuleTreeAssemblerTest {
     //  assembleRoot
     // -----------------------------------------------------------------------
 
+    private RuleNode condNode(String id, String operatorName, Map<String, Object> params) {
+        return RuleNode.builder()
+                .nodeId(id)
+                .type(RuleNode.NodeType.COND)
+                .operatorName(operatorName)
+                .params(params)
+                .reasonCode("RC-001")
+                .build();
+    }
+
+    // -----------------------------------------------------------------------
+    //  assembleAll
+    // -----------------------------------------------------------------------
+
+    private RuleNode groupNode(String id, Rule.LogicType logic, List<RuleNode> children) {
+        return RuleNode.builder()
+                .nodeId(id)
+                .type(RuleNode.NodeType.GROUP)
+                .groupLogic(logic)
+                .children(children)
+                .build();
+    }
+
+    // -----------------------------------------------------------------------
+    //  maxDepth
+    // -----------------------------------------------------------------------
+
     @Nested
     @DisplayName("assembleRoot")
     class AssembleRoot {
@@ -133,7 +160,7 @@ class RuleTreeAssemblerTest {
     }
 
     // -----------------------------------------------------------------------
-    //  assembleAll
+    //  maxDepthForRoots
     // -----------------------------------------------------------------------
 
     @Nested
@@ -167,7 +194,7 @@ class RuleTreeAssemblerTest {
     }
 
     // -----------------------------------------------------------------------
-    //  maxDepth
+    //  helpers
     // -----------------------------------------------------------------------
 
     @Nested
@@ -216,10 +243,6 @@ class RuleTreeAssemblerTest {
         }
     }
 
-    // -----------------------------------------------------------------------
-    //  maxDepthForRoots
-    // -----------------------------------------------------------------------
-
     @Nested
     @DisplayName("maxDepthForRoots")
     class MaxDepthForRoots {
@@ -244,28 +267,5 @@ class RuleTreeAssemblerTest {
                     List.of(condNode("c2", "op2", null)));    // depth 2
             assertThat(assembler.maxDepthForRoots(List.of(shallow, deep))).isEqualTo(2);
         }
-    }
-
-    // -----------------------------------------------------------------------
-    //  helpers
-    // -----------------------------------------------------------------------
-
-    private RuleNode condNode(String id, String operatorName, Map<String, Object> params) {
-        return RuleNode.builder()
-                .nodeId(id)
-                .type(RuleNode.NodeType.COND)
-                .operatorName(operatorName)
-                .params(params)
-                .reasonCode("RC-001")
-                .build();
-    }
-
-    private RuleNode groupNode(String id, Rule.LogicType logic, List<RuleNode> children) {
-        return RuleNode.builder()
-                .nodeId(id)
-                .type(RuleNode.NodeType.GROUP)
-                .groupLogic(logic)
-                .children(children)
-                .build();
     }
 }

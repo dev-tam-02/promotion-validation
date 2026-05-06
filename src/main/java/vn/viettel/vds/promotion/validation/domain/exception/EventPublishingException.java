@@ -42,14 +42,6 @@ public class EventPublishingException extends ExternalServiceException {
         this.eventType = eventType;
     }
 
-    public String getEventId() {
-        return eventId;
-    }
-
-    public String getEventType() {
-        return eventType;
-    }
-
     private static Map<String, Object> buildParams(String eventId, String eventType) {
         Map<String, Object> params = new HashMap<>();
         params.put("serviceName", SERVICE_NAME);
@@ -60,5 +52,13 @@ public class EventPublishingException extends ExternalServiceException {
             params.put("eventType", eventType);
         }
         return params;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getEventType() {
+        return eventType;
     }
 }

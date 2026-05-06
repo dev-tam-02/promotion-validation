@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleHistoryEntryDto;
 import vn.viettel.vds.promotion.validation.application.service.RuleHistoryService;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
 
 import java.security.Principal;

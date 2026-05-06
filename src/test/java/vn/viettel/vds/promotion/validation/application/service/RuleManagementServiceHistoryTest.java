@@ -73,6 +73,29 @@ class RuleManagementServiceHistoryTest {
     // createRule tests
     // -----------------------------------------------------------------------
 
+    @Test
+    @DisplayName("createRule without history port: no NPE, history silently skipped")
+    void createRule_noHistoryPort_silentlySkipped() {
+        ObjectMapper om = new ObjectMapper();
+        RuleManagementService serviceNoHistory = new RuleManagementService(
+                rulePort, new RuleTreeAssembler(), new RuleValidator(om),
+                new DslGenerator(om), new DrlCompiler(),
+                ruleEngineClient, operatorPort, Optional.empty()
+        );
+
+        // DrlCompiler throws for empty nodes — expected
+        assertThatThrownBy(() ->
+                serviceNoHistory.createRule("Test Rule", null, Rule.LogicType.ALL, List.of(), "admin"))
+                .isInstanceOf(DrlCompiler.DrlCompileException.class);
+
+        // historyPort mock never called
+        verifyNoInteractions(historyPort);
+    }
+
+    // -----------------------------------------------------------------------
+    // updateRule tests
+    // -----------------------------------------------------------------------
+
     @Nested
     @DisplayName("createRule — history recording")
     class CreateRuleHistory {
@@ -119,7 +142,7 @@ class RuleManagementServiceHistoryTest {
     }
 
     // -----------------------------------------------------------------------
-    // updateRule tests
+    // archiveRule history recording (Fix 3)
     // -----------------------------------------------------------------------
 
     @Nested
@@ -179,7 +202,7 @@ class RuleManagementServiceHistoryTest {
     }
 
     // -----------------------------------------------------------------------
-    // archiveRule history recording (Fix 3)
+    // No history port (backward compat)
     // -----------------------------------------------------------------------
 
     @Nested
@@ -240,28 +263,5 @@ class RuleManagementServiceHistoryTest {
             assertThat(result.getState()).isEqualTo(Rule.RuleState.ARCHIVED);
             verify(rulePort, atLeastOnce()).save(any(Rule.class));
         }
-    }
-
-    // -----------------------------------------------------------------------
-    // No history port (backward compat)
-    // -----------------------------------------------------------------------
-
-    @Test
-    @DisplayName("createRule without history port: no NPE, history silently skipped")
-    void createRule_noHistoryPort_silentlySkipped() {
-        ObjectMapper om = new ObjectMapper();
-        RuleManagementService serviceNoHistory = new RuleManagementService(
-                rulePort, new RuleTreeAssembler(), new RuleValidator(om),
-                new DslGenerator(om), new DrlCompiler(),
-                ruleEngineClient, operatorPort, Optional.empty()
-        );
-
-        // DrlCompiler throws for empty nodes — expected
-        assertThatThrownBy(() ->
-                serviceNoHistory.createRule("Test Rule", null, Rule.LogicType.ALL, List.of(), "admin"))
-                .isInstanceOf(DrlCompiler.DrlCompileException.class);
-
-        // historyPort mock never called
-        verifyNoInteractions(historyPort);
     }
 }

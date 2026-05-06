@@ -38,4 +38,5 @@ public record RuleHistoryEntryDto(
 
         @Schema(description = "Rule state at this version (DRAFT / PUBLISHED / ARCHIVED)")
         String state
-) {}
+) {
+}

@@ -170,10 +170,10 @@ public class OperatorConfigService {
         };
 
         List<String> comparators = switch (field.getFieldType()) {
-            case NUMBER  -> List.of(OP_EQUALS, "gte", "lte", "between");
+            case NUMBER -> List.of(OP_EQUALS, "gte", "lte", "between");
             case BOOLEAN -> List.of("is_true", "is_false");
-            case DATE    -> List.of("before", "after", "between", OP_EQUALS);
-            default      -> List.of(OP_EQUALS, "not_equals", "in", "not_in", "contains", "starts_with");
+            case DATE -> List.of("before", "after", "between", OP_EQUALS);
+            default -> List.of(OP_EQUALS, "not_equals", "in", "not_in", "contains", "starts_with");
         };
 
         String defaultComparator = switch (field.getFieldType()) {
@@ -182,10 +182,10 @@ public class OperatorConfigService {
         };
 
         OperatorOption.ValueType valueType = switch (field.getFieldType()) {
-            case NUMBER  -> OperatorOption.ValueType.NUMBER;
+            case NUMBER -> OperatorOption.ValueType.NUMBER;
             case BOOLEAN -> OperatorOption.ValueType.BOOLEAN;
-            case DATE    -> OperatorOption.ValueType.DATE;
-            default      -> OperatorOption.ValueType.STRING;
+            case DATE -> OperatorOption.ValueType.DATE;
+            default -> OperatorOption.ValueType.STRING;
         };
 
         boolean hasStaticValues = field.getAvailableValues() != null && !field.getAvailableValues().isEmpty();
@@ -194,16 +194,16 @@ public class OperatorConfigService {
                 : OperatorOption.ValueSource.INPUT;
 
         String inputType = switch (field.getFieldType()) {
-            case NUMBER  -> "number";
+            case NUMBER -> "number";
             case BOOLEAN -> "toggle";
-            case DATE    -> "date";
-            default      -> hasStaticValues ? "select" : "text";
+            case DATE -> "date";
+            default -> hasStaticValues ? "select" : "text";
         };
 
         List<OperatorOption.ValueOption> valueOptions = hasStaticValues
                 ? field.getAvailableValues().stream()
-                        .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
-                        .toList()
+                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
+                .toList()
                 : Collections.emptyList();
 
         // Namespaced code: {schemaType}.{fieldKey} to avoid clash with static options

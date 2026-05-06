@@ -192,59 +192,6 @@ public class RuleBinding {
     // ========== Embedded Types ==========
 
     /**
-     * Time window within a day
-     */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TimeWindow {
-        /**
-         * Start time in HH:mm format (e.g., "09:00")
-         */
-        private String start;
-
-        /**
-         * End time in HH:mm format (e.g., "17:00")
-         */
-        private String end;
-    }
-
-    /**
-     * Strategy for sticky key in traffic control
-     */
-    public enum StickyKeyStrategy {
-        /**
-         * Same customer always gets the same decision
-         */
-        CUSTOMER_ID,
-
-        /**
-         * Same order always gets the same decision
-         */
-        ORDER_ID,
-
-        /**
-         * Same device always gets the same decision
-         */
-        DEVICE_ID
-    }
-
-    /**
-     * Supported object types
-     */
-    public enum ObjectType {
-        CAMPAIGN,
-        DISCOUNT,
-        VOUCHER,
-        CASHBACK,
-        PROMOTION,
-        REWARD
-    }
-
-    // ========== Business Methods ==========
-
-    /**
      * Check if this binding is active
      */
     public boolean isActive() {
@@ -295,6 +242,8 @@ public class RuleBinding {
     public boolean isEffective() {
         return isEffectiveAt(Instant.now());
     }
+
+    // ========== Business Methods ==========
 
     /**
      * Check if current time falls within any of the time windows
@@ -396,5 +345,56 @@ public class RuleBinding {
                 validTo != null ||
                 (rrule != null && !rrule.isEmpty()) ||
                 (timeWindows != null && !timeWindows.isEmpty());
+    }
+
+    /**
+     * Strategy for sticky key in traffic control
+     */
+    public enum StickyKeyStrategy {
+        /**
+         * Same customer always gets the same decision
+         */
+        CUSTOMER_ID,
+
+        /**
+         * Same order always gets the same decision
+         */
+        ORDER_ID,
+
+        /**
+         * Same device always gets the same decision
+         */
+        DEVICE_ID
+    }
+
+    /**
+     * Supported object types
+     */
+    public enum ObjectType {
+        CAMPAIGN,
+        DISCOUNT,
+        VOUCHER,
+        CASHBACK,
+        PROMOTION,
+        REWARD
+    }
+
+    /**
+     * Time window within a day
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TimeWindow {
+        /**
+         * Start time in HH:mm format (e.g., "09:00")
+         */
+        private String start;
+
+        /**
+         * End time in HH:mm format (e.g., "17:00")
+         */
+        private String end;
     }
 }

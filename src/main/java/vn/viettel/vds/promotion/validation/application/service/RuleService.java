@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.core.util.IdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -12,22 +13,8 @@ import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersi
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateTransitionException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
-import vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException;
-import vn.viettel.vds.promotion.validation.domain.model.LintReport;
-import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-
-import com.promix.platform.core.util.IdGenerator;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.time.Instant;
 import java.util.List;

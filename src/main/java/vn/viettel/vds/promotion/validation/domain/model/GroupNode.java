@@ -18,7 +18,9 @@ public class GroupNode {
     private final int displayOrder;
     private final Instant createdAt;
 
-    /** Children assembled by RuleTreeAssembler — not persisted directly. */
+    /**
+     * Children assembled by RuleTreeAssembler — not persisted directly.
+     */
     private final List<Object> children;
 
     private GroupNode(Builder builder) {
@@ -29,6 +31,10 @@ public class GroupNode {
         this.displayOrder = builder.displayOrder;
         this.createdAt = builder.createdAt;
         this.children = new ArrayList<>(builder.children);
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public String getId() {
@@ -55,17 +61,15 @@ public class GroupNode {
         return createdAt;
     }
 
-    /** Children can be GroupNode or CondNode. */
+    /**
+     * Children can be GroupNode or CondNode.
+     */
     public List<Object> getChildren() {
         return children;
     }
 
     public boolean isRoot() {
         return parentId == null;
-    }
-
-    public static Builder builder() {
-        return new Builder();
     }
 
     public enum GroupLogic {

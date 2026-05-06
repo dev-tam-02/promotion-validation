@@ -11,7 +11,6 @@ import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
 import vn.viettel.vds.promotion.validation.domain.valueobject.Version;
 
 import java.util.Collections;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

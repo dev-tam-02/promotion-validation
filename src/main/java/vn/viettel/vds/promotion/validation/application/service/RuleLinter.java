@@ -3,18 +3,9 @@ package vn.viettel.vds.promotion.validation.application.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import vn.viettel.vds.promotion.validation.domain.model.LintCode;
-import vn.viettel.vds.promotion.validation.domain.model.LintIssue;
-import vn.viettel.vds.promotion.validation.domain.model.LintReport;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Static-analysis linter for rule trees.
@@ -157,7 +148,9 @@ public class RuleLinter {
         }
     }
 
-    /** Canonical key for a COND node: {@code operatorName|param1=v1,param2=v2...} */
+    /**
+     * Canonical key for a COND node: {@code operatorName|param1=v1,param2=v2...}
+     */
     private String condKey(RuleNode node) {
         String op = node.getOperatorName() != null ? node.getOperatorName() : "";
         Map<String, Object> params = node.getParams();
@@ -359,5 +352,6 @@ public class RuleLinter {
     // Internal data holder
     // -------------------------------------------------------------------------
 
-    private record BoundEntry(String nodeId, String opName, double value) {}
+    private record BoundEntry(String nodeId, String opName, double value) {
+    }
 }

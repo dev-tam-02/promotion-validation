@@ -162,7 +162,8 @@ public interface RuleEntityMapper {
     @Mapping(target = "publishedBy", source = "publishedBy")
     @Mapping(target = "context", source = "context")           // nullable, PATCH-clearable
     @Mapping(target = "description", source = "description")   // nullable, PATCH-clearable
-    @Mapping(target = "fallbackErrorMessage", source = "fallbackErrorMessage") // nullable, PATCH-clearable
+    @Mapping(target = "fallbackErrorMessage", source = "fallbackErrorMessage")
+        // nullable, PATCH-clearable
     RuleJpaEntity toEntity(Rule domain);
 
     List<Rule> toDomainList(List<RuleJpaEntity> entities);

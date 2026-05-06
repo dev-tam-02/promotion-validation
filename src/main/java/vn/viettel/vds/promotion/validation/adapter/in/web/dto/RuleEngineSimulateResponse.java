@@ -52,5 +52,6 @@ public record RuleEngineSimulateResponse(
 
             @Schema(description = "Reason code if the node caused DENY; null when result=true")
             String reason
-    ) {}
+    ) {
+    }
 }

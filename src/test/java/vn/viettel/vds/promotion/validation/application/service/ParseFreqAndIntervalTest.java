@@ -9,13 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-
-import jakarta.validation.Validator;
+import vn.viettel.vds.promotion.validation.application.port.out.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

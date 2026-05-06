@@ -17,12 +17,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersi
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -33,12 +28,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for RuleService — the main application service handling CRUD operations
@@ -62,18 +53,6 @@ class RuleServiceTest {
 
     private RuleService sut;
 
-    @BeforeEach
-    void setUp() {
-        // RuleService uses @Lazy self-injection for transactional proxying.
-        // In unit tests without Spring context, we pass 'sut' itself as the self reference.
-        // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null);
-        // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut);
-    }
-
-    // ========== Helper methods ==========
-
     private static Rule draftRule(String id, String code, String name) {
         return Rule.builder()
                 .id(id)
@@ -91,6 +70,8 @@ class RuleServiceTest {
                 .updatedBy("user-1")
                 .build();
     }
+
+    // ========== Helper methods ==========
 
     private static Rule publishedRule(String id, String code, String name) {
         return Rule.builder()
@@ -126,6 +107,16 @@ class RuleServiceTest {
                 .groupLogic(logic)
                 .children(children)
                 .build();
+    }
+
+    @BeforeEach
+    void setUp() {
+        // RuleService uses @Lazy self-injection for transactional proxying.
+        // In unit tests without Spring context, we pass 'sut' itself as the self reference.
+        // This is safe because there's no proxy needed in unit tests.
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null);
+        // Re-create with self reference
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut);
     }
 
     // ========================================================================

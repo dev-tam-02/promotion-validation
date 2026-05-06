@@ -11,10 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,8 @@ import java.util.Set;
 public class RollbackValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(RollbackValidationRuleCommandHandler.class);
-
+    // Canonical object types that can be bound to a campaign-level object.
+    private static final List<String> CAMPAIGN_OBJECT_TYPES = List.of("CAMPAIGN", "DISCOUNT_COUPON", "CASHBACK");
     private final RuleBindingPersistencePort ruleBindingPort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
@@ -137,9 +138,6 @@ public class RollbackValidationRuleCommandHandler {
 
         logger.debug("RollbackValidationRuleCommand validation passed: commandId={}", command.getId());
     }
-
-    // Canonical object types that can be bound to a campaign-level object.
-    private static final List<String> CAMPAIGN_OBJECT_TYPES = List.of("CAMPAIGN", "DISCOUNT_COUPON", "CASHBACK");
 
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {
         try {

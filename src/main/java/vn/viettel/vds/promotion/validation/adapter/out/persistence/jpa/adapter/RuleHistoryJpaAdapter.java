@@ -90,7 +90,8 @@ public class RuleHistoryJpaAdapter implements RuleHistoryPersistencePort {
         if (entity.getDslSnapshot() != null) {
             try {
                 dslMap = objectMapper.readValue(entity.getDslSnapshot(),
-                        new TypeReference<Map<String, Object>>() {});
+                        new TypeReference<Map<String, Object>>() {
+                        });
             } catch (JsonProcessingException ex) {
                 log.warn("Failed to deserialise dslSnapshot for id={}: {}", entity.getId(), ex.getMessage());
             }

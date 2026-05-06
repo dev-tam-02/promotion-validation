@@ -2,15 +2,11 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import vn.viettel.vds.promotion.validation.domain.exception.ArchivedRulePublishException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidPublishJobStateException;
-import vn.viettel.vds.promotion.validation.domain.exception.PublishJobAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.PublishJobNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleVersionPersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.PublishJob;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;

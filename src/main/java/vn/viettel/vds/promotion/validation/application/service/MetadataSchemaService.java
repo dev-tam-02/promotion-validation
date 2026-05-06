@@ -174,7 +174,8 @@ public class MetadataSchemaService {
             MetadataSchema.FieldType fieldType,
             List<String> availableValues,
             Boolean required
-    ) {}
+    ) {
+    }
 
     public record UpdateSchemaFieldRequest(
             String fieldName,
@@ -182,5 +183,6 @@ public class MetadataSchemaService {
             List<String> availableValues,
             Boolean required,
             Integer displayOrder
-    ) {}
+    ) {
+    }
 }

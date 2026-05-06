@@ -9,11 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationEnginePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DeleteValidationRuleCommand.DeleteValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.ArrayList;
 import java.util.List;

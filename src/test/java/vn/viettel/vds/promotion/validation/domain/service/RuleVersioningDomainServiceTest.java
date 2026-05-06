@@ -9,7 +9,6 @@ import vn.viettel.vds.promotion.validation.domain.model.LogicType;
 import vn.viettel.vds.promotion.validation.domain.model.RuleAggregate;
 import vn.viettel.vds.promotion.validation.domain.model.RuleStatus;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
-import vn.viettel.vds.promotion.validation.domain.valueobject.RuleName;
 import vn.viettel.vds.promotion.validation.domain.valueobject.Version;
 
 import java.util.List;

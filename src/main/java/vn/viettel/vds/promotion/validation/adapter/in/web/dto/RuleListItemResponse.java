@@ -86,4 +86,5 @@ public record RuleListItemResponse(
         @Schema(description = "Last updater display name")
         @JsonProperty("updatedByName")
         String updatedByName
-) {}
+) {
+}

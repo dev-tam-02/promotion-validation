@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,25 +9,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.transaction.PlatformTransactionManager;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.SettingValidationRuleCommandDTOMapper;
-import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
-import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
-import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
+import vn.viettel.vds.promotion.validation.application.port.out.*;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.SettingValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ValidityTimeframe;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import jakarta.validation.Validator;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,17 +60,28 @@ class RuleEvaluationIntegrationTest {
 
     // ── Mocked ports ─────────────────────────────────────────────────────────
 
-    @Mock private ValidationRuleRepositoryPort validationRulePort;
-    @Mock private RuleBindingPersistencePort ruleBindingPort;
-    @Mock private OperatorPersistencePort operatorPort;
-    @Mock private RuleEngineClient ruleEngineClient;
-    @Mock private RuleHistoryPersistencePort historyPort;
-    @Mock private RulePublishingService rulePublishingService;
-    @Mock private SettingValidationRuleEventPublisher eventPublisher;
-    @Mock private IdempotencyService idempotencyService;
-    @Mock private SettingValidationRuleCommandDTOMapper dtoMapper;
-    @Mock private Validator validator;
-    @Mock private PlatformTransactionManager transactionManager;
+    @Mock
+    private ValidationRuleRepositoryPort validationRulePort;
+    @Mock
+    private RuleBindingPersistencePort ruleBindingPort;
+    @Mock
+    private OperatorPersistencePort operatorPort;
+    @Mock
+    private RuleEngineClient ruleEngineClient;
+    @Mock
+    private RuleHistoryPersistencePort historyPort;
+    @Mock
+    private RulePublishingService rulePublishingService;
+    @Mock
+    private SettingValidationRuleEventPublisher eventPublisher;
+    @Mock
+    private IdempotencyService idempotencyService;
+    @Mock
+    private SettingValidationRuleCommandDTOMapper dtoMapper;
+    @Mock
+    private Validator validator;
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     // ── SUT ──────────────────────────────────────────────────────────────────
 
@@ -383,9 +388,9 @@ class RuleEvaluationIntegrationTest {
         TimeFrame timeframe = (startIso == null && endIso == null)
                 ? null
                 : TimeFrame.builder()
-                        .validityTimeframe(validity)
-                        .timezone("Asia/Ho_Chi_Minh")
-                        .build();
+                .validityTimeframe(validity)
+                .timezone("Asia/Ho_Chi_Minh")
+                .build();
 
         return SettingValidationRuleCommandPayload.builder()
                 .ruleId(null)  // null → Path B
@@ -422,7 +427,7 @@ class RuleEvaluationIntegrationTest {
     }
 
     private RuleNode condNode(String id, String operatorName, String compilerId,
-                               Map<String, Object> params, String reasonCode) {
+                              Map<String, Object> params, String reasonCode) {
         return RuleNode.builder()
                 .nodeId(id)
                 .type(RuleNode.NodeType.COND)

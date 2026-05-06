@@ -9,8 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
@@ -31,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Service-level integration test covering the end-to-end flow:
- *   POST /rules → GET /rules/{id} → POST /rules/{id}/bindings → GET /rule-bindings
- *
+ * POST /rules → GET /rules/{id} → POST /rules/{id}/bindings → GET /rule-bindings
+ * <p>
  * Uses Mockito to stub the persistence ports so no database is required.
  */
 @ExtendWith(MockitoExtension.class)

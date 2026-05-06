@@ -15,12 +15,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersi
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
-import vn.viettel.vds.promotion.validation.domain.model.GroupNode;
-import vn.viettel.vds.promotion.validation.domain.model.LintReport;
-import vn.viettel.vds.promotion.validation.domain.model.Operator;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleHistoryEntry;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.time.Instant;
 import java.util.List;

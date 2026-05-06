@@ -66,7 +66,8 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                                             "Rule engine rejected DRL for ruleId=" + ruleId + ": " + body,
                                             clientResponse.statusCode().value()))
                     )
-                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {})
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {
+                    })
                     .timeout(TIMEOUT)
                     .block();
 
@@ -107,7 +108,8 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                                             "Rule engine rejected DRL update for ruleId=" + ruleId + ": " + body,
                                             clientResponse.statusCode().value()))
                     )
-                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {})
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<Map<String, Object>>>() {
+                    })
                     .timeout(TIMEOUT)
                     .block();
 
@@ -182,7 +184,8 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                                             "Rule engine rejected simulate for ruleId=" + ruleId + ": " + body,
                                             clientResponse.statusCode().value()))
                     )
-                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<EvaluateRuleResponseBody>>() {})
+                    .bodyToMono(new ParameterizedTypeReference<ResponseTemplate<EvaluateRuleResponseBody>>() {
+                    })
                     .timeout(TIMEOUT)
                     .block();
 
@@ -260,7 +263,8 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
             List<String> matchedNodes,
             List<String> unmatchedNodes,
             List<String> reasonCodes
-    ) {}
+    ) {
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record TraceEntryBody(
@@ -269,5 +273,6 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
             String operator,
             boolean result,
             String reason
-    ) {}
+    ) {
+    }
 }

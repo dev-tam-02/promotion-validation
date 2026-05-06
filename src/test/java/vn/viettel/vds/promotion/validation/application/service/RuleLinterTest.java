@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit tests for {@link RuleLinter} — covers all four lint checks:
  * REDUNDANCY, TAUTOLOGY, CONTRADICTION, UNREACHABLE.
- *
+ * <p>
  * Test structure mirrors the spec in {@code 09-pp-validation-gaps-v1-v10.md §V9}.
  */
 @DisplayName("RuleLinter — static analysis checks")
@@ -34,7 +34,9 @@ class RuleLinterTest {
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Build a GROUP node (ALL/AND logic) with the given COND children. */
+    /**
+     * Build a GROUP node (ALL/AND logic) with the given COND children.
+     */
     private RuleNode andGroup(String groupId, List<RuleNode> children) {
         return RuleNode.builder()
                 .nodeId(groupId)
@@ -44,7 +46,9 @@ class RuleLinterTest {
                 .build();
     }
 
-    /** Build a GROUP node (ANY/OR logic) with the given COND children. */
+    /**
+     * Build a GROUP node (ANY/OR logic) with the given COND children.
+     */
     private RuleNode orGroup(String groupId, List<RuleNode> children) {
         return RuleNode.builder()
                 .nodeId(groupId)
@@ -54,7 +58,9 @@ class RuleLinterTest {
                 .build();
     }
 
-    /** Build a COND node. */
+    /**
+     * Build a COND node.
+     */
     private RuleNode cond(String nodeId, String operatorName, Map<String, Object> params) {
         return RuleNode.builder()
                 .nodeId(nodeId)
