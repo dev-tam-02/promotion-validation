@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import vn.viettel.vds.promotion.validation.TestFixtures;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationContext;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationRequest;
 import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;

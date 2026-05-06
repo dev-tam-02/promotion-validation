@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineDeploymentService;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

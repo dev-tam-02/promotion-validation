@@ -168,6 +168,20 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     int deleteByObject(@Param("objectType") String objectType, @Param("objectId") String objectId);
 
     /**
+     * Delete all bindings for an object, matching objectType case-insensitively.
+     * Covers stored rows regardless of case convention (CAMPAIGN / campaign / Campaign).
+     */
+    @Modifying
+    @Query("DELETE FROM RuleBindingEntity rb WHERE LOWER(rb.objectType) = LOWER(:objectType) AND rb.objectId = :objectId")
+    int deleteByObjectIgnoreCase(@Param("objectType") String objectType, @Param("objectId") String objectId);
+
+    /**
+     * Find all bindings for an object, matching objectType case-insensitively.
+     */
+    @Query("SELECT rb FROM RuleBindingEntity rb WHERE LOWER(rb.objectType) = LOWER(:objectType) AND rb.objectId = :objectId")
+    List<RuleBindingEntity> findByObjectIgnoreCase(@Param("objectType") String objectType, @Param("objectId") String objectId);
+
+    /**
      * Delete binding by object and rule
      */
     @Modifying

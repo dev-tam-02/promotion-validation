@@ -1,0 +1,50 @@
+databaseChangeLog:
+  # ============================================================================
+  # Fix: Move 2 operator_options from cat-customer-meta-001 to correct categories.
+  #
+  # Root cause: changeset 040 and 041 incorrectly seeded these 2 entries into
+  # cat-customer-meta-001 (Customer Metadata), which is a metadata-enriched
+  # category. T15 enrichMetadataCategory() replaces all static operator_options
+  # in metadata categories with dynamically generated virtual operators — so
+  # these 2 static entries were hidden from the FE rule-builder catalog.
+  #
+  # Fix:
+  #   1. CUSTOMER_LIFE_TIME_VALUE → cat-audience-001 (Audience category)
+  #   2. ACQUISITION_CHANNEL     → cat-budget-001   (Budget & Constraints category)
+  # ============================================================================
+
+  - changeSet:
+      id: 046-fix-customer-life-time-value-category
+      author: harley hoang
+      comment: Move customer_life_time_value from cat-customer-meta-001 to cat-audience-001
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: category_id, value: "cat-audience-001" }
+            where: "code='customer_life_time_value' AND category_id='cat-customer-meta-001'"
+
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: category_id, value: "cat-customer-meta-001" }
+            where: "code='customer_life_time_value' AND category_id='cat-audience-001'"
+
+  - changeSet:
+      id: 046-fix-acquisition-channel-category
+      author: harley hoang
+      comment: Move acquisition_channel from cat-customer-meta-001 to cat-budget-001
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: category_id, value: "cat-budget-001" }
+            where: "code='acquisition_channel' AND category_id='cat-customer-meta-001'"
+
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: category_id, value: "cat-customer-meta-001" }
+            where: "code='acquisition_channel' AND category_id='cat-budget-001'"

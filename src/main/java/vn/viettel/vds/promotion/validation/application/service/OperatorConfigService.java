@@ -146,21 +146,39 @@ public class OperatorConfigService {
     }
 
     /**
-     * Create an operator option from a metadata schema field.
+     * Create a virtual operator option from a metadata schema field.
+     *
+     * <p>All virtual options use the generic operator name {@code metadata.access} so that
+     * the {@code MetadataAccessOperatorTranslator} (T16) can resolve the correct DRL constraint
+     * at compile time by reading {@code schema_type}, {@code field_key}, and {@code data_type}
+     * from the rule-node params.
+     *
+     * <p>Comparator mapping (per T15 spec):
+     * <ul>
+     *   <li>NUMBER  → equals, gte, lte, between (default: equals)</li>
+     *   <li>STRING  → equals, not_equals, in, not_in, contains, starts_with (default: equals)</li>
+     *   <li>BOOLEAN → is_true, is_false (default: is_true)</li>
+     *   <li>DATE    → before, after, between, equals (default: equals)</li>
+     * </ul>
      */
     private OperatorOption createOptionFromSchemaField(OperatorCategory category, MetadataSchema field) {
-        String operatorName = buildMetadataOperatorName(category.getMetadataSchemaType(), field.getFieldKey());
-
         OperatorOption.ComparisonType comparisonType = switch (field.getFieldType()) {
             case NUMBER -> OperatorOption.ComparisonType.RANGE;
             case BOOLEAN -> OperatorOption.ComparisonType.BOOLEAN;
+            case DATE -> OperatorOption.ComparisonType.RANGE;
             default -> OperatorOption.ComparisonType.SINGLE;
         };
 
         List<String> comparators = switch (field.getFieldType()) {
-            case NUMBER -> List.of(OP_EQUALS, "not_equals", "gte", "lte", "between");
-            case BOOLEAN -> List.of(OP_EQUALS);
-            default -> List.of(OP_EQUALS, "not_equals", "in", "not_in");
+            case NUMBER -> List.of(OP_EQUALS, "gte", "lte", "between");
+            case BOOLEAN -> List.of("is_true", "is_false");
+            case DATE -> List.of("before", "after", "between", OP_EQUALS);
+            default -> List.of(OP_EQUALS, "not_equals", "in", "not_in", "contains", "starts_with");
+        };
+
+        String defaultComparator = switch (field.getFieldType()) {
+            case BOOLEAN -> "is_true";
+            default -> OP_EQUALS;
         };
 
         OperatorOption.ValueType valueType = switch (field.getFieldType()) {
@@ -170,42 +188,49 @@ public class OperatorConfigService {
             default -> OperatorOption.ValueType.STRING;
         };
 
-        OperatorOption.ValueSource valueSource = (field.getAvailableValues() != null && !field.getAvailableValues().isEmpty())
+        boolean hasStaticValues = field.getAvailableValues() != null && !field.getAvailableValues().isEmpty();
+        OperatorOption.ValueSource valueSource = hasStaticValues
                 ? OperatorOption.ValueSource.SELECT
                 : OperatorOption.ValueSource.INPUT;
 
-        List<OperatorOption.ValueOption> valueOptions = (field.getAvailableValues() != null)
+        String inputType = switch (field.getFieldType()) {
+            case NUMBER -> "number";
+            case BOOLEAN -> "toggle";
+            case DATE -> "date";
+            default -> hasStaticValues ? "select" : "text";
+        };
+
+        List<OperatorOption.ValueOption> valueOptions = hasStaticValues
                 ? field.getAvailableValues().stream()
-                        .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
-                        .toList()
+                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
+                .toList()
                 : Collections.emptyList();
 
+        // Namespaced code: {schemaType}.{fieldKey} to avoid clash with static options
+        String optionCode = category.getMetadataSchemaType() + "." + field.getFieldKey();
+
         return OperatorOption.builder()
-                .id(field.getId())
+                .id("virt-" + field.getId())
                 .categoryId(category.getId())
-                .code(field.getFieldKey())
+                .code(optionCode)
                 .name(field.getFieldName())
                 .displayOrder(field.getDisplayOrder())
                 .description("Metadata field: " + field.getFieldName())
-                .operatorName(operatorName)
+                // Generic operator — MetadataAccessOperatorTranslator reads schema_type+field_key from params
+                .operatorName("metadata.access")
                 .operatorVersion(1)
                 .comparisonType(comparisonType)
                 .availableComparators(comparators)
-                .defaultComparator(comparators.get(0))
+                .defaultComparator(defaultComparator)
                 .valueType(valueType)
                 .valueSource(valueSource)
                 .valueOptions(valueOptions)
+                .dataSourceType("STATIC")
+                .inputType(inputType)
+                .inputMultiple(field.getFieldType() == MetadataSchema.FieldType.STRING && hasStaticValues)
                 .active(true)
                 .createdAt(field.getCreatedAt())
                 .updatedAt(field.getUpdatedAt())
                 .build();
-    }
-
-    /**
-     * Build operator name for metadata field.
-     * Format: {schemaType}.metadata.{fieldKey}.equals
-     */
-    private String buildMetadataOperatorName(String schemaType, String fieldKey) {
-        return schemaType + ".metadata." + fieldKey + ".equals";
     }
 }

@@ -1,0 +1,77 @@
+databaseChangeLog:
+  # ============================================================================
+  # T2: Seed operator binding.validity_window + OUTSIDE_VALIDITY_WINDOW reason code
+  # Operator: Path B gate — checks now ∈ [startDate, endDate] for rule binding.
+  # Compiler: tpl_binding_validity_window_v1 (seeded in T1).
+  # x-ui-system=true → FE rule-builder skips this operator in picker.
+  # ============================================================================
+
+  - changeSet:
+      id: 036-seed-binding-validity-operator
+      author: harley hoang
+      comment: Seed binding.validity_window operator for Path B temporal gate
+      changes:
+        - insert:
+            tableName: operators
+            columns:
+              - column: { name: id, value: "spec-op-binding-validity-window-001" }
+              - column: { name: name, value: "binding.validity_window" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: context, value: "time" }
+              - column: { name: category_id, value: "spec-cat-time-001" }
+              - column: { name: display_name, value: '{"vi":"Cửa sổ hiệu lực binding","en":"Binding validity window"}' }
+              - column: { name: json_schema, value: '{"type":"object","properties":{"startDate":{"type":"string","format":"date-time","x-ui-source":"INPUT","x-ui-value-type":"DATETIME"},"endDate":{"type":"string","format":"date-time","x-ui-source":"INPUT","x-ui-value-type":"DATETIME"},"timezone":{"type":"string","default":"Asia/Ho_Chi_Minh"}},"x-ui-source":"INTERNAL","x-ui-system":true}' }
+              - column: { name: compiler_id, value: "tpl_binding_validity_window_v1" }
+              - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
+              - column: { name: status, value: "ACTIVE" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: version, valueNumeric: 1 }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operators
+            where: "id='spec-op-binding-validity-window-001'"
+
+  - changeSet:
+      id: 036-seed-binding-validity-operator-registry
+      author: harley hoang
+      comment: Seed operator_registry entry for binding.validity_window
+      changes:
+        - insert:
+            tableName: operator_registry
+            columns:
+              - column: { name: id, value: "opreg-binding-validity-window-001" }
+              - column: { name: operator_id, value: "binding.validity_window" }
+              - column: { name: context, value: "time" }
+              - column: { name: compiler_id, value: "tpl_binding_validity_window_v1" }
+              - column: { name: json_schema, value: '{"type":"object","properties":{"startDate":{"type":"string","format":"date-time"},"endDate":{"type":"string","format":"date-time"}}}' }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: operator_registry
+            where: "id='opreg-binding-validity-window-001'"
+
+  - changeSet:
+      id: 036-seed-outside-validity-window-reason-code
+      author: harley hoang
+      comment: Seed OUTSIDE_VALIDITY_WINDOW reason code for binding validity gate failures
+      changes:
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-outside-validity-window-001" }
+              - column: { name: code, value: "OUTSIDE_VALIDITY_WINDOW" }
+              - column: { name: display_message, value: '{"vi":"Chương trình chưa bắt đầu hoặc đã kết thúc","en":"Promotion is outside its validity window"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+      rollback:
+        - delete:
+            tableName: reason_codes
+            where: "id='rc-outside-validity-window-001'"

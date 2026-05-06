@@ -2,8 +2,6 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.promix.platform.core.exception.BusinessRuleException;
 import com.promix.platform.core.util.IdGenerator;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -21,11 +19,16 @@ import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.UpdateValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.event.ValidationSettingUpdateResultEvent;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**

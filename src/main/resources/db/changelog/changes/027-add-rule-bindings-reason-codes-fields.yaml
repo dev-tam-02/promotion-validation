@@ -1,0 +1,106 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 06: Add spec v2 fields to reason_codes and rule_bindings
+  # Spec: reason_codes.display_message (JSON i18n)
+  #       rule_bindings.(resource_type, resource_id, enabled, active_from,
+  #                      active_to, product_scope, traffic_control)
+  #       + composite index idx_rb_resource_active
+  # ============================================================================
+
+  - changeSet:
+      id: 027-add-display-message-to-reason-codes
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: display_message
+                  type: TEXT
+                  remarks: JSON i18n error message ({"vi":"...","en":"..."})
+
+  - changeSet:
+      id: 027-add-resource-type-to-rule-bindings
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: resource_type
+                  type: varchar(50)
+                  remarks: Resource type enum (CAMPAIGN, COUPON_CONFIG, COUPON_CODE)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: resource_id
+                  type: varchar(36)
+                  remarks: Resource identifier
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  remarks: Whether binding is enabled (spec v2 alias for active)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: active_from
+                  type: DATETIME
+                  remarks: Binding effective start (spec v2; maps to valid_from semantically)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: active_to
+                  type: DATETIME
+                  remarks: Binding effective end (spec v2; maps to valid_to semantically)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: product_scope
+                  type: TEXT
+                  remarks: JSON product scope (include, exclude, match_logic)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: traffic_control
+                  type: TEXT
+                  remarks: JSON traffic control (bucket_algorithm, seed_field, percentage, rate_limit)
+
+  - changeSet:
+      id: 027-add-idx-rb-resource-active
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            indexExists:
+              indexName: idx_rb_resource_active
+              tableName: rule_bindings
+      changes:
+        - createIndex:
+            indexName: idx_rb_resource_active
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: resource_type
+              - column:
+                  name: resource_id
+              - column:
+                  name: active_from
+              - column:
+                  name: active_to
+              - column:
+                  name: enabled

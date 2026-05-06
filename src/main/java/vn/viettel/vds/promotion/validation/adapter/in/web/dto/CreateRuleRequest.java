@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import vn.viettel.vds.promotion.validation.config.validator.ValidEnum;
+import vn.viettel.vds.promotion.validation.domain.enums.RuleContext;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +14,7 @@ import java.util.Map;
 @Schema(description = "Request to create a new rule")
 public class CreateRuleRequest {
 
-    @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K")
+    @Schema(description = "Rule code (unique identifier, auto-generated if blank)", example = "WEEKEND_VIP_500K")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("code")
     private String code;
@@ -25,15 +25,19 @@ public class CreateRuleRequest {
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Root logic operator", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
+    @Schema(description = "Root logic operator (defaults to ALL if blank)", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
     @JsonProperty("logic")
     private String logic;
 
-    @Schema(description = "Rule context (e.g., ORDER, CUSTOMER)", example = "ORDER")
+    @Schema(description = "Rule context indicating the trigger event",
+            example = "ORDER_CREATED",
+            allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED", "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
+    @NotBlank(message = "VALIDATION_RULE_CONTEXT_REQUIRED")
+    @ValidEnum(value = RuleContext.class, message = "VALIDATION_RULE_CONTEXT_INVALID")
     @JsonProperty("context")
     private String context;
 
-    @Schema(description = "Rule description")
+    @Schema(description = "Human-readable description of the rule purpose")
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     @JsonProperty("description")
     private String description;
@@ -46,6 +50,12 @@ public class CreateRuleRequest {
     @Valid
     @JsonProperty("nodes")
     private List<RuleNodeDto> nodes;
+
+    @Schema(description = "Generic fallback error message shown to users when the rule fails",
+            example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")
+    @Size(max = 500, message = "Fallback error message must not exceed 500 characters")
+    @JsonProperty("fallbackErrorMessage")
+    private String fallbackErrorMessage;
 
     @Schema(description = "Additional notes or comments")
     @Size(max = 1000, message = "Notes must not exceed 1000 characters")
@@ -107,6 +117,14 @@ public class CreateRuleRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getFallbackErrorMessage() {
+        return fallbackErrorMessage;
+    }
+
+    public void setFallbackErrorMessage(String fallbackErrorMessage) {
+        this.fallbackErrorMessage = fallbackErrorMessage;
     }
 
     public String getNotes() {

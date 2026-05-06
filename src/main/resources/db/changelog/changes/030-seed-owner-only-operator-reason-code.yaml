@@ -1,0 +1,45 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 15: Seed customer.is_owner operator + VOUCHER_NOT_OWNED_BY_CUSTOMER reason code
+  # Operator belongs to AUDIENCE category (seeded in Task 06 changeset 028).
+  # No params required — check is purely ownerCustomerId == customerId.
+  # ============================================================================
+
+  - changeSet:
+      id: 030-seed-customer-is-owner-operator
+      author: harley hoang
+      comment: Seed customer.is_owner operator for OwnerOnly rule (gap G3)
+      changes:
+        - insert:
+            tableName: operators
+            columns:
+              - column: { name: id, value: "spec-op-customer-is-owner-001" }
+              - column: { name: name, value: "customer.is_owner" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: context, value: "customer" }
+              - column: { name: category_id, value: "spec-cat-audience-001" }
+              - column: { name: display_name, value: '{"vi":"Chỉ chủ sở hữu voucher","en":"Owner only"}' }
+              - column: { name: json_schema, value: '{"type":"object","x-ui-source":"NONE","properties":{},"additionalProperties":false}' }
+              - column: { name: compiler_id, value: "tpl_customer_is_owner_v1" }
+              - column: { name: supported_verdicts, value: '["ALLOW","DENY"]' }
+              - column: { name: status, value: "ACTIVE" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: version, valueNumeric: 1 }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+
+  - changeSet:
+      id: 030-seed-voucher-not-owned-reason-code
+      author: harley hoang
+      comment: Seed reason code VOUCHER_NOT_OWNED_BY_CUSTOMER for OwnerOnly rule
+      changes:
+        - insert:
+            tableName: reason_codes
+            columns:
+              - column: { name: id, value: "rc-voucher-not-owned-001" }
+              - column: { name: code, value: "VOUCHER_NOT_OWNED_BY_CUSTOMER" }
+              - column: { name: display_message, value: '{"vi":"Khách hàng không phải chủ sở hữu mã giảm giá này","en":"Voucher not owned by this customer"}' }
+              - column: { name: severity, value: "ERROR" }
+              - column: { name: active, valueBoolean: true }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }

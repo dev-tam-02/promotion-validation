@@ -3,7 +3,10 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.MetadataSchemaEntity;
 import vn.viettel.vds.promotion.validation.domain.model.MetadataSchema;
 
@@ -61,7 +64,8 @@ public interface MetadataSchemaMapper {
         if (json == null || json.isBlank()) return Collections.emptyList();
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
         }

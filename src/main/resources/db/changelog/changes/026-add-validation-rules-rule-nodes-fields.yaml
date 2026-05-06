@@ -1,0 +1,98 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 06: Add missing fields to validation_rules and rule_nodes
+  # Spec: validation_rules.(description, idx_vr_status, idx_vr_bundle_hash)
+  #       rule_nodes.(display_order, idx_rn_rule_parent)
+  # ============================================================================
+
+  - changeSet:
+      id: 026-add-description-to-validation-rules
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: validation_rules
+              columnName: description
+      changes:
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: description
+                  type: TEXT
+                  remarks: Human-readable description of the rule
+
+  - changeSet:
+      id: 026-add-idx-vr-status
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            indexExists:
+              indexName: idx_vr_status
+              tableName: validation_rules
+      changes:
+        - createIndex:
+            indexName: idx_vr_status
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: state
+
+  - changeSet:
+      id: 026-add-idx-vr-bundle-hash
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            indexExists:
+              indexName: idx_vr_bundle_hash
+              tableName: validation_rules
+      changes:
+        - createIndex:
+            indexName: idx_vr_bundle_hash
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: bundle_hash
+
+  - changeSet:
+      id: 026-add-display-order-to-rule-nodes
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: rule_nodes
+              columnName: display_order
+      changes:
+        - addColumn:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: display_order
+                  type: INT
+                  defaultValueNumeric: 0
+                  remarks: Display order within parent (alias for node_order per spec v2)
+
+  - changeSet:
+      id: 026-add-idx-rn-rule-parent
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            indexExists:
+              indexName: idx_rn_rule_parent
+              tableName: rule_nodes
+      changes:
+        - createIndex:
+            indexName: idx_rn_rule_parent
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: validation_rule_id
+              - column:
+                  name: parent_id
+              - column:
+                  name: display_order

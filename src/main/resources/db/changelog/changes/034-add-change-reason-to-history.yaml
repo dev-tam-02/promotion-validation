@@ -1,0 +1,22 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 09 V2 Review-B: Add change_reason column to validation_rules_history.
+  # Spec §V2 requires a VARCHAR(500) reason field for audit context (e.g. why
+  # a restore was triggered). Column is nullable — existing rows keep NULL.
+  # ============================================================================
+
+  - changeSet:
+      id: 034-add-change-reason-to-history
+      author: harley hoang
+      comment: Add change_reason column to validation_rules_history
+
+      changes:
+        - addColumn:
+            tableName: validation_rules_history
+            columns:
+              - column:
+                  name: change_reason
+                  type: VARCHAR(500)
+                  constraints:
+                    nullable: true
+                  remarks: Optional human-readable reason for the change (e.g. restore target version)

@@ -30,36 +30,6 @@ public interface RuleBindingMapper {
 
     // ========== Entity to Domain ==========
 
-    @Mapping(target = "timeWindows", source = "timeWindows", qualifiedByName = "jsonToTimeWindows")
-    @Mapping(target = "excludedDates", source = "excludedDates", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "includedProducts", source = "includedProducts", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "excludedProducts", source = "excludedProducts", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "includedCategories", source = "includedCategories", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "excludedCategories", source = "excludedCategories", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "includedBrands", source = "includedBrands", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "excludedBrands", source = "excludedBrands", qualifiedByName = "jsonToStringList")
-    @Mapping(target = "stickyKeyStrategy", source = "stickyKeyStrategy", qualifiedByName = "stringToStickyKeyStrategy")
-    RuleBinding toDomain(RuleBindingEntity entity);
-
-    List<RuleBinding> toDomainList(List<RuleBindingEntity> entities);
-
-    // ========== Domain to Entity ==========
-
-    @Mapping(target = "timeWindows", source = "timeWindows", qualifiedByName = "timeWindowsToJson")
-    @Mapping(target = "excludedDates", source = "excludedDates", qualifiedByName = "stringListToJson")
-    @Mapping(target = "includedProducts", source = "includedProducts", qualifiedByName = "stringListToJson")
-    @Mapping(target = "excludedProducts", source = "excludedProducts", qualifiedByName = "stringListToJson")
-    @Mapping(target = "includedCategories", source = "includedCategories", qualifiedByName = "stringListToJson")
-    @Mapping(target = "excludedCategories", source = "excludedCategories", qualifiedByName = "stringListToJson")
-    @Mapping(target = "includedBrands", source = "includedBrands", qualifiedByName = "stringListToJson")
-    @Mapping(target = "excludedBrands", source = "excludedBrands", qualifiedByName = "stringListToJson")
-    @Mapping(target = "stickyKeyStrategy", source = "stickyKeyStrategy", qualifiedByName = "stickyKeyStrategyToString")
-    RuleBindingEntity toEntity(RuleBinding domain);
-
-    List<RuleBindingEntity> toEntityList(List<RuleBinding> domains);
-
-    // ========== JSON Conversion Methods ==========
-
     /**
      * Convert JSON string to List of TimeWindow
      */
@@ -69,7 +39,8 @@ public interface RuleBindingMapper {
             return Collections.emptyList();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<RuleBinding.TimeWindow>>() {});
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<RuleBinding.TimeWindow>>() {
+            });
         } catch (JsonProcessingException e) {
             LOGGER.warn("Failed to parse timeWindows JSON: {}", json, e);
             return Collections.emptyList();
@@ -92,6 +63,8 @@ public interface RuleBindingMapper {
         }
     }
 
+    // ========== Domain to Entity ==========
+
     /**
      * Convert JSON string to List of String
      */
@@ -101,7 +74,8 @@ public interface RuleBindingMapper {
             return Collections.emptyList();
         }
         try {
-            return OBJECT_MAPPER.readValue(json, new TypeReference<List<String>>() {});
+            return OBJECT_MAPPER.readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (JsonProcessingException e) {
             LOGGER.warn("Failed to parse string list JSON: {}", json, e);
             return Collections.emptyList();
@@ -123,6 +97,8 @@ public interface RuleBindingMapper {
             return null;
         }
     }
+
+    // ========== JSON Conversion Methods ==========
 
     /**
      * Convert String to StickyKeyStrategy enum
@@ -147,4 +123,30 @@ public interface RuleBindingMapper {
     static String stickyKeyStrategyToString(RuleBinding.StickyKeyStrategy strategy) {
         return strategy != null ? strategy.name() : null;
     }
+
+    @Mapping(target = "timeWindows", source = "timeWindows", qualifiedByName = "jsonToTimeWindows")
+    @Mapping(target = "excludedDates", source = "excludedDates", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "includedProducts", source = "includedProducts", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "excludedProducts", source = "excludedProducts", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "includedCategories", source = "includedCategories", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "excludedCategories", source = "excludedCategories", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "includedBrands", source = "includedBrands", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "excludedBrands", source = "excludedBrands", qualifiedByName = "jsonToStringList")
+    @Mapping(target = "stickyKeyStrategy", source = "stickyKeyStrategy", qualifiedByName = "stringToStickyKeyStrategy")
+    RuleBinding toDomain(RuleBindingEntity entity);
+
+    List<RuleBinding> toDomainList(List<RuleBindingEntity> entities);
+
+    @Mapping(target = "timeWindows", source = "timeWindows", qualifiedByName = "timeWindowsToJson")
+    @Mapping(target = "excludedDates", source = "excludedDates", qualifiedByName = "stringListToJson")
+    @Mapping(target = "includedProducts", source = "includedProducts", qualifiedByName = "stringListToJson")
+    @Mapping(target = "excludedProducts", source = "excludedProducts", qualifiedByName = "stringListToJson")
+    @Mapping(target = "includedCategories", source = "includedCategories", qualifiedByName = "stringListToJson")
+    @Mapping(target = "excludedCategories", source = "excludedCategories", qualifiedByName = "stringListToJson")
+    @Mapping(target = "includedBrands", source = "includedBrands", qualifiedByName = "stringListToJson")
+    @Mapping(target = "excludedBrands", source = "excludedBrands", qualifiedByName = "stringListToJson")
+    @Mapping(target = "stickyKeyStrategy", source = "stickyKeyStrategy", qualifiedByName = "stickyKeyStrategyToString")
+    RuleBindingEntity toEntity(RuleBinding domain);
+
+    List<RuleBindingEntity> toEntityList(List<RuleBinding> domains);
 }

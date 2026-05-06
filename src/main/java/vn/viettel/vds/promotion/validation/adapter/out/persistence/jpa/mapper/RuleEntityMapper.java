@@ -137,6 +137,7 @@ public interface RuleEntityMapper {
     @Mapping(target = "publishedBy", source = "publishedBy")
     @Mapping(target = "context", source = "context")
     @Mapping(target = "description", source = "description")
+    @Mapping(target = "fallbackErrorMessage", source = "fallbackErrorMessage")
     @Mapping(target = "version", source = "version")
     @Mapping(target = "nodes", ignore = true)        // Loaded separately via rule_nodes relationship
     @Mapping(target = "limits", ignore = true)       // Calculated dynamically from configuration
@@ -159,6 +160,10 @@ public interface RuleEntityMapper {
     @Mapping(target = "bundleHash", source = "bundleHash")
     @Mapping(target = "publishedAt", source = "publishedAt")
     @Mapping(target = "publishedBy", source = "publishedBy")
+    @Mapping(target = "context", source = "context")           // nullable, PATCH-clearable
+    @Mapping(target = "description", source = "description")   // nullable, PATCH-clearable
+    @Mapping(target = "fallbackErrorMessage", source = "fallbackErrorMessage")
+        // nullable, PATCH-clearable
     RuleJpaEntity toEntity(Rule domain);
 
     List<Rule> toDomainList(List<RuleJpaEntity> entities);

@@ -1,0 +1,29 @@
+databaseChangeLog:
+  # ============================================================================
+  # Add fallback_error_message column to validation_rules table.
+  # This field stores a generic error message shown to users when a rule fails
+  # and no specific reason-code message applies.
+  # ============================================================================
+
+  - changeSet:
+      id: 047-add-fallback-error-message-to-validation-rules
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: validation_rules
+              columnName: fallback_error_message
+      changes:
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: fallback_error_message
+                  type: TEXT
+                  remarks: Generic fallback error message shown to users when the rule fails and no specific reason-code message applies
+
+      rollback:
+        - dropColumn:
+            tableName: validation_rules
+            columnName: fallback_error_message

@@ -5,11 +5,11 @@ import io.github.resilience4j.retry.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
-import java.time.Instant;
 import vn.viettel.vds.promotion.validation.domain.exception.FactResolutionException;
 import vn.viettel.vds.promotion.validation.domain.fact.FactRequest;
 import vn.viettel.vds.promotion.validation.domain.fact.SegmentsFact;
 
+import java.time.Instant;
 import java.util.*;
 
 /**

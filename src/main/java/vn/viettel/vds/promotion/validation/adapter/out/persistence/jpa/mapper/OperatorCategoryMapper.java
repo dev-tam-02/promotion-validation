@@ -3,7 +3,10 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.mapstruct.ReportingPolicy;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorCategoryEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorOptionEntity;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
@@ -109,7 +112,8 @@ public interface OperatorCategoryMapper {
     default List<String> parseJsonList(String json, ObjectMapper objectMapper) {
         if (json == null || json.isBlank()) return Collections.emptyList();
         try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
         }
@@ -118,7 +122,8 @@ public interface OperatorCategoryMapper {
     default List<OperatorOption.ValueOption> parseValueOptions(String json, ObjectMapper objectMapper) {
         if (json == null || json.isBlank()) return Collections.emptyList();
         try {
-            List<java.util.Map<String, String>> options = objectMapper.readValue(json, new TypeReference<>() {});
+            List<java.util.Map<String, String>> options = objectMapper.readValue(json, new TypeReference<>() {
+            });
             return options.stream()
                     .map(opt -> OperatorOption.ValueOption.builder()
                             .value(opt.get("value"))

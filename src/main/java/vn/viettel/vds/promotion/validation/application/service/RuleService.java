@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.core.util.IdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -12,19 +13,8 @@ import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersi
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStateTransitionException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
-import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-
-import com.promix.platform.core.util.IdGenerator;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +31,7 @@ public class RuleService {
     private final RuleBindingPersistencePort ruleBindingPort;
     private final OutboxEventPersistencePort outboxEventPort;
     private final RuleService self;
+    private final RuleLinter ruleLinter;
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
@@ -50,6 +41,7 @@ public class RuleService {
         this.ruleBindingPort = ruleBindingPort;
         this.outboxEventPort = outboxEventPort;
         this.self = self;
+        this.ruleLinter = new RuleLinter();
     }
 
     /**
@@ -76,12 +68,16 @@ public class RuleService {
      */
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String createdBy) {
-        return createRule(code, name, logic, nodes, null, null, createdBy);
+        return createRule(code, name, logic, nodes, null, null, null, createdBy);
     }
 
+    /**
+     * Create a new rule with optional context, description and fallbackErrorMessage.
+     * Auto-generates code if blank and defaults logic to ALL when null.
+     */
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
-                           String createdBy) {
+                           String fallbackErrorMessage, String createdBy) {
         // Auto-generate code if not provided
         String effectiveCode = (code != null && !code.isBlank()) ? code : generateRuleId();
         logger.info("Creating rule: code={}", effectiveCode);
@@ -99,6 +95,16 @@ public class RuleService {
         // Default logic to ALL if not provided
         Rule.LogicType effectiveLogic = (logic != null) ? logic : Rule.LogicType.ALL;
 
+        // Static lint analysis — errors block save, warnings are logged
+        LintReport lintReport = ruleLinter.lint(null, nodes);
+        if (lintReport.hasErrors()) {
+            throw new RuleValidationFailedException(
+                    "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+        }
+        if (lintReport.hasWarnings()) {
+            logger.warn("createRule lint warnings for code={}: {}", effectiveCode, lintReport.warnings());
+        }
+
         Rule rule = new Rule();
         rule.setId(generateRuleId());
         rule.setCode(effectiveCode);
@@ -109,6 +115,7 @@ public class RuleService {
         rule.setNodes(nodes);
         rule.setContext(context);
         rule.setDescription(description);
+        rule.setFallbackErrorMessage(fallbackErrorMessage);
         rule.setCreatedAt(Instant.now());
         rule.setCreatedBy(createdBy);
         rule.setUpdatedAt(Instant.now());
@@ -133,9 +140,24 @@ public class RuleService {
      */
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String updatedBy) {
+        return updateRule(ruleId, name, logic, nodes, null, null, null, updatedBy);
+    }
+
+    /**
+     * Update an existing rule with optional context, description and fallbackErrorMessage.
+     * PATCH semantics: only fields that are non-null are updated.
+     */
+    public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
+                           List<RuleNode> nodes, String context, String description,
+                           String fallbackErrorMessage, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = self.getRuleById(ruleId);
+
+        // System rules are immutable
+        if (rule.isSystem()) {
+            throw new SystemRuleProtectedException(ruleId);
+        }
 
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
@@ -145,6 +167,15 @@ public class RuleService {
         // Validate rule nodes if provided
         if (nodes != null) {
             validateRuleNodes(nodes);
+            // Static lint analysis — errors block save, warnings are logged
+            LintReport lintReport = ruleLinter.lint(rule, nodes);
+            if (lintReport.hasErrors()) {
+                throw new RuleValidationFailedException(
+                        "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
+            }
+            if (lintReport.hasWarnings()) {
+                logger.warn("updateRule lint warnings for ruleId={}: {}", ruleId, lintReport.warnings());
+            }
             rule.setNodes(nodes);
         }
 
@@ -154,6 +185,18 @@ public class RuleService {
 
         if (logic != null) {
             rule.setLogic(logic);
+        }
+
+        if (context != null) {
+            rule.setContext(context);
+        }
+
+        if (description != null) {
+            rule.setDescription(description);
+        }
+
+        if (fallbackErrorMessage != null) {
+            rule.setFallbackErrorMessage(fallbackErrorMessage);
         }
 
         rule.setUpdatedAt(Instant.now());
@@ -307,7 +350,13 @@ public class RuleService {
                     return new RuleNotFoundException(ruleId);
                 });
 
-        // Step 2: Check version (optimistic locking)
+        // Step 2: Guard — system rules cannot be deleted
+        if (rule.isSystem()) {
+            logger.warn("Rejected delete of system rule: id={}", ruleId);
+            throw new SystemRuleProtectedException(ruleId);
+        }
+
+        // Step 3: Check version (optimistic locking)
         Long currentVersion = rule.getVersion();
         if (currentVersion != null && currentVersion != version) {
             logger.warn("Version conflict on delete: id={}, expected={}, actual={}", ruleId, version, currentVersion);
@@ -316,14 +365,14 @@ public class RuleService {
             );
         }
 
-        // Step 3: Check no bindings exist
+        // Step 4: Check no bindings exist
         long bindingCount = ruleBindingPort.countByRuleId(ruleId);
         if (bindingCount > 0) {
             logger.warn("Cannot delete rule with bindings: id={}, bindingCount={}", ruleId, bindingCount);
             throw new RuleHasBindingsException(ruleId, bindingCount);
         }
 
-        // Step 4: Transaction - delete nodes, delete rule, insert outbox event
+        // Step 5: Transaction - delete nodes, delete rule, insert outbox event
         rulePersistencePort.deleteNodesByRuleId(ruleId);
         rulePersistencePort.deleteById(ruleId);
 

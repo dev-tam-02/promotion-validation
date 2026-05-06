@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.domain.Persistable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RuleJpaEntity {
+public class RuleJpaEntity implements Persistable<String> {
 
     @Id
     @Column(name = "id", length = 36)
@@ -82,8 +83,15 @@ public class RuleJpaEntity {
     @Column(name = "description", length = 1000)
     private String description;
 
+    @Column(name = "fallback_error_message", length = 500)
+    private String fallbackErrorMessage;
+
+    @Version
     @Column(name = "version", nullable = false)
     private Long version;
+
+    @Column(name = "is_system", nullable = false)
+    private boolean isSystem;
 
     @ElementCollection
     @CollectionTable(
@@ -132,5 +140,26 @@ public class RuleJpaEntity {
         if (state == null) {
             state = "DRAFT";
         }
+    }
+
+    /**
+     * BUG-024 fix: Spring Data JPA's default {@code SimpleJpaRepository.save()} chooses
+     * between {@code persist()} and {@code merge()} via {@link #isNew()}. Without this
+     * override, an entity assembled by builder with a non-null UUIDv7 {@code id} and a
+     * default {@code version=0L} (after commit {@code d7c189d} added {@code @Version})
+     * is treated as <i>existing</i>, so {@code save()} issues an UPDATE that matches
+     * zero rows → {@code StaleObjectStateException}.
+     * <p>
+     * We treat the entity as new whenever the {@code @Version} field is null. The
+     * Path-B builder leaves {@code version} null for freshly auto-generated rules, so
+     * Spring Data routes them through {@code persist()} (INSERT). After persist the
+     * {@code @PrePersist} callback assigns version=0; subsequent updates load the
+     * entity with version != null, so {@code isNew()} returns false and the optimistic
+     * lock check in {@code merge()} still applies on Path A (existing rule update).
+     */
+    @Override
+    @Transient
+    public boolean isNew() {
+        return version == null;
     }
 }

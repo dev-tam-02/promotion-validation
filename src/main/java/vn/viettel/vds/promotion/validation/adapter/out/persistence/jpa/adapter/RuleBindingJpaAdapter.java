@@ -13,7 +13,6 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -221,6 +220,18 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
     public int deleteByObject(String objectType, String objectId) {
         log.info("Deleting rule bindings by object: type={}, id={}", objectType, objectId);
         return repository.deleteByObject(objectType, objectId);
+    }
+
+    @Override
+    public int deleteByObjectIgnoreCase(String objectType, String objectId) {
+        log.info("Deleting rule bindings by object (case-insensitive): type={}, id={}", objectType, objectId);
+        return repository.deleteByObjectIgnoreCase(objectType, objectId);
+    }
+
+    @Override
+    public List<RuleBinding> findByObjectIgnoreCase(String objectType, String objectId) {
+        log.debug("Finding rule bindings by object (case-insensitive): type={}, id={}", objectType, objectId);
+        return mapper.toDomainList(repository.findByObjectIgnoreCase(objectType, objectId));
     }
 
     @Override

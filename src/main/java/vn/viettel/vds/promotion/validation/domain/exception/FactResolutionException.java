@@ -42,14 +42,6 @@ public class FactResolutionException extends ExternalServiceException {
         this.resolutionMode = resolutionMode;
     }
 
-    public String getContextName() {
-        return contextName;
-    }
-
-    public String getResolutionMode() {
-        return resolutionMode;
-    }
-
     private static Map<String, Object> buildParams(String contextName, String resolutionMode) {
         Map<String, Object> params = new HashMap<>();
         params.put("serviceName", SERVICE_NAME);
@@ -60,5 +52,13 @@ public class FactResolutionException extends ExternalServiceException {
             params.put("resolutionMode", resolutionMode);
         }
         return params;
+    }
+
+    public String getContextName() {
+        return contextName;
+    }
+
+    public String getResolutionMode() {
+        return resolutionMode;
     }
 }

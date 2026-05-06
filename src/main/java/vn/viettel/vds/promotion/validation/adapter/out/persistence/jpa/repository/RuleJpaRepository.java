@@ -74,4 +74,10 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
      */
     @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' ORDER BY r.ruleVersion DESC")
     List<RuleJpaEntity> findPublishedRules();
+
+    /**
+     * Find PUBLISHED rules with no bundleHash — used by bootstrap runner to compile seeded system rules.
+     */
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' AND r.bundleHash IS NULL")
+    List<RuleJpaEntity> findPublishedWithNullBundleHash();
 }

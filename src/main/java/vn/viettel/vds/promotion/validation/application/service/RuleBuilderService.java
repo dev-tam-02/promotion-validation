@@ -104,8 +104,8 @@ public class RuleBuilderService {
     private RuleCategoryResponse mapCategoryToResponse(OperatorCategory category) {
         List<RuleItemResponse> rules = category.getOptions() != null
                 ? category.getOptions().stream()
-                        .map(this::mapOptionToRuleItem)
-                        .toList()
+                .map(this::mapOptionToRuleItem)
+                .toList()
                 : Collections.emptyList();
 
         return RuleCategoryResponse.builder()
@@ -292,7 +292,8 @@ public class RuleBuilderService {
             case OP_NOT_EQUALS -> OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS);
             case "in" -> OperatorResponse.of("in", OP_LABEL_IS_ANY_OF, "Thuộc một trong");
             case OP_NOT_IN -> OperatorResponse.of(OP_NOT_IN, OP_LABEL_IS_NONE_OF, "Không thuộc bất kỳ");
-            case "gte", "greater_than_or_equal" -> OperatorResponse.of("gte", "greater than or equal", "Lớn hơn hoặc bằng");
+            case "gte", "greater_than_or_equal" ->
+                    OperatorResponse.of("gte", "greater than or equal", "Lớn hơn hoặc bằng");
             case "gt", "greater_than" -> OperatorResponse.of("gt", "greater than", "Lớn hơn");
             case "lte", "less_than_or_equal" -> OperatorResponse.of("lte", "less than or equal", "Nhỏ hơn hoặc bằng");
             case "lt", "less_than" -> OperatorResponse.of("lt", "less than", "Nhỏ hơn");
