@@ -1,0 +1,316 @@
+databaseChangeLog:
+  # ============================================================================
+  # T5: Seed 9 missing operator_options for FE mock coverage
+  # 9 operators already have Java translators in pp-rule-engine but were missing
+  # operator_options rows needed for FE rule-builder catalog display.
+  #
+  # Note: product_sku is updated (operator_name was order.item.product.applicable,
+  # corrected to order.item.sku.in which matches OrderItemSkuInOperatorTranslator).
+  # 8 others are new inserts.
+  #
+  # Translator operator names verified against pp-rule-engine source:
+  #   order.item.sku.in                    → OrderItemSkuInOperatorTranslator
+  #   order.item.product.applicable.all    → OrderItemProductApplicableAllOperatorTranslator
+  #   order.item.product.applicable.none   → OrderItemProductApplicableNoneOperatorTranslator
+  #   order.item.price.forall.gte          → OrderItemPriceForallGteOperatorTranslator
+  #   order.item.most_expensive.in         → OrderItemMostExpensiveInOperatorTranslator
+  #   order.item.cheapest.in               → OrderItemCheapestInOperatorTranslator
+  #   budget.orders_value.total.lte        → BudgetOrdersValueLteOperatorTranslator
+  #   budget.discounted_amount.total.lte   → BudgetDiscountedAmountLteOperatorTranslator
+  #   customer.lifetime.value.gte          → CustomerLifetimeValueGteOperatorTranslator
+  # ============================================================================
+
+  # --------------------------------------------------------------------------
+  # Update product_sku: switch operator from order.item.product.applicable
+  # (product-ID based) to order.item.sku.in (SKU string based)
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 040-update-product-sku-operator
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.sku.in" }
+              - column: { name: name, value: "Product SKU" }
+              - column: { name: name_vi, value: "Mã SKU sản phẩm" }
+              - column: { name: description, value: "Filter by specific product SKU codes in order items" }
+              - column: { name: description_vi, value: "Lọc theo mã SKU sản phẩm cụ thể trong đơn hàng" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select product SKUs" }
+              - column: { name: label_vi, value: "Chọn mã SKU sản phẩm" }
+              - column: { name: placeholder_en, value: "Search by SKU or name..." }
+              - column: { name: placeholder_vi, value: "Tìm theo SKU hoặc tên sản phẩm..." }
+            where: "code='product_sku' AND category_id='cat-products-001'"
+
+  # --------------------------------------------------------------------------
+  # Products category: EVERY_ORDER_ITEM + NONE_OF_ORDER_ITEMS
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 040-seed-fe-mock-products
+      author: harley hoang
+      changes:
+        # EVERY_ORDER_ITEM — order.item.product.applicable.all
+        # Checks that every item's productId is in the selected product list (forall pattern)
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-every-order-item-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "every_order_item" }
+              - column: { name: name, value: "Every order item" }
+              - column: { name: name_vi, value: "Mọi sản phẩm trong đơn" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "All items in the order must match the selected products" }
+              - column: { name: description_vi, value: "Tất cả sản phẩm trong đơn hàng phải thuộc danh sách được chọn" }
+              - column: { name: operator_name, value: "order.item.product.applicable.all" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select products" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: placeholder_en, value: "Choose applicable products..." }
+              - column: { name: placeholder_vi, value: "Chọn sản phẩm áp dụng..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # NONE_OF_ORDER_ITEMS — order.item.product.applicable.none
+        # Checks that none of the items' productId appears in the selected product list
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-none-of-order-items-001" }
+              - column: { name: category_id, value: "cat-products-001" }
+              - column: { name: code, value: "none_of_order_items" }
+              - column: { name: name, value: "None of order items" }
+              - column: { name: name_vi, value: "Không có sản phẩm nào trong đơn" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: description, value: "No items in the order should match the excluded products" }
+              - column: { name: description_vi, value: "Không có sản phẩm nào trong đơn hàng thuộc danh sách loại trừ" }
+              - column: { name: operator_name, value: "order.item.product.applicable.none" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "not_in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Excluded products" }
+              - column: { name: label_vi, value: "Sản phẩm loại trừ" }
+              - column: { name: placeholder_en, value: "Choose excluded products..." }
+              - column: { name: placeholder_vi, value: "Chọn sản phẩm loại trừ..." }
+              - column: { name: is_active, valueBoolean: true }
+
+  # --------------------------------------------------------------------------
+  # Prices & Quantities category: PRICE_OF_EACH_ITEM, MOST_EXPENSIVE_ITEM, CHEAPEST_ITEM
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 040-seed-fe-mock-prices
+      author: harley hoang
+      changes:
+        # PRICE_OF_EACH_ITEM — order.item.price.forall.gte
+        # Checks that all items have price >= minPrice (forall pattern, numeric param)
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-price-of-each-item-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "price_of_each_item" }
+              - column: { name: name, value: "Price of each item" }
+              - column: { name: name_vi, value: "Đơn giá mỗi sản phẩm" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: description, value: "Price condition applies to every item in the order" }
+              - column: { name: description_vi, value: "Điều kiện giá áp dụng cho từng sản phẩm trong đơn hàng" }
+              - column: { name: operator_name, value: "order.item.price.forall.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "equals", "between"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000" }
+              - column: { name: label_en, value: "Price per item" }
+              - column: { name: label_vi, value: "Đơn giá" }
+              - column: { name: placeholder_en, value: "Enter price..." }
+              - column: { name: placeholder_vi, value: "Nhập đơn giá..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # MOST_EXPENSIVE_ITEM — order.item.most_expensive.in
+        # Checks if the most expensive item's productId is in the selected product list
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-most-expensive-item-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "most_expensive_item" }
+              - column: { name: name, value: "Most expensive item" }
+              - column: { name: name_vi, value: "Sản phẩm đắt nhất" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: description, value: "The most expensive item in the order must match selected products" }
+              - column: { name: description_vi, value: "Sản phẩm đắt nhất trong đơn hàng phải thuộc danh sách được chọn" }
+              - column: { name: operator_name, value: "order.item.most_expensive.in" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select products" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: placeholder_en, value: "Choose products..." }
+              - column: { name: placeholder_vi, value: "Chọn sản phẩm..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # CHEAPEST_ITEM — order.item.cheapest.in
+        # Checks if the cheapest item's productId is in the selected product list
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-cheapest-item-001" }
+              - column: { name: category_id, value: "cat-prices-001" }
+              - column: { name: code, value: "cheapest_item" }
+              - column: { name: name, value: "Cheapest item" }
+              - column: { name: name_vi, value: "Sản phẩm rẻ nhất" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: description, value: "The cheapest item in the order must match selected products" }
+              - column: { name: description_vi, value: "Sản phẩm rẻ nhất trong đơn hàng phải thuộc danh sách được chọn" }
+              - column: { name: operator_name, value: "order.item.cheapest.in" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["in", "not_in"]' }
+              - column: { name: default_comparator, value: "in" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_source_type, value: "PRODUCT" }
+              - column: { name: data_source_endpoint, value: "/product/api/v1/products" }
+              - column: { name: input_multiple, valueBoolean: true }
+              - column: { name: input_searchable, valueBoolean: true }
+              - column: { name: label_en, value: "Select products" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: placeholder_en, value: "Choose products..." }
+              - column: { name: placeholder_vi, value: "Chọn sản phẩm..." }
+              - column: { name: is_active, valueBoolean: true }
+
+  # --------------------------------------------------------------------------
+  # Budget & Constraints category: TOTAL_ORDERS_VALUE, TOTAL_DISCOUNTED_AMOUNT
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 040-seed-fe-mock-budget
+      author: harley hoang
+      changes:
+        # TOTAL_ORDERS_VALUE — budget.orders_value.total.lte
+        # Checks total orders value against a budget limit (maxValue param)
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-orders-value-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_orders_value" }
+              - column: { name: name, value: "Total orders value" }
+              - column: { name: name_vi, value: "Tổng giá trị đơn hàng (ngân sách)" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: description, value: "Budget limit on total value of all orders in campaign" }
+              - column: { name: description_vi, value: "Giới hạn ngân sách tổng giá trị tất cả đơn hàng trong chiến dịch" }
+              - column: { name: operator_name, value: "budget.orders_value.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte", "equals", "gte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000000" }
+              - column: { name: label_en, value: "Budget limit" }
+              - column: { name: label_vi, value: "Giới hạn ngân sách" }
+              - column: { name: placeholder_en, value: "Enter budget limit..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn ngân sách..." }
+              - column: { name: is_active, valueBoolean: true }
+
+        # TOTAL_DISCOUNTED_AMOUNT — budget.discounted_amount.total.lte
+        # Checks total discounted amount against a budget cap (maxValue param)
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-discounted-amount-001" }
+              - column: { name: category_id, value: "cat-budget-001" }
+              - column: { name: code, value: "total_discounted_amount" }
+              - column: { name: name, value: "Total discounted amount" }
+              - column: { name: name_vi, value: "Tổng số tiền đã giảm giá" }
+              - column: { name: display_order, valueNumeric: 9 }
+              - column: { name: description, value: "Budget cap on total discounted amount across all redemptions" }
+              - column: { name: description_vi, value: "Giới hạn tổng số tiền đã giảm giá trên tất cả lần sử dụng" }
+              - column: { name: operator_name, value: "budget.discounted_amount.total.lte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["lte", "equals", "gte"]' }
+              - column: { name: default_comparator, value: "lte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000000" }
+              - column: { name: label_en, value: "Amount cap" }
+              - column: { name: label_vi, value: "Giới hạn số tiền giảm giá" }
+              - column: { name: placeholder_en, value: "Enter amount cap..." }
+              - column: { name: placeholder_vi, value: "Nhập giới hạn số tiền..." }
+              - column: { name: is_active, valueBoolean: true }
+
+  # --------------------------------------------------------------------------
+  # Customer Metadata category: CUSTOMER_LIFE_TIME_VALUE
+  # --------------------------------------------------------------------------
+  - changeSet:
+      id: 040-seed-fe-mock-customer-meta
+      author: harley hoang
+      changes:
+        # CUSTOMER_LIFE_TIME_VALUE — customer.lifetime.value.gte
+        # Checks customer's lifetimeValue >= minValue
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-customer-lifetime-value-001" }
+              - column: { name: category_id, value: "cat-customer-meta-001" }
+              - column: { name: code, value: "customer_life_time_value" }
+              - column: { name: name, value: "Customer lifetime value" }
+              - column: { name: name_vi, value: "Giá trị vòng đời khách hàng" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "Filter by total lifetime spending value of the customer" }
+              - column: { name: description_vi, value: "Lọc theo tổng giá trị chi tiêu vòng đời của khách hàng" }
+              - column: { name: operator_name, value: "customer.lifetime.value.gte" }
+              - column: { name: operator_version, valueNumeric: 1 }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: available_comparators, value: '["gte", "lte", "equals", "between"]' }
+              - column: { name: default_comparator, value: "gte" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: input_type, value: "number" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: input_step, value: "1000000" }
+              - column: { name: label_en, value: "Lifetime value" }
+              - column: { name: label_vi, value: "Giá trị vòng đời" }
+              - column: { name: placeholder_en, value: "Enter lifetime value..." }
+              - column: { name: placeholder_vi, value: "Nhập giá trị vòng đời..." }
+              - column: { name: is_active, valueBoolean: true }

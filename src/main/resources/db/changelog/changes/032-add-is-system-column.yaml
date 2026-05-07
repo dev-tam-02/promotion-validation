@@ -1,0 +1,33 @@
+databaseChangeLog:
+  # ============================================================================
+  # Review-B Fix: Add is_system column to validation_rules to protect
+  # system-managed rules from deletion or mutation via the admin API.
+  # ============================================================================
+
+  - changeSet:
+      id: 032-add-is-system-column
+      author: harley hoang
+      comment: Add is_system boolean column to validation_rules (default FALSE)
+      changes:
+        - addColumn:
+            tableName: validation_rules
+            columns:
+              - column:
+                  name: is_system
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 032-mark-owner-only-rule-as-system
+      author: harley hoang
+      comment: Mark rule-sys-owner-only as a system rule
+      changes:
+        - update:
+            tableName: validation_rules
+            where: id = 'rule-sys-owner-only'
+            columns:
+              - column:
+                  name: is_system
+                  valueBoolean: true

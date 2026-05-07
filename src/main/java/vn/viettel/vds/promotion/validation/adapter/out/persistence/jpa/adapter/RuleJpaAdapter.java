@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -17,17 +18,11 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleNodeRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -35,14 +30,12 @@ import java.util.stream.Collectors;
 public class RuleJpaAdapter implements RulePersistencePort {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleJpaAdapter.class);
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
     private final RuleJpaRepository repository;
     private final RuleEntityMapper mapper;
     private final RuleNodeRepository nodeRepository;
     private final RuleNodeEntityMapper nodeMapper;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public RuleJpaAdapter(RuleJpaRepository repository, RuleEntityMapper mapper,
                           RuleNodeRepository nodeRepository, RuleNodeEntityMapper nodeMapper) {
@@ -57,14 +50,31 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.debug("[RULE_SAVE] Starting save rule: id={}, code={}", rule.getId(), rule.getCode());
         RuleJpaEntity entity = mapper.toEntity(rule);
         logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, state={}", entity.getId(), entity.getState());
-        RuleJpaEntity saved = repository.save(entity);
+        RuleJpaEntity saved;
+        try {
+            saved = repository.save(entity);
+        } catch (OptimisticLockingFailureException ex) {
+            logger.warn("[RULE_SAVE] Optimistic lock conflict for rule: id={}", rule.getId());
+            throw new RuleVersionConflictException(rule.getId());
+        }
         logger.info("[RULE_SAVE] Rule saved successfully: id={}, code={}", saved.getId(), saved.getCode());
 
         if (rule.getNodes() != null && !rule.getNodes().isEmpty()) {
             saveRuleNodes(saved.getId(), rule.getNodes());
         }
 
-        return mapper.toDomain(saved);
+        // Reload nodes from DB so the returned Rule includes them in its response.
+        // mapper.toDomain(saved) only maps the rule row — nodes live in a separate
+        // table and must be fetched explicitly.
+        Rule result = mapper.toDomain(saved);
+        List<RuleNodeEntity> savedNodeEntities =
+                nodeRepository.findByValidationRuleIdOrderByOrder(saved.getId());
+        if (savedNodeEntities != null && !savedNodeEntities.isEmpty()) {
+            logger.debug("[RULE_SAVE] Reloading {} node(s) into returned rule: id={}",
+                    savedNodeEntities.size(), saved.getId());
+            result.setNodes(nodeMapper.toDomainList(savedNodeEntities));
+        }
+        return result;
     }
 
     private void saveRuleNodes(String ruleId, List<RuleNode> nodes) {
@@ -120,8 +130,8 @@ public class RuleJpaAdapter implements RulePersistencePort {
      * Save a node and its children recursively (DFS), setting proper parent references.
      */
     private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
-                              ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
-                              List<RuleNodeEntity> savedEntities) {
+                             ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
+                             List<RuleNodeEntity> savedEntities) {
         RuleNode node = nodeMap.get(nodeId);
         if (node == null) return;
         RuleNodeEntity entity = nodeMapper.toEntity(node, parentEntity);
@@ -333,6 +343,13 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.debug("[RULE_DELETE] Deleting nodes for rule: {}", ruleId);
         nodeRepository.deleteByValidationRuleId(ruleId);
         logger.info("[RULE_DELETE] Deleted nodes for rule: {}", ruleId);
+    }
+
+    @Override
+    public List<Rule> findPublishedWithNullBundleHash() {
+        return repository.findPublishedWithNullBundleHash().stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {

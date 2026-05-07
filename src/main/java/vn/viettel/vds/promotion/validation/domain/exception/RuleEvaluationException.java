@@ -45,6 +45,20 @@ public class RuleEvaluationException extends BusinessRuleException {
         this.operator = operator;
     }
 
+    private static Map<String, Object> buildParams(String nodeId, String field, String operator) {
+        Map<String, Object> params = new HashMap<>();
+        if (nodeId != null) {
+            params.put("nodeId", nodeId);
+        }
+        if (field != null) {
+            params.put("field", field);
+        }
+        if (operator != null) {
+            params.put("operator", operator);
+        }
+        return params;
+    }
+
     public String getNodeId() {
         return nodeId;
     }
@@ -73,19 +87,5 @@ public class RuleEvaluationException extends BusinessRuleException {
             sb.append("]");
         }
         return sb.toString();
-    }
-
-    private static Map<String, Object> buildParams(String nodeId, String field, String operator) {
-        Map<String, Object> params = new HashMap<>();
-        if (nodeId != null) {
-            params.put("nodeId", nodeId);
-        }
-        if (field != null) {
-            params.put("field", field);
-        }
-        if (operator != null) {
-            params.put("operator", operator);
-        }
-        return params;
     }
 }

@@ -10,7 +10,6 @@ import vn.viettel.vds.promotion.validation.domain.model.ValidationResult;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

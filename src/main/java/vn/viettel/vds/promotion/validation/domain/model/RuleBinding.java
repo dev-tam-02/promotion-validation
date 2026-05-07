@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Domain model representing a binding between a validation rule and an object entity.
@@ -136,6 +137,44 @@ public class RuleBinding {
      */
     private StickyKeyStrategy stickyKeyStrategy;
 
+    // ========== Structured Scope (V3 JSON Schema spec) ==========
+
+    /**
+     * Structured time-windows scope validated against {@code time_windows.schema.json}.
+     * <pre>
+     * {
+     *   "rrule": "FREQ=WEEKLY;BYDAY=MO,TU",  // required — RFC 5545
+     *   "duration": "PT2H",                   // optional — ISO 8601
+     *   "timezone": "Asia/Ho_Chi_Minh"        // optional — IANA tz
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeTimeWindows;
+
+    /**
+     * Structured product-scope validated against {@code product_scope.schema.json}.
+     * <pre>
+     * {
+     *   "include": { "product_ids": [...], "category_ids": [...] },
+     *   "exclude": { "tags": ["PREMIUM"] },
+     *   "match_logic": "ANY"
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeProductScope;
+
+    /**
+     * Structured traffic-control scope validated against {@code traffic_control.schema.json}.
+     * <pre>
+     * {
+     *   "bucket_algorithm": "HASH_SHA256",
+     *   "percentage": 50,
+     *   "rate_limit": { "per_second": 100, "per_minute": 5000 }
+     * }
+     * </pre>
+     */
+    private Map<String, Object> scopeTrafficControl;
+
     // ========== Compiled ==========
     /**
      * Hash of the compiled DRL bundle for this binding.
@@ -151,59 +190,6 @@ public class RuleBinding {
     private Long version;
 
     // ========== Embedded Types ==========
-
-    /**
-     * Time window within a day
-     */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TimeWindow {
-        /**
-         * Start time in HH:mm format (e.g., "09:00")
-         */
-        private String start;
-
-        /**
-         * End time in HH:mm format (e.g., "17:00")
-         */
-        private String end;
-    }
-
-    /**
-     * Strategy for sticky key in traffic control
-     */
-    public enum StickyKeyStrategy {
-        /**
-         * Same customer always gets the same decision
-         */
-        CUSTOMER_ID,
-
-        /**
-         * Same order always gets the same decision
-         */
-        ORDER_ID,
-
-        /**
-         * Same device always gets the same decision
-         */
-        DEVICE_ID
-    }
-
-    /**
-     * Supported object types
-     */
-    public enum ObjectType {
-        CAMPAIGN,
-        DISCOUNT,
-        VOUCHER,
-        CASHBACK,
-        PROMOTION,
-        REWARD
-    }
-
-    // ========== Business Methods ==========
 
     /**
      * Check if this binding is active
@@ -256,6 +242,8 @@ public class RuleBinding {
     public boolean isEffective() {
         return isEffectiveAt(Instant.now());
     }
+
+    // ========== Business Methods ==========
 
     /**
      * Check if current time falls within any of the time windows
@@ -357,5 +345,56 @@ public class RuleBinding {
                 validTo != null ||
                 (rrule != null && !rrule.isEmpty()) ||
                 (timeWindows != null && !timeWindows.isEmpty());
+    }
+
+    /**
+     * Strategy for sticky key in traffic control
+     */
+    public enum StickyKeyStrategy {
+        /**
+         * Same customer always gets the same decision
+         */
+        CUSTOMER_ID,
+
+        /**
+         * Same order always gets the same decision
+         */
+        ORDER_ID,
+
+        /**
+         * Same device always gets the same decision
+         */
+        DEVICE_ID
+    }
+
+    /**
+     * Supported object types
+     */
+    public enum ObjectType {
+        CAMPAIGN,
+        DISCOUNT,
+        VOUCHER,
+        CASHBACK,
+        PROMOTION,
+        REWARD
+    }
+
+    /**
+     * Time window within a day
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TimeWindow {
+        /**
+         * Start time in HH:mm format (e.g., "09:00")
+         */
+        private String start;
+
+        /**
+         * End time in HH:mm format (e.g., "17:00")
+         */
+        private String end;
     }
 }

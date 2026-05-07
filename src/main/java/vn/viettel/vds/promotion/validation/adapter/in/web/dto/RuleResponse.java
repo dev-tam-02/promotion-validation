@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -7,7 +8,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-@Schema(description = "Rule response")
+/**
+ * Full rule response DTO — used for single-rule detail endpoint ({@code GET /v1/rules/{id}}).
+ *
+ * <p>For the list endpoint ({@code GET /v1/rules}) use {@link RuleListItemResponse} instead,
+ * which omits heavy fields (description, fallbackErrorMessage, nodes, limits, logic)
+ * that are unnecessary when rendering table rows.</p>
+ */
+@Schema(description = "Full rule response (detail view). For list views use RuleListItemResponse.")
 public class RuleResponse {
 
     @Schema(description = "Rule ID", example = "rul_t1_WEEKEND_VIP_500K")
@@ -33,6 +41,11 @@ public class RuleResponse {
     @Schema(description = "Rule description")
     @JsonProperty("description")
     private String description;
+
+    @Schema(description = "Generic fallback error message shown to users when the rule fails",
+            example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")
+    @JsonProperty("fallbackErrorMessage")
+    private String fallbackErrorMessage;
 
     @Schema(description = "Number of condition nodes in the rule")
     @JsonProperty("nodeCount")
@@ -65,6 +78,11 @@ public class RuleResponse {
     @Schema(description = "Additional notes or comments")
     @JsonProperty("notes")
     private String notes;
+
+    @Schema(description = "Lint analysis report (null if no issues found)")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("lint")
+    private LintReportDto lint;
 
     @Schema(description = "Creation timestamp")
     @JsonProperty("createdAt")
@@ -105,6 +123,14 @@ public class RuleResponse {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getFallbackErrorMessage() {
+        return fallbackErrorMessage;
+    }
+
+    public void setFallbackErrorMessage(String fallbackErrorMessage) {
+        this.fallbackErrorMessage = fallbackErrorMessage;
     }
 
     public Integer getNodeCount() {
@@ -249,5 +275,13 @@ public class RuleResponse {
 
     public void setUpdatedBy(String updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public LintReportDto getLint() {
+        return lint;
+    }
+
+    public void setLint(LintReportDto lint) {
+        this.lint = lint;
     }
 }

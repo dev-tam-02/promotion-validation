@@ -123,21 +123,25 @@ public class SettingValidationRuleEventPublisher {
         CommandMappingService.ApplicabilityStats stats =
                 mappingService.calculateApplicabilityStats(result.getApplicabilityData());
 
-        // Build Assignment Result (using binding data)
+        // Build Assignment Result — populate bundleHash and sourceVersion so the
+        // pp-rule-engine consumer can upsert the assignment idempotently.
         ValidationRuleSettingAppliedEventPayload.AssignmentResult assignmentResult =
                 ValidationRuleSettingAppliedEventPayload.AssignmentResult.builder()
                         .assignmentId(binding.getId())
                         .ruleId(binding.getRuleId())
+                        .bundleHash(binding.getBundleHash())
+                        .sourceVersion(binding.getVersion())
                         .active(Boolean.TRUE.equals(binding.getActive()))
                         .trafficPercent(binding.getTrafficPercent() != null ? binding.getTrafficPercent() : 100)
                         .priority(binding.getPriority() != null ? binding.getPriority() : 0)
                         .build();
 
-        // Build Applicability Result
+        // Build Applicability Result — carry the canonical (subjectType, subjectKey)
+        // straight from the binding so the data plane can key off the same pair.
         ValidationRuleSettingAppliedEventPayload.ApplicabilityResult applicabilityResult =
                 ValidationRuleSettingAppliedEventPayload.ApplicabilityResult.builder()
-                        .subjectType("PRODUCT")
-                        .subjectKey("*")
+                        .subjectType(normalizeSubjectType(binding.getObjectType()))
+                        .subjectKey(binding.getObjectId())
                         .includedItemsCount(stats.getIncludedItemsCount())
                         .excludedItemsCount(stats.getExcludedItemsCount())
                         .includedAll(stats.isIncludedAll())
@@ -401,76 +405,56 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish delete success event cho DeleteValidationRuleCommand.
-     * Sử dụng ValidationCompensationResultEvent để thông báo delete thành công.
-     *
-     * @param commandId        Command ID
-     * @param campaignId       Campaign ID
-     * @param validationRuleId Validation rule ID (assignment ID) đã bị delete
+     * Publish a typed ValidationRuleDeletedEvent for a single binding removal.
+     * <p>
+     * The pp-rule-engine consumer reads {@code subjectType} / {@code subjectKey}
+     * from the payload to locate the matching assignment row and fast-check
+     * config row to evict. Passing the binding directly (instead of just an ID)
+     * lets us carry those canonical coordinates without a second repository
+     * lookup inside the publisher.
      */
-    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
-    public void publishDeleteSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    @SuppressWarnings("java:S2139")
+    public void publishDeleteSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
+        String validationRuleId = binding != null ? binding.getId() : null;
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
-            logger.info("Publishing delete success event: commandId={}, campaignId={}, validationRuleId={}",
-                    commandId, campaignId, validationRuleId);
+            logger.info("Publishing ValidationRuleDeletedEvent: commandId={}, campaignId={}, subject={}:{}",
+                    commandId, campaignId, subjectType, subjectKey);
 
-            // Build compensation result cho delete operation
-            ValidationCompensationResultEvent.CompensationResult compensationResult =
-                    ValidationCompensationResultEvent.CompensationResult.builder()
-                            .assignmentId(validationRuleId)
-                            .ruleId(validationRuleId)
-                            .rollbackAction("DELETE")
-                            .unassignmentId(validationRuleId)
-                            .deactivatedAt(Instant.now())
-                            .build();
+            ValidationRuleDeletedEventPayload payload = ValidationRuleDeletedEventPayload.builder()
+                    .commandId(commandId)
+                    .campaignId(campaignId)
+                    .subjectType(subjectType)
+                    .subjectKey(subjectKey)
+                    .validationRuleId(validationRuleId)
+                    .deletedBy(serviceName)
+                    .deletedAt(Instant.now().toEpochMilli())
+                    .build();
 
-            // Build payload
-            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
-                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
-                            .commandId(commandId)
-                            .isSuccess(true)
-                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                            .compensationResult(compensationResult)
-                            .processedBy(serviceName)
-                            .processedAt(Instant.now())
-                            .build();
-
-            // Build metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(CORRELATION_ID_KEY, commandId);
-            metadata.put(SERVICE_NAME_KEY, serviceName);
-            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-
-            // Build event
-            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+            ValidationRuleDeletedEvent event = ValidationRuleDeletedEvent.builder()
                     .id(IdGenerator.generateId())
                     .aggregate(AGGREGATE_VALIDATION)
                     .type("ValidationRuleDeletedEvent")
                     .source(serviceName)
-                    .subject(campaignId != null ? campaignId : commandId)
+                    .subject(subjectKey != null ? subjectKey : commandId)
                     .occurredAt(Instant.now())
                     .version(1)
                     .payload(payload)
-                    .metadata(metadata)
-                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                    .assignmentId(validationRuleId)
-                    .ruleId(validationRuleId)
-                    .unassignmentId(validationRuleId)
-                    .deactivatedAt(Instant.now())
+                    .metadata(buildMetadata(commandId))
                     .build();
 
-            // Publish event
-            String key = campaignId != null ? campaignId : commandId;
+            String key = subjectKey != null ? subjectKey : commandId;
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.info("Published ValidationRuleDeletedEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
-                                    commandId, campaignId, eventTopic,
+                            logger.info("Published ValidationRuleDeletedEvent: commandId={}, subject={}:{}, partition={}, offset={}",
+                                    commandId, subjectType, subjectKey,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
-                            logger.error("Failed to publish ValidationRuleDeletedEvent: commandId={}, campaignId={}",
-                                    commandId, campaignId, ex);
+                            logger.error("Failed to publish ValidationRuleDeletedEvent: commandId={}, subject={}:{}",
+                                    commandId, subjectType, subjectKey, ex);
                         }
                     });
 
@@ -500,75 +484,56 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish enable success event cho EnableValidationRuleCommand.
-     *
-     * @param commandId        Command ID
-     * @param campaignId       Campaign ID
-     * @param validationRuleId Validation rule ID (assignment ID) đã được enable
+     * Publish a typed ValidationRuleEnabledEvent for the enabled binding.
+     * <p>
+     * Includes the post-enable {@code bundleHash} so the data-plane consumer
+     * can re-upsert the assignment row using the current compiled bundle
+     * without a separate snapshot fetch.
      */
-    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
-    public void publishEnableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    @SuppressWarnings("java:S2139")
+    public void publishEnableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
+        String validationRuleId = binding != null ? binding.getId() : null;
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
+        String bundleHash = binding != null ? binding.getBundleHash() : null;
         try {
-            logger.info("Publishing enable success event: commandId={}, campaignId={}, validationRuleId={}",
-                    commandId, campaignId, validationRuleId);
+            logger.info("Publishing ValidationRuleEnabledEvent: commandId={}, campaignId={}, subject={}:{}, bundleHash={}",
+                    commandId, campaignId, subjectType, subjectKey, bundleHash);
 
-            // Build compensation result cho enable operation
-            ValidationCompensationResultEvent.CompensationResult compensationResult =
-                    ValidationCompensationResultEvent.CompensationResult.builder()
-                            .assignmentId(validationRuleId)
-                            .ruleId(validationRuleId)
-                            .rollbackAction("ENABLE")
-                            .unassignmentId(validationRuleId)
-                            .deactivatedAt(Instant.now())
-                            .build();
+            ValidationRuleEnabledEventPayload payload = ValidationRuleEnabledEventPayload.builder()
+                    .commandId(commandId)
+                    .campaignId(campaignId)
+                    .subjectType(subjectType)
+                    .subjectKey(subjectKey)
+                    .validationRuleId(validationRuleId)
+                    .bundleHash(bundleHash)
+                    .enabledBy(serviceName)
+                    .enabledAt(Instant.now().toEpochMilli())
+                    .build();
 
-            // Build payload
-            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
-                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
-                            .commandId(commandId)
-                            .isSuccess(true)
-                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                            .compensationResult(compensationResult)
-                            .processedBy(serviceName)
-                            .processedAt(Instant.now())
-                            .build();
-
-            // Build metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(CORRELATION_ID_KEY, commandId);
-            metadata.put(SERVICE_NAME_KEY, serviceName);
-            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-
-            // Build event
-            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+            ValidationRuleEnabledEvent event = ValidationRuleEnabledEvent.builder()
                     .id(IdGenerator.generateId())
                     .aggregate(AGGREGATE_VALIDATION)
                     .type("ValidationRuleEnabledEvent")
                     .source(serviceName)
-                    .subject(campaignId != null ? campaignId : commandId)
+                    .subject(subjectKey != null ? subjectKey : commandId)
                     .occurredAt(Instant.now())
                     .version(1)
                     .payload(payload)
-                    .metadata(metadata)
-                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                    .assignmentId(validationRuleId)
-                    .ruleId(validationRuleId)
-                    .unassignmentId(validationRuleId)
-                    .deactivatedAt(Instant.now())
+                    .metadata(buildMetadata(commandId))
                     .build();
 
-            // Publish event
-            String key = campaignId != null ? campaignId : commandId;
+            String key = subjectKey != null ? subjectKey : commandId;
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.info("Published ValidationRuleEnabledEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
-                                    commandId, campaignId, eventTopic,
+                            logger.info("Published ValidationRuleEnabledEvent: commandId={}, subject={}:{}, partition={}, offset={}",
+                                    commandId, subjectType, subjectKey,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
-                            logger.error("Failed to publish ValidationRuleEnabledEvent: commandId={}, campaignId={}",
-                                    commandId, campaignId, ex);
+                            logger.error("Failed to publish ValidationRuleEnabledEvent: commandId={}, subject={}:{}",
+                                    commandId, subjectType, subjectKey, ex);
                         }
                     });
 
@@ -597,75 +562,53 @@ public class SettingValidationRuleEventPublisher {
     }
 
     /**
-     * Publish disable success event cho DisableValidationRuleCommand.
-     *
-     * @param commandId        Command ID
-     * @param campaignId       Campaign ID
-     * @param validationRuleId Validation rule ID (assignment ID) đã được disable
+     * Publish a typed ValidationRuleDisabledEvent when a binding is deactivated.
+     * <p>
+     * The data-plane consumer treats disable as a hard eviction of the
+     * assignment row so no traffic reaches the (now-inactive) bundle.
      */
-    @SuppressWarnings("java:S2139") // Exception is logged with context before rethrowing with additional information
-    public void publishDisableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    @SuppressWarnings("java:S2139")
+    public void publishDisableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
+        String validationRuleId = binding != null ? binding.getId() : null;
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
-            logger.info("Publishing disable success event: commandId={}, campaignId={}, validationRuleId={}",
-                    commandId, campaignId, validationRuleId);
+            logger.info("Publishing ValidationRuleDisabledEvent: commandId={}, campaignId={}, subject={}:{}",
+                    commandId, campaignId, subjectType, subjectKey);
 
-            // Build compensation result cho disable operation
-            ValidationCompensationResultEvent.CompensationResult compensationResult =
-                    ValidationCompensationResultEvent.CompensationResult.builder()
-                            .assignmentId(validationRuleId)
-                            .ruleId(validationRuleId)
-                            .rollbackAction("DISABLE")
-                            .unassignmentId(validationRuleId)
-                            .deactivatedAt(Instant.now())
-                            .build();
+            ValidationRuleDisabledEventPayload payload = ValidationRuleDisabledEventPayload.builder()
+                    .commandId(commandId)
+                    .campaignId(campaignId)
+                    .subjectType(subjectType)
+                    .subjectKey(subjectKey)
+                    .validationRuleId(validationRuleId)
+                    .disabledBy(serviceName)
+                    .disabledAt(Instant.now().toEpochMilli())
+                    .build();
 
-            // Build payload
-            ValidationCompensationResultEvent.ValidationCompensationPayload payload =
-                    ValidationCompensationResultEvent.ValidationCompensationPayload.builder()
-                            .commandId(commandId)
-                            .isSuccess(true)
-                            .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                            .compensationResult(compensationResult)
-                            .processedBy(serviceName)
-                            .processedAt(Instant.now())
-                            .build();
-
-            // Build metadata
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put(CORRELATION_ID_KEY, commandId);
-            metadata.put(SERVICE_NAME_KEY, serviceName);
-            metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
-
-            // Build event
-            ValidationCompensationResultEvent event = ValidationCompensationResultEvent.builder()
+            ValidationRuleDisabledEvent event = ValidationRuleDisabledEvent.builder()
                     .id(IdGenerator.generateId())
                     .aggregate(AGGREGATE_VALIDATION)
                     .type("ValidationRuleDisabledEvent")
                     .source(serviceName)
-                    .subject(campaignId != null ? campaignId : commandId)
+                    .subject(subjectKey != null ? subjectKey : commandId)
                     .occurredAt(Instant.now())
                     .version(1)
                     .payload(payload)
-                    .metadata(metadata)
-                    .compensationStatus(COMPENSATION_STATUS_SUCCESS)
-                    .assignmentId(validationRuleId)
-                    .ruleId(validationRuleId)
-                    .unassignmentId(validationRuleId)
-                    .deactivatedAt(Instant.now())
+                    .metadata(buildMetadata(commandId))
                     .build();
 
-            // Publish event
-            String key = campaignId != null ? campaignId : commandId;
+            String key = subjectKey != null ? subjectKey : commandId;
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.info("Published ValidationRuleDisabledEvent: commandId={}, campaignId={}, topic={}, partition={}, offset={}",
-                                    commandId, campaignId, eventTopic,
+                            logger.info("Published ValidationRuleDisabledEvent: commandId={}, subject={}:{}, partition={}, offset={}",
+                                    commandId, subjectType, subjectKey,
                                     result.getRecordMetadata().partition(),
                                     result.getRecordMetadata().offset());
                         } else {
-                            logger.error("Failed to publish ValidationRuleDisabledEvent: commandId={}, campaignId={}",
-                                    commandId, campaignId, ex);
+                            logger.error("Failed to publish ValidationRuleDisabledEvent: commandId={}, subject={}:{}",
+                                    commandId, subjectType, subjectKey, ex);
                         }
                     });
 
@@ -673,6 +616,22 @@ public class SettingValidationRuleEventPublisher {
             logger.error("Error publishing disable success event: commandId={}, campaignId={}", commandId, campaignId, e);
             throw new EventPublishingException("Failed to publish disable success event for commandId: " + commandId, e);
         }
+    }
+
+    private Map<String, String> buildMetadata(String commandId) {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put(CORRELATION_ID_KEY, commandId);
+        metadata.put(SERVICE_NAME_KEY, serviceName);
+        metadata.put(SERVICE_VERSION_KEY, SERVICE_VERSION);
+        return metadata;
+    }
+
+    /**
+     * Normalize RuleBinding.objectType to the canonical uppercase subjectType
+     * used by the data plane (pp-rule-engine stores "CAMPAIGN", "VOUCHER", etc.).
+     */
+    private String normalizeSubjectType(String objectType) {
+        return objectType != null ? objectType.toUpperCase() : "CAMPAIGN";
     }
 
     /**

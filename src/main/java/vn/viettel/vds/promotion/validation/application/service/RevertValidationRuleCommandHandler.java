@@ -2,9 +2,6 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promix.platform.core.util.IdGenerator;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.SnapshotSerializationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleEntity;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RevertValidationRuleCommand.RevertValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.SnapshotSerializationException;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertFailedEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleRevertedEvent;
 

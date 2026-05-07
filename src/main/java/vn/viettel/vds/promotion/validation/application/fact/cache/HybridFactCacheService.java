@@ -52,34 +52,34 @@ public class HybridFactCacheService implements FactCacheService {
             l1Result = CompletableFuture.completedFuture(null);
         }
         return l1Result.thenCompose(cachedValue -> {
-                    if (cachedValue != null) {
-                        log.debug("L1 cache hit for key: {}", versionedKey);
-                        return CompletableFuture.completedFuture(cachedValue);
-                    } else {
-                        // L1 miss, try L2 (Redisson) using virtual threads
-                        return CompletableFuture.supplyAsync(() -> {
-                            try {
-                                RBucket<String> bucket = redissonClient.getBucket(versionedKey);
-                                String redisValue = bucket.get();
-                                if (redisValue != null) {
-                                    Object deserializedValue = deserializeValue(redisValue);
-                                    log.debug("L2 cache hit for key: {}, promoting to L1", versionedKey);
+            if (cachedValue != null) {
+                log.debug("L1 cache hit for key: {}", versionedKey);
+                return CompletableFuture.completedFuture(cachedValue);
+            } else {
+                // L1 miss, try L2 (Redisson) using virtual threads
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        RBucket<String> bucket = redissonClient.getBucket(versionedKey);
+                        String redisValue = bucket.get();
+                        if (redisValue != null) {
+                            Object deserializedValue = deserializeValue(redisValue);
+                            log.debug("L2 cache hit for key: {}, promoting to L1", versionedKey);
 
-                                    // Promote to L1 cache asynchronously
-                                    l1Cache.put(versionedKey, CompletableFuture.completedFuture(deserializedValue));
+                            // Promote to L1 cache asynchronously
+                            l1Cache.put(versionedKey, CompletableFuture.completedFuture(deserializedValue));
 
-                                    return deserializedValue;
-                                } else {
-                                    log.debug("Cache miss for key: {}", versionedKey);
-                                    return null;
-                                }
-                            } catch (Exception e) {
-                                log.warn("Error reading from Redisson cache for key {}: {}", versionedKey, e.getMessage());
-                                return null;
-                            }
-                        }, Executors.newVirtualThreadPerTaskExecutor());
+                            return deserializedValue;
+                        } else {
+                            log.debug("Cache miss for key: {}", versionedKey);
+                            return null;
+                        }
+                    } catch (Exception e) {
+                        log.warn("Error reading from Redisson cache for key {}: {}", versionedKey, e.getMessage());
+                        return null;
                     }
-                });
+                }, Executors.newVirtualThreadPerTaskExecutor());
+            }
+        });
     }
 
     @Override
@@ -148,21 +148,21 @@ public class HybridFactCacheService implements FactCacheService {
             l1Exists = CompletableFuture.completedFuture(null);
         }
         return l1Exists.thenCompose(cachedValue -> {
-                    if (cachedValue != null) {
-                        return CompletableFuture.completedFuture(true);
-                    } else {
-                        // Check L2 (Redisson) using virtual threads
-                        return CompletableFuture.supplyAsync(() -> {
-                            try {
-                                RBucket<String> bucket = redissonClient.getBucket(versionedKey);
-                                return bucket.isExists();
-                            } catch (Exception e) {
-                                log.warn("Failed to check existence in Redisson for key {}: {}", versionedKey, e.getMessage());
-                                return false;
-                            }
-                        }, Executors.newVirtualThreadPerTaskExecutor());
+            if (cachedValue != null) {
+                return CompletableFuture.completedFuture(true);
+            } else {
+                // Check L2 (Redisson) using virtual threads
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        RBucket<String> bucket = redissonClient.getBucket(versionedKey);
+                        return bucket.isExists();
+                    } catch (Exception e) {
+                        log.warn("Failed to check existence in Redisson for key {}: {}", versionedKey, e.getMessage());
+                        return false;
                     }
-                });
+                }, Executors.newVirtualThreadPerTaskExecutor());
+            }
+        });
     }
 
     @Override

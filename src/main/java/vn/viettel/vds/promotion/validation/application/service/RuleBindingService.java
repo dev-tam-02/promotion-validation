@@ -2,16 +2,17 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingAlreadyExistsException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingDeactivationException;
+import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
@@ -42,6 +43,7 @@ public class RuleBindingService {
 
     private final RuleBindingPersistencePort bindingPersistencePort;
     private final RulePersistencePort rulePersistencePort;
+    private final RuleValidator ruleValidator;
 
     // ========== Create Operations ==========
 
@@ -52,8 +54,9 @@ public class RuleBindingService {
         log.info("Creating rule binding: objectType={}, objectId={}, ruleId={}",
                 binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
 
-        // Validate rule exists
-        validateRuleExists(binding.getRuleId());
+        // Load rule to validate existence and capture current version for pinning
+        Rule rule = rulePersistencePort.findById(binding.getRuleId())
+                .orElseThrow(() -> new RuleNotFoundException(binding.getRuleId()));
 
         // Check for duplicate binding
         if (bindingPersistencePort.existsByObjectAndRule(
@@ -62,9 +65,23 @@ public class RuleBindingService {
                     binding.getObjectType(), binding.getObjectId(), binding.getRuleId());
         }
 
+        // V3: validate structured scope fields against JSON Schema spec
+        ruleValidator.checkBindingScopeSchema(
+                binding.getScopeTimeWindows(),
+                binding.getScopeProductScope(),
+                binding.getScopeTrafficControl());
+
+        // V2: pin the rule version at bind time (null-safe: default to 1 if not set)
+        Integer pinnedVersion = rule.getRuleVersion() != null
+                ? rule.getRuleVersion().intValue()
+                : 1;
+
         // Set defaults
         RuleBinding toSave = binding.toBuilder()
                 .id(binding.getId() != null ? binding.getId() : UUID.randomUUID().toString())
+                .ruleVersionPinned(binding.getRuleVersionPinned() != null
+                        ? binding.getRuleVersionPinned()
+                        : pinnedVersion)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .createdBy(createdBy)
@@ -73,7 +90,8 @@ public class RuleBindingService {
                 .build();
 
         RuleBinding saved = bindingPersistencePort.save(toSave);
-        log.info("Rule binding created successfully: id={}", saved.getId());
+        log.info("Rule binding created successfully: id={}, ruleVersionPinned={}",
+                saved.getId(), saved.getRuleVersionPinned());
         return saved;
     }
 

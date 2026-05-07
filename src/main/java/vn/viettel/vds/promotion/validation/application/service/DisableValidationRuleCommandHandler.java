@@ -3,13 +3,13 @@ package vn.viettel.vds.promotion.validation.application.service;
 import com.promix.platform.core.exception.BusinessRuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.DisableValidationRuleCommand.DisableValidationRuleCommandPayload;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.List;
@@ -65,9 +65,9 @@ public class DisableValidationRuleCommandHandler {
 
             logger.info("Disable request: campaignId={}, validationRuleId={}", campaignId, validationRuleId);
 
-            boolean success = executeDisable(campaignId, validationRuleId);
+            RuleBinding disabledBinding = executeDisable(campaignId, validationRuleId);
 
-            if (!success) {
+            if (disabledBinding == null) {
                 String errorCode = "DISABLE_FAILED";
                 String errorMessage = "Failed to disable validation rule binding";
                 publishDisableErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -76,7 +76,7 @@ public class DisableValidationRuleCommandHandler {
             }
 
             idempotencyService.markAsProcessed(commandId, "Disable completed successfully");
-            publishDisableSuccessEvent(commandId, campaignId, validationRuleId);
+            publishDisableSuccessEvent(commandId, campaignId, disabledBinding);
 
             logger.info("Successfully processed DisableValidationRuleCommand: commandId={}", commandId);
             return true;
@@ -110,7 +110,7 @@ public class DisableValidationRuleCommandHandler {
         logger.debug("DisableValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
-    private boolean executeDisable(String campaignId, String validationRuleId) {
+    private RuleBinding executeDisable(String campaignId, String validationRuleId) {
         try {
             // Find binding by ID first
             RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
@@ -120,7 +120,7 @@ public class DisableValidationRuleCommandHandler {
                 List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
                 if (bindings.isEmpty()) {
                     logger.warn("No binding found for campaign: {}", campaignId);
-                    return false;
+                    return null;
                 }
                 binding = bindings.get(0);
             }
@@ -133,17 +133,17 @@ public class DisableValidationRuleCommandHandler {
 
             logger.info("Disabled binding: bindingId={}", binding.getId());
 
-            return true;
+            return binding;
 
         } catch (Exception e) {
             logger.error("Error executing disable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
-            return false;
+            return null;
         }
     }
 
-    private void publishDisableSuccessEvent(String commandId, String campaignId, String validationRuleId) {
+    private void publishDisableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
         try {
-            eventPublisher.publishDisableSuccessEvent(commandId, campaignId, validationRuleId);
+            eventPublisher.publishDisableSuccessEvent(commandId, campaignId, binding);
         } catch (Exception e) {
             logger.error("Failed to publish disable success event: commandId={}", commandId, e);
         }

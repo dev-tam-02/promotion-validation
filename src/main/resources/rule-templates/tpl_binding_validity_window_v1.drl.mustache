@@ -1,0 +1,5 @@
+eval(
+    {{#hasStart}}!$now.isBefore(java.time.Instant.parse("{{startDate}}")){{/hasStart}}
+    {{#both}} && {{/both}}
+    {{#hasEnd}}!$now.isAfter(java.time.Instant.parse("{{endDate}}")){{/hasEnd}}
+)

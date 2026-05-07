@@ -8,7 +8,6 @@ import vn.viettel.vds.promotion.validation.TestFixtures;
 import vn.viettel.vds.promotion.validation.domain.fact.CustomerFact;
 import vn.viettel.vds.promotion.validation.domain.fact.FactPack;
 import vn.viettel.vds.promotion.validation.domain.fact.SegmentsFact;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
 import java.util.Collections;
 import java.util.List;

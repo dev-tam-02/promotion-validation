@@ -35,6 +35,9 @@ public class ValidationRuleEntity extends BaseEntity {
     @Column(name = "rule_version", nullable = false)
     private Long ruleVersion;
 
+    @Column(name = "current_version", nullable = false)
+    private Integer currentVersion = 1;
+
     @Column(name = "logic", length = 50)
     private String logic; // root logic for implicit top-level
 

@@ -22,8 +22,8 @@ public record OperatorCategoryResponse(
     public static OperatorCategoryResponse from(vn.viettel.vds.promotion.validation.domain.model.OperatorCategory category) {
         List<OperatorOptionResponse> optionResponses = category.getOptions() != null
                 ? category.getOptions().stream()
-                        .map(OperatorOptionResponse::from)
-                        .toList()
+                .map(OperatorOptionResponse::from)
+                .toList()
                 : List.of();
 
         return new OperatorCategoryResponse(

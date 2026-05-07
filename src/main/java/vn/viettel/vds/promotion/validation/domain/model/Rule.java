@@ -38,6 +38,7 @@ public class Rule {
     private String name;
     private String description;
     private String context;
+    private String fallbackErrorMessage;
     private String notes;
 
     // State Management
@@ -74,6 +75,10 @@ public class Rule {
     private Instant publishedAt;
     private String publishedBy;
     private String bundleHash;
+
+    // System-managed flag (set by changelog — cannot be deleted or updated via admin API)
+    @Builder.Default
+    private boolean isSystem = false;
 
     // Audit Trail
     private Instant createdAt;

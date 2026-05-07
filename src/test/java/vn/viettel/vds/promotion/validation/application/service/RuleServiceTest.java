@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -16,12 +17,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersi
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
-import vn.viettel.vds.promotion.validation.domain.exception.InvalidVersionFormatException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleAlreadyExistsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleHasBindingsException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
-import vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException;
+import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
@@ -32,12 +28,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for RuleService — the main application service handling CRUD operations
@@ -61,18 +53,6 @@ class RuleServiceTest {
 
     private RuleService sut;
 
-    @BeforeEach
-    void setUp() {
-        // RuleService uses @Lazy self-injection for transactional proxying.
-        // In unit tests without Spring context, we pass 'sut' itself as the self reference.
-        // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null);
-        // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut);
-    }
-
-    // ========== Helper methods ==========
-
     private static Rule draftRule(String id, String code, String name) {
         return Rule.builder()
                 .id(id)
@@ -90,6 +70,8 @@ class RuleServiceTest {
                 .updatedBy("user-1")
                 .build();
     }
+
+    // ========== Helper methods ==========
 
     private static Rule publishedRule(String id, String code, String name) {
         return Rule.builder()
@@ -125,6 +107,16 @@ class RuleServiceTest {
                 .groupLogic(logic)
                 .children(children)
                 .build();
+    }
+
+    @BeforeEach
+    void setUp() {
+        // RuleService uses @Lazy self-injection for transactional proxying.
+        // In unit tests without Spring context, we pass 'sut' itself as the self reference.
+        // This is safe because there's no proxy needed in unit tests.
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null);
+        // Re-create with self reference
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut);
     }
 
     // ========================================================================
@@ -489,6 +481,175 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.updateRule("r1", null, null, invalidNodes, "editor"))
                     .isInstanceOf(InvalidRuleStructureException.class);
         }
+
+        // ---- PATCH semantics for context / description / fallbackErrorMessage ----
+
+        @Test
+        @DisplayName("Should skip context when null (PATCH: null = no-op)")
+        void shouldSkipContext_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — passing null context → should NOT change context
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("ORDER_CREATED");
+        }
+
+        @Test
+        @DisplayName("Should clear context to empty string when \"\" passed (PATCH: empty = clear)")
+        void shouldClearContext_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — passing "" context → should set context to ""
+            Rule result = sut.updateRule("r1", null, null, null, "", null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new context value when non-empty string passed")
+        void shouldSetNewContext_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("ORDER_CREATED");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, "PAYMENT_COMPLETED", null, null, "editor");
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+        }
+
+        @Test
+        @DisplayName("Should skip description when null (PATCH: null = no-op)")
+        void shouldSkipDescription_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Original description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("Original description");
+        }
+
+        @Test
+        @DisplayName("Should clear description to empty string when \"\" passed")
+        void shouldClearDescription_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Original description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, "", null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new description when non-empty string passed")
+        void shouldSetNewDescription_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setDescription("Old description");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule("r1", null, null, null, null, "New description", null, "editor");
+
+            // Then
+            assertThat(result.getDescription()).isEqualTo("New description");
+        }
+
+        @Test
+        @DisplayName("Should skip fallbackErrorMessage when null (PATCH: null = no-op)")
+        void shouldSkipFallbackErrorMessage_whenNull() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Original error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — null → no-op
+            Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Original error message");
+        }
+
+        @Test
+        @DisplayName("Should clear fallbackErrorMessage to empty string when \"\" passed")
+        void shouldClearFallbackErrorMessage_whenEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Original error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — "" → clear
+            Rule result = sut.updateRule("r1", null, null, null, null, null, "", "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("");
+        }
+
+        @Test
+        @DisplayName("Should set new fallbackErrorMessage when non-empty string passed")
+        void shouldSetNewFallbackErrorMessage_whenNonEmptyString() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setFallbackErrorMessage("Old error message");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When — "abc" → set
+            Rule result = sut.updateRule("r1", null, null, null, null, null, "Rule validation failed", "editor");
+
+            // Then
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Rule validation failed");
+        }
+
+        @Test
+        @DisplayName("Should update all 3 optional fields independently in single call")
+        void shouldUpdateAllThreeOptionalFields_inSingleCall() {
+            // Given
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setContext("OLD_CTX");
+            existing.setDescription("Old desc");
+            existing.setFallbackErrorMessage("Old error");
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // When
+            Rule result = sut.updateRule(
+                    "r1", null, null, null,
+                    "PAYMENT_COMPLETED", "New desc", "Payment required", "editor"
+            );
+
+            // Then
+            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+            assertThat(result.getDescription()).isEqualTo("New desc");
+            assertThat(result.getFallbackErrorMessage()).isEqualTo("Payment required");
+        }
     }
 
     // ========================================================================
@@ -836,6 +997,72 @@ class RuleServiceTest {
     }
 
     // ========================================================================
+    // FIX-M5: Optimistic locking — concurrent update conflict
+    // ========================================================================
+
+    @Nested
+    @DisplayName("Optimistic locking — concurrent update conflict")
+    class ConcurrentUpdateTests {
+
+        @Test
+        @DisplayName("Should propagate OptimisticLockingFailureException from persistence port when stale version on update")
+        void updateRule_concurrentUpdate_throwsConflict() {
+            // Given — two concurrent clients both hold rule at version=1
+            Rule existing = draftRule("r1", "CODE_1", "Name");
+            existing.setVersion(1L);
+
+            // The persistence port (backed by @Version JPA entity) throws when a
+            // concurrent save detects a stale version at DB level.
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class)))
+                    .thenThrow(new OptimisticLockingFailureException(
+                            "Row was updated or deleted by another transaction: [RuleJpaEntity#r1]"));
+
+            // When — User B tries to update after User A already committed a newer version
+            // Then — expect the optimistic locking failure to propagate
+            assertThatThrownBy(() -> sut.updateRule("r1", "New Name", null, null, "user-b"))
+                    .isInstanceOf(OptimisticLockingFailureException.class);
+        }
+
+        @Test
+        @DisplayName("Should propagate OptimisticLockingFailureException from persistence port when stale version on create")
+        void createRule_persistenceConflict_throwsOptimisticLockFailure() {
+            // Given
+            String code = "RULE_NEW";
+            when(rulePersistencePort.existsByCode(code)).thenReturn(false);
+            when(rulePersistencePort.save(any(Rule.class)))
+                    .thenThrow(new OptimisticLockingFailureException("Conflict on insert"));
+
+            // When & Then
+            assertThatThrownBy(() -> sut.createRule(
+                    code, "Name", Rule.LogicType.ALL,
+                    List.of(condNode("n1", "op1", "rc1")), "admin"))
+                    .isInstanceOf(OptimisticLockingFailureException.class);
+        }
+
+        @Test
+        @DisplayName("Should succeed on first update — no conflict when version matches")
+        void updateRule_firstUpdate_succeedsWithCorrectVersion() {
+            // Given — user holds version=1, DB also has version=1
+            Rule existing = draftRule("r1", "CODE_1", "Old Name");
+            existing.setVersion(1L);
+            Rule saved = draftRule("r1", "CODE_1", "New Name");
+            saved.setVersion(2L); // Hibernate increments after save
+
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
+            when(rulePersistencePort.save(any(Rule.class))).thenReturn(saved);
+
+            // When
+            Rule result = sut.updateRule("r1", "New Name", null, null, "user-a");
+
+            // Then — save should be called once, no exception
+            verify(rulePersistencePort).save(any(Rule.class));
+            assertThat(result.getName()).isEqualTo("New Name");
+            assertThat(result.getVersion()).isEqualTo(2L);
+        }
+    }
+
+    // ========================================================================
     // Node Validation
     // ========================================================================
 
@@ -876,6 +1103,91 @@ class RuleServiceTest {
                     List.of(nodeWithBlankId), "admin"))
                     .isInstanceOf(InvalidRuleStructureException.class)
                     .hasMessageContaining("Node ID is required");
+        }
+    }
+
+    // ========================================================================
+    // Review-B Fix: System rule deletion guard
+    // ========================================================================
+
+    @Nested
+    @DisplayName("System rule protection (deleteRule + updateRule)")
+    class SystemRuleProtectionTests {
+
+        @Test
+        @DisplayName("DELETE rule-sys-owner-only → 409 SystemRuleProtectedException")
+        void deleteSystemRule_throws409() {
+            Rule systemRule = Rule.builder()
+                    .id("rule-sys-owner-only")
+                    .code("rule-sys-owner-only")
+                    .name("System — Owner Only")
+                    .state(Rule.RuleState.PUBLISHED)
+                    .isSystem(true)
+                    .version(0L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "customer.is_owner", "VOUCHER_NOT_OWNED_BY_CUSTOMER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-sys-owner-only")).thenReturn(Optional.of(systemRule));
+
+            assertThatThrownBy(() -> sut.deleteRule("rule-sys-owner-only", 0L))
+                    .isInstanceOf(vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException.class)
+                    .hasMessageContaining("rule-sys-owner-only");
+
+            verify(rulePersistencePort, never()).deleteById(anyString());
+        }
+
+        @Test
+        @DisplayName("PATCH rule-sys-owner-only → 409 SystemRuleProtectedException")
+        void updateSystemRule_throws409() {
+            Rule systemRule = Rule.builder()
+                    .id("rule-sys-owner-only")
+                    .code("rule-sys-owner-only")
+                    .name("System — Owner Only")
+                    .state(Rule.RuleState.DRAFT)  // draft state, but isSystem blocks update
+                    .isSystem(true)
+                    .version(0L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "customer.is_owner", "VOUCHER_NOT_OWNED_BY_CUSTOMER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-sys-owner-only")).thenReturn(Optional.of(systemRule));
+
+            assertThatThrownBy(() -> sut.updateRule("rule-sys-owner-only", "New Name", null, null, "admin"))
+                    .isInstanceOf(vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException.class)
+                    .hasMessageContaining("rule-sys-owner-only");
+
+            verify(rulePersistencePort, never()).save(any(Rule.class));
+        }
+
+        @Test
+        @DisplayName("Non-system rule delete succeeds normally")
+        void deleteNonSystemRule_succeeds() {
+            Rule regularRule = Rule.builder()
+                    .id("rule-regular-001")
+                    .code("rule-regular")
+                    .name("Regular Rule")
+                    .state(Rule.RuleState.DRAFT)
+                    .isSystem(false)
+                    .version(1L)
+                    .logic(Rule.LogicType.ALL)
+                    .nodes(List.of(condNode("n1", "order.total.gte", "MIN_ORDER")))
+                    .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2026-01-01T00:00:00Z"))
+                    .build();
+
+            when(rulePersistencePort.findById("rule-regular-001")).thenReturn(Optional.of(regularRule));
+            when(ruleBindingPort.countByRuleId("rule-regular-001")).thenReturn(0L);
+            when(outboxEventPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            sut.deleteRule("rule-regular-001", 1L);
+
+            verify(rulePersistencePort).deleteNodesByRuleId("rule-regular-001");
+            verify(rulePersistencePort).deleteById("rule-regular-001");
         }
     }
 }

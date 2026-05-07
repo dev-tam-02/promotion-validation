@@ -1,0 +1,95 @@
+databaseChangeLog:
+  # ============================================================================
+  # Task 09 V2: Create validation_rules_history table for per-version audit trail.
+  # Each row is an immutable snapshot of a rule's dsl/nodes JSON at a specific
+  # version. change_type distinguishes CREATE vs UPDATE operations.
+  # ============================================================================
+
+  - changeSet:
+      id: 033-create-validation-rules-history
+      author: harley hoang
+      comment: Create validation_rules_history table for rule version audit trail
+
+      changes:
+        - createTable:
+            tableName: validation_rules_history
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                  remarks: UUIDv7 primary key
+
+              - column:
+                  name: rule_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+                  remarks: References validation_rules.id (soft FK — no DDL constraint to allow archival)
+
+              - column:
+                  name: rule_version
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                  remarks: Snapshot of rule_version at the time of this history entry
+
+              - column:
+                  name: change_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                  remarks: CREATE or UPDATE
+
+              - column:
+                  name: changed_by
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+                  remarks: User / system identifier that triggered the change
+
+              - column:
+                  name: changed_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+                  remarks: Timestamp when this history entry was recorded
+
+              - column:
+                  name: dsl_snapshot
+                  type: LONGTEXT
+                  constraints:
+                    nullable: true
+                  remarks: JSON snapshot of the rule DSL map at this version
+
+              - column:
+                  name: bundle_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+                  remarks: bundleHash of the rule at the time of this entry (may be null for DRAFT)
+
+              - column:
+                  name: state
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: true
+                  remarks: Rule state (DRAFT / PUBLISHED / ARCHIVED / DEPRECATED) at the time of this entry
+
+        - createIndex:
+            tableName: validation_rules_history
+            indexName: idx_vrh_rule_id
+            columns:
+              - column:
+                  name: rule_id
+
+        - createIndex:
+            tableName: validation_rules_history
+            indexName: idx_vrh_rule_id_version
+            columns:
+              - column:
+                  name: rule_id
+              - column:
+                  name: rule_version

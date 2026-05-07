@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.mapper;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleListItemResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleNodeDto;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleResponse;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -58,6 +59,7 @@ public class RuleResponseMapper {
         response.setNotes(rule.getNotes());
         response.setContext(rule.getContext());
         response.setDescription(rule.getDescription());
+        response.setFallbackErrorMessage(rule.getFallbackErrorMessage());
         response.setVersion(rule.getVersion());
         response.setNodeCount(rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0);
         response.setCreatedAt(rule.getCreatedAt());
@@ -68,6 +70,43 @@ public class RuleResponseMapper {
         response.setUpdatedByName(rule.getUpdatedBy()); // Fallback to userId until Keycloak integration
 
         return response;
+    }
+
+    /**
+     * Converts a Rule domain model to a light-weight {@link RuleListItemResponse} for list views.
+     *
+     * <p>Omits heavy fields (description, fallbackErrorMessage, nodes, notes, limits, logic)
+     * that are only needed on the detail page. Use {@link #toRuleResponse} for detail views.</p>
+     *
+     * @param rule the domain model to convert
+     * @return the light-weight list DTO, or null if input is null
+     */
+    @Nullable
+    public RuleListItemResponse toListItemResponse(@Nullable Rule rule) {
+        return toListItemResponse(rule, null);
+    }
+
+    @Nullable
+    public RuleListItemResponse toListItemResponse(@Nullable Rule rule, @Nullable Long assignmentCount) {
+        if (rule == null) return null;
+
+        return new RuleListItemResponse(
+                rule.getId(),                                                     // id
+                rule.getCode(),                                                   // code
+                rule.getName(),                                                   // name
+                ruleStateToString(rule.getState()),                               // state
+                rule.getContext(),                                                 // context
+                rule.getRuleVersion(),                                            // ruleVersion
+                rule.getVersion(),                                                // version
+                rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0,    // nodeCount
+                assignmentCount,                                                  // assignmentCount
+                rule.getCreatedAt(),                                              // createdAt
+                rule.getCreatedBy(),                                              // createdBy
+                rule.getCreatedBy(),                                              // createdByName (fallback until Keycloak)
+                rule.getUpdatedAt(),                                              // updatedAt
+                rule.getUpdatedBy(),                                              // updatedBy
+                rule.getUpdatedBy()                                               // updatedByName (fallback until Keycloak)
+        );
     }
 
     /**

@@ -21,13 +21,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
+import vn.viettel.vds.promotion.validation.application.port.in.RuleBindingUseCase;
+import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
 import vn.viettel.vds.promotion.validation.domain.enums.RuleContextType;
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.util.*;
 
@@ -54,14 +55,20 @@ public class RuleController {
     private final RuleResponseMapper ruleMapper;
     private final RuleValidationService ruleValidationService;
     private final RuleSimulationService ruleSimulationService;
+    private final RuleBindingUseCase ruleBindingUseCase;
+    private final RuleLinter ruleLinter;
 
     public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
-                          RuleSimulationService ruleSimulationService) {
+                          RuleSimulationService ruleSimulationService,
+                          RuleBindingUseCase ruleBindingUseCase,
+                          RuleLinter ruleLinter) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
         this.ruleSimulationService = ruleSimulationService;
+        this.ruleBindingUseCase = ruleBindingUseCase;
+        this.ruleLinter = ruleLinter;
     }
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
@@ -81,18 +88,25 @@ public class RuleController {
         Rule.LogicType logic = (request.getLogic() != null && !request.getLogic().isBlank())
                 ? Rule.LogicType.valueOf(request.getLogic())
                 : null;
+        List<RuleNode> nodes = ruleMapper.toRuleNodes(request.getNodes());
 
         Rule rule = ruleService.createRule(
                 request.getCode(),
                 request.getName(),
                 logic,
-                ruleMapper.toRuleNodes(request.getNodes()),
+                nodes,
                 request.getContext(),
                 request.getDescription(),
+                request.getFallbackErrorMessage(),
                 userId
         );
 
-        return ruleMapper.toRuleResponse(rule);
+        RuleResponse response = ruleMapper.toRuleResponse(rule);
+        LintReport lintReport = ruleLinter.lint(rule, nodes);
+        if (!lintReport.isClean()) {
+            response.setLint(toLintReportDto(lintReport));
+        }
+        return response;
     }
 
     @Operation(summary = "Get rule by ID", description = "Retrieve a specific rule by its ID")
@@ -124,7 +138,7 @@ public class RuleController {
             @ApiResponse(responseCode = "200", description = "Rules retrieved successfully")
     })
     @GetMapping
-    public PageResponse<RuleResponse> listRules(
+    public PageResponse<RuleListItemResponse> listRules(
             @Parameter(description = "Filter by state") @RequestParam(required = false) String state,
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
@@ -146,13 +160,9 @@ public class RuleController {
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
         Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
-        Page<RuleResponse> responses = rules.map(ruleMapper::toRuleResponse);
-
-        // Enrich each response with binding assignment count
-        responses.forEach(response -> {
-            if (response.getRuleId() != null) {
-                response.setAssignmentCount(ruleService.countBindingsForRule(response.getRuleId()));
-            }
+        Page<RuleListItemResponse> responses = rules.map(rule -> {
+            long assignmentCount = ruleService.countBindingsForRule(rule.getId());
+            return ruleMapper.toListItemResponse(rule, assignmentCount);
         });
 
         return PageResponse.from(responses);
@@ -173,16 +183,28 @@ public class RuleController {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule.LogicType logic = request.getLogic() != null ? Rule.LogicType.valueOf(request.getLogic()) : null;
+        List<RuleNode> nodes = request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null;
 
         Rule rule = ruleService.updateRule(
                 ruleId,
                 request.getName(),
                 logic,
-                request.getNodes() != null ? ruleMapper.toRuleNodes(request.getNodes()) : null,
+                nodes,
+                request.getContext(),
+                request.getDescription(),
+                request.getFallbackErrorMessage(),
                 userId
         );
 
-        return ruleMapper.toRuleResponse(rule);
+        RuleResponse response = ruleMapper.toRuleResponse(rule);
+        List<RuleNode> lintNodes = nodes != null ? nodes : rule.getNodes();
+        if (lintNodes != null) {
+            LintReport lintReport = ruleLinter.lint(rule, lintNodes);
+            if (!lintReport.isClean()) {
+                response.setLint(toLintReportDto(lintReport));
+            }
+        }
+        return response;
     }
 
     @Operation(summary = "Clone rule", description = "Clone an existing rule with new code and name")
@@ -268,6 +290,46 @@ public class RuleController {
         return ruleMapper.toRuleResponse(rule);
     }
 
+    @Operation(summary = "Bind rule to resource (Task 06)",
+            description = "Create a rule binding for a resource (CAMPAIGN, COUPON_CONFIG, COUPON_CODE)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Binding created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "404", description = "Rule not found")
+    })
+    @PostMapping("/{ruleId}/bindings")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RuleBindingResponse bindRuleToResource(
+            @Parameter(description = "Rule ID") @PathVariable String ruleId,
+            @Valid @RequestBody RuleBindingRequest request,
+            @Parameter(description = "User making the request") @RequestHeader(value = "X-User-ID", defaultValue = "system") String userId) {
+
+        logger.info("bindRuleToResource: ruleId={} resourceType={} resourceId={}",
+                ruleId, request.getObjectType(), request.getObjectId());
+
+        RuleBinding binding = ruleBindingUseCase.bindRuleToResource(
+                ruleId,
+                request.getObjectType(),
+                request.getObjectId(),
+                request.getValidFrom(),
+                request.getValidTo(),
+                request.getPriority() != null ? request.getPriority() : 100,
+                userId);
+
+        return RuleBindingResponse.builder()
+                .id(binding.getId())
+                .ruleId(binding.getRuleId())
+                .objectType(binding.getObjectType())
+                .objectId(binding.getObjectId())
+                .active(binding.getActive())
+                .priority(binding.getPriority())
+                .validFrom(binding.getValidFrom())
+                .validTo(binding.getValidTo())
+                .createdAt(binding.getCreatedAt())
+                .createdBy(binding.getCreatedBy())
+                .build();
+    }
+
     @Operation(summary = "Lint rules", description = "Validate rule structure and parameters")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Validation completed"),
@@ -288,33 +350,6 @@ public class RuleController {
         response.setIssues(result.getIssues().stream()
                 .map(issue -> new LintResponse.LintIssue(issue.getPath(), issue.getMessage(), issue.getOperator()))
                 .toList());
-
-        return response;
-    }
-
-    @Operation(summary = "Simulate rule execution", description = "Test rule against provided context without publishing")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Simulation completed"),
-            @ApiResponse(responseCode = "404", description = "Rule not found")
-    })
-    @PostMapping("/{ruleId}/simulate")
-    public SimulationResponse simulateRule(
-            @Parameter(description = "Rule ID") @PathVariable String ruleId,
-            @Valid @RequestBody SimulateRuleRequest request) {
-
-        logger.info("Simulating rule: id={}, version={}", ruleId, request.getVersion());
-
-        RuleSimulationService.SimulationResult result = ruleSimulationService.simulateRule(
-                ruleId,
-                request.getVersion(),
-                mapToSimulationContext(request.getContext()),
-                mapToExplainLevel(request.getExplain())
-        );
-
-        SimulationResponse response = new SimulationResponse();
-        response.setDecision(result.getDecision().name().toLowerCase());
-        response.setReasonCodes(result.getReasonCodes());
-        response.setExplain(result.getExplain());
 
         return response;
     }
@@ -564,5 +599,19 @@ public class RuleController {
                 .createdBy(binding.getCreatedBy())
                 .updatedBy(binding.getUpdatedBy())
                 .build();
+    }
+
+    // -------------------------------------------------------------------------
+    // Lint helpers
+    // -------------------------------------------------------------------------
+
+    private LintReportDto toLintReportDto(LintReport report) {
+        var warnings = report.warnings().stream().map(this::toIssueDto).toList();
+        var errors = report.errors().stream().map(this::toIssueDto).toList();
+        return new LintReportDto(warnings, errors);
+    }
+
+    private LintReportDto.LintIssueDto toIssueDto(LintIssue issue) {
+        return new LintReportDto.LintIssueDto(issue.severity(), issue.code(), issue.message(), issue.nodeId());
     }
 }

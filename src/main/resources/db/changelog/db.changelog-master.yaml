@@ -32,3 +32,89 @@ databaseChangeLog:
   # Add context and description columns to validation_rules
   - include:
       file: db/changelog/changes/024-add-context-to-validation-rules.yaml
+
+  # Task 06: Operator registry v2 fields (category_id, display_name, ui_option, supported_verdicts)
+  - include:
+      file: db/changelog/changes/025-add-operator-registry-v2-fields.yaml
+
+  # Task 06: Validation rules + rule_nodes additional fields and indexes
+  - include:
+      file: db/changelog/changes/026-add-validation-rules-rule-nodes-fields.yaml
+
+  # Task 06: Rule bindings + reason_codes v2 fields (resource_type, display_message, etc.)
+  - include:
+      file: db/changelog/changes/027-add-rule-bindings-reason-codes-fields.yaml
+
+  # Task 06: Seed 5 spec operator categories (AUDIENCE/ORDER/PRODUCT/TIME/LOYALTY) + 8 core operators
+  - include:
+      file: db/changelog/changes/028-seed-spec-categories-operators.yaml
+
+  # Review-B: rule_nodes integrity constraints (self-ref check, type-field exclusion, FK cascade)
+  - include:
+      file: db/changelog/changes/029-add-rule-nodes-invariants.yaml
+
+  # Task 15: Seed customer.is_owner operator + VOUCHER_NOT_OWNED_BY_CUSTOMER reason code
+  - include:
+      file: db/changelog/changes/030-seed-owner-only-operator-reason-code.yaml
+
+  # Task 15: Seed system rule rule-sys-owner-only (state=PUBLISHED, bundle_hash deferred)
+  - include:
+      file: db/changelog/changes/031-seed-owner-only-system-rule.yaml
+
+  # Review-B: Add is_system column + mark rule-sys-owner-only as system rule
+  - include:
+      file: db/changelog/changes/032-add-is-system-column.yaml
+
+  # Task 09 V2: Create validation_rules_history for per-version audit trail
+  - include:
+      file: db/changelog/changes/033-create-validation-rules-history.yaml
+
+  # Task 09 V2 Review-B: Add change_reason column to validation_rules_history
+  - include:
+      file: db/changelog/changes/034-add-change-reason-to-history.yaml
+
+  # Task 09 V8: Merge ui_option → json_schema x-ui-* extensions, DROP ui_option column
+  - include:
+      file: db/changelog/changes/035-migrate-ui-option-to-schema-x-ui.yaml
+
+  # T2: Seed binding.validity_window operator + OUTSIDE_VALIDITY_WINDOW reason code
+  - include:
+      file: db/changelog/changes/036-seed-binding-validity-operator.yaml
+
+  # T5: Seed 9 missing operator_options for FE mock coverage
+  # (1 update: product_sku → order.item.sku.in; 8 new inserts)
+  - include:
+      file: db/changelog/changes/040-seed-fe-mock-coverage.yaml
+
+  # T8: Seed 2 operator_options for T6 (acquisition_channel) + T7 (gift_amount)
+  - include:
+      file: db/changelog/changes/041-seed-acquisition-gift-operators.yaml
+
+  # T14: Seed sample metadata_schemas (3 customer + 2 order) for T15 virtual operator generation
+  - include:
+      file: db/changelog/changes/042-seed-metadata-schemas.yaml
+
+  # T16: Seed METADATA_MISMATCH reason code for generic metadata.access operator
+  - include:
+      file: db/changelog/changes/043-seed-metadata-access-operator.yaml
+
+  # T13: Seed 6 counter operator_options + 5 reason codes (5 quota counter + max_pay_with_points)
+  - include:
+      file: db/changelog/changes/044-seed-counter-operators.yaml
+
+  # T17: Add current_version to validation_rules + change_type index to history
+  - include:
+      file: db/changelog/changes/045-extend-validation-rules-history.yaml
+
+  # Fix: Move customer_life_time_value → cat-audience-001, acquisition_channel → cat-budget-001
+  # (were incorrectly seeded into cat-customer-meta-001; hidden by T15 metadata enrichment)
+  - include:
+      file: db/changelog/changes/046-fix-misplaced-operator-options.yaml
+
+  # Add fallback_error_message column to validation_rules (generic user-facing error message)
+  - include:
+      file: db/changelog/changes/047-add-fallback-error-message-to-validation-rules.yaml
+
+  # Align fallback_error_message type with DTO @Size(max=500): TEXT → VARCHAR(500)
+  - include:
+      file: db/changelog/changes/048-modify-fallback-error-message-to-varchar.yaml

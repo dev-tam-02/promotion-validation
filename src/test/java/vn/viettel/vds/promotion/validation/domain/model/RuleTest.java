@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import vn.viettel.vds.promotion.validation.TestFixtures;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Set;
 
