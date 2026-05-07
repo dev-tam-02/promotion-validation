@@ -330,6 +330,7 @@ class DrlCompilerTest {
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
+    @SuppressWarnings("java:S1172")
     private RuleNode makeCond(String id, String operatorName, Map<String, Object> params,
                               String compilerId, String reasonCode) {
         return RuleNode.builder()

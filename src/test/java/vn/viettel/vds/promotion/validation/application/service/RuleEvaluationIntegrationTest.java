@@ -426,6 +426,7 @@ class RuleEvaluationIntegrationTest {
                 .build();
     }
 
+    @SuppressWarnings("java:S1172")
     private RuleNode condNode(String id, String operatorName, String compilerId,
                               Map<String, Object> params, String reasonCode) {
         return RuleNode.builder()

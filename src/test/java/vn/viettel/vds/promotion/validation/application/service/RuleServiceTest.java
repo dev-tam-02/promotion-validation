@@ -343,10 +343,8 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), any(), eq("weekend"), eq(pageable)))
                     .thenReturn(page);
 
-            // When
-            Page<Rule> result = sut.findRules(null, null, "weekend", pageable);
-
-            // Then
+            // When / Then
+            sut.findRules(null, null, "weekend", pageable);
             verify(rulePersistencePort).findWithFilters(any(), any(), eq("weekend"), eq(pageable));
         }
 

@@ -16,6 +16,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataEx
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -152,7 +153,7 @@ public class DeleteValidationRuleCommandHandler {
 
         } catch (Exception e) {
             logger.error("Error executing delete for campaign: {}", campaignId, e);
-            return null;
+            return Collections.emptyList();
         }
     }
 

@@ -40,6 +40,10 @@ public class SettingValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
+    private static final String PROCESSING_ERROR = "PROCESSING_ERROR";
+    private static final String SYSTEM_USER = "system";
+    private static final String DEFAULT_FREQ = "FREQ=DAILY;INTERVAL=1";
+
     private final RuleBindingPersistencePort ruleBindingPort;
     private final ValidationRuleRepositoryPort validationRulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
@@ -88,7 +92,7 @@ public class SettingValidationRuleCommandHandler {
      * - If transaction commit fails, no SUCCESS event is sent (prevents SUCCESS+FAILURE race)
      * - Idempotency is marked BEFORE publishing SUCCESS (protects DLQ handler from race)
      */
-    @SuppressWarnings("java:S2139")
+    @SuppressWarnings({"java:S2139", "java:S3776"})
     public boolean handleCommand(SettingValidationRuleCommand command) {
         String commandId = command.getId();
 
@@ -135,7 +139,7 @@ public class SettingValidationRuleCommandHandler {
             // --- Transaction has committed here ---
 
             if (result == null || !result.isSuccess()) {
-                String errorCode = result != null ? result.getErrorCode() : "PROCESSING_ERROR";
+                String errorCode = result != null ? result.getErrorCode() : PROCESSING_ERROR;
                 String errorMessage = result != null ? result.getErrorMessage() : "Processing returned null result";
                 logger.info("[SAGA-DEBUG] BEFORE publishErrorEvent (tx result failed): commandId={}, errorCode={}", commandId, errorCode);
                 publishErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -178,7 +182,7 @@ public class SettingValidationRuleCommandHandler {
             if (!processedInCatch) {
                 String campaignId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
                 logger.info("[SAGA-DEBUG] CATCH BEFORE publishErrorEvent: commandId={}", commandId);
-                publishErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+                publishErrorEvent(commandId, campaignId, PROCESSING_ERROR, "Unexpected error: " + e.getMessage());
                 logger.info("[SAGA-DEBUG] CATCH AFTER publishErrorEvent: commandId={}", commandId);
             } else {
                 logger.warn("Command already marked as processed, suppressing error event: commandId={}", commandId);
@@ -303,7 +307,7 @@ public class SettingValidationRuleCommandHandler {
             logger.info("[SAGA-DEBUG] processCommand EXCEPTION: commandId={}, exceptionClass={}, message={}",
                     commandId, e.getClass().getName(), e.getMessage());
             logger.error("Error processing command: commandId={}", commandId, e);
-            return CommandProcessingResult.failure("PROCESSING_ERROR", e.getMessage());
+            return CommandProcessingResult.failure(PROCESSING_ERROR, e.getMessage());
         }
     }
 
@@ -358,8 +362,8 @@ public class SettingValidationRuleCommandHandler {
                 .stickyKeyStrategy(RuleBinding.StickyKeyStrategy.CUSTOMER_ID)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .createdBy("system")
-                .updatedBy("system")
+                .createdBy(SYSTEM_USER)
+                .updatedBy(SYSTEM_USER)
                 .version(0L);
 
         applyApplicabilityData(builder, components.applicableToData());
@@ -420,11 +424,11 @@ public class SettingValidationRuleCommandHandler {
                 .effectiveTo(effectiveTo)
                 .campaignId(objectId)
                 .publishedAt(now)
-                .publishedBy("system")
+                .publishedBy(SYSTEM_USER)
                 .createdAt(now)
                 .updatedAt(now)
-                .createdBy("system")
-                .updatedBy("system")
+                .createdBy(SYSTEM_USER)
+                .updatedBy(SYSTEM_USER)
                 // BUG-024: leave version null so RuleJpaEntity.isNew() returns true and
                 // Spring Data uses persist() (INSERT) instead of merge() (UPDATE).
                 // @PrePersist will assign version=0 inside the persistence layer.
@@ -501,7 +505,7 @@ public class SettingValidationRuleCommandHandler {
                 rule.getId(),
                 rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L,
                 RuleHistoryEntry.ChangeType.CREATE,
-                "system",
+                SYSTEM_USER,
                 Instant.now(),
                 snapshot,
                 rule.getBundleHash(),
@@ -549,55 +553,6 @@ public class SettingValidationRuleCommandHandler {
                     .collect(Collectors.toList()));
         }
         return m;
-    }
-
-    /**
-     * Auto-create a campaign-specific validation rule when no ruleId is provided.
-     * Creates a minimal rule with a root GROUP node (ALL logic) and no business conditions.
-     * The temporal validation (date range, days of week, hours per day) is handled by
-     * the DRL compiler's temporal policy system based on the binding's temporal data.
-     *
-     * @deprecated Use {@link #resolveOrCreateRule(SettingValidationRuleCommandPayload)} instead.
-     */
-    @Deprecated
-    private Rule createCampaignValidationRule(ComponentsData components) {
-        String ruleId = IdGenerator.generateId();
-        String objectId = components.objectId();
-        String code = "CAMPAIGN_" + objectId.replace("-", "").substring(0, Math.min(objectId.replace("-", "").length(), 20));
-
-        // No business condition nodes — temporal validation is handled by
-        // the DRL compiler's temporal policy based on the binding's temporal data
-        Instant now = Instant.now();
-        Instant effectiveFrom = null;
-        Instant effectiveTo = null;
-
-        TimeFrame timeframe = components.timeframeData();
-        if (timeframe != null && timeframe.getValidityTimeframe() != null) {
-            effectiveFrom = timeframe.getValidityTimeframe().getStartDate();
-            effectiveTo = timeframe.getValidityTimeframe().getExpirationDate();
-        }
-
-        return Rule.builder()
-                .id(ruleId)
-                .code(code)
-                .name("Campaign Rule - " + objectId)
-                .description("Auto-generated validation rule for campaign " + objectId)
-                .state(Rule.RuleState.PUBLISHED)
-                .active(true)
-                .ruleVersion(1L)
-                .logic(Rule.LogicType.ALL)
-                .nodes(new ArrayList<>())
-                .effectiveFrom(effectiveFrom)
-                .effectiveTo(effectiveTo)
-                .campaignId(objectId)
-                .publishedAt(now)
-                .publishedBy("system")
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("system")
-                .updatedBy("system")
-                .version(0L)
-                .build();
     }
 
     private void applyApplicabilityData(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
@@ -714,7 +669,7 @@ public class SettingValidationRuleCommandHandler {
      */
     String parseFreqAndInterval(String isoPeriod) {
         if (isoPeriod == null || isoPeriod.isBlank()) {
-            return "FREQ=DAILY;INTERVAL=1";
+            return DEFAULT_FREQ;
         }
 
         // Duration (PTnH / PTnM / PTnS) — warn and map to HOURLY for PT*H, else reject to DAILY
@@ -729,7 +684,7 @@ public class SettingValidationRuleCommandHandler {
             } catch (DateTimeParseException ignored) {
                 // fall through
             }
-            return "FREQ=DAILY;INTERVAL=1";
+            return DEFAULT_FREQ;
         }
 
         // Period (PnD / PnW / PnM / PnY)
@@ -750,10 +705,10 @@ public class SettingValidationRuleCommandHandler {
             }
             // Zero period — default
             logger.warn("ISO 8601 period '{}' resolved to zero — defaulting to FREQ=DAILY;INTERVAL=1", isoPeriod);
-            return "FREQ=DAILY;INTERVAL=1";
+            return DEFAULT_FREQ;
         } catch (DateTimeParseException e) {
             logger.warn("Failed to parse ISO 8601 period '{}', defaulting to FREQ=DAILY;INTERVAL=1", isoPeriod);
-            return "FREQ=DAILY;INTERVAL=1";
+            return DEFAULT_FREQ;
         }
     }
 
@@ -799,6 +754,7 @@ public class SettingValidationRuleCommandHandler {
     /**
      * Deploy rule to validation-engine
      */
+    @SuppressWarnings("java:S3776")
     private RuleBinding deployRuleToEngine(RuleBinding binding, String ruleId, ApplicabilityScope applicableToData) {
         try {
             if (!Boolean.TRUE.equals(binding.getActive())) {

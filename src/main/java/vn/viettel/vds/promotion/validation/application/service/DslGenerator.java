@@ -9,6 +9,7 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,7 @@ public class DslGenerator {
 
     private Map<String, Object> serializeNode(RuleNode node) {
         if (node == null) {
-            return null;
+            return Collections.emptyMap();
         }
         if (node.getType() == RuleNode.NodeType.GROUP) {
             return serializeGroup(node);

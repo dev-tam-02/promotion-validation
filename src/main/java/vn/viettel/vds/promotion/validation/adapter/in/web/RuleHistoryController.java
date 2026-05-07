@@ -4,7 +4,6 @@ import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,10 +40,8 @@ public class RuleHistoryController {
     @Operation(
             summary = "Get rule version history",
             description = "Returns all immutable audit snapshots for a rule, ordered by version ascending.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "History returned"),
-            @ApiResponse(responseCode = "404", description = "Rule not found")
-    })
+    @ApiResponse(responseCode = "200", description = "History returned")
+    @ApiResponse(responseCode = "404", description = "Rule not found")
     @GetMapping("/{id}/history")
     public ResponseEntity<List<RuleHistoryEntryDto>> getHistory(
             @Parameter(description = "Rule ID") @PathVariable String id) {
@@ -62,11 +59,9 @@ public class RuleHistoryController {
             summary = "Restore rule to a prior version",
             description = "Applies the DSL snapshot from the target version back to the current rule. "
                     + "Records the pre-restore state as a new UPDATE history entry and increments ruleVersion.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Rule restored successfully"),
-            @ApiResponse(responseCode = "404", description = "Rule not found"),
-            @ApiResponse(responseCode = "400", description = "Target version not found in history")
-    })
+    @ApiResponse(responseCode = "200", description = "Rule restored successfully")
+    @ApiResponse(responseCode = "404", description = "Rule not found")
+    @ApiResponse(responseCode = "400", description = "Target version not found in history")
     @PostMapping("/{id}/restore/{version}")
     public ResponseEntity<Void> restore(
             @Parameter(description = "Rule ID") @PathVariable String id,

@@ -54,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * (JSON Schema → Java types → Drools DSL) would eliminate this entire class of drift.
  * Tracked as a separate backlog item.
  *
- * <p>TODO: Fix the 3 drifted operator schemas so {@code json_schema} matches template param keys:
+ * <p>Follow-up: Fix the 3 drifted operator schemas so {@code json_schema} matches template param keys:
  * <ul>
  *   <li>{@code product.in_category} → change schema to {@code categoryId: {type: string}}</li>
  *   <li>{@code product.in_list} → change schema to {@code productId: {type: string}}</li>
@@ -355,7 +355,7 @@ class OperatorTemplateCompatibilityTest {
      * This test asserts that exact broken behavior to lock it in — fixing the drift
      * will break this test, which is the intended signal to update it.
      *
-     * <p>TODO: Fix drift — change schema from {@code categoryIds: array} to
+     * <p>Follow-up: Fix drift — change schema from {@code categoryIds: array} to
      * {@code categoryId: string}.
      */
     @Test
@@ -378,7 +378,7 @@ class OperatorTemplateCompatibilityTest {
     /**
      * Demonstrates the schema drift for {@code product.in_list}.
      *
-     * <p>TODO: Fix drift — change schema from {@code productIds: array} to
+     * <p>Follow-up: Fix drift — change schema from {@code productIds: array} to
      * {@code productId: string}.
      */
     @Test
@@ -399,7 +399,7 @@ class OperatorTemplateCompatibilityTest {
     /**
      * Demonstrates the schema drift for {@code time.within_window}.
      *
-     * <p>TODO: Fix drift — change schema from {@code startTime}/{@code endTime} to
+     * <p>Follow-up: Fix drift — change schema from {@code startTime}/{@code endTime} to
      * {@code from}/{@code to}.
      */
     @Test

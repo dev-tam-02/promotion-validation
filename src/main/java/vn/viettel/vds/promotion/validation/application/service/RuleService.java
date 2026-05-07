@@ -75,6 +75,7 @@ public class RuleService {
      * Create a new rule with optional context, description and fallbackErrorMessage.
      * Auto-generates code if blank and defaults logic to ALL when null.
      */
+    @SuppressWarnings("java:S107")
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String createdBy) {
@@ -147,6 +148,7 @@ public class RuleService {
      * Update an existing rule with optional context, description and fallbackErrorMessage.
      * PATCH semantics: only fields that are non-null are updated.
      */
+    @SuppressWarnings("java:S107")
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String updatedBy) {

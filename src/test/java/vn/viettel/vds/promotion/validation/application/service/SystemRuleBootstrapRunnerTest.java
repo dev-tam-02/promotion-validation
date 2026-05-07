@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -200,7 +201,7 @@ class SystemRuleBootstrapRunnerTest {
         when(rulePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Must not throw — engine error is swallowed
-        ruleManagementService.republishSystemRules();
+        assertDoesNotThrow(() -> ruleManagementService.republishSystemRules());
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────
