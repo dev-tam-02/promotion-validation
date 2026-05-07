@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import vn.viettel.vds.promotion.validation.config.validator.ValidEnum;
 import vn.viettel.vds.promotion.validation.domain.enums.RuleContext;
@@ -16,8 +14,7 @@ import java.util.Map;
 @Schema(description = "Request to create a new rule")
 public class CreateRuleRequest {
 
-    @Schema(description = "Rule code (unique identifier)", example = "WEEKEND_VIP_500K")
-    @NotBlank(message = "Rule code is required")
+    @Schema(description = "Rule code (unique identifier, auto-generated if blank)", example = "WEEKEND_VIP_500K")
     @Size(max = 100, message = "Rule code must not exceed 100 characters")
     @JsonProperty("code")
     private String code;
@@ -28,20 +25,9 @@ public class CreateRuleRequest {
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Root logic operator", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
-    @NotNull(message = "Logic is required")
+    @Schema(description = "Root logic operator (defaults to ALL if blank)", example = "ALL", allowableValues = {"ALL", "ANY", "NONE"})
     @JsonProperty("logic")
     private String logic;
-
-    @Schema(description = "Rule limits configuration", example = "{\"perCodeTotal\": 1000, \"perCustomer\": 3}")
-    @JsonProperty("limits")
-    private Map<String, Object> limits;
-
-    @Schema(description = "Rule nodes (conditions and groups)")
-    @NotEmpty(message = "Rule must have at least one node")
-    @Valid
-    @JsonProperty("nodes")
-    private List<RuleNodeDto> nodes;
 
     @Schema(description = "Rule context indicating the trigger event",
             example = "ORDER_CREATED",
@@ -55,6 +41,15 @@ public class CreateRuleRequest {
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
     @JsonProperty("description")
     private String description;
+
+    @Schema(description = "Rule limits configuration", example = "{\"perCodeTotal\": 1000, \"perCustomer\": 3}")
+    @JsonProperty("limits")
+    private Map<String, Object> limits;
+
+    @Schema(description = "Rule nodes (conditions and groups)")
+    @Valid
+    @JsonProperty("nodes")
+    private List<RuleNodeDto> nodes;
 
     @Schema(description = "Generic fallback error message shown to users when the rule fails",
             example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")

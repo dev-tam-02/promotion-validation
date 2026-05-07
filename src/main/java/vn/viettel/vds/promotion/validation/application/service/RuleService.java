@@ -72,20 +72,28 @@ public class RuleService {
     }
 
     /**
-     * Create a new rule with optional context, description and fallbackErrorMessage
+     * Create a new rule with optional context, description and fallbackErrorMessage.
+     * Auto-generates code if blank and defaults logic to ALL when null.
      */
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String createdBy) {
-        logger.info("Creating rule: code={}", code);
+        // Auto-generate code if not provided
+        String effectiveCode = (code != null && !code.isBlank()) ? code : generateRuleId();
+        logger.info("Creating rule: code={}", effectiveCode);
 
         // Check if rule with same code already exists
-        if (rulePersistencePort.existsByCode(code)) {
-            throw new RuleAlreadyExistsException(code);
+        if (rulePersistencePort.existsByCode(effectiveCode)) {
+            throw new RuleAlreadyExistsException(effectiveCode);
         }
 
-        // Validate rule nodes
-        validateRuleNodes(nodes);
+        // Validate rule nodes only if provided
+        if (nodes != null && !nodes.isEmpty()) {
+            validateRuleNodes(nodes);
+        }
+
+        // Default logic to ALL if not provided
+        Rule.LogicType effectiveLogic = (logic != null) ? logic : Rule.LogicType.ALL;
 
         // Static lint analysis — errors block save, warnings are logged
         LintReport lintReport = ruleLinter.lint(null, nodes);
@@ -94,16 +102,16 @@ public class RuleService {
                     "Rule has lint errors that must be fixed before saving: " + lintReport.errors());
         }
         if (lintReport.hasWarnings()) {
-            logger.warn("createRule lint warnings for code={}: {}", code, lintReport.warnings());
+            logger.warn("createRule lint warnings for code={}: {}", effectiveCode, lintReport.warnings());
         }
 
         Rule rule = new Rule();
         rule.setId(generateRuleId());
-        rule.setCode(code);
+        rule.setCode(effectiveCode);
         rule.setName(name);
         rule.setState(Rule.RuleState.DRAFT);
         rule.setLatestVersion(0);
-        rule.setLogic(logic);
+        rule.setLogic(effectiveLogic);
         rule.setNodes(nodes);
         rule.setContext(context);
         rule.setDescription(description);
@@ -117,6 +125,14 @@ public class RuleService {
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
+    }
+
+    /**
+     * Count binding assignments for a rule
+     */
+    @Transactional(readOnly = true)
+    public long countBindingsForRule(String ruleId) {
+        return ruleBindingPort.findByRuleId(ruleId).size();
     }
 
     /**

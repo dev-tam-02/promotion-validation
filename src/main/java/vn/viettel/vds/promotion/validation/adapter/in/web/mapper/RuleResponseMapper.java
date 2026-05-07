@@ -83,6 +83,11 @@ public class RuleResponseMapper {
      */
     @Nullable
     public RuleListItemResponse toListItemResponse(@Nullable Rule rule) {
+        return toListItemResponse(rule, null);
+    }
+
+    @Nullable
+    public RuleListItemResponse toListItemResponse(@Nullable Rule rule, @Nullable Long assignmentCount) {
         if (rule == null) return null;
 
         return new RuleListItemResponse(
@@ -94,7 +99,7 @@ public class RuleResponseMapper {
                 rule.getRuleVersion(),                                            // ruleVersion
                 rule.getVersion(),                                                // version
                 rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0,    // nodeCount
-                null,                                                             // assignmentCount (not computed here)
+                assignmentCount,                                                  // assignmentCount
                 rule.getCreatedAt(),                                              // createdAt
                 rule.getCreatedBy(),                                              // createdBy
                 rule.getCreatedBy(),                                              // createdByName (fallback until Keycloak)
