@@ -24,6 +24,7 @@ import java.util.Optional;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -197,10 +198,20 @@ class SystemRuleBootstrapRunnerTest {
 
         when(rulePort.findPublishedWithNullBundleHash()).thenReturn(List.of(seededRule));
         when(rulePort.findById("rule-sys-owner-only")).thenReturn(Optional.of(seededRule));
-        when(rulePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
+        final Rule[] savedRule = {null};
+        when(rulePort.save(any(Rule.class))).thenAnswer(inv -> {
+            savedRule[0] = inv.getArgument(0);
+            return savedRule[0];
+        });
 
         // Must not throw — engine error is swallowed
         ruleManagementService.republishSystemRules();
+
+        wireMock.verify(postRequestedFor(urlEqualTo("/v1/rules")));
+        verify(rulePort).save(any(Rule.class));
+        assertThat(savedRule[0]).isNotNull();
+        assertThat(savedRule[0].getBundleHash()).isNull();
+        assertThat(savedRule[0].getDsl()).isNotNull();
     }
 
     // ─── helpers ────────────────────────────────────────────────────────────
