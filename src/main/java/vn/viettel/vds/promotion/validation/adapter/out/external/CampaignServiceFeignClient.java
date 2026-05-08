@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
  */
 @FeignClient(
         name = "campaign-service",
-        url = "${external.services.campaign.url:http://localhost:8083}",
+        url = "${external.services.campaign.url}",
         configuration = ExternalServiceFeignConfig.class,
         fallback = CampaignServiceFeignClientFallback.class
 )

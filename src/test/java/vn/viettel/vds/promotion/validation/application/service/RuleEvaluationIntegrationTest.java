@@ -138,9 +138,10 @@ class RuleEvaluationIntegrationTest {
 
         // DRL content assertions: both temporal guards
         String drl = compileDrl(rule);
-        assertThat(drl).contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))");
-        assertThat(drl).contains("&&");
-        assertThat(drl).contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
+        assertThat(drl)
+                .contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))")
+                .contains("&&")
+                .contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
     }
 
     @Test
@@ -155,9 +156,10 @@ class RuleEvaluationIntegrationTest {
 
         // The DRL correctly encodes: pass iff now >= startDate
         // When now = Apr 25, the engine would evaluate !now.isBefore(Apr26) → false → DENY
-        assertThat(drl).contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))");
-        // The rule name contains the campaign id (auto-gen)
-        assertThat(drl).contains("rule \"");
+        assertThat(drl)
+                .contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))")
+                // The rule name contains the campaign id (auto-gen)
+                .contains("rule \"");
     }
 
     @Test
@@ -203,15 +205,13 @@ class RuleEvaluationIntegrationTest {
 
         String drl = compileDrl(rule);
 
-        // Both facts present in the compiled DRL
-        assertThat(drl).contains("CustomerFact");
-        assertThat(drl).contains("OrderFact");
-        // Customer: segment check
-        assertThat(drl).contains("VIP");
-        // Order: amount check
-        assertThat(drl).contains("500000");
-        // AND composition (both must pass)
-        assertThat(drl).contains("&&");
+        // Both facts present in the compiled DRL; segment + amount + AND composition
+        assertThat(drl)
+                .contains("CustomerFact")
+                .contains("OrderFact")
+                .contains("VIP")
+                .contains("500000")
+                .contains("&&");
     }
 
     @Test
@@ -223,8 +223,9 @@ class RuleEvaluationIntegrationTest {
 
         // DRL contains CustomerFact segment check
         String drl = compileDrl(rule);
-        assertThat(drl).contains("CustomerFact");
-        assertThat(drl).contains("VIP");
+        assertThat(drl)
+                .contains("CustomerFact")
+                .contains("VIP");
 
         // Node carries the expected reason code for when it fails
         RuleNode resultCond = rule.getNodes().get(0).getChildren().get(0);
@@ -247,7 +248,7 @@ class RuleEvaluationIntegrationTest {
         // Both reason codes are encoded in the node tree (engine uses these when building DENY verdict)
         List<String> reasonCodes = rule.getNodes().get(0).getChildren().stream()
                 .map(RuleNode::getReasonCode)
-                .collect(Collectors.toList());
+                .toList();
         assertThat(reasonCodes).containsExactlyInAnyOrder(
                 "CUSTOMER_NOT_IN_SEGMENT",
                 "ORDER_TOTAL_BELOW_MIN"
@@ -263,9 +264,10 @@ class RuleEvaluationIntegrationTest {
         );
 
         String drl = compileDrl(rule);
-        assertThat(drl).contains("CustomerFact");
-        assertThat(drl).contains("loyaltyTier");
-        assertThat(drl).contains("GOLD");
+        assertThat(drl)
+                .contains("CustomerFact")
+                .contains("loyaltyTier")
+                .contains("GOLD");
     }
 
     @Test
@@ -277,9 +279,10 @@ class RuleEvaluationIntegrationTest {
         );
 
         String drl = compileDrl(rule);
-        assertThat(drl).contains("OrderFact");
-        assertThat(drl).contains("items.size");
-        assertThat(drl).contains("3");
+        assertThat(drl)
+                .contains("OrderFact")
+                .contains("items.size")
+                .contains("3");
     }
 
     @Test
@@ -291,8 +294,9 @@ class RuleEvaluationIntegrationTest {
         );
 
         String drl = compileDrl(rule);
-        assertThat(drl).contains("CartItemFact");
-        assertThat(drl).contains("cat-electronics");
+        assertThat(drl)
+                .contains("CartItemFact")
+                .contains("cat-electronics");
     }
 
     @Test
@@ -304,9 +308,10 @@ class RuleEvaluationIntegrationTest {
         );
 
         String drl = compileDrl(rule);
-        assertThat(drl).contains("exists");
-        assertThat(drl).contains("CartItemFact");
-        assertThat(drl).contains("sku-blacklist-001");
+        assertThat(drl)
+                .contains("exists")
+                .contains("CartItemFact")
+                .contains("sku-blacklist-001");
     }
 
     // =========================================================================

@@ -51,14 +51,14 @@ class DslGeneratorTest {
 
         Map<String, Object> dsl = dslGenerator.generate(baseRule, List.of(cond));
 
-        assertThat(dsl.get("ruleId")).isEqualTo("rule-001");
-        assertThat(dsl.get("logic")).isEqualTo("AND");
+        assertThat(dsl).containsEntry("ruleId", "rule-001")
+                .containsEntry("logic", "AND");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) dsl.get("root");
-        assertThat(root.get("type")).isEqualTo("COND");
-        assertThat(root.get("operator")).isEqualTo("order.total.gte");
-        assertThat(root.get("reasonCode")).isEqualTo("MIN_ORDER_NOT_MET");
+        assertThat(root).containsEntry("type", "COND")
+                .containsEntry("operator", "order.total.gte")
+                .containsEntry("reasonCode", "MIN_ORDER_NOT_MET");
 
         @SuppressWarnings("unchecked")
         Map<String, Object> params = (Map<String, Object>) root.get("params");
@@ -98,8 +98,8 @@ class DslGeneratorTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) dsl.get("root");
-        assertThat(root.get("type")).isEqualTo("GROUP");
-        assertThat(root.get("groupLogic")).isEqualTo("AND");
+        assertThat(root).containsEntry("type", "GROUP")
+                .containsEntry("groupLogic", "AND");
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> children = (List<Map<String, Object>>) root.get("children");
@@ -166,7 +166,7 @@ class DslGeneratorTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> root = (Map<String, Object>) dsl.get("root");
-        assertThat(root.get("groupLogic")).isEqualTo("AND");
+        assertThat(root).containsEntry("groupLogic", "AND");
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> rootChildren = (List<Map<String, Object>>) root.get("children");
@@ -175,14 +175,14 @@ class DslGeneratorTest {
         // Second child is the nested OR group
         @SuppressWarnings("unchecked")
         Map<String, Object> nestedGroup = rootChildren.get(1);
-        assertThat(nestedGroup.get("type")).isEqualTo("GROUP");
-        assertThat(nestedGroup.get("groupLogic")).isEqualTo("OR");
+        assertThat(nestedGroup).containsEntry("type", "GROUP")
+                .containsEntry("groupLogic", "OR");
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> orChildren = (List<Map<String, Object>>) nestedGroup.get("children");
         assertThat(orChildren).hasSize(2);
-        assertThat(orChildren.get(0).get("operator")).isEqualTo("customer.in_segment");
-        assertThat(orChildren.get(1).get("operator")).isEqualTo("customer.loyalty_tier.gte");
+        assertThat(orChildren.get(0)).containsEntry("operator", "customer.in_segment");
+        assertThat(orChildren.get(1)).containsEntry("operator", "customer.loyalty_tier.gte");
     }
 
     // ─── Logic type mappings ───────────────────────────────────────────────────
@@ -196,7 +196,7 @@ class DslGeneratorTest {
                 .operatorName("order.total.gte").params(Map.of("amount", 0)).reasonCode("RC").build();
 
         Map<String, Object> dsl = dslGenerator.generate(anyRule, List.of(cond));
-        assertThat(dsl.get("logic")).isEqualTo("OR");
+        assertThat(dsl).containsEntry("logic", "OR");
     }
 
     @Test
@@ -208,7 +208,7 @@ class DslGeneratorTest {
                 .operatorName("order.total.gte").params(Map.of("amount", 0)).reasonCode("RC").build();
 
         Map<String, Object> dsl = dslGenerator.generate(noneRule, List.of(cond));
-        assertThat(dsl.get("logic")).isEqualTo("NONE");
+        assertThat(dsl).containsEntry("logic", "NONE");
     }
 
     @Test
@@ -221,8 +221,9 @@ class DslGeneratorTest {
         Map<String, Object> dsl = dslGenerator.generate(baseRule, List.of(cond));
         String json = dslGenerator.toJson(dsl);
 
-        assertThat(json).contains("\"ruleId\"");
-        assertThat(json).contains("\"logic\"");
-        assertThat(json).contains("\"root\"");
+        assertThat(json)
+                .contains("\"ruleId\"")
+                .contains("\"logic\"")
+                .contains("\"root\"");
     }
 }

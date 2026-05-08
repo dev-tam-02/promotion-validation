@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @FeignClient(
         name = "order-service",
-        url = "${external.order-service.url:http://order-service}",
+        url = "${external.order-service.url}",
         configuration = ExternalServiceFeignConfig.class
 )
 public interface OrderServiceFeignClient {

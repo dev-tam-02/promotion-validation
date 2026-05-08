@@ -338,11 +338,12 @@ class OperatorTemplateCompatibilityTest {
                 "tpl_customer_in_segment_v1",
                 Map.of("segments", List.of("VIP", "GOLD", "PLATINUM")));
 
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("segments contains \"VIP\"");
-        assertThat(snippet).contains("segments contains \"GOLD\"");
-        assertThat(snippet).contains("segments contains \"PLATINUM\"");
-        assertThat(snippet).contains("||");
+        assertThat(snippet)
+                .contains("CustomerFact")
+                .contains("segments contains \"VIP\"")
+                .contains("segments contains \"GOLD\"")
+                .contains("segments contains \"PLATINUM\"")
+                .contains("||");
     }
 
     // ─── Schema drift: schema-valid params produce broken DRL ─────────────────────
@@ -369,8 +370,7 @@ class OperatorTemplateCompatibilityTest {
         // Template uses {{categoryId}} — not present in schemaValidParams — renders as empty string:
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty categoryId placeholder")
-                .contains("CartItemFact");
-        assertThat(snippet)
+                .contains("CartItemFact")
                 .as("Drift confirmed: 'cat-electronics' must NOT appear (schema key mismatch)")
                 .doesNotContain("cat-electronics");
     }
@@ -390,8 +390,7 @@ class OperatorTemplateCompatibilityTest {
 
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty productId placeholder")
-                .contains("CartItemFact");
-        assertThat(snippet)
+                .contains("CartItemFact")
                 .as("Drift confirmed: 'prod-001' must NOT appear (schema key mismatch)")
                 .doesNotContain("prod-001");
     }
@@ -414,8 +413,7 @@ class OperatorTemplateCompatibilityTest {
 
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty from/to placeholders")
-                .contains("ExecutionContextFact");
-        assertThat(snippet)
+                .contains("ExecutionContextFact")
                 .as("Drift confirmed: '08:00' must NOT appear (schema key mismatch)")
                 .doesNotContain("08:00");
     }

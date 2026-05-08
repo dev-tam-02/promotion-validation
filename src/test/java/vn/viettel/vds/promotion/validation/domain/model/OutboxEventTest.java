@@ -157,7 +157,7 @@ class OutboxEventTest {
             var event = TestFixtures.pendingEvent("evt-1");
             event.withIncrementedAttempts();
 
-            assertThat(event.getAttempts()).isEqualTo(0);
+            assertThat(event.getAttempts()).isZero();
         }
     }
 

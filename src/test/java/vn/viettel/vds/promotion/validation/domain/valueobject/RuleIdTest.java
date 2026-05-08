@@ -85,8 +85,9 @@ class RuleIdTest {
             var id1 = RuleId.of("rule-1");
             var id2 = RuleId.of("rule-1");
 
-            assertThat(id1).isEqualTo(id2);
-            assertThat(id1.hashCode()).isEqualTo(id2.hashCode());
+            assertThat(id1)
+                    .isEqualTo(id2)
+                    .hasSameHashCodeAs(id2);
         }
 
         @Test
@@ -107,7 +108,7 @@ class RuleIdTest {
         @DisplayName("Should return value as string")
         void shouldReturnValue() {
             var ruleId = RuleId.of("rule-abc");
-            assertThat(ruleId.toString()).isEqualTo("rule-abc");
+            assertThat(ruleId).hasToString("rule-abc");
         }
     }
 }

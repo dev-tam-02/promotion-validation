@@ -204,7 +204,7 @@ class RuleTreeAssemblerTest {
         @Test
         @DisplayName("null node returns 0")
         void nullNode_returns0() {
-            assertThat(assembler.maxDepth(null)).isEqualTo(0);
+            assertThat(assembler.maxDepth(null)).isZero();
         }
 
         @Test
@@ -250,13 +250,13 @@ class RuleTreeAssemblerTest {
         @Test
         @DisplayName("null roots returns 0")
         void null_returns0() {
-            assertThat(assembler.maxDepthForRoots(null)).isEqualTo(0);
+            assertThat(assembler.maxDepthForRoots(null)).isZero();
         }
 
         @Test
         @DisplayName("empty roots returns 0")
         void empty_returns0() {
-            assertThat(assembler.maxDepthForRoots(List.of())).isEqualTo(0);
+            assertThat(assembler.maxDepthForRoots(List.of())).isZero();
         }
 
         @Test

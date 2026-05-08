@@ -531,7 +531,7 @@ public class SettingValidationRuleCommandHandler {
         if (nodes != null) {
             snapshot.put("nodes", nodes.stream()
                     .map(this::nodeToSnapshot)
-                    .collect(Collectors.toList()));
+                    .toList());
         } else {
             snapshot.put("nodes", List.of());
         }
@@ -550,7 +550,7 @@ public class SettingValidationRuleCommandHandler {
         if (children != null && !children.isEmpty()) {
             m.put("children", children.stream()
                     .map(this::nodeToSnapshot)
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         return m;
     }
@@ -563,13 +563,13 @@ public class SettingValidationRuleCommandHandler {
         if (scope.getIncluded() != null && !scope.getIncluded().isEmpty()) {
             List<String> includedIds = scope.getIncluded().stream()
                     .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.includedProducts(includedIds);
         }
         if (scope.getExcluded() != null && !scope.getExcluded().isEmpty()) {
             List<String> excludedIds = scope.getExcluded().stream()
                     .map(SettingValidationRuleCommand.ApplicabilityRule::getId)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.excludedProducts(excludedIds);
         }
     }
@@ -612,7 +612,7 @@ public class SettingValidationRuleCommandHandler {
                             .start(extractTimeOnly(hours.getStartTime()))
                             .end(extractTimeOnly(hours.getExpirationTime()))
                             .build())
-                    .collect(Collectors.toList());
+                    .toList();
             builder.timeWindows(windows);
         }
     }

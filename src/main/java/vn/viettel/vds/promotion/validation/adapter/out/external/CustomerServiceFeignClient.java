@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @FeignClient(
         name = "customer-service",
-        url = "${external.customer-service.url:http://customer-service}",
+        url = "${external.customer-service.url}",
         configuration = ExternalServiceFeignConfig.class
 )
 public interface CustomerServiceFeignClient {
