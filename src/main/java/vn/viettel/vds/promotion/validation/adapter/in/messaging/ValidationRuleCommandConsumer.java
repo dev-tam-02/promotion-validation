@@ -129,23 +129,7 @@ public class ValidationRuleCommandConsumer {
         // Handlers now throw BusinessException with error code if processing fails
         // Let exceptions propagate naturally to promix-messaging for proper error handling
         logger.info("[SAGA-DEBUG] BEFORE handler call: commandId={}, type={}", command.getId(), command.getType());
-        try {
-            switch (command) {
-                case SettingValidationRuleCommand c -> handleSettingCommand(c);
-                case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
-                case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
-                case RevertValidationRuleCommand c -> handleRevertCommand(c);
-                case DeleteValidationRuleCommand c -> handleDeleteCommand(c);
-                case EnableValidationRuleCommand c -> handleEnableCommand(c);
-                case DisableValidationRuleCommand c -> handleDisableCommand(c);
-                default -> handleUnknownCommand(command);
-            }
-            logger.info("[SAGA-DEBUG] AFTER handler return OK: commandId={}, type={}", command.getId(), command.getType());
-        } catch (Exception e) {
-            logger.info("[SAGA-DEBUG] EXCEPTION from handler: commandId={}, type={}, exceptionClass={}, message={}",
-                    command.getId(), command.getType(), e.getClass().getName(), e.getMessage(), e);
-            throw e;
-        }
+        routeCommand(command);
 
         logger.debug("Successfully processed command: commandId={}, offset={}",
                 command.getId(), offset);
@@ -155,6 +139,20 @@ public class ValidationRuleCommandConsumer {
         acknowledgment.acknowledge();
         logger.info("[SAGA-DEBUG] AFTER ack: commandId={}", command.getId());
         logger.info("Acknowledged command successfully: commandId={}", command.getId());
+    }
+
+    private void routeCommand(ValidationRuleCommand command) {
+        switch (command) {
+            case SettingValidationRuleCommand c -> handleSettingCommand(c);
+            case UpdateValidationRuleCommand c -> handleUpdateCommand(c);
+            case RollbackValidationRuleCommand c -> handleRollbackCommand(c);
+            case RevertValidationRuleCommand c -> handleRevertCommand(c);
+            case DeleteValidationRuleCommand c -> handleDeleteCommand(c);
+            case EnableValidationRuleCommand c -> handleEnableCommand(c);
+            case DisableValidationRuleCommand c -> handleDisableCommand(c);
+            default -> handleUnknownCommand(command);
+        }
+        logger.info("[SAGA-DEBUG] AFTER handler return OK: commandId={}, type={}", command.getId(), command.getType());
     }
 
     /**

@@ -276,8 +276,9 @@ class RuleVersioningDomainServiceTest {
 
             var history = sut.getVersionHistory(List.of(rule1, rule2, other), RuleCode.of("RULE_HIST"));
 
-            assertThat(history).hasSize(2);
-            assertThat(history).allMatch(r -> r.getCode().equals(RuleCode.of("RULE_HIST")));
+            assertThat(history)
+                    .hasSize(2)
+                    .allMatch(r -> r.getCode().equals(RuleCode.of("RULE_HIST")));
         }
 
         @Test

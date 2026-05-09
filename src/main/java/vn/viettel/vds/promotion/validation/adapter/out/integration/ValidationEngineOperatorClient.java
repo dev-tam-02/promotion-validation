@@ -10,7 +10,7 @@ import java.util.List;
 
 @FeignClient(
         name = "validation-engine-operator-client",
-        url = "${integration.validation-engine.url:http://validation-engine:8080}",
+        url = "${integration.validation-engine.url}",
         path = "/promotion/promotion-rule-engine",
         fallback = ValidationEngineOperatorClientFallback.class
 )

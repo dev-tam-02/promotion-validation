@@ -11,7 +11,7 @@ import java.util.Map;
 
 @FeignClient(
         name = "validation-engine-client",
-        url = "${integration.validation-engine.url:http://validation-engine:8080}",
+        url = "${integration.validation-engine.url}",
         path = "${integration.validation-engine.service-path:/promotion/promotion-validation-engine}",
         fallback = ValidationEngineClientFallback.class
 )

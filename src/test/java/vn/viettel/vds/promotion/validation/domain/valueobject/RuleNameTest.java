@@ -80,8 +80,9 @@ class RuleNameTest {
             var name1 = RuleName.of("Same Name");
             var name2 = RuleName.of("Same Name");
 
-            assertThat(name1).isEqualTo(name2);
-            assertThat(name1.hashCode()).isEqualTo(name2.hashCode());
+            assertThat(name1)
+                    .isEqualTo(name2)
+                    .hasSameHashCodeAs(name2);
         }
 
         @Test
@@ -102,7 +103,7 @@ class RuleNameTest {
         @DisplayName("Should return value as string")
         void shouldReturnValue() {
             var ruleName = RuleName.of("Test Rule");
-            assertThat(ruleName.toString()).isEqualTo("Test Rule");
+            assertThat(ruleName).hasToString("Test Rule");
         }
     }
 }

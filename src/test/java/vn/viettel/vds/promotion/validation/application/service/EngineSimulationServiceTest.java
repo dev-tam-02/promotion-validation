@@ -168,9 +168,10 @@ class EngineSimulationServiceTest {
     void simulate_ruleNotFound_throws() {
         String ruleId = "non-existent";
         when(rulePort.findById(ruleId)).thenReturn(Optional.empty());
+        Map<String, Object> emptyContext = Map.of();
 
         assertThrows(IllegalArgumentException.class,
-                () -> engineSimulationService.simulate(ruleId, Map.of()));
+                () -> engineSimulationService.simulate(ruleId, emptyContext));
     }
 
     // -----------------------------------------------------------------------

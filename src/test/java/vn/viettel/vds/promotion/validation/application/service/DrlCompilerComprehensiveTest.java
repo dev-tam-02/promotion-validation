@@ -36,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class DrlCompilerComprehensiveTest {
 
     private DrlCompiler compiler;
-    private Rule baseRule;
 
     static Stream<Arguments> templateRenderCases() {
         return Stream.of(
@@ -224,7 +223,7 @@ class DrlCompilerComprehensiveTest {
         // GROUP NONE: !(cart.has_product)
         RuleNode noneGroup = group("g3", Rule.LogicType.NONE, List.of(cartCond));
 
-        // Nested: (order.total.gte && customer.in_segment) && time.within_window
+        // Nested group: inner (order+segment) combined with time condition
         RuleNode nestedInner = group("gi1", Rule.LogicType.ALL, List.of(orderCond, segmentCond));
         RuleNode nestedOuter = group("go1", Rule.LogicType.ALL, List.of(nestedInner, timeCond));
 
@@ -285,6 +284,7 @@ class DrlCompilerComprehensiveTest {
         return Arguments.of(label, compilerId, params, mustContain, mustNotContain);
     }
 
+    @SuppressWarnings("java:S1172")
     private static RuleNode cond(String id, String operatorName, String compilerId,
                                  Map<String, Object> params) {
         return RuleNode.builder()
@@ -356,10 +356,6 @@ class DrlCompilerComprehensiveTest {
     @BeforeEach
     void setUp() {
         compiler = new DrlCompiler();
-        baseRule = Rule.builder()
-                .id("rule-comprehensive-test")
-                .logic(Rule.LogicType.ALL)
-                .build();
     }
 
     @ParameterizedTest(name = "[{index}] {0}")

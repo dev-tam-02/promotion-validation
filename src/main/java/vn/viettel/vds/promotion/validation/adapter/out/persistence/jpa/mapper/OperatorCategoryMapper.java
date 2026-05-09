@@ -14,7 +14,6 @@ import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * MapStruct mapper for converting between OperatorCategory domain model and OperatorCategoryEntity.
@@ -37,7 +36,7 @@ public interface OperatorCategoryMapper {
         return entities.stream()
                 .filter(OperatorOptionEntity::getActive)
                 .map(entity -> mapOption(entity, objectMapper))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     default OperatorOption mapOption(OperatorOptionEntity entity, ObjectMapper objectMapper) {
@@ -129,7 +128,7 @@ public interface OperatorCategoryMapper {
                             .value(opt.get("value"))
                             .label(opt.get("label"))
                             .build())
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
         }

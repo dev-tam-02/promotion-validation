@@ -212,13 +212,13 @@ public class UpdateValidationRuleCommandHandler {
         if (scope.getIncluded() != null) {
             List<String> includedIds = scope.getIncluded().stream()
                     .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.includedProducts(includedIds);
         }
         if (scope.getExcluded() != null) {
             List<String> excludedIds = scope.getExcluded().stream()
                     .map(UpdateValidationRuleCommand.ApplicabilityRule::getId)
-                    .collect(Collectors.toList());
+                    .toList();
             builder.excludedProducts(excludedIds);
         }
     }
@@ -244,7 +244,7 @@ public class UpdateValidationRuleCommandHandler {
                             .start(extractTimeOnly(hours.getStartTime()))
                             .end(extractTimeOnly(hours.getExpirationTime()))
                             .build())
-                    .collect(Collectors.toList());
+                    .toList();
             builder.timeWindows(windows);
         }
     }
