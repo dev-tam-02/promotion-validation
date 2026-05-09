@@ -47,9 +47,10 @@ class OwnerOnlyOperatorTest {
                 "tpl_customer_is_owner_v1",
                 Map.of());   // no params for this operator
 
-        assertThat(snippet).contains("VoucherFact");
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("ownerCustomerId");
+        assertThat(snippet)
+                .contains("VoucherFact")
+                .contains("CustomerFact")
+                .contains("ownerCustomerId");
     }
 
     @Test
@@ -59,8 +60,9 @@ class OwnerOnlyOperatorTest {
                 "tpl_customer_is_owner_v1",
                 null);   // null params → DrlCompiler passes Map.of()
 
-        assertThat(snippet).contains("VoucherFact");
-        assertThat(snippet).contains("CustomerFact");
+        assertThat(snippet)
+                .contains("VoucherFact")
+                .contains("CustomerFact");
     }
 
     @Test
@@ -93,10 +95,11 @@ class OwnerOnlyOperatorTest {
 
         String drl = compiler.compile(baseRule, List.of(cond), operators);
 
-        assertThat(drl).contains("rule \"rule-sys-owner-only\"");
-        assertThat(drl).contains("VoucherFact");
-        assertThat(drl).contains("CustomerFact");
-        assertThat(drl).contains("ownerCustomerId");
+        assertThat(drl)
+                .contains("rule \"rule-sys-owner-only\"")
+                .contains("VoucherFact")
+                .contains("CustomerFact")
+                .contains("ownerCustomerId");
     }
 
     @Test
@@ -107,8 +110,9 @@ class OwnerOnlyOperatorTest {
         // Passing null operators → DrlCompiler derives compilerId from operator name
         String drl = compiler.compile(baseRule, List.of(cond), null);
 
-        assertThat(drl).contains("VoucherFact");
-        assertThat(drl).contains("CustomerFact");
+        assertThat(drl)
+                .contains("VoucherFact")
+                .contains("CustomerFact");
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

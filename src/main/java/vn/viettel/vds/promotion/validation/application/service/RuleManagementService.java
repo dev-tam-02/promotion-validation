@@ -40,7 +40,6 @@ public class RuleManagementService implements RuleManagementUseCase {
     private static final Logger log = LoggerFactory.getLogger(RuleManagementService.class);
 
     private final RulePersistencePort rulePort;
-    private final RuleTreeAssembler assembler;
     private final RuleValidator ruleValidator;
     private final DslGenerator dslGenerator;
     private final DrlCompiler drlCompiler;
@@ -49,6 +48,7 @@ public class RuleManagementService implements RuleManagementUseCase {
     private final Optional<RuleHistoryPersistencePort> historyPort;
     private final RuleLinter ruleLinter;
 
+    @SuppressWarnings("java:S1172")
     public RuleManagementService(RulePersistencePort rulePort,
                                  RuleTreeAssembler assembler,
                                  RuleValidator ruleValidator,
@@ -56,11 +56,12 @@ public class RuleManagementService implements RuleManagementUseCase {
                                  DrlCompiler drlCompiler,
                                  RuleEngineClient ruleEngineClient,
                                  OperatorPersistencePort operatorPort) {
-        this(rulePort, assembler, ruleValidator, dslGenerator, drlCompiler,
+        this(rulePort, ruleValidator, dslGenerator, drlCompiler,
                 ruleEngineClient, operatorPort, Optional.empty());
     }
 
     @Autowired
+    @SuppressWarnings("java:S1172")
     public RuleManagementService(RulePersistencePort rulePort,
                                  RuleTreeAssembler assembler,
                                  RuleValidator ruleValidator,
@@ -69,8 +70,17 @@ public class RuleManagementService implements RuleManagementUseCase {
                                  RuleEngineClient ruleEngineClient,
                                  OperatorPersistencePort operatorPort,
                                  Optional<RuleHistoryPersistencePort> historyPort) {
+        this(rulePort, ruleValidator, dslGenerator, drlCompiler, ruleEngineClient, operatorPort, historyPort);
+    }
+
+    private RuleManagementService(RulePersistencePort rulePort,
+                                  RuleValidator ruleValidator,
+                                  DslGenerator dslGenerator,
+                                  DrlCompiler drlCompiler,
+                                  RuleEngineClient ruleEngineClient,
+                                  OperatorPersistencePort operatorPort,
+                                  Optional<RuleHistoryPersistencePort> historyPort) {
         this.rulePort = rulePort;
-        this.assembler = assembler;
         this.ruleValidator = ruleValidator;
         this.dslGenerator = dslGenerator;
         this.drlCompiler = drlCompiler;
@@ -192,10 +202,9 @@ public class RuleManagementService implements RuleManagementUseCase {
     @Transactional(readOnly = true)
     public Rule getRuleTree(String ruleId) {
         log.debug("getRuleTree: id={}", ruleId);
-        Rule rule = rulePort.findById(ruleId)
-                .orElseThrow(() -> new RuleNotFoundException(ruleId));
         // Tree is already assembled by persistence layer via RuleNodeEntityMapper
-        return rule;
+        return rulePort.findById(ruleId)
+                .orElseThrow(() -> new RuleNotFoundException(ruleId));
     }
 
     @Override
@@ -307,7 +316,6 @@ public class RuleManagementService implements RuleManagementUseCase {
         try {
             drl = drlCompiler.compile(withDsl, nodes, operatorMap);
         } catch (DrlCompiler.DrlCompileException ex) {
-            log.error("DRL compilation failed for ruleId={}: {}", ruleId, ex.getMessage());
             // Save DSL but leave state=DRAFT, bundleHash=null
             Rule draftWithDsl = withDsl.toBuilder()
                     .updatedAt(Instant.now())

@@ -201,7 +201,9 @@ public class DrlCompiler {
      */
     private String buildDrlRule(String ruleId, String lhsSnippet) {
         return "package vn.viettel.vds.promotion.rules;\n\n" +
-                "import vn.viettel.vds.promotion.rules.facts.*;\n\n" +
+                "import vn.viettel.vds.promotion.rules.facts.*;\n" +
+                "import vn.viettel.vds.promotion.rule.engine.domain.model.VoucherFact;\n" +
+                "import vn.viettel.vds.promotion.rule.engine.domain.model.CustomerFact;\n\n" +
                 "rule \"" + escapeQuotes(ruleId) + "\"\n" +
                 "  when\n" +
                 "    " + lhsSnippet + "\n" +

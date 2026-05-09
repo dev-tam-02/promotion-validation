@@ -124,7 +124,8 @@ public class RuleBindingService {
     public RuleBinding updateBinding(String id, RuleBinding updates, String updatedBy) {
         log.info("Updating rule binding: id={}", id);
 
-        RuleBinding existing = getBindingById(id);
+        RuleBinding existing = bindingPersistencePort.findById(id)
+                .orElseThrow(() -> new BindingNotFoundException(id));
 
         // If rule changed, validate new rule exists
         if (updates.getRuleId() != null && !updates.getRuleId().equals(existing.getRuleId())) {
@@ -249,8 +250,9 @@ public class RuleBindingService {
     public void deleteBinding(String id, String deletedBy) {
         log.info("Deleting rule binding: id={}, deletedBy={}", id, deletedBy);
 
-        // Verify binding exists
-        getBindingById(id);
+        if (bindingPersistencePort.findById(id).isEmpty()) {
+            throw new BindingNotFoundException(id);
+        }
 
         bindingPersistencePort.deleteById(id);
         log.info("Rule binding deleted successfully: id={}", id);
@@ -279,8 +281,9 @@ public class RuleBindingService {
     public void deactivateBinding(String id, String updatedBy) {
         log.info("Deactivating rule binding: id={}, updatedBy={}", id, updatedBy);
 
-        // Verify binding exists
-        getBindingById(id);
+        if (bindingPersistencePort.findById(id).isEmpty()) {
+            throw new BindingNotFoundException(id);
+        }
 
         int updated = bindingPersistencePort.deactivate(id, updatedBy);
 
@@ -333,7 +336,8 @@ public class RuleBindingService {
     @Transactional(readOnly = true)
     public boolean shouldApplyBinding(String bindingId, String productId, String categoryId,
                                       String brandId, String trafficKey) {
-        RuleBinding binding = getBindingById(bindingId);
+        RuleBinding binding = bindingPersistencePort.findById(bindingId)
+                .orElseThrow(() -> new BindingNotFoundException(bindingId));
 
         // Check if effective
         if (!binding.isEffective()) {

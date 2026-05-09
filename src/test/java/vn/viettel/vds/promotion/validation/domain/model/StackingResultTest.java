@@ -147,7 +147,7 @@ class StackingResultTest {
                     .decision(StackingResult.StackingDecision.REJECTED)
                     .build();
 
-            assertThat(result.getValidatedCount()).isEqualTo(0);
+            assertThat(result.getValidatedCount()).isZero();
         }
     }
 
@@ -179,7 +179,7 @@ class StackingResultTest {
                     .decision(StackingResult.StackingDecision.APPROVED)
                     .build();
 
-            assertThat(result.getRejectedCount()).isEqualTo(0);
+            assertThat(result.getRejectedCount()).isZero();
         }
     }
 

@@ -40,6 +40,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RuleService Tests")
+@SuppressWarnings("java:S5976") // PATCH-semantics tests use 3-tuples (null/empty/non-empty); parameterization would obscure intent
 class RuleServiceTest {
 
     @Mock
@@ -166,8 +167,9 @@ class RuleServiceTest {
             when(rulePersistencePort.existsByCode(code)).thenReturn(true);
 
             // When & Then
+            var nodes = List.of(condNode("n1", "op1", "rc1"));
             assertThatThrownBy(() -> sut.createRule(code, "Name", Rule.LogicType.ALL,
-                    List.of(condNode("n1", "op1", "rc1")), "admin"))
+                    nodes, "admin"))
                     .isInstanceOf(RuleAlreadyExistsException.class);
 
             verify(rulePersistencePort, never()).save(any());
@@ -180,8 +182,9 @@ class RuleServiceTest {
             when(rulePersistencePort.existsByCode(anyString())).thenReturn(false);
 
             // When & Then
+            List<RuleNode> emptyNodes = List.of();
             assertThatThrownBy(() -> sut.createRule("CODE", "Name", Rule.LogicType.ALL,
-                    List.of(), "admin"))
+                    emptyNodes, "admin"))
                     .isInstanceOf(InvalidRuleStructureException.class)
                     .hasMessageContaining("at least one node");
         }
@@ -227,7 +230,7 @@ class RuleServiceTest {
                     List.of(condNode("n1", "op1", "rc1")), "admin");
 
             // Then
-            assertThat(result.getLatestVersion()).isEqualTo(0);
+            assertThat(result.getLatestVersion()).isZero();
         }
 
         @Test
@@ -343,10 +346,8 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), any(), eq("weekend"), eq(pageable)))
                     .thenReturn(page);
 
-            // When
-            Page<Rule> result = sut.findRules(null, null, "weekend", pageable);
-
-            // Then
+            // When / Then
+            sut.findRules(null, null, "weekend", pageable);
             verify(rulePersistencePort).findWithFilters(any(), any(), eq("weekend"), eq(pageable));
         }
 
@@ -363,7 +364,7 @@ class RuleServiceTest {
 
             // Then
             assertThat(result.getContent()).isEmpty();
-            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getTotalElements()).isZero();
         }
     }
 
@@ -513,7 +514,7 @@ class RuleServiceTest {
             Rule result = sut.updateRule("r1", null, null, null, "", null, null, "editor");
 
             // Then
-            assertThat(result.getContext()).isEqualTo("");
+            assertThat(result.getContext()).isEmpty();
         }
 
         @Test
@@ -561,7 +562,7 @@ class RuleServiceTest {
             Rule result = sut.updateRule("r1", null, null, null, null, "", null, "editor");
 
             // Then
-            assertThat(result.getDescription()).isEqualTo("");
+            assertThat(result.getDescription()).isEmpty();
         }
 
         @Test
@@ -609,7 +610,7 @@ class RuleServiceTest {
             Rule result = sut.updateRule("r1", null, null, null, null, null, "", "editor");
 
             // Then
-            assertThat(result.getFallbackErrorMessage()).isEqualTo("");
+            assertThat(result.getFallbackErrorMessage()).isEmpty();
         }
 
         @Test
@@ -770,7 +771,7 @@ class RuleServiceTest {
             assertThat(event.getId()).isNotBlank();
             assertThat(event.getEventType()).isEqualTo("VALIDATION_RULE_DELETED");
             assertThat(event.getStatus()).isEqualTo(OutboxEventStatus.PENDING);
-            assertThat(event.getAttempts()).isEqualTo(0);
+            assertThat(event.getAttempts()).isZero();
             assertThat(event.getMaxAttempts()).isEqualTo(3);
             assertThat(event.getCreatedAt()).isNotNull();
         }
@@ -1034,9 +1035,10 @@ class RuleServiceTest {
                     .thenThrow(new OptimisticLockingFailureException("Conflict on insert"));
 
             // When & Then
+            var nodes = List.of(condNode("n1", "op1", "rc1"));
             assertThatThrownBy(() -> sut.createRule(
                     code, "Name", Rule.LogicType.ALL,
-                    List.of(condNode("n1", "op1", "rc1")), "admin"))
+                    nodes, "admin"))
                     .isInstanceOf(OptimisticLockingFailureException.class);
         }
 
@@ -1074,12 +1076,12 @@ class RuleServiceTest {
         @DisplayName("Should reject COND node without operatorName at build time")
         void shouldRejectCondNode_withoutOperatorName() {
             // RuleNode.validate() is called in build() — throws NPE before reaching the service
-            assertThatThrownBy(() -> RuleNode.builder()
+            var builder = RuleNode.builder()
                     .nodeId("n1")
                     .type(RuleNode.NodeType.COND)
-                    .reasonCode("rc1")
-                    // missing operatorName
-                    .build())
+                    .reasonCode("rc1");
+            // missing operatorName
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("OperatorName cannot be null");
         }
@@ -1099,8 +1101,9 @@ class RuleServiceTest {
             when(rulePersistencePort.existsByCode(anyString())).thenReturn(false);
 
             // When & Then
+            var nodes = List.of(nodeWithBlankId);
             assertThatThrownBy(() -> sut.createRule("CODE", "Name", Rule.LogicType.ALL,
-                    List.of(nodeWithBlankId), "admin"))
+                    nodes, "admin"))
                     .isInstanceOf(InvalidRuleStructureException.class)
                     .hasMessageContaining("Node ID is required");
         }

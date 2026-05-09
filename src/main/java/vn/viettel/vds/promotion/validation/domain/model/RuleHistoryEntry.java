@@ -32,6 +32,7 @@ public class RuleHistoryEntry {
     private final String bundleHash;
     private final String state;
     private final String changeReason;
+    @SuppressWarnings("java:S107")
     public RuleHistoryEntry(String id,
                             String ruleId,
                             long ruleVersion,

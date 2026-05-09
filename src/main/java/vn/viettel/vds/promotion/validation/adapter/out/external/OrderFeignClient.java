@@ -20,7 +20,7 @@ import java.util.Map;
  */
 @FeignClient(
         name = "order-feign-client",
-        url = "${promix.validation.external.order.url:http://order:8080}",
+        url = "${promix.validation.external.order.url}",
         path = "${promix.validation.external.order.path:/api/v1/orders}"
 )
 public interface OrderFeignClient {

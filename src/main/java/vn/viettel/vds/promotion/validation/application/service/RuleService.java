@@ -27,6 +27,8 @@ public class RuleService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleService.class);
 
+    private static final String OBJECT_RESOURCE_TYPE = "object";
+
     private final RulePersistencePort rulePersistencePort;
     private final RuleBindingPersistencePort ruleBindingPort;
     private final OutboxEventPersistencePort outboxEventPort;
@@ -75,6 +77,7 @@ public class RuleService {
      * Create a new rule with optional context, description and fallbackErrorMessage.
      * Auto-generates code if blank and defaults logic to ALL when null.
      */
+    @SuppressWarnings("java:S107")
     public Rule createRule(String code, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String createdBy) {
@@ -147,6 +150,7 @@ public class RuleService {
      * Update an existing rule with optional context, description and fallbackErrorMessage.
      * PATCH semantics: only fields that are non-null are updated.
      */
+    @SuppressWarnings("java:S107")
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String updatedBy) {
@@ -479,7 +483,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new RuleNotFoundException("object", objectType + ":" + objectId);
+            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get the rule from binding (first active binding)
@@ -499,7 +503,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new RuleNotFoundException("object", objectType + ":" + objectId);
+            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get all rules from bindings
@@ -533,7 +537,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
         if (bindings.isEmpty()) {
             logger.warn("No active binding found for object: type={}, id={}", objectType, objectId);
-            throw new RuleNotFoundException("object", objectType + ":" + objectId);
+            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get first binding (highest priority active binding)
@@ -542,7 +546,7 @@ public class RuleService {
         // Check if binding has bundleHash
         if (binding.getBundleHash() == null || binding.getBundleHash().isEmpty()) {
             logger.warn("Binding has no bundleHash: bindingId={}", binding.getId());
-            throw new RuleNotFoundException("object", objectType + ":" + objectId);
+            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         logger.debug("Found bundle hash {} for object {}:{}",

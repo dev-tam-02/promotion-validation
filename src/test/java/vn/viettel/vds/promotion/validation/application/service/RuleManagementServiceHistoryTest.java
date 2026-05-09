@@ -128,12 +128,10 @@ class RuleManagementServiceHistoryTest {
         void createRule_historyFailure_doesNotAbortCreation() {
             doThrow(new RuntimeException("DB failure")).when(historyPort).save(any());
 
-            // DrlCompiler throws for empty nodes — that's OK for this test too;
-            // the important assertion is that rulePort.save was called (rule was created)
             try {
                 service.createRule("Test Rule", null, Rule.LogicType.ALL, List.of(), "admin");
             } catch (DrlCompiler.DrlCompileException ignored) {
-                // expected — no nodes
+                // expected when nodes are empty
             }
 
             // Rule was persisted (initial save happened before DRL step)

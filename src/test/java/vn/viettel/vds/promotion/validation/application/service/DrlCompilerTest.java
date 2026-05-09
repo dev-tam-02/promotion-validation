@@ -48,9 +48,10 @@ class DrlCompilerTest {
                 "tpl_order_total_gte_v1",
                 Map.of("amount", 500_000, "currency", "VND"));
 
-        assertThat(snippet).contains("OrderFact");
-        assertThat(snippet).contains("500000");
-        assertThat(snippet).contains("VND");
+        assertThat(snippet)
+                .contains("OrderFact")
+                .contains("500000")
+                .contains("VND");
     }
 
     @Test
@@ -60,9 +61,10 @@ class DrlCompilerTest {
                 "tpl_customer_in_segment_v1",
                 Map.of("segments", List.of("VIP_GOLD")));
 
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("segments");
-        assertThat(snippet).contains("VIP_GOLD");
+        assertThat(snippet)
+                .contains("CustomerFact")
+                .contains("segments")
+                .contains("VIP_GOLD");
     }
 
     @Test
@@ -72,12 +74,13 @@ class DrlCompilerTest {
                 "tpl_customer_in_segment_v1",
                 Map.of("segments", List.of("VIP", "GOLD")));
 
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("segments contains \"VIP\"");
-        assertThat(snippet).contains("segments contains \"GOLD\"");
-        assertThat(snippet).contains(" || ");
-        // Verify bijectivity: both values present, joined with OR
-        assertThat(snippet).doesNotContain("segments contains \"VIP\" || segments contains \"VIP\"");
+        assertThat(snippet)
+                .contains("CustomerFact")
+                .contains("segments contains \"VIP\"")
+                .contains("segments contains \"GOLD\"")
+                .contains(" || ")
+                // Verify bijectivity: both values present, joined with OR
+                .doesNotContain("segments contains \"VIP\" || segments contains \"VIP\"");
     }
 
     @Test
@@ -87,9 +90,10 @@ class DrlCompilerTest {
                 "tpl_order_items_count_gte_v1",
                 Map.of("count", 3));
 
-        assertThat(snippet).contains("OrderFact");
-        assertThat(snippet).contains("items.size");
-        assertThat(snippet).contains("3");
+        assertThat(snippet)
+                .contains("OrderFact")
+                .contains("items.size")
+                .contains("3");
     }
 
     @Test
@@ -99,9 +103,10 @@ class DrlCompilerTest {
                 "tpl_customer_loyalty_tier_gte_v1",
                 Map.of("tier", "PLATINUM"));
 
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("loyaltyTier");
-        assertThat(snippet).contains("PLATINUM");
+        assertThat(snippet)
+                .contains("CustomerFact")
+                .contains("loyaltyTier")
+                .contains("PLATINUM");
     }
 
     @Test
@@ -111,8 +116,9 @@ class DrlCompilerTest {
                 "tpl_product_in_category_v1",
                 Map.of("categoryId", "cat-electronics"));
 
-        assertThat(snippet).contains("CartItemFact");
-        assertThat(snippet).contains("cat-electronics");
+        assertThat(snippet)
+                .contains("CartItemFact")
+                .contains("cat-electronics");
     }
 
     @Test
@@ -122,8 +128,9 @@ class DrlCompilerTest {
                 "tpl_product_in_list_v1",
                 Map.of("productId", "prod-001"));
 
-        assertThat(snippet).contains("CartItemFact");
-        assertThat(snippet).contains("prod-001");
+        assertThat(snippet)
+                .contains("CartItemFact")
+                .contains("prod-001");
     }
 
     @Test
@@ -133,9 +140,10 @@ class DrlCompilerTest {
                 "tpl_cart_has_product_v1",
                 Map.of("productId", "sku-abc"));
 
-        assertThat(snippet).contains("exists");
-        assertThat(snippet).contains("CartItemFact");
-        assertThat(snippet).contains("sku-abc");
+        assertThat(snippet)
+                .contains("exists")
+                .contains("CartItemFact")
+                .contains("sku-abc");
     }
 
     @Test
@@ -145,9 +153,10 @@ class DrlCompilerTest {
                 "tpl_time_within_window_v1",
                 Map.of("from", "2026-01-01T00:00:00Z", "to", "2026-12-31T23:59:59Z"));
 
-        assertThat(snippet).contains("ExecutionContextFact");
-        assertThat(snippet).contains("2026-01-01T00:00:00Z");
-        assertThat(snippet).contains("2026-12-31T23:59:59Z");
+        assertThat(snippet)
+                .contains("ExecutionContextFact")
+                .contains("2026-01-01T00:00:00Z")
+                .contains("2026-12-31T23:59:59Z");
     }
 
     // ─── tpl_binding_validity_window_v1 ───────────────────────────────────────
@@ -161,9 +170,10 @@ class DrlCompilerTest {
         );
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
-        assertThat(drl).contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))");
-        assertThat(drl).contains("&&");
-        assertThat(drl).contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
+        assertThat(drl)
+                .contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))")
+                .contains("&&")
+                .contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
     }
 
     @Test
@@ -172,9 +182,10 @@ class DrlCompilerTest {
         Map<String, Object> params = Map.of("startDate", "2026-04-26T00:00:00Z");
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
-        assertThat(drl).contains("isBefore");
-        assertThat(drl).doesNotContain("isAfter");
-        assertThat(drl).doesNotContain("&&");
+        assertThat(drl)
+                .contains("isBefore")
+                .doesNotContain("isAfter")
+                .doesNotContain("&&");
     }
 
     @Test
@@ -183,9 +194,10 @@ class DrlCompilerTest {
         Map<String, Object> params = Map.of("endDate", "2026-12-31T23:59:59Z");
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
-        assertThat(drl).contains("isAfter");
-        assertThat(drl).doesNotContain("isBefore");
-        assertThat(drl).doesNotContain("&&");
+        assertThat(drl)
+                .contains("isAfter")
+                .doesNotContain("isBefore")
+                .doesNotContain("&&");
     }
 
     @Test
@@ -193,12 +205,12 @@ class DrlCompilerTest {
     void renderBindingValidityWindow_nullParams() {
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", null);
 
-        // Neither start nor end → no isBefore/isAfter, no &&
-        assertThat(drl).doesNotContain("isBefore");
-        assertThat(drl).doesNotContain("isAfter");
-        assertThat(drl).doesNotContain("&&");
-        // eval() wrapper still present
-        assertThat(drl).contains("eval(");
+        // Neither start nor end → no isBefore/isAfter, no &&; eval() wrapper still present
+        assertThat(drl)
+                .doesNotContain("isBefore")
+                .doesNotContain("isAfter")
+                .doesNotContain("&&")
+                .contains("eval(");
     }
 
     @Test
@@ -210,8 +222,9 @@ class DrlCompilerTest {
         );
         String drl = compiler.renderCondTemplate("tpl_binding_validity_window_v1", params);
 
-        assertThat(drl).contains("Instant.parse(\"2026-04-26T00:00:00+07:00\")");
-        assertThat(drl).contains("Instant.parse(\"2026-12-31T23:59:59+07:00\")");
+        assertThat(drl)
+                .contains("Instant.parse(\"2026-04-26T00:00:00+07:00\")")
+                .contains("Instant.parse(\"2026-12-31T23:59:59+07:00\")");
     }
 
     // ─── GROUP AND composition ─────────────────────────────────────────────────
@@ -237,10 +250,11 @@ class DrlCompilerTest {
         Map<String, Operator> ops = buildOperatorMap(cond1, cond2);
         String drl = compiler.compile(baseRule, List.of(group), ops);
 
-        assertThat(drl).contains("&&");
-        assertThat(drl).doesNotContain("||");
-        assertThat(drl).contains("OrderFact");
-        assertThat(drl).contains("CustomerFact");
+        assertThat(drl)
+                .contains("&&")
+                .doesNotContain("||")
+                .contains("OrderFact")
+                .contains("CustomerFact");
     }
 
     // ─── GROUP OR composition ──────────────────────────────────────────────────
@@ -266,8 +280,9 @@ class DrlCompilerTest {
         Map<String, Operator> ops = buildOperatorMap(cond1, cond2);
         String drl = compiler.compile(baseRule, List.of(group), ops);
 
-        assertThat(drl).contains("||");
-        assertThat(drl).doesNotContain("&&");
+        assertThat(drl)
+                .contains("||")
+                .doesNotContain("&&");
     }
 
     // ─── GROUP NONE negation ───────────────────────────────────────────────────
@@ -293,8 +308,9 @@ class DrlCompilerTest {
         Map<String, Operator> ops = buildOperatorMap(cond1, cond2);
         String drl = compiler.compile(baseRule, List.of(group), ops);
 
-        assertThat(drl).contains("!(");
-        assertThat(drl).contains("||");
+        assertThat(drl)
+                .contains("!(")
+                .contains("||");
     }
 
     // ─── String escape ─────────────────────────────────────────────────────────
@@ -330,6 +346,7 @@ class DrlCompilerTest {
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
 
+    @SuppressWarnings("java:S1172")
     private RuleNode makeCond(String id, String operatorName, Map<String, Object> params,
                               String compilerId, String reasonCode) {
         return RuleNode.builder()

@@ -59,7 +59,7 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
         var entities = mapper.toEntityList(bindings);
         var ids = entities.stream()
                 .map(e -> e.getId())
-                .collect(Collectors.toList());
+                .toList();
         var existingMap = repository.findAllById(ids).stream()
                 .collect(Collectors.toMap(e -> e.getId(), e -> e));
 

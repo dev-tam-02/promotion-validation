@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -60,7 +61,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("id", ruleId, "drl", drl))
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                    .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
                             clientResponse.bodyToMono(String.class)
                                     .map(body -> new RuleEngineException(
                                             "Rule engine rejected DRL for ruleId=" + ruleId + ": " + body,
@@ -102,7 +103,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of("drl", drl))
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                    .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
                             clientResponse.bodyToMono(String.class)
                                     .map(body -> new RuleEngineException(
                                             "Rule engine rejected DRL update for ruleId=" + ruleId + ": " + body,
@@ -178,7 +179,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                    .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
                             clientResponse.bodyToMono(String.class)
                                     .map(body -> new RuleEngineException(
                                             "Rule engine rejected simulate for ruleId=" + ruleId + ": " + body,

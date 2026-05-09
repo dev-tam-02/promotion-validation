@@ -241,7 +241,7 @@ class StackableRuleEvaluatorTest {
             assertThat(result.isPassed()).isTrue();
             assertThat(result.getSummary()).isEqualTo("All good");
             assertThat(result.getRuleResults()).isEmpty();
-            assertThat(result.getTotalRules()).isEqualTo(0);
+            assertThat(result.getTotalRules()).isZero();
         }
 
         @Test

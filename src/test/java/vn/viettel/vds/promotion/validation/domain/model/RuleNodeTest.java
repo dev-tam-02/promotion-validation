@@ -50,34 +50,33 @@ class RuleNodeTest {
         @DisplayName("Should throw when GROUP node has no groupLogic")
         void shouldThrow_whenGroupNodeHasNoGroupLogic() {
             var child = RuleNode.builder().nodeId("child-1").build();
-
-            assertThatThrownBy(() -> RuleNode.builder()
+            var builder = RuleNode.builder()
                     .nodeId("group-1")
                     .type(RuleNode.NodeType.GROUP)
-                    .children(List.of(child))
-                    .build()
-            ).isInstanceOf(NullPointerException.class);
+                    .children(List.of(child));
+
+            assertThatThrownBy(builder::build).isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("Should throw when GROUP node has no children")
         void shouldThrow_whenGroupNodeHasNoChildren() {
-            assertThatThrownBy(() -> RuleNode.builder()
+            var builder = RuleNode.builder()
                     .nodeId("group-1")
                     .type(RuleNode.NodeType.GROUP)
-                    .groupLogic(Rule.LogicType.ALL)
-                    .build()
-            ).isInstanceOf(InvalidRuleStructureException.class);
+                    .groupLogic(Rule.LogicType.ALL);
+
+            assertThatThrownBy(builder::build).isInstanceOf(InvalidRuleStructureException.class);
         }
 
         @Test
         @DisplayName("Should throw when COND node has no operatorName")
         void shouldThrow_whenCondNodeHasNoOperatorName() {
-            assertThatThrownBy(() -> RuleNode.builder()
+            var builder = RuleNode.builder()
                     .nodeId("cond-1")
-                    .type(RuleNode.NodeType.COND)
-                    .build()
-            ).isInstanceOf(NullPointerException.class);
+                    .type(RuleNode.NodeType.COND);
+
+            assertThatThrownBy(builder::build).isInstanceOf(NullPointerException.class);
         }
 
         @Test
@@ -170,8 +169,9 @@ class RuleNodeTest {
                     .operator("EQUALS")
                     .value("VIP")
                     .build();
+            var context = TestFixtures.validContext();
 
-            assertThatThrownBy(() -> node.evaluate(TestFixtures.validContext()))
+            assertThatThrownBy(() -> node.evaluate(context))
                     .isInstanceOf(RuleEvaluationException.class);
         }
 
@@ -183,8 +183,9 @@ class RuleNodeTest {
                     .field("segment")
                     .value("VIP")
                     .build();
+            var context = TestFixtures.validContext();
 
-            assertThatThrownBy(() -> node.evaluate(TestFixtures.validContext()))
+            assertThatThrownBy(() -> node.evaluate(context))
                     .isInstanceOf(RuleEvaluationException.class);
         }
 
@@ -196,8 +197,9 @@ class RuleNodeTest {
                     .field("segment")
                     .operator("EQUALS")
                     .build();
+            var context = TestFixtures.validContext();
 
-            assertThatThrownBy(() -> node.evaluate(TestFixtures.validContext()))
+            assertThatThrownBy(() -> node.evaluate(context))
                     .isInstanceOf(RuleEvaluationException.class);
         }
 
@@ -289,8 +291,9 @@ class RuleNodeTest {
             var child1 = TestFixtures.leafNode("segment", "EQUALS", "VIP");
             var child2 = TestFixtures.leafNode("tier", "EQUALS", "GOLD");
             var parent = TestFixtures.parentNode(LogicType.NOT, List.of(child1, child2));
+            var context = TestFixtures.validContext();
 
-            assertThatThrownBy(() -> parent.evaluate(TestFixtures.validContext()))
+            assertThatThrownBy(() -> parent.evaluate(context))
                     .isInstanceOf(InvalidRuleStructureException.class);
         }
     }
@@ -329,8 +332,9 @@ class RuleNodeTest {
         void shouldReturnUnmodifiableList() {
             var child = TestFixtures.leafNode("segment", "EQUALS", "VIP");
             var parent = TestFixtures.parentNode(LogicType.AND, List.of(child));
+            var children = parent.getChildren();
 
-            assertThatThrownBy(() -> parent.getChildren().add(null))
+            assertThatThrownBy(() -> children.add(null))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
     }

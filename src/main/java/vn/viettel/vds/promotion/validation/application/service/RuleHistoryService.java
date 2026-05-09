@@ -55,8 +55,9 @@ public class RuleHistoryService {
      */
     @Transactional(readOnly = true)
     public List<RuleHistoryEntry> getHistory(String ruleId) {
-        rulePort.findById(ruleId)
-                .orElseThrow(() -> new RuleNotFoundException(ruleId));
+        if (!rulePort.existsById(ruleId)) {
+            throw new RuleNotFoundException(ruleId);
+        }
         return historyPort.findByRuleId(ruleId);
     }
 
