@@ -54,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * (JSON Schema → Java types → Drools DSL) would eliminate this entire class of drift.
  * Tracked as a separate backlog item.
  *
- * <p>TODO: Fix the 3 drifted operator schemas so {@code json_schema} matches template param keys:
+ * <p>Follow-up: Fix the 3 drifted operator schemas so {@code json_schema} matches template param keys:
  * <ul>
  *   <li>{@code product.in_category} → change schema to {@code categoryId: {type: string}}</li>
  *   <li>{@code product.in_list} → change schema to {@code productId: {type: string}}</li>
@@ -338,11 +338,12 @@ class OperatorTemplateCompatibilityTest {
                 "tpl_customer_in_segment_v1",
                 Map.of("segments", List.of("VIP", "GOLD", "PLATINUM")));
 
-        assertThat(snippet).contains("CustomerFact");
-        assertThat(snippet).contains("segments contains \"VIP\"");
-        assertThat(snippet).contains("segments contains \"GOLD\"");
-        assertThat(snippet).contains("segments contains \"PLATINUM\"");
-        assertThat(snippet).contains("||");
+        assertThat(snippet)
+                .contains("CustomerFact")
+                .contains("segments contains \"VIP\"")
+                .contains("segments contains \"GOLD\"")
+                .contains("segments contains \"PLATINUM\"")
+                .contains("||");
     }
 
     // ─── Schema drift: schema-valid params produce broken DRL ─────────────────────
@@ -355,7 +356,7 @@ class OperatorTemplateCompatibilityTest {
      * This test asserts that exact broken behavior to lock it in — fixing the drift
      * will break this test, which is the intended signal to update it.
      *
-     * <p>TODO: Fix drift — change schema from {@code categoryIds: array} to
+     * <p>Follow-up: Fix drift — change schema from {@code categoryIds: array} to
      * {@code categoryId: string}.
      */
     @Test
@@ -369,8 +370,7 @@ class OperatorTemplateCompatibilityTest {
         // Template uses {{categoryId}} — not present in schemaValidParams — renders as empty string:
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty categoryId placeholder")
-                .contains("CartItemFact");
-        assertThat(snippet)
+                .contains("CartItemFact")
                 .as("Drift confirmed: 'cat-electronics' must NOT appear (schema key mismatch)")
                 .doesNotContain("cat-electronics");
     }
@@ -378,7 +378,7 @@ class OperatorTemplateCompatibilityTest {
     /**
      * Demonstrates the schema drift for {@code product.in_list}.
      *
-     * <p>TODO: Fix drift — change schema from {@code productIds: array} to
+     * <p>Follow-up: Fix drift — change schema from {@code productIds: array} to
      * {@code productId: string}.
      */
     @Test
@@ -390,8 +390,7 @@ class OperatorTemplateCompatibilityTest {
 
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty productId placeholder")
-                .contains("CartItemFact");
-        assertThat(snippet)
+                .contains("CartItemFact")
                 .as("Drift confirmed: 'prod-001' must NOT appear (schema key mismatch)")
                 .doesNotContain("prod-001");
     }
@@ -399,7 +398,7 @@ class OperatorTemplateCompatibilityTest {
     /**
      * Demonstrates the schema drift for {@code time.within_window}.
      *
-     * <p>TODO: Fix drift — change schema from {@code startTime}/{@code endTime} to
+     * <p>Follow-up: Fix drift — change schema from {@code startTime}/{@code endTime} to
      * {@code from}/{@code to}.
      */
     @Test
@@ -414,8 +413,7 @@ class OperatorTemplateCompatibilityTest {
 
         assertThat(snippet)
                 .as("Drift confirmed: schema-valid params produce empty from/to placeholders")
-                .contains("ExecutionContextFact");
-        assertThat(snippet)
+                .contains("ExecutionContextFact")
                 .as("Drift confirmed: '08:00' must NOT appear (schema key mismatch)")
                 .doesNotContain("08:00");
     }

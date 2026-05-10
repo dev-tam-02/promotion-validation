@@ -13,7 +13,7 @@ import java.util.List;
 public record CreateMetadataSchemaRequest(
         @NotBlank(message = "Field key is required")
         @Size(max = 100, message = "Field key must not exceed 100 characters")
-        @Pattern(regexp = "^[a-zA-Z_][a-zA-Z0-9_]*$", message = "Field key must be a valid identifier")
+        @Pattern(regexp = "^[a-zA-Z_]\\w*$", message = "Field key must be a valid identifier")
         String fieldKey,
 
         @NotBlank(message = "Field name is required")

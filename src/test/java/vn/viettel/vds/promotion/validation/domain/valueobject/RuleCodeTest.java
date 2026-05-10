@@ -51,8 +51,9 @@ class RuleCodeTest {
             var code1 = RuleCode.of("RULE_TEST");
             var code2 = RuleCode.of("RULE_TEST");
 
-            assertThat(code1).isEqualTo(code2);
-            assertThat(code1.hashCode()).isEqualTo(code2.hashCode());
+            assertThat(code1)
+                    .isEqualTo(code2)
+                    .hasSameHashCodeAs(code2);
         }
 
         @Test
@@ -73,7 +74,7 @@ class RuleCodeTest {
         @DisplayName("Should return value as string")
         void shouldReturnValue() {
             var ruleCode = RuleCode.of("RULE_XYZ");
-            assertThat(ruleCode.toString()).isEqualTo("RULE_XYZ");
+            assertThat(ruleCode).hasToString("RULE_XYZ");
         }
     }
 }

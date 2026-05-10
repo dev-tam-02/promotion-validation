@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
  */
 public class OperatorEvaluator {
 
+    private static final String OP_BETWEEN = "BETWEEN";
+
     private OperatorEvaluator() {
         // Utility class
     }
@@ -39,7 +41,7 @@ public class OperatorEvaluator {
             case "IS_NOT_NULL" -> fieldValue != null;
             case "IS_EMPTY" -> evaluateIsEmpty(fieldValue);
             case "IS_NOT_EMPTY" -> !evaluateIsEmpty(fieldValue);
-            case "BETWEEN" -> evaluateBetween(fieldValue, expectedValue);
+            case OP_BETWEEN -> evaluateBetween(fieldValue, expectedValue);
             default -> throw new UnsupportedOperationException("Operator not supported: " + operator);
         };
     }
@@ -183,13 +185,13 @@ public class OperatorEvaluator {
 
         if (expectedValue instanceof Object[] range) {
             if (range.length != 2) {
-                throw new InvalidOperatorException("BETWEEN", "requires exactly 2 values");
+                throw new InvalidOperatorException(OP_BETWEEN, "requires exactly 2 values");
             }
             return evaluateGreaterThanOrEquals(fieldValue, range[0]) &&
                     evaluateLessThanOrEquals(fieldValue, range[1]);
         }
 
-        throw new InvalidOperatorException("BETWEEN", "requires an array of 2 values");
+        throw new InvalidOperatorException(OP_BETWEEN, "requires an array of 2 values");
     }
 
     private static boolean isNumeric(Object value) {

@@ -29,7 +29,7 @@ public final class TestFixtures {
     }
 
     public static RuleAggregate publishedRule(String code, String name) {
-        RuleAggregate rule = RuleAggregate.builder()
+        return RuleAggregate.builder()
                 .id(RuleId.generate())
                 .code(RuleCode.of(code))
                 .name(RuleName.of(name))
@@ -43,7 +43,6 @@ public final class TestFixtures {
                 .publishedAt(Instant.parse("2026-01-02T00:00:00Z"))
                 .publishedBy("test-user")
                 .build();
-        return rule;
     }
 
     public static RuleAggregate ruleWithStatus(String code, String name, RuleStatus status) {

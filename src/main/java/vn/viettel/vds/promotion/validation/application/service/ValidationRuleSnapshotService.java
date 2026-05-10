@@ -37,7 +37,6 @@ import java.util.Optional;
 public class ValidationRuleSnapshotService {
 
     private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
-    private static final int DEFAULT_MAX_SNAPSHOTS_PER_RULE = 10;
     private final ValidationRuleSnapshotRepository snapshotRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
     private final ObjectMapper objectMapper;

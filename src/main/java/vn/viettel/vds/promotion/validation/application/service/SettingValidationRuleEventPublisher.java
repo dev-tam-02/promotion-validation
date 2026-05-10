@@ -34,6 +34,7 @@ public class SettingValidationRuleEventPublisher {
     private static final String SERVICE_VERSION_KEY = "serviceVersion";
     private static final String SERVICE_VERSION = "1.0.0";
     private static final String AGGREGATE_VALIDATION = "Validation";
+    private static final String DEFAULT_SUBJECT_TYPE = "CAMPAIGN";
     private static final String EVENT_TYPE_APPLIED = "ValidationRuleSettingAppliedEvent";
     private static final String EVENT_TYPE_FAILED = "ValidationRuleSettingFailedEvent";
     private static final String COMPENSATION_STATUS_SUCCESS = "SUCCESS";
@@ -57,6 +58,7 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish success event - ValidationRuleSettingAppliedEvent
      */
+    @SuppressWarnings("java:S2139")
     public void publishSuccessEvent(String commandId, SettingValidationRuleCommandHandler.CommandProcessingResult result) {
         try {
             logger.info("[SAGA-DEBUG] publishSuccessEvent ENTRY: commandId={}, topic={}", commandId, eventTopic);
@@ -78,6 +80,7 @@ public class SettingValidationRuleEventPublisher {
     /**
      * Publish error event - ValidationRuleSettingFailedEvent
      */
+    @SuppressWarnings("java:S2139")
     public void publishErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
             logger.info("[SAGA-DEBUG] publishErrorEvent ENTRY: commandId={}, campaignId={}, errorCode={}, topic={}",
@@ -416,7 +419,7 @@ public class SettingValidationRuleEventPublisher {
     @SuppressWarnings("java:S2139")
     public void publishDeleteSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
         String validationRuleId = binding != null ? binding.getId() : null;
-        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
             logger.info("Publishing ValidationRuleDeletedEvent: commandId={}, campaignId={}, subject={}:{}",
@@ -493,7 +496,7 @@ public class SettingValidationRuleEventPublisher {
     @SuppressWarnings("java:S2139")
     public void publishEnableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
         String validationRuleId = binding != null ? binding.getId() : null;
-        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         String bundleHash = binding != null ? binding.getBundleHash() : null;
         try {
@@ -570,7 +573,7 @@ public class SettingValidationRuleEventPublisher {
     @SuppressWarnings("java:S2139")
     public void publishDisableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
         String validationRuleId = binding != null ? binding.getId() : null;
-        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : "CAMPAIGN";
+        String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
             logger.info("Publishing ValidationRuleDisabledEvent: commandId={}, campaignId={}, subject={}:{}",
@@ -631,7 +634,7 @@ public class SettingValidationRuleEventPublisher {
      * used by the data plane (pp-rule-engine stores "CAMPAIGN", "VOUCHER", etc.).
      */
     private String normalizeSubjectType(String objectType) {
-        return objectType != null ? objectType.toUpperCase() : "CAMPAIGN";
+        return objectType != null ? objectType.toUpperCase() : DEFAULT_SUBJECT_TYPE;
     }
 
     /**

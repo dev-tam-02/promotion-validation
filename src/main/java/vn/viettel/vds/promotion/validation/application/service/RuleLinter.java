@@ -169,6 +169,7 @@ public class RuleLinter {
     // Check 3: Contradiction (mutually exclusive numeric bounds in AND group)
     // -------------------------------------------------------------------------
 
+    @SuppressWarnings("java:S3776")
     private void detectContradiction(RuleNode group, List<RuleNode> children,
                                      List<LintIssue> errors) {
         // Collect lower-bound and upper-bound COND nodes keyed by field prefix
@@ -176,39 +177,18 @@ public class RuleLinter {
         Map<String, List<BoundEntry>> upperBounds = new HashMap<>();
 
         for (RuleNode child : children) {
-            if (child.getType() != RuleNode.NodeType.COND) {
-                continue;
-            }
-            String opName = child.getOperatorName();
-            if (opName == null) {
-                continue;
-            }
-            double numericValue = extractNumericValue(child);
-            if (Double.isNaN(numericValue)) {
-                continue;
-            }
-
-            String fieldPrefix = fieldPrefix(opName);
-            if (fieldPrefix == null) {
-                continue;
-            }
-
-            if (isLowerBound(opName)) {
-                lowerBounds.computeIfAbsent(fieldPrefix, k -> new ArrayList<>())
-                        .add(new BoundEntry(child.getNodeId(), opName, numericValue));
-            } else if (isUpperBound(opName)) {
-                upperBounds.computeIfAbsent(fieldPrefix, k -> new ArrayList<>())
-                        .add(new BoundEntry(child.getNodeId(), opName, numericValue));
-            }
+            collectBoundEntry(child, lowerBounds, upperBounds);
         }
 
         // Compare lower vs upper bounds for the same field prefix
-        for (String field : lowerBounds.keySet()) {
-            if (!upperBounds.containsKey(field)) {
+        for (Map.Entry<String, List<BoundEntry>> lowerEntry : lowerBounds.entrySet()) {
+            String field = lowerEntry.getKey();
+            List<BoundEntry> upperList = upperBounds.get(field);
+            if (upperList == null) {
                 continue;
             }
-            for (BoundEntry lower : lowerBounds.get(field)) {
-                for (BoundEntry upper : upperBounds.get(field)) {
+            for (BoundEntry lower : lowerEntry.getValue()) {
+                for (BoundEntry upper : upperList) {
                     if (isContradiction(lower, upper)) {
                         errors.add(LintIssue.error(
                                 LintCode.CONTRADICTION,
@@ -237,6 +217,33 @@ public class RuleLinter {
      *   <li>{@code field >  lo AND field <= hi} — contradiction if lo >= hi</li>
      * </ul>
      */
+    private void collectBoundEntry(RuleNode child,
+                                   Map<String, List<BoundEntry>> lowerBounds,
+                                   Map<String, List<BoundEntry>> upperBounds) {
+        if (child.getType() != RuleNode.NodeType.COND) {
+            return;
+        }
+        String opName = child.getOperatorName();
+        if (opName == null) {
+            return;
+        }
+        double numericValue = extractNumericValue(child);
+        if (Double.isNaN(numericValue)) {
+            return;
+        }
+        String fieldPrefix = fieldPrefix(opName);
+        if (fieldPrefix == null) {
+            return;
+        }
+        if (isLowerBound(opName)) {
+            lowerBounds.computeIfAbsent(fieldPrefix, k -> new ArrayList<>())
+                    .add(new BoundEntry(child.getNodeId(), opName, numericValue));
+        } else if (isUpperBound(opName)) {
+            upperBounds.computeIfAbsent(fieldPrefix, k -> new ArrayList<>())
+                    .add(new BoundEntry(child.getNodeId(), opName, numericValue));
+        }
+    }
+
     private boolean isContradiction(BoundEntry lower, BoundEntry upper) {
         boolean loIsStrict = isStrictLower(lower.opName);
         boolean hiIsStrict = isStrictUpper(upper.opName);

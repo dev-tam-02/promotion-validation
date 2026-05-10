@@ -102,9 +102,11 @@ public class RuleController {
         );
 
         RuleResponse response = ruleMapper.toRuleResponse(rule);
-        LintReport lintReport = ruleLinter.lint(rule, nodes);
-        if (!lintReport.isClean()) {
-            response.setLint(toLintReportDto(lintReport));
+        if (response != null) {
+            LintReport lintReport = ruleLinter.lint(rule, nodes);
+            if (!lintReport.isClean()) {
+                response.setLint(toLintReportDto(lintReport));
+            }
         }
         return response;
     }
@@ -198,7 +200,7 @@ public class RuleController {
 
         RuleResponse response = ruleMapper.toRuleResponse(rule);
         List<RuleNode> lintNodes = nodes != null ? nodes : rule.getNodes();
-        if (lintNodes != null) {
+        if (response != null && lintNodes != null) {
             LintReport lintReport = ruleLinter.lint(rule, lintNodes);
             if (!lintReport.isClean()) {
                 response.setLint(toLintReportDto(lintReport));
@@ -431,15 +433,6 @@ public class RuleController {
         }
 
         return context;
-    }
-
-    private RuleSimulationService.ExplainLevel mapToExplainLevel(String explain) {
-        if (explain == null) return RuleSimulationService.ExplainLevel.NONE;
-        return switch (explain.toUpperCase()) {
-            case "FULL" -> RuleSimulationService.ExplainLevel.FULL;
-            case "FAIL_ONLY" -> RuleSimulationService.ExplainLevel.FAIL_ONLY;
-            default -> RuleSimulationService.ExplainLevel.NONE;
-        };
     }
 
     private RuleSimulationService.SimulationCase mapToSimulationCase(BatchSimulateRequest.TestCase testCase) {

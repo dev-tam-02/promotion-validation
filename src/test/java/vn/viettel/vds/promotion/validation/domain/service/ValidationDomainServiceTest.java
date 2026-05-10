@@ -95,7 +95,7 @@ class ValidationDomainServiceTest {
 
             var result = sut.validate(request, Collections.emptyList());
 
-            assertThat(result.getProcessingTimeMs()).isGreaterThanOrEqualTo(0);
+            assertThat(result.getProcessingTimeMs()).isNotNegative();
         }
     }
 

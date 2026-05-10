@@ -39,14 +39,18 @@ class RuleAggregateTest {
         @Test
         @DisplayName("Should throw NullPointerException when code is null")
         void shouldThrow_whenCodeNull() {
-            assertThatThrownBy(() -> new RuleAggregate(null, RuleName.of("Name"), LogicType.AND, "user"))
+            var name = RuleName.of("Name");
+
+            assertThatThrownBy(() -> new RuleAggregate(null, name, LogicType.AND, "user"))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("Should throw NullPointerException when name is null")
         void shouldThrow_whenNameNull() {
-            assertThatThrownBy(() -> new RuleAggregate(RuleCode.of("RULE_X"), null, LogicType.AND, "user"))
+            var code = RuleCode.of("RULE_X");
+
+            assertThatThrownBy(() -> new RuleAggregate(code, null, LogicType.AND, "user"))
                     .isInstanceOf(NullPointerException.class);
         }
     }
@@ -74,9 +78,11 @@ class RuleAggregateTest {
         @DisplayName("Should throw RuleStateNotEditableException when published")
         void shouldThrow_whenPublished() {
             var rule = TestFixtures.ruleWithStatus("RULE_PUB", "Published", RuleStatus.PUBLISHED);
+            var newName = RuleName.of("New Name");
+            var emptyNodes = Collections.<RuleNode>emptyList();
 
             assertThatThrownBy(() -> rule.update(
-                    RuleName.of("New Name"), "desc", LogicType.AND, Collections.emptyList(), "user"
+                    newName, "desc", LogicType.AND, emptyNodes, "user"
             )).isInstanceOf(RuleStateNotEditableException.class);
         }
 

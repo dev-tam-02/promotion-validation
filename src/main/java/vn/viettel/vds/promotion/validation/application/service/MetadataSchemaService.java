@@ -21,6 +21,7 @@ import java.util.UUID;
 public class MetadataSchemaService {
 
     private static final Logger logger = LoggerFactory.getLogger(MetadataSchemaService.class);
+    private static final String FIELD_NOT_FOUND_PREFIX = "Schema field not found: ";
 
     private final MetadataSchemaPersistencePort persistencePort;
 
@@ -105,7 +106,7 @@ public class MetadataSchemaService {
         logger.info("Updating schema field: {}.{} for tenant: {}", schemaType, fieldKey, tenantId);
 
         MetadataSchema existing = persistencePort.findByTenantIdAndSchemaTypeAndFieldKey(tenantId, schemaType, fieldKey)
-                .orElseThrow(() -> new IllegalArgumentException("Schema field not found: " + schemaType + "." + fieldKey));
+                .orElseThrow(() -> new IllegalArgumentException(FIELD_NOT_FOUND_PREFIX + schemaType + "." + fieldKey));
 
         MetadataSchema updated = existing.toBuilder()
                 .fieldName(request.fieldName() != null ? request.fieldName() : existing.getFieldName())
@@ -130,7 +131,7 @@ public class MetadataSchemaService {
         logger.info("Deleting schema field: {}.{} for tenant: {}", schemaType, fieldKey, tenantId);
 
         if (!persistencePort.existsByTenantIdAndSchemaTypeAndFieldKey(tenantId, schemaType, fieldKey)) {
-            throw new IllegalArgumentException("Schema field not found: " + schemaType + "." + fieldKey);
+            throw new IllegalArgumentException(FIELD_NOT_FOUND_PREFIX + schemaType + "." + fieldKey);
         }
 
         persistencePort.deleteByTenantIdAndSchemaTypeAndFieldKey(tenantId, schemaType, fieldKey);
@@ -149,7 +150,7 @@ public class MetadataSchemaService {
         logger.info("Setting schema field {}.{} active={} for tenant: {}", schemaType, fieldKey, active, tenantId);
 
         MetadataSchema existing = persistencePort.findByTenantIdAndSchemaTypeAndFieldKey(tenantId, schemaType, fieldKey)
-                .orElseThrow(() -> new IllegalArgumentException("Schema field not found: " + schemaType + "." + fieldKey));
+                .orElseThrow(() -> new IllegalArgumentException(FIELD_NOT_FOUND_PREFIX + schemaType + "." + fieldKey));
 
         MetadataSchema updated = existing.toBuilder()
                 .active(active)

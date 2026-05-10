@@ -4,7 +4,6 @@ import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -53,11 +52,9 @@ public class RuleSimulationController {
             description = "Evaluates a published rule against the provided facts using the live Drools "
                     + "KieSession with an AgendaEventListener. Returns per-node trace showing which "
                     + "patterns matched and which did not, along with the overall verdict.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Simulation completed"),
-            @ApiResponse(responseCode = "400", description = "Invalid facts payload"),
-            @ApiResponse(responseCode = "404", description = "Rule not found")
-    })
+    @ApiResponse(responseCode = "200", description = "Simulation completed")
+    @ApiResponse(responseCode = "400", description = "Invalid facts payload")
+    @ApiResponse(responseCode = "404", description = "Rule not found")
     @PostMapping("/{id}/simulate")
     public ResponseEntity<RuleEngineSimulateResponse> simulate(
             @Parameter(description = "Rule ID") @PathVariable String id,

@@ -17,7 +17,6 @@ import vn.viettel.vds.promotion.validation.application.service.RuleBuilderServic
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Controller for Rule Builder API.
@@ -127,6 +126,6 @@ public class RuleBuilderController {
                     resp.setUpdatedAt(op.getUpdatedAt());
                     return resp;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 }

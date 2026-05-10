@@ -28,6 +28,7 @@ import java.lang.annotation.*;
 @Constraint(validatedBy = ValidEnumValidator.class)
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
+@SuppressWarnings("java:S1452")
 public @interface ValidEnum {
 
     /**

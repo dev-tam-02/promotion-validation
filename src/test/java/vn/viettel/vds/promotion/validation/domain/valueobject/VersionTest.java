@@ -175,19 +175,19 @@ class VersionTest {
         @Test
         @DisplayName("Should return positive when newer")
         void shouldReturnPositive_whenNewer() {
-            assertThat(Version.of(2, 0, 0).compareTo(Version.of(1, 0, 0))).isPositive();
+            assertThat(Version.of(2, 0, 0)).isGreaterThan(Version.of(1, 0, 0));
         }
 
         @Test
         @DisplayName("Should return zero when equal")
         void shouldReturnZero_whenEqual() {
-            assertThat(Version.of(1, 0, 0).compareTo(Version.of(1, 0, 0))).isZero();
+            assertThat(Version.of(1, 0, 0)).isEqualByComparingTo(Version.of(1, 0, 0));
         }
 
         @Test
         @DisplayName("Should return negative when older")
         void shouldReturnNegative_whenOlder() {
-            assertThat(Version.of(1, 0, 0).compareTo(Version.of(2, 0, 0))).isNegative();
+            assertThat(Version.of(1, 0, 0)).isLessThan(Version.of(2, 0, 0));
         }
     }
 
@@ -201,8 +201,9 @@ class VersionTest {
             var v1 = Version.of(1, 2, 3);
             var v2 = Version.of(1, 2, 3);
 
-            assertThat(v1).isEqualTo(v2);
-            assertThat(v1.hashCode()).isEqualTo(v2.hashCode());
+            assertThat(v1)
+                    .isEqualTo(v2)
+                    .hasSameHashCodeAs(v2);
         }
 
         @Test
@@ -219,7 +220,7 @@ class VersionTest {
         @Test
         @DisplayName("Should format as major.minor.patch")
         void shouldFormatCorrectly() {
-            assertThat(Version.of(1, 2, 3).toString()).isEqualTo("1.2.3");
+            assertThat(Version.of(1, 2, 3)).hasToString("1.2.3");
         }
     }
 }

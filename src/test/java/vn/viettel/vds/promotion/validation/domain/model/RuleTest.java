@@ -349,7 +349,7 @@ class RuleTest {
 
             limits.decrementRemaining();
 
-            assertThat(limits.getRemaining()).isEqualTo(0);
+            assertThat(limits.getRemaining()).isZero();
         }
 
         @Test

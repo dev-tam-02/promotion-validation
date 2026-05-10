@@ -90,7 +90,7 @@ class RuleEngineWireMockTest {
 
     @Test
     @DisplayName("createRule: WireMock stub returns bundleHash, rule saved with PUBLISHED state")
-    void createRule_wireMockStubReturns_bundleHash() throws Exception {
+    void createRule_wireMockStubReturns_bundleHash() {
         // Arrange: stub POST /v1/rules → full ResponseTemplate wrapper (matches pp-rule-engine @ResponseWrapper)
         wireMock.stubFor(post(urlEqualTo("/v1/rules"))
                 .withHeader("Content-Type", containing("application/json"))
@@ -199,7 +199,7 @@ class RuleEngineWireMockTest {
 
     @Test
     @DisplayName("WireMock captures DRL body containing expected Drools snippet")
-    void wireMockCapturesDrlBody_containsExpectedSnippet() throws Exception {
+    void wireMockCapturesDrlBody_containsExpectedSnippet() {
         wireMock.stubFor(post(urlEqualTo("/v1/rules"))
                 .willReturn(aResponse()
                         .withStatus(201)
