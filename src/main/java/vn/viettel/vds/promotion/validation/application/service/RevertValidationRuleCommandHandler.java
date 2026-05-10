@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promix.platform.core.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +47,6 @@ public class RevertValidationRuleCommandHandler {
     private final ValidationRuleRepositoryPort validationRulePort;
     private final IdempotencyService idempotencyService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     @Value("${kafka.topics.validation-event:promotion_validation_event}")
     private String validationEventTopic;
