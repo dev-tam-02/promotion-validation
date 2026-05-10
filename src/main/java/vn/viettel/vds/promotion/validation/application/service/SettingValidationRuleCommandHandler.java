@@ -904,6 +904,7 @@ public class SettingValidationRuleCommandHandler {
             TimeFrame timeframeData,
             Integer priority
     ) {
+        // Canonical record; no extra members.
     }
 
     public static class IdempotencyResultDto {

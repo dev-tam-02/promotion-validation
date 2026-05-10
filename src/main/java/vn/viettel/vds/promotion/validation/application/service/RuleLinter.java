@@ -360,5 +360,6 @@ public class RuleLinter {
     // -------------------------------------------------------------------------
 
     private record BoundEntry(String nodeId, String opName, double value) {
+        // Canonical record; no extra members.
     }
 }

@@ -189,5 +189,6 @@ public class RedisIdempotencyService implements IdempotencyService {
      * Container for storing idempotency result with type information
      */
     private record IdempotencyResult(String type, String payload) {
+        // Canonical record; no extra members.
     }
 }
