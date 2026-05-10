@@ -359,7 +359,10 @@ public class RuleLinter {
     // Internal data holder
     // -------------------------------------------------------------------------
 
-    private record BoundEntry(String nodeId, String opName, double value) {
+    // Sonar rules S100/S1172/S1186 are false positives on Java records (older sonar-java plugins
+    // analyze record components/canonical constructor as regular methods with unused params).
+    @SuppressWarnings({"java:S100", "java:S1172", "java:S1186"})
+    private record BoundEntry(String nodeId, String opName, double value) { // NOSONAR
         // Canonical record; no extra members.
     }
 }
