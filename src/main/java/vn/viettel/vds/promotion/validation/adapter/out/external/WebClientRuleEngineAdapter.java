@@ -265,6 +265,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
             List<String> unmatchedNodes,
             List<String> reasonCodes
     ) {
+        // Canonical record; no extra members.
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -275,5 +276,6 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
             boolean result,
             String reason
     ) {
+        // Canonical record; no extra members.
     }
 }

@@ -176,6 +176,7 @@ public class MetadataSchemaService {
             List<String> availableValues,
             Boolean required
     ) {
+        // Canonical record; no extra members.
     }
 
     public record UpdateSchemaFieldRequest(
@@ -185,5 +186,6 @@ public class MetadataSchemaService {
             Boolean required,
             Integer displayOrder
     ) {
+        // Canonical record; no extra members.
     }
 }
