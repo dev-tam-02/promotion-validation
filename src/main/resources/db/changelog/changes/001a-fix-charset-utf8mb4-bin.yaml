@@ -22,6 +22,18 @@ databaseChangeLog:
             dbms: mariadb
             sql: "ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"
 
+  # Disable FK checks for the session so CONVERT TO can touch columns that are
+  # referenced by foreign keys (e.g. validation_rules.id ← publish_jobs.rule_id).
+  # SET FOREIGN_KEY_CHECKS is session-scoped; Liquibase reuses one JDBC
+  # connection across changesets, so this state persists until 001a-enable-fk-checks.
+  - changeSet:
+      id: 001a-disable-fk-checks
+      author: harley hoang
+      changes:
+        - sql:
+            dbms: mariadb,mysql
+            sql: "SET FOREIGN_KEY_CHECKS = 0"
+
   - changeSet:
       id: 001a-convert-validation-rules
       author: harley hoang
@@ -197,3 +209,12 @@ databaseChangeLog:
         - tableExists: { tableName: validation_rules_history }
       changes:
         - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE validation_rules_history CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  # Re-enable FK checks after all CONVERT TO are done.
+  - changeSet:
+      id: 001a-enable-fk-checks
+      author: harley hoang
+      changes:
+        - sql:
+            dbms: mariadb,mysql
+            sql: "SET FOREIGN_KEY_CHECKS = 1"
