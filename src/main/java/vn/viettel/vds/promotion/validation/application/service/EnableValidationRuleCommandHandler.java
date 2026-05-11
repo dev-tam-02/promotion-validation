@@ -111,55 +111,75 @@ public class EnableValidationRuleCommandHandler {
             throw new InvalidCommandDataException("INVALID_CAMPAIGN_ID", "campaignId is required");
         }
 
-        if (payload.getValidationRuleId() == null || payload.getValidationRuleId().isBlank()) {
-            throw new InvalidCommandDataException("INVALID_VALIDATION_RULE_ID", "validationRuleId is required");
-        }
-
         logger.debug("EnableValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
+    /**
+     * Enable rule bindings for the given campaign. When {@code validationRuleId}
+     * is provided, only that specific binding is enabled. Otherwise ALL bindings
+     * registered under {@code object_type='campaign' AND object_id=campaignId}
+     * are reactivated — the enable saga calls this without a ruleId because the
+     * campaign service does not track which validation rule(s) a campaign owns.
+     * Returns the first enabled binding so the existing success event format can
+     * still be published, or {@code null} when no binding was found.
+     */
     private RuleBinding executeEnable(String campaignId, String validationRuleId) {
         try {
-            // Find binding by ID first
-            RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
-
-            // If not found by ID, search by object
-            if (binding == null) {
-                List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
-                if (bindings.isEmpty()) {
-                    logger.warn("No binding found for campaign: {}", campaignId);
-                    return null;
+            if (validationRuleId != null && !validationRuleId.isBlank()) {
+                RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
+                if (binding != null) {
+                    return enableSingleBinding(binding);
                 }
-                binding = bindings.get(0);
+                logger.info("Binding not found by id, falling back to enable-all-by-campaign: campaignId={}", campaignId);
             }
 
-            logger.info("Found binding to enable: bindingId={}, ruleId={}, currentActive={}",
-                    binding.getId(), binding.getRuleId(), binding.getActive());
-
-            // Enable binding
-            RuleBinding updated = binding.toBuilder()
-                    .active(true)
-                    .updatedAt(Instant.now())
-                    .updatedBy("system")
-                    .build();
-            ruleBindingPort.save(updated);
-
-            logger.info("Enabled binding: bindingId={}", binding.getId());
-
-            // Deploy rule if binding has ruleId — may refresh the bundleHash.
-            if (binding.getRuleId() != null && !binding.getRuleId().isBlank()) {
-                RuleBinding redeployed = deployRuleToEngine(updated);
-                if (redeployed != null) {
-                    updated = redeployed;
-                }
+            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            if (bindings.isEmpty()) {
+                logger.warn("No binding found for campaign: {}", campaignId);
+                return null;
             }
 
-            return updated;
+            RuleBinding firstEnabled = null;
+            for (RuleBinding binding : bindings) {
+                try {
+                    RuleBinding enabled = enableSingleBinding(binding);
+                    if (enabled != null && firstEnabled == null) {
+                        firstEnabled = enabled;
+                    }
+                } catch (Exception inner) {
+                    logger.error("Failed to enable binding bindingId={}, ruleId={}",
+                            binding.getId(), binding.getRuleId(), inner);
+                }
+            }
+            return firstEnabled;
 
         } catch (Exception e) {
             logger.error("Error executing enable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
             return null;
         }
+    }
+
+    private RuleBinding enableSingleBinding(RuleBinding binding) {
+        logger.info("Found binding to enable: bindingId={}, ruleId={}, currentActive={}",
+                binding.getId(), binding.getRuleId(), binding.getActive());
+
+        RuleBinding updated = binding.toBuilder()
+                .active(true)
+                .updatedAt(Instant.now())
+                .updatedBy("system")
+                .build();
+        ruleBindingPort.save(updated);
+
+        logger.info("Enabled binding: bindingId={}", binding.getId());
+
+        if (binding.getRuleId() != null && !binding.getRuleId().isBlank()) {
+            RuleBinding redeployed = deployRuleToEngine(updated);
+            if (redeployed != null) {
+                updated = redeployed;
+            }
+        }
+
+        return updated;
     }
 
     private RuleBinding deployRuleToEngine(RuleBinding binding) {
