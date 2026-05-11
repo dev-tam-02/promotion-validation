@@ -3,6 +3,11 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/001-create-validation-rule-engine-schema.yaml
 
+  # Charset fix: set DB default + convert existing tables to utf8mb4 / utf8mb4_bin
+  # MUST run before any seed insert containing Vietnamese diacritics or 3-byte chars
+  - include:
+      file: db/changelog/changes/001a-fix-charset-utf8mb4-bin.yaml
+
   # Sample data for development
   - include:
       file: db/changelog/changes/002-insert-rule-engine-sample-data.yaml

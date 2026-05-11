@@ -1,0 +1,205 @@
+databaseChangeLog:
+  # ============================================================================
+  # Charset fix: convert DB default + existing tables to utf8mb4 / utf8mb4_bin.
+  #
+  # Some envs had the schema created with latin1 default → seed inserts that
+  # contain Vietnamese diacritics or symbols (≥, ∈, em-dash) fail with
+  # "Incorrect string value" when Liquibase runs 002 / 022 / 028 / ...
+  #
+  # This file runs right after 001 (in master changelog), so:
+  #   - fresh DB: 001 creates tables with old default; 001a converts them and
+  #     sets the DB default to utf8mb4_bin → all later createTable inherits it.
+  #   - existing DB: 001a converts whatever tables already exist (others are
+  #     skipped via tableExists preCondition).
+  # ============================================================================
+
+  - changeSet:
+      id: 001a-alter-database-charset
+      author: harley hoang
+      comment: Set database default to utf8mb4 / utf8mb4_bin for future tables
+      changes:
+        - sql:
+            dbms: mariadb,mysql
+            splitStatements: false
+            sql: |
+              SET @dbname = DATABASE();
+              SET @stmt = CONCAT('ALTER DATABASE `', @dbname, '` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin');
+              PREPARE alter_db FROM @stmt;
+              EXECUTE alter_db;
+              DEALLOCATE PREPARE alter_db;
+
+  - changeSet:
+      id: 001a-convert-validation-rules
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: validation_rules }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE validation_rules CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-nodes
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_nodes }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_nodes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-usage-limits
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_usage_limits }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_usage_limits CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-bindings
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_bindings }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_bindings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-operators
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: operators }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE operators CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-operator-registry
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: operator_registry }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE operator_registry CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-resources
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: resources }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE resources CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-operator-resources
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: operator_resources }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE operator_resources CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-reason-codes
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: reason_codes }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE reason_codes CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-publish-jobs
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: publish_jobs }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE publish_jobs CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-versions
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_versions }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_versions CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-configuration
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_configuration }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_configuration CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-rule-target-segments
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: rule_target_segments }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE rule_target_segments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  # Tables below are created by changesets 003/017/019/020/021/033. On a fresh
+  # DB they don't exist yet when 001a runs (preConditions skip them) and they
+  # will inherit the new utf8mb4_bin default at CREATE time. On existing envs
+  # where these tables already exist, the ALTER converts them.
+
+  - changeSet:
+      id: 001a-convert-outbox-events
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: outbox_events }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE outbox_events CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-validation-rule-snapshots
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: validation_rule_snapshots }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE validation_rule_snapshots CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-operator-categories
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: operator_categories }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE operator_categories CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-operator-options
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: operator_options }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE operator_options CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-metadata-schemas
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: metadata_schemas }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE metadata_schemas CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
+
+  - changeSet:
+      id: 001a-convert-validation-rules-history
+      author: harley hoang
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists: { tableName: validation_rules_history }
+      changes:
+        - sql: { dbms: mariadb,mysql, sql: "ALTER TABLE validation_rules_history CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin" }
