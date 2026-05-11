@@ -68,11 +68,12 @@ public class DisableValidationRuleCommandHandler {
             RuleBinding disabledBinding = executeDisable(campaignId, validationRuleId);
 
             if (disabledBinding == null) {
-                String errorCode = "DISABLE_FAILED";
-                String errorMessage = "Failed to disable validation rule binding";
-                publishDisableErrorEvent(commandId, campaignId, errorCode, errorMessage);
-                logger.error("Failed to process DisableValidationRuleCommand: commandId={}", commandId);
-                throw new InvalidCommandDataException(errorCode, errorMessage);
+                // Empty / no-binding-found is an idempotent success state (the saga's
+                // intent — "ensure no active binding for this campaign" — is already true).
+                logger.info("No binding to disable for campaignId={} - idempotent success", campaignId);
+                idempotencyService.markAsProcessed(commandId, "No binding to disable - idempotent success");
+                publishDisableSuccessEvent(commandId, campaignId, null);
+                return true;
             }
 
             idempotencyService.markAsProcessed(commandId, "Disable completed successfully");
@@ -130,9 +131,11 @@ public class DisableValidationRuleCommandHandler {
                 logger.info("Binding not found by id, falling back to disable-all-by-campaign: campaignId={}", campaignId);
             }
 
-            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            // Query by objectId only — saga doesn't know the binding's object_type
+            // (campaign may be bound as CAMPAIGN / DISCOUNT_COUPON / VOUCHER).
+            List<RuleBinding> bindings = ruleBindingPort.findByObjectId(campaignId);
             if (bindings.isEmpty()) {
-                logger.warn("No binding found for campaign: {}", campaignId);
+                logger.info("No binding found for campaignId={} - idempotent no-op", campaignId);
                 return null;
             }
 

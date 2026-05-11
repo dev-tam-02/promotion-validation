@@ -43,6 +43,13 @@ public interface RuleBindingPersistencePort {
     List<RuleBinding> findByObject(String objectType, String objectId);
 
     /**
+     * Find all bindings by object id regardless of object type.
+     * Used by delete/disable saga where the caller does not know the binding's object_type
+     * (e.g. a campaign may be bound as CAMPAIGN, DISCOUNT_COUPON, or VOUCHER).
+     */
+    List<RuleBinding> findByObjectId(String objectId);
+
+    /**
      * Find all active bindings for an object, ordered by priority
      */
     List<RuleBinding> findActiveByObject(String objectType, String objectId);

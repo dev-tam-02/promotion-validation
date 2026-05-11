@@ -1,0 +1,16 @@
+databaseChangeLog:
+  # ============================================================================
+  # Set database default charset to utf8mb4 / utf8mb4_bin BEFORE any createTable.
+  # All subsequent CREATE TABLE statements (001 onwards) inherit this default,
+  # so we never need a later CONVERT TO CHARACTER SET pass (which trips MariaDB
+  # error 1833 on FK-referenced columns regardless of FOREIGN_KEY_CHECKS).
+  # ============================================================================
+
+  - changeSet:
+      id: 000-alter-database-charset-utf8mb4-bin
+      author: harley hoang
+      comment: Set database default to utf8mb4 / utf8mb4_bin so later createTable inherits it
+      changes:
+        - sql:
+            dbms: mariadb,mysql
+            sql: "ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"

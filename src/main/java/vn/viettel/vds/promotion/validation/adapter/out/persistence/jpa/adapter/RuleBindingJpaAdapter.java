@@ -96,6 +96,13 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
 
     @Override
     @Transactional(readOnly = true)
+    public List<RuleBinding> findByObjectId(String objectId) {
+        log.debug("Finding rule bindings by objectId only: id={}", objectId);
+        return mapper.toDomainList(repository.findByObjectId(objectId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RuleBinding> findActiveByObject(String objectType, String objectId) {
         log.debug("Finding active rule bindings by object: type={}, id={}", objectType, objectId);
         return mapper.toDomainList(repository.findActiveByObject(objectType, objectId));
