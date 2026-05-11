@@ -141,20 +141,25 @@ public class EnableValidationRuleCommandHandler {
 
             RuleBinding firstEnabled = null;
             for (RuleBinding binding : bindings) {
-                try {
-                    RuleBinding enabled = enableSingleBinding(binding);
-                    if (enabled != null && firstEnabled == null) {
-                        firstEnabled = enabled;
-                    }
-                } catch (Exception inner) {
-                    logger.error("Failed to enable binding bindingId={}, ruleId={}",
-                            binding.getId(), binding.getRuleId(), inner);
+                RuleBinding enabled = enableBindingSafely(binding);
+                if (enabled != null && firstEnabled == null) {
+                    firstEnabled = enabled;
                 }
             }
             return firstEnabled;
 
         } catch (Exception e) {
             logger.error("Error executing enable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
+            return null;
+        }
+    }
+
+    private RuleBinding enableBindingSafely(RuleBinding binding) {
+        try {
+            return enableSingleBinding(binding);
+        } catch (Exception inner) {
+            logger.error("Failed to enable binding bindingId={}, ruleId={}",
+                    binding.getId(), binding.getRuleId(), inner);
             return null;
         }
     }
