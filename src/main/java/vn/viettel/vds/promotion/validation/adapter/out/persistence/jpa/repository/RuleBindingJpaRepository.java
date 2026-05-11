@@ -28,6 +28,11 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
     List<RuleBindingEntity> findByObjectTypeAndObjectId(String objectType, String objectId);
 
     /**
+     * Find all bindings by object id regardless of object_type.
+     */
+    List<RuleBindingEntity> findByObjectId(String objectId);
+
+    /**
      * Find all active bindings for a specific object, ordered by priority
      */
     @Query("SELECT rb FROM RuleBindingEntity rb " +
