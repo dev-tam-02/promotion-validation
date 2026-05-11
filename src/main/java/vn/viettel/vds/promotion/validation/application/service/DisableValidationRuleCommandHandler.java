@@ -138,15 +138,8 @@ public class DisableValidationRuleCommandHandler {
 
             RuleBinding firstDisabled = null;
             for (RuleBinding binding : bindings) {
-                try {
-                    ruleBindingPort.deactivate(binding.getId(), "system");
-                    logger.info("Disabled binding: bindingId={}, ruleId={}", binding.getId(), binding.getRuleId());
-                    if (firstDisabled == null) {
-                        firstDisabled = binding;
-                    }
-                } catch (Exception inner) {
-                    logger.error("Failed to disable binding bindingId={}, ruleId={}",
-                            binding.getId(), binding.getRuleId(), inner);
+                if (deactivateBindingSafely(binding) && firstDisabled == null) {
+                    firstDisabled = binding;
                 }
             }
             return firstDisabled;
@@ -154,6 +147,18 @@ public class DisableValidationRuleCommandHandler {
         } catch (Exception e) {
             logger.error("Error executing disable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);
             return null;
+        }
+    }
+
+    private boolean deactivateBindingSafely(RuleBinding binding) {
+        try {
+            ruleBindingPort.deactivate(binding.getId(), "system");
+            logger.info("Disabled binding: bindingId={}, ruleId={}", binding.getId(), binding.getRuleId());
+            return true;
+        } catch (Exception inner) {
+            logger.error("Failed to disable binding bindingId={}, ruleId={}",
+                    binding.getId(), binding.getRuleId(), inner);
+            return false;
         }
     }
 

@@ -90,10 +90,7 @@ public class RuleService {
             throw new RuleAlreadyExistsException(effectiveCode);
         }
 
-        // Validate rule nodes only if provided
-        if (nodes != null && !nodes.isEmpty()) {
-            validateRuleNodes(nodes);
-        }
+        validateRuleNodes(nodes);
 
         // Default logic to ALL if not provided
         Rule.LogicType effectiveLogic = (logic != null) ? logic : Rule.LogicType.ALL;
