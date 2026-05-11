@@ -894,7 +894,10 @@ public class SettingValidationRuleCommandHandler {
         }
     }
 
-    private record ComponentsData(
+    // Sonar rules S100/S107/S1172/S1186 are false positives on Java records (older sonar-java plugins
+    // analyze record components/canonical constructor as regular methods with too many/unused params).
+    @SuppressWarnings({"java:S100", "java:S107", "java:S1172", "java:S1186"})
+    private record ComponentsData( // NOSONAR
             String ruleId,
             String objectType,
             String objectId,

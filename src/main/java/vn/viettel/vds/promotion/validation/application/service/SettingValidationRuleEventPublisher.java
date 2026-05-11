@@ -556,9 +556,38 @@ public class SettingValidationRuleEventPublisher {
      */
     public void publishEnableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
-            publishErrorEvent(commandId, campaignId, errorCode, "Enable failed: " + errorMessage);
-            logger.info("Published enable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
-                    commandId, errorCode);
+            String subject = campaignId != null ? campaignId : commandId;
+
+            ValidationRuleEnableFailedEventPayload payload = ValidationRuleEnableFailedEventPayload.builder()
+                    .commandId(commandId)
+                    .campaignId(campaignId)
+                    .errorCode(errorCode)
+                    .errorMessage(errorMessage)
+                    .failedAt(Instant.now().toEpochMilli())
+                    .build();
+
+            ValidationRuleEnableFailedEvent event = ValidationRuleEnableFailedEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRuleEnableFailedEvent")
+                    .source(serviceName)
+                    .subject(subject)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(buildMetadata(commandId))
+                    .build();
+
+            kafkaUtils.send(eventTopic, subject, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationRuleEnableFailedEvent: commandId={}, campaignId={}, errorCode={}",
+                                    commandId, campaignId, errorCode);
+                        } else {
+                            logger.error("Failed to publish ValidationRuleEnableFailedEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
         } catch (Exception e) {
             throw new EventPublishingException("Failed to publish enable error event for commandId: " + commandId, e);
         }
@@ -647,9 +676,38 @@ public class SettingValidationRuleEventPublisher {
      */
     public void publishDisableErrorEvent(String commandId, String campaignId, String errorCode, String errorMessage) {
         try {
-            publishErrorEvent(commandId, campaignId, errorCode, "Disable failed: " + errorMessage);
-            logger.info("Published disable error as ValidationRuleSettingFailedEvent: commandId={}, errorCode={}",
-                    commandId, errorCode);
+            String subject = campaignId != null ? campaignId : commandId;
+
+            ValidationRuleDisableFailedEventPayload payload = ValidationRuleDisableFailedEventPayload.builder()
+                    .commandId(commandId)
+                    .campaignId(campaignId)
+                    .errorCode(errorCode)
+                    .errorMessage(errorMessage)
+                    .failedAt(Instant.now().toEpochMilli())
+                    .build();
+
+            ValidationRuleDisableFailedEvent event = ValidationRuleDisableFailedEvent.builder()
+                    .id(IdGenerator.generateId())
+                    .aggregate(AGGREGATE_VALIDATION)
+                    .type("ValidationRuleDisableFailedEvent")
+                    .source(serviceName)
+                    .subject(subject)
+                    .occurredAt(Instant.now())
+                    .version(1)
+                    .payload(payload)
+                    .metadata(buildMetadata(commandId))
+                    .build();
+
+            kafkaUtils.send(eventTopic, subject, event)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published ValidationRuleDisableFailedEvent: commandId={}, campaignId={}, errorCode={}",
+                                    commandId, campaignId, errorCode);
+                        } else {
+                            logger.error("Failed to publish ValidationRuleDisableFailedEvent: commandId={}, campaignId={}",
+                                    commandId, campaignId, ex);
+                        }
+                    });
         } catch (Exception e) {
             throw new EventPublishingException("Failed to publish disable error event for commandId: " + commandId, e);
         }

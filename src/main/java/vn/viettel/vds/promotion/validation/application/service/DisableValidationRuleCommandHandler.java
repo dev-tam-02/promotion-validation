@@ -103,37 +103,53 @@ public class DisableValidationRuleCommandHandler {
             throw new InvalidCommandDataException("INVALID_CAMPAIGN_ID", "campaignId is required");
         }
 
-        if (payload.getValidationRuleId() == null || payload.getValidationRuleId().isBlank()) {
-            throw new InvalidCommandDataException("INVALID_VALIDATION_RULE_ID", "validationRuleId is required");
-        }
-
         logger.debug("DisableValidationRuleCommand validation passed: commandId={}", command.getId());
     }
 
+    /**
+     * Disable rule bindings for the given campaign. When {@code validationRuleId}
+     * is provided, only that specific binding is disabled. Otherwise ALL bindings
+     * registered under {@code object_type='campaign' AND object_id=campaignId}
+     * are deactivated — the disable saga calls this without a ruleId because the
+     * campaign service does not track which validation rule(s) a campaign owns.
+     * Returns the first deactivated binding so the existing success event format
+     * can still be published, or {@code null} when no binding was found / all
+     * deactivations failed.
+     */
     private RuleBinding executeDisable(String campaignId, String validationRuleId) {
         try {
-            // Find binding by ID first
-            RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
-
-            // If not found by ID, search by object
-            if (binding == null) {
-                List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
-                if (bindings.isEmpty()) {
-                    logger.warn("No binding found for campaign: {}", campaignId);
-                    return null;
+            if (validationRuleId != null && !validationRuleId.isBlank()) {
+                RuleBinding binding = ruleBindingPort.findById(validationRuleId).orElse(null);
+                if (binding != null) {
+                    logger.info("Found binding to disable by id: bindingId={}, ruleId={}, currentActive={}",
+                            binding.getId(), binding.getRuleId(), binding.getActive());
+                    ruleBindingPort.deactivate(binding.getId(), "system");
+                    logger.info("Disabled binding: bindingId={}", binding.getId());
+                    return binding;
                 }
-                binding = bindings.get(0);
+                logger.info("Binding not found by id, falling back to disable-all-by-campaign: campaignId={}", campaignId);
             }
 
-            logger.info("Found binding to disable: bindingId={}, ruleId={}, currentActive={}",
-                    binding.getId(), binding.getRuleId(), binding.getActive());
+            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            if (bindings.isEmpty()) {
+                logger.warn("No binding found for campaign: {}", campaignId);
+                return null;
+            }
 
-            // Disable binding
-            ruleBindingPort.deactivate(binding.getId(), "system");
-
-            logger.info("Disabled binding: bindingId={}", binding.getId());
-
-            return binding;
+            RuleBinding firstDisabled = null;
+            for (RuleBinding binding : bindings) {
+                try {
+                    ruleBindingPort.deactivate(binding.getId(), "system");
+                    logger.info("Disabled binding: bindingId={}, ruleId={}", binding.getId(), binding.getRuleId());
+                    if (firstDisabled == null) {
+                        firstDisabled = binding;
+                    }
+                } catch (Exception inner) {
+                    logger.error("Failed to disable binding bindingId={}, ruleId={}",
+                            binding.getId(), binding.getRuleId(), inner);
+                }
+            }
+            return firstDisabled;
 
         } catch (Exception e) {
             logger.error("Error executing disable: campaignId={}, validationRuleId={}", campaignId, validationRuleId, e);

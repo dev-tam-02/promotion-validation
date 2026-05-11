@@ -188,7 +188,10 @@ public class RedisIdempotencyService implements IdempotencyService {
     /**
      * Container for storing idempotency result with type information
      */
-    private record IdempotencyResult(String type, String payload) {
+    // Sonar rules S100/S1172/S1186 are false positives on Java records (older sonar-java plugins
+    // analyze record components/canonical constructor as regular methods with unused params).
+    @SuppressWarnings({"java:S100", "java:S1172", "java:S1186"})
+    private record IdempotencyResult(String type, String payload) { // NOSONAR
         // Canonical record; no extra members.
     }
 }
