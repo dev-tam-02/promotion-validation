@@ -19,14 +19,8 @@ databaseChangeLog:
       comment: Set database default to utf8mb4 / utf8mb4_bin for future tables
       changes:
         - sql:
-            dbms: mariadb,mysql
-            splitStatements: false
-            sql: |
-              SET @dbname = DATABASE();
-              SET @stmt = CONCAT('ALTER DATABASE `', @dbname, '` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin');
-              PREPARE alter_db FROM @stmt;
-              EXECUTE alter_db;
-              DEALLOCATE PREPARE alter_db;
+            dbms: mariadb
+            sql: "ALTER DATABASE CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"
 
   - changeSet:
       id: 001a-convert-validation-rules
