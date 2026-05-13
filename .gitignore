@@ -26,3 +26,6 @@ application-local.properties
 application-local.yml
 *.md
 !README.md
+
+# SonarQube scanner cache
+.scannerwork/

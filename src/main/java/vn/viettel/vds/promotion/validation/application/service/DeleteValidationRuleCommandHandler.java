@@ -122,8 +122,10 @@ public class DeleteValidationRuleCommandHandler {
 
     private List<RuleBinding> executeDelete(String campaignId, String validationRuleId, boolean deleteAll) {
         try {
-            // Find bindings by object (campaign)
-            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            // Query by objectId only — saga does not know the binding's object_type
+            // (DISCOUNT_COUPON / CASHBACK / etc.), and the legacy "campaign" literal never matches.
+            // Aligned with the DISABLE handler.
+            List<RuleBinding> bindings = ruleBindingPort.findByObjectId(campaignId);
 
             if (bindings.isEmpty()) {
                 logger.warn("No bindings found for campaign: campaignId={}", campaignId);
