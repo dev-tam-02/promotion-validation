@@ -117,9 +117,12 @@ public class EnableValidationRuleCommandHandler {
     /**
      * Enable rule bindings for the given campaign. When {@code validationRuleId}
      * is provided, only that specific binding is enabled. Otherwise ALL bindings
-     * registered under {@code object_type='campaign' AND object_id=campaignId}
-     * are reactivated — the enable saga calls this without a ruleId because the
-     * campaign service does not track which validation rule(s) a campaign owns.
+     * registered under {@code object_id=campaignId} are reactivated — the enable
+     * saga calls this without a ruleId because the campaign service does not
+     * track which validation rule(s) a campaign owns. We look up by objectId
+     * only (no object_type filter) because bindings are persisted with the
+     * concrete promotion type (e.g. {@code DISCOUNT_COUPON}), not the generic
+     * {@code "campaign"} literal (aligned with the DISABLE handler).
      * Returns the first enabled binding so the existing success event format can
      * still be published, or {@code null} when no binding was found.
      */
@@ -133,7 +136,9 @@ public class EnableValidationRuleCommandHandler {
                 logger.info("Binding not found by id, falling back to enable-all-by-campaign: campaignId={}", campaignId);
             }
 
-            List<RuleBinding> bindings = ruleBindingPort.findByObject("campaign", campaignId);
+            // Query by objectId only — saga does not know the binding's object_type
+            // (DISCOUNT_COUPON / CASHBACK / etc.), and the legacy "campaign" literal never matches.
+            List<RuleBinding> bindings = ruleBindingPort.findByObjectId(campaignId);
             if (bindings.isEmpty()) {
                 logger.warn("No binding found for campaign: {}", campaignId);
                 return null;
