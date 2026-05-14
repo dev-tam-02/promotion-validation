@@ -122,3 +122,12 @@ databaseChangeLog:
   # Align fallback_error_message type with DTO @Size(max=500): TEXT → VARCHAR(500)
   - include:
       file: db/changelog/changes/048-modify-fallback-error-message-to-varchar.yaml
+
+  # Deactivate 5 duplicate UPPERCASE spec categories (Audience/Order/Product/Time/Loyalty)
+  # — operator_options đều thuộc bộ `cat-*-001` (seed 022), bộ spec-cat-* luôn count=0
+  - include:
+      file: db/changelog/changes/049-deactivate-duplicate-spec-categories.yaml
+
+  # Backfill name_vi cho 5 row spec-cat-*-001 (seed 028 thiếu) — phòng khi tái sử dụng
+  - include:
+      file: db/changelog/changes/050-backfill-name-vi-for-spec-categories.yaml
