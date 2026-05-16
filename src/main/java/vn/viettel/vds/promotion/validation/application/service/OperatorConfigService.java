@@ -202,7 +202,7 @@ public class OperatorConfigService {
 
         List<OperatorOption.ValueOption> valueOptions = hasStaticValues
                 ? field.getAvailableValues().stream()
-                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
+                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).labelEn(v).labelVi(v).build())
                 .toList()
                 : Collections.emptyList();
 

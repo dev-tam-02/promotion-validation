@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.*;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsLookupPort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsPage;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
@@ -32,10 +34,15 @@ public class RuleBuilderService {
     private static final String OP_LABEL_IS_ANY_OF = "is any of";
     private static final String OP_LABEL_IS_NONE_OF = "is none of";
 
-    private final OperatorConfigService operatorConfigService;
+    private static final String DATA_SOURCE_STATIC = "STATIC";
 
-    public RuleBuilderService(OperatorConfigService operatorConfigService) {
+    private final OperatorConfigService operatorConfigService;
+    private final RuleOptionsLookupPort ruleOptionsLookupPort;
+
+    public RuleBuilderService(OperatorConfigService operatorConfigService,
+                               RuleOptionsLookupPort ruleOptionsLookupPort) {
         this.operatorConfigService = operatorConfigService;
+        this.ruleOptionsLookupPort = ruleOptionsLookupPort;
     }
 
     /**
@@ -55,14 +62,13 @@ public class RuleBuilderService {
 
     /**
      * Get options for a specific rule.
-     * This delegates to external services based on dataSourceEndpoint configuration.
+     * Routes by dataSourceType: null/"STATIC" uses in-memory predefined options;
+     * any other value (e.g. "SEGMENT") delegates to the external lookup port.
      */
     public RuleOptionsResponse getRuleOptions(String ruleId, String search, Integer page, Integer size, String tenantId) {
         logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, page, size, tenantId);
 
-        // Get options from the operator configuration
-        // In production, this should call external services based on dataSourceEndpoint
         List<OperatorOption> allOptions = operatorConfigService.getAllCategoriesWithOptions(tenantId)
                 .stream()
                 .flatMap(cat -> cat.getOptions().stream())
@@ -74,28 +80,64 @@ public class RuleBuilderService {
         }
 
         OperatorOption option = allOptions.get(0);
+        String dataSourceType = option.getDataSourceType();
+        int pageNumber = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
 
-        // If option has predefined value options, return them
+        if (dataSourceType == null || DATA_SOURCE_STATIC.equalsIgnoreCase(dataSourceType)) {
+            return getStaticOptions(ruleId, option, search, pageNumber, pageSize);
+        }
+
+        return getExternalOptions(ruleId, option, dataSourceType, search, pageNumber, pageSize, tenantId);
+    }
+
+    /**
+     * Return in-memory predefined value options with client-side filtering and pagination.
+     * Uses {@code labelEn}/{@code labelVi} from the domain model for proper i18n;
+     * falls back to the legacy {@code label} field if not set (backward compat).
+     */
+    private RuleOptionsResponse getStaticOptions(String ruleId, OperatorOption option,
+                                                  String search, int pageNumber, int pageSize) {
         List<RuleOptionResponse> options = Collections.emptyList();
         if (option.getValueOptions() != null && !option.getValueOptions().isEmpty()) {
             options = option.getValueOptions().stream()
-                    .filter(vo -> search == null || search.isBlank() ||
-                            vo.getLabel().toLowerCase().contains(search.toLowerCase()) ||
-                            vo.getValue().toLowerCase().contains(search.toLowerCase()))
-                    .map(vo -> RuleOptionResponse.of(vo.getValue(), vo.getLabel(), vo.getLabel()))
+                    .filter(vo -> {
+                        if (search == null || search.isBlank()) return true;
+                        String searchTarget = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
+                        String lowerSearch = search.toLowerCase();
+                        return (searchTarget != null && searchTarget.toLowerCase().contains(lowerSearch))
+                                || (vo.getValue() != null && vo.getValue().toLowerCase().contains(lowerSearch));
+                    })
+                    .map(vo -> {
+                        String en = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
+                        String vi = vo.getLabelVi() != null ? vo.getLabelVi() : vo.getLabel();
+                        return RuleOptionResponse.of(vo.getValue(), en, vi);
+                    })
                     .toList();
         }
 
         int totalElements = options.size();
-        int pageNumber = page != null ? page : 0;
-        int pageSize = size != null ? size : 20;
-
-        // Simple pagination
         int fromIndex = Math.min(pageNumber * pageSize, totalElements);
         int toIndex = Math.min(fromIndex + pageSize, totalElements);
         List<RuleOptionResponse> pagedOptions = options.subList(fromIndex, toIndex);
 
         return RuleOptionsResponse.paginated(ruleId, pagedOptions, totalElements, pageNumber, pageSize);
+    }
+
+    /**
+     * Delegate to the external lookup port and map the result to the web DTO.
+     */
+    private RuleOptionsResponse getExternalOptions(String ruleId, OperatorOption option,
+                                                    String dataSourceType, String search,
+                                                    int pageNumber, int pageSize, String tenantId) {
+        RuleOptionsPage resultPage = ruleOptionsLookupPort.lookup(
+                dataSourceType, option.getDataSourceEndpoint(), search, pageNumber, pageSize, tenantId);
+
+        List<RuleOptionResponse> mapped = resultPage.items().stream()
+                .map(item -> RuleOptionResponse.of(item.value(), item.labelEn(), item.labelVi()))
+                .toList();
+
+        return RuleOptionsResponse.paginated(ruleId, mapped, resultPage.totalElements(), pageNumber, pageSize);
     }
 
     /**

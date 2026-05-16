@@ -131,3 +131,7 @@ databaseChangeLog:
   # Backfill name_vi cho 5 row spec-cat-*-001 (seed 028 thiếu) — phòng khi tái sử dụng
   - include:
       file: db/changelog/changes/050-backfill-name-vi-for-spec-categories.yaml
+
+  # Fix wrong data_source_endpoint for opt-customer-segment-001
+  - include:
+      file: db/changelog/changes/051-fix-customer-segment-data-source-endpoint.yaml
