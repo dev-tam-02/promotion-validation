@@ -105,17 +105,17 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
         List<RuleOptionsPage.ValueOption> merged = new ArrayList<>();
         long total = 0L;
 
-        // Products — pp-product returns {productId, productName, ...}
+        // Products group — id from productId, label from productName
         try {
             Map<String, Object> raw = productFeignClient.listProducts(search, null, true, page, size);
-            ProductSourcePage products = extractPage(raw, "productId", "productName", "PRODUCT");
+            ProductSourcePage products = extractPage(raw, "productId", "productName", DATA_SOURCE_PRODUCT);
             merged.addAll(products.items);
             total += products.total;
         } catch (FeignException e) {
             logger.error("Failed to fetch products from product service: {}", e.getMessage());
         }
 
-        // Collections — pp-product returns {id, name, ...}
+        // Collections group — id from id, label from name
         try {
             Map<String, Object> raw = productFeignClient.listCollections("ACTIVE", page, size);
             ProductSourcePage collections = extractPage(raw, "id", "name", "COLLECTION");
@@ -125,7 +125,7 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
             logger.error("Failed to fetch collections from product service: {}", e.getMessage());
         }
 
-        // SKUs — pp-product returns {id, skuCode, name, ...}
+        // SKUs group — id from id, label from name
         try {
             Map<String, Object> raw = productFeignClient.listSkus(search, page, size);
             ProductSourcePage skus = extractPage(raw, "id", "name", "SKU");

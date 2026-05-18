@@ -12,7 +12,8 @@ import java.util.Map;
  *
  * <p>Used by RuleBuilder Products rules to populate a grouped option list
  * (PRODUCT + COLLECTION). pp-product does not currently expose a SKU search
- * endpoint, so the SKU group is left empty for now (see follow-up TODO).
+ * endpoint, so the SKU group is left empty for now (tracked as a follow-up
+ * task in the pp-product backlog).
  *
  * <p>Base URL comes from {@code external.services.product.url}
  * ({@code host:port}); full context-path inlined per existing convention.

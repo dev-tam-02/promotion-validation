@@ -13,8 +13,10 @@ import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Service for Rule Builder API.
@@ -30,15 +32,76 @@ public class RuleBuilderService {
     private static final String OP_NOT_IN = "not_in";
     private static final String OP_BETWEEN = "between";
     private static final String OP_CONTAINS = "contains";
+    private static final String OP_NOT_CONTAINS = "not_contains";
+    private static final String OP_IS = "is";
+    private static final String OP_IS_NOT = "is_not";
+    private static final String OP_EXISTS = "exists";
+    private static final String OP_NOT_EXISTS = "not_exists";
+    private static final String OP_IS_EXACTLY = "is_exactly";
+    private static final String OP_IS_MORE_THAN = "is_more_than";
+    private static final String OP_IS_LESS_THAN = "is_less_than";
+    private static final String OP_IS_MORE_THAN_OR_EQUAL_TO = "is_more_than_or_equal_to";
+    private static final String OP_IS_LESS_THAN_OR_EQUAL_TO = "is_less_than_or_equal_to";
+    private static final String OP_IS_BEFORE = "is_before";
+    private static final String OP_IS_AFTER = "is_after";
     private static final String OP_IS_TRUE = "is_true";
     private static final String OP_IS_FALSE = "is_false";
     private static final String OP_LABEL_NOT_EQUALS = "not equals";
     private static final String OP_LABEL_VI_EQUALS = "Bằng";
     private static final String OP_LABEL_VI_NOT_EQUALS = "Không bằng";
+    private static final String OP_LABEL_VI_GTE = "Lớn hơn hoặc bằng";
+    private static final String OP_LABEL_VI_LTE = "Nhỏ hơn hoặc bằng";
     private static final String OP_LABEL_IS_ANY_OF = "is any of";
     private static final String OP_LABEL_IS_NONE_OF = "is none of";
 
     private static final String DATA_SOURCE_STATIC = "STATIC";
+
+    private static final Map<String, OperatorResponse> OPERATOR_MAP = buildOperatorMap();
+
+    private static Map<String, OperatorResponse> buildOperatorMap() {
+        Map<String, OperatorResponse> m = new LinkedHashMap<>();
+        m.put(OP_EQUALS, OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS));
+        m.put(OP_NOT_EQUALS, OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS));
+        m.put("in", OperatorResponse.of("in", OP_LABEL_IS_ANY_OF, "Thuộc một trong"));
+        m.put(OP_NOT_IN, OperatorResponse.of(OP_NOT_IN, OP_LABEL_IS_NONE_OF, "Không thuộc bất kỳ"));
+        OperatorResponse gte = OperatorResponse.of("gte", "greater than or equal", OP_LABEL_VI_GTE);
+        m.put("gte", gte);
+        m.put("greater_than_or_equal", gte);
+        OperatorResponse gt = OperatorResponse.of("gt", "greater than", "Lớn hơn");
+        m.put("gt", gt);
+        m.put("greater_than", gt);
+        OperatorResponse lte = OperatorResponse.of("lte", "less than or equal", OP_LABEL_VI_LTE);
+        m.put("lte", lte);
+        m.put("less_than_or_equal", lte);
+        OperatorResponse lt = OperatorResponse.of("lt", "less than", "Nhỏ hơn");
+        m.put("lt", lt);
+        m.put("less_than", lt);
+        m.put(OP_BETWEEN, OperatorResponse.of(OP_BETWEEN, OP_BETWEEN, "Trong khoảng"));
+        m.put("not_between", OperatorResponse.of("not_between", "not between", "Ngoài khoảng"));
+        m.put(OP_CONTAINS, OperatorResponse.of(OP_CONTAINS, OP_CONTAINS, "Chứa"));
+        m.put(OP_NOT_CONTAINS, OperatorResponse.of(OP_NOT_CONTAINS, "does not contain", "Không chứa"));
+        m.put("starts_with", OperatorResponse.of("starts_with", "starts with", "Bắt đầu bằng"));
+        m.put("ends_with", OperatorResponse.of("ends_with", "ends with", "Kết thúc bằng"));
+        m.put(OP_IS_TRUE, OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng"));
+        m.put(OP_IS_FALSE, OperatorResponse.of(OP_IS_FALSE, "is false", "Sai"));
+        m.put(OP_IS, OperatorResponse.of(OP_IS, OP_IS, "Là"));
+        m.put(OP_IS_NOT, OperatorResponse.of(OP_IS_NOT, "is not", "Không là"));
+        m.put("is_any", OperatorResponse.of("is_any", OP_LABEL_IS_ANY_OF, "Là một trong"));
+        m.put("is_none", OperatorResponse.of("is_none", OP_LABEL_IS_NONE_OF, "Không là bất kỳ"));
+        m.put(OP_IS_MORE_THAN, OperatorResponse.of(OP_IS_MORE_THAN, "is more than", "Lớn hơn"));
+        m.put(OP_IS_LESS_THAN, OperatorResponse.of(OP_IS_LESS_THAN, "is less than", "Nhỏ hơn"));
+        m.put(OP_IS_EXACTLY, OperatorResponse.of(OP_IS_EXACTLY, "is exactly", "Đúng bằng"));
+        m.put(OP_IS_MORE_THAN_OR_EQUAL_TO,
+                OperatorResponse.of(OP_IS_MORE_THAN_OR_EQUAL_TO, "is more than or equal to", OP_LABEL_VI_GTE));
+        m.put(OP_IS_LESS_THAN_OR_EQUAL_TO,
+                OperatorResponse.of(OP_IS_LESS_THAN_OR_EQUAL_TO, "is less than or equal to", OP_LABEL_VI_LTE));
+        m.put("from", OperatorResponse.of("from", "from", "Từ"));
+        m.put(OP_EXISTS, OperatorResponse.of(OP_EXISTS, OP_EXISTS, "Tồn tại"));
+        m.put(OP_NOT_EXISTS, OperatorResponse.of(OP_NOT_EXISTS, "does not exist", "Không tồn tại"));
+        m.put(OP_IS_BEFORE, OperatorResponse.of(OP_IS_BEFORE, "is before", "Trước"));
+        m.put(OP_IS_AFTER, OperatorResponse.of(OP_IS_AFTER, "is after", "Sau"));
+        return Collections.unmodifiableMap(m);
+    }
 
     private final OperatorConfigService operatorConfigService;
     private final RuleOptionsLookupPort ruleOptionsLookupPort;
@@ -107,19 +170,10 @@ public class RuleBuilderService {
                                                   String search, int pageNumber, int pageSize) {
         List<RuleOptionResponse> options = Collections.emptyList();
         if (option.getValueOptions() != null && !option.getValueOptions().isEmpty()) {
+            Predicate<OperatorOption.ValueOption> searchFilter = matchSearch(search);
             options = option.getValueOptions().stream()
-                    .filter(vo -> {
-                        if (search == null || search.isBlank()) return true;
-                        String searchTarget = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
-                        String lowerSearch = search.toLowerCase();
-                        return (searchTarget != null && searchTarget.toLowerCase().contains(lowerSearch))
-                                || (vo.getValue() != null && vo.getValue().toLowerCase().contains(lowerSearch));
-                    })
-                    .map(vo -> {
-                        String en = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
-                        String vi = vo.getLabelVi() != null ? vo.getLabelVi() : vo.getLabel();
-                        return RuleOptionResponse.of(vo.getValue(), en, vi);
-                    })
+                    .filter(searchFilter)
+                    .map(RuleBuilderService::toRuleOptionResponse)
                     .toList();
         }
 
@@ -129,6 +183,32 @@ public class RuleBuilderService {
         List<RuleOptionResponse> pagedOptions = options.subList(fromIndex, toIndex);
 
         return RuleOptionsResponse.paginated(ruleId, pagedOptions, totalElements, pageNumber, pageSize);
+    }
+
+    private static Predicate<OperatorOption.ValueOption> matchSearch(String search) {
+        if (search == null || search.isBlank()) {
+            return vo -> true;
+        }
+        String lower = search.toLowerCase();
+        return vo -> {
+            String searchTarget = preferredLabel(vo);
+            return (searchTarget != null && searchTarget.toLowerCase().contains(lower))
+                    || (vo.getValue() != null && vo.getValue().toLowerCase().contains(lower));
+        };
+    }
+
+    private static RuleOptionResponse toRuleOptionResponse(OperatorOption.ValueOption vo) {
+        return RuleOptionResponse.of(vo.getValue(), preferredLabel(vo), preferredLabelVi(vo));
+    }
+
+    @SuppressWarnings("deprecation") // Legacy label kept as fallback when labelEn is null
+    private static String preferredLabel(OperatorOption.ValueOption vo) {
+        return vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
+    }
+
+    @SuppressWarnings("deprecation") // Legacy label kept as fallback when labelVi is null
+    private static String preferredLabelVi(OperatorOption.ValueOption vo) {
+        return vo.getLabelVi() != null ? vo.getLabelVi() : vo.getLabel();
     }
 
     /**
@@ -256,15 +336,15 @@ public class RuleBuilderService {
     private List<String> comparatorsForMetadataType(String dataType) {
         return switch (dataType) {
             case "STRING", "TEXT" ->
-                    List.of("is", "is_not", "contains", "not_contains", "exists", "not_exists");
+                    List.of(OP_IS, OP_IS_NOT, OP_CONTAINS, OP_NOT_CONTAINS, OP_EXISTS, OP_NOT_EXISTS);
             case "NUMBER", "INTEGER", "DECIMAL" -> List.of(
-                    "is_more_than", "is_exactly", "is_less_than",
-                    "is_more_than_or_equal_to", "is_less_than_or_equal_to");
-            case "BOOLEAN" -> List.of("is");
+                    OP_IS_MORE_THAN, OP_IS_EXACTLY, OP_IS_LESS_THAN,
+                    OP_IS_MORE_THAN_OR_EQUAL_TO, OP_IS_LESS_THAN_OR_EQUAL_TO);
+            case "BOOLEAN" -> List.of(OP_IS);
             case "DATE", "DATETIME", "TIMESTAMP" ->
-                    List.of("is_before", "is_after", "is_exactly", "between");
-            case "ENUM" -> List.of("is", "is_not", "in", "not_in");
-            default -> List.of("is", "is_not");
+                    List.of(OP_IS_BEFORE, OP_IS_AFTER, OP_IS_EXACTLY, OP_BETWEEN);
+            case "ENUM" -> List.of(OP_IS, OP_IS_NOT, "in", OP_NOT_IN);
+            default -> List.of(OP_IS, OP_IS_NOT);
         };
     }
 
@@ -419,77 +499,32 @@ public class RuleBuilderService {
      */
     private List<OperatorResponse> getDefaultOperators(OperatorOption.ComparisonType comparisonType) {
         if (comparisonType == null) {
-            return List.of(
-                    OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS),
-                    OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS)
-            );
+            return defaultSingleOperators();
         }
-
         return switch (comparisonType) {
             case RANGE -> List.of(
-                    OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS),
-                    OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS),
-                    OperatorResponse.of("gte", "greater than or equal", "Lớn hơn hoặc bằng"),
-                    OperatorResponse.of("lte", "less than or equal", "Nhỏ hơn hoặc bằng"),
-                    OperatorResponse.of(OP_BETWEEN, OP_BETWEEN, "Trong khoảng")
+                    OPERATOR_MAP.get(OP_EQUALS),
+                    OPERATOR_MAP.get(OP_NOT_EQUALS),
+                    OPERATOR_MAP.get("gte"),
+                    OPERATOR_MAP.get("lte"),
+                    OPERATOR_MAP.get(OP_BETWEEN)
             );
-            case LIST -> List.of(
-                    OperatorResponse.of("in", OP_LABEL_IS_ANY_OF, "Thuộc một trong"),
-                    OperatorResponse.of(OP_NOT_IN, OP_LABEL_IS_NONE_OF, "Không thuộc bất kỳ")
-            );
-            case BOOLEAN -> List.of(
-                    OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng"),
-                    OperatorResponse.of(OP_IS_FALSE, "is false", "Sai")
-            );
-            default -> List.of(
-                    OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS),
-                    OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS)
-            );
+            case LIST -> List.of(OPERATOR_MAP.get("in"), OPERATOR_MAP.get(OP_NOT_IN));
+            case BOOLEAN -> List.of(OPERATOR_MAP.get(OP_IS_TRUE), OPERATOR_MAP.get(OP_IS_FALSE));
+            default -> defaultSingleOperators();
         };
+    }
+
+    private List<OperatorResponse> defaultSingleOperators() {
+        return List.of(OPERATOR_MAP.get(OP_EQUALS), OPERATOR_MAP.get(OP_NOT_EQUALS));
     }
 
     /**
      * Map comparator string to OperatorResponse.
+     * Falls back to passing the raw comparator through when it is not known.
      */
     private OperatorResponse mapComparatorToOperator(String comparator) {
-        return switch (comparator.toLowerCase()) {
-            case OP_EQUALS -> OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS);
-            case OP_NOT_EQUALS -> OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS);
-            case "in" -> OperatorResponse.of("in", OP_LABEL_IS_ANY_OF, "Thuộc một trong");
-            case OP_NOT_IN -> OperatorResponse.of(OP_NOT_IN, OP_LABEL_IS_NONE_OF, "Không thuộc bất kỳ");
-            case "gte", "greater_than_or_equal" ->
-                    OperatorResponse.of("gte", "greater than or equal", "Lớn hơn hoặc bằng");
-            case "gt", "greater_than" -> OperatorResponse.of("gt", "greater than", "Lớn hơn");
-            case "lte", "less_than_or_equal" -> OperatorResponse.of("lte", "less than or equal", "Nhỏ hơn hoặc bằng");
-            case "lt", "less_than" -> OperatorResponse.of("lt", "less than", "Nhỏ hơn");
-            case OP_BETWEEN -> OperatorResponse.of(OP_BETWEEN, OP_BETWEEN, "Trong khoảng");
-            case "not_between" -> OperatorResponse.of("not_between", "not between", "Ngoài khoảng");
-            case OP_CONTAINS -> OperatorResponse.of(OP_CONTAINS, OP_CONTAINS, "Chứa");
-            case "not_contains" -> OperatorResponse.of("not_contains", "does not contain", "Không chứa");
-            case "starts_with" -> OperatorResponse.of("starts_with", "starts with", "Bắt đầu bằng");
-            case "ends_with" -> OperatorResponse.of("ends_with", "ends with", "Kết thúc bằng");
-            case OP_IS_TRUE -> OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng");
-            case OP_IS_FALSE -> OperatorResponse.of(OP_IS_FALSE, "is false", "Sai");
-            case "is" -> OperatorResponse.of("is", "is", "Là");
-            case "is_not" -> OperatorResponse.of("is_not", "is not", "Không là");
-            case "is_any" -> OperatorResponse.of("is_any", OP_LABEL_IS_ANY_OF, "Là một trong");
-            case "is_none" -> OperatorResponse.of("is_none", OP_LABEL_IS_NONE_OF, "Không là bất kỳ");
-            // v2 spec — friendlier labels for number comparators
-            case "is_more_than" -> OperatorResponse.of("is_more_than", "is more than", "Lớn hơn");
-            case "is_less_than" -> OperatorResponse.of("is_less_than", "is less than", "Nhỏ hơn");
-            case "is_exactly" -> OperatorResponse.of("is_exactly", "is exactly", "Đúng bằng");
-            case "is_more_than_or_equal_to" ->
-                    OperatorResponse.of("is_more_than_or_equal_to", "is more than or equal to", "Lớn hơn hoặc bằng");
-            case "is_less_than_or_equal_to" ->
-                    OperatorResponse.of("is_less_than_or_equal_to", "is less than or equal to", "Nhỏ hơn hoặc bằng");
-            // v2 spec — Products "from collection" semantics
-            case "from" -> OperatorResponse.of("from", "from", "Từ");
-            // v2 spec — metadata-only
-            case "exists" -> OperatorResponse.of("exists", "exists", "Tồn tại");
-            case "not_exists" -> OperatorResponse.of("not_exists", "does not exist", "Không tồn tại");
-            case "is_before" -> OperatorResponse.of("is_before", "is before", "Trước");
-            case "is_after" -> OperatorResponse.of("is_after", "is after", "Sau");
-            default -> OperatorResponse.of(comparator, comparator, comparator);
-        };
+        OperatorResponse mapped = OPERATOR_MAP.get(comparator.toLowerCase());
+        return mapped != null ? mapped : OperatorResponse.of(comparator, comparator, comparator);
     }
 }

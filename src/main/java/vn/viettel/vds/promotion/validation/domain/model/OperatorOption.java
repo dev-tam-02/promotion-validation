@@ -103,10 +103,11 @@ public class OperatorOption {
      */
     @Value
     @Builder
+    @SuppressWarnings("java:S1133") // BC field intentionally retained for legacy DB rows
     public static class ValueOption {
         String value;
         /** @deprecated Use {@link #labelEn} instead. Kept for backward compatibility. */
-        @Deprecated
+        @Deprecated(since = "1.1.0", forRemoval = false)
         String label;
         /** English label. */
         String labelEn;

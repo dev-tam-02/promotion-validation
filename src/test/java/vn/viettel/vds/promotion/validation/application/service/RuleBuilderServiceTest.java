@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RuleBuilderService — getRuleOptions() branch tests")
+@SuppressWarnings("deprecation") // Test fixtures intentionally populate the legacy label BC field
 class RuleBuilderServiceTest {
 
     @Mock

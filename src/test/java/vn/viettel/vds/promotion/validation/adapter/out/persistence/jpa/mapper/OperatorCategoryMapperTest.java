@@ -5,13 +5,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorCategoryEntity;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Unit tests for OperatorCategoryMapper.parseValueOptions()
@@ -26,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *  - Malformed JSON → empty list (no exception propagated)
  */
 @DisplayName("OperatorCategoryMapper.parseValueOptions()")
+@SuppressWarnings("deprecation") // Tests deliberately verify the legacy label BC field
 class OperatorCategoryMapperTest {
 
     /**
@@ -171,31 +176,19 @@ class OperatorCategoryMapperTest {
     @DisplayName("Defensive edge cases")
     class EdgeCases {
 
-        @Test
-        @DisplayName("Should return empty list when json is null")
-        void shouldReturnEmpty_whenJsonIsNull() {
-            List<OperatorOption.ValueOption> result = mapper.parseValueOptions(null, objectMapper);
-            assertThat(result).isEmpty();
+        static Stream<org.junit.jupiter.params.provider.Arguments> emptyResultInputs() {
+            return Stream.of(
+                    arguments("null json", null),
+                    arguments("blank json", "   "),
+                    arguments("malformed json (no exception propagated)", "not-valid-json"),
+                    arguments("empty JSON array", "[]")
+            );
         }
 
-        @Test
-        @DisplayName("Should return empty list when json is blank")
-        void shouldReturnEmpty_whenJsonIsBlank() {
-            List<OperatorOption.ValueOption> result = mapper.parseValueOptions("   ", objectMapper);
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        @DisplayName("Should return empty list on malformed JSON (no exception propagated)")
-        void shouldReturnEmpty_onMalformedJson() {
-            List<OperatorOption.ValueOption> result = mapper.parseValueOptions("not-valid-json", objectMapper);
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        @DisplayName("Should return empty list when JSON is an empty array")
-        void shouldReturnEmpty_whenJsonArrayIsEmpty() {
-            List<OperatorOption.ValueOption> result = mapper.parseValueOptions("[]", objectMapper);
+        @ParameterizedTest(name = "Should return empty list for {0}")
+        @MethodSource("emptyResultInputs")
+        void shouldReturnEmpty_forDefensiveInputs(String label, String json) {
+            List<OperatorOption.ValueOption> result = mapper.parseValueOptions(json, objectMapper);
             assertThat(result).isEmpty();
         }
     }
