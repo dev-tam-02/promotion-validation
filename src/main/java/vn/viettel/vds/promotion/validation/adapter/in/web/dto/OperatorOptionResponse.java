@@ -33,7 +33,7 @@ public record OperatorOptionResponse(
     public static OperatorOptionResponse from(OperatorOption option) {
         List<ValueOptionResponse> valueOptionResponses = option.getValueOptions() != null
                 ? option.getValueOptions().stream()
-                .map(vo -> new ValueOptionResponse(vo.getValue(), vo.getLabel()))
+                .map(vo -> new ValueOptionResponse(vo.getValue(), resolveLabel(vo)))
                 .toList()
                 : List.of();
 
@@ -56,6 +56,11 @@ public record OperatorOptionResponse(
                 option.getMaxValue(),
                 option.getPattern()
         );
+    }
+
+    @SuppressWarnings("deprecation") // Legacy label kept as fallback when labelEn is null
+    private static String resolveLabel(OperatorOption.ValueOption vo) {
+        return vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
     }
 
     /**
