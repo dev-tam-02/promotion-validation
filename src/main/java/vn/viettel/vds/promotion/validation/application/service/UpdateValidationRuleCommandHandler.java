@@ -234,6 +234,12 @@ public class UpdateValidationRuleCommandHandler {
             var validity = timeframe.getValidityTimeframe();
             builder.validFrom(validity.getStartDate());
             builder.validTo(validity.getExpirationDate());
+            if (validity.getDuration() != null) {
+                builder.duration(validity.getDuration());
+            }
+            if (validity.getActivityDurationAfterPublishing() != null) {
+                builder.activityDurationAfterPublishing(validity.getActivityDurationAfterPublishing());
+            }
         }
         if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
             builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
