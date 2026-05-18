@@ -135,3 +135,36 @@ databaseChangeLog:
   # Fix wrong data_source_endpoint for opt-customer-segment-001
   - include:
       file: db/changelog/changes/051-fix-customer-segment-data-source-endpoint.yaml
+
+  # Add typed data-loader columns: data_loader_type, data_loader_config, applies_to_metadata_schema
+  - include:
+      file: db/changelog/changes/052-add-data-loader-fields-to-operator-options.yaml
+
+  # Expand operator_options.id from VARCHAR(36) to VARCHAR(64) for v2 descriptive ids
+  - include:
+      file: db/changelog/changes/052b-expand-operator-options-id-column.yaml
+
+  # Refactor: wipe all category/operator seed in preparation for v2 spec
+  - include:
+      file: db/changelog/changes/053-wipe-categories-operators-seed.yaml
+
+  # Seed v2: 8 categories (5 static + 3 metadata-dynamic)
+  - include:
+      file: db/changelog/changes/054-seed-categories-v2.yaml
+
+  # Seed v2: 31 operator_options for 5 static categories
+  - include:
+      file: db/changelog/changes/055-seed-operator-options-v2.yaml
+
+  # Set data_source_type=PRODUCT for Products rules so routing hits ProductLookupAdapter
+  - include:
+      file: db/changelog/changes/056-fix-product-rules-data-source-type.yaml
+
+  # Per-rule placeholders for Products + Redemptions + Audience.customer_segment
+  - include:
+      file: db/changelog/changes/057-seed-placeholders-products-redemptions.yaml
+
+  # Add duration + activity_duration_after_publishing to rule_bindings
+  # (RFC 5545 RRULE cannot carry DURATION; stored as dedicated ISO 8601 columns)
+  - include:
+      file: db/changelog/changes/058-add-duration-fields-to-rule-bindings.yaml

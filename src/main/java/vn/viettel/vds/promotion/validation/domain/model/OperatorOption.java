@@ -43,6 +43,9 @@ public class OperatorOption {
     // Input configuration
     String dataSourceType;
     String dataSourceEndpoint;
+    String dataLoaderType;
+    String dataLoaderConfig;
+    String appliesToMetadataSchema;
     String inputType;
     Boolean inputMultiple;
     Boolean inputSearchable;

@@ -1,0 +1,394 @@
+databaseChangeLog:
+  # Seed v2 — 31 operator_options across 5 static categories.
+  #
+  # Comparator semantics:
+  #   is / is_not                       → equality (translator .equals / .not_equals)
+  #   is_more_than / is_less_than       → strict (TODO: needs .gt/.lt translators,
+  #                                        currently best-fit to .gte/.lte — see P4b)
+  #   is_more_than_or_equal_to / ..le   → .gte / .lte
+  #   is_exactly                        → .equals
+  #   in / not_in                       → .in / .not_in
+  #   from                              → membership in collection (Products only)
+  #   contains / exists / before / ...  → metadata-only, see P4a
+  #
+  # data_loader_type contract — see migration 052.
+  - changeSet:
+      id: 055-seed-operator-options-v2-audience
+      author: pp-validation
+      comment: "Seed Audience operator_options (2 rules)"
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-customer-segment" }
+              - column: { name: category_id, value: "cat-audience" }
+              - column: { name: code, value: "customer_segment" }
+              - column: { name: name, value: "Customer segment" }
+              - column: { name: name_vi, value: "Tập khách hàng" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "The customer must meet the defined conditions regarding the customer segment." }
+              - column: { name: description_vi, value: "Khách hàng phải thuộc/không thuộc tập khách hàng đã chọn." }
+              - column: { name: operator_name, value: "customer.in_segment" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","is_not"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-segment" }
+              - column: { name: data_loader_config, value: '{"multi":true,"searchable":true}' }
+              - column: { name: data_source_type, value: "SEGMENT" }
+              - column: { name: data_source_endpoint, value: "/api/segments" }
+              - column: { name: label_en, value: "Select segments" }
+              - column: { name: label_vi, value: "Chọn tập khách hàng" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-redemption-code-holder-only" }
+              - column: { name: category_id, value: "cat-audience" }
+              - column: { name: code, value: "redemption_by_code_holder_only" }
+              - column: { name: name, value: "Redemption only by code holder" }
+              - column: { name: name_vi, value: "Chỉ người giữ mã được sử dụng" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: operator_name, value: "redemption.code_holder_only" }
+              - column: { name: comparison_type, value: "boolean" }
+              - column: { name: available_comparators, value: '["is"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "boolean" }
+              - column: { name: value_source, value: "select" }
+              - column: { name: data_loader_type, value: "boolean" }
+              - column: { name: data_loader_config, value: '{"trueLabel":{"en":"True","vi":"Có"},"falseLabel":{"en":"False","vi":"Không"}}' }
+              - column: { name: label_en, value: "Code holder only" }
+              - column: { name: label_vi, value: "Chỉ người giữ mã" }
+              - column: { name: is_active, valueBoolean: true }
+
+      rollback:
+        - delete: { tableName: operator_options, where: "id in ('opt-customer-segment','opt-redemption-code-holder-only')" }
+
+  - changeSet:
+      id: 055-seed-operator-options-v2-products
+      author: pp-validation
+      comment: "Seed Products operator_options (5 rules — multi-select SKU/Product/Collection via pp-product)"
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-any-order-item" }
+              - column: { name: category_id, value: "cat-products" }
+              - column: { name: code, value: "any_order_item" }
+              - column: { name: name, value: "Any order item" }
+              - column: { name: name_vi, value: "Bất kỳ sản phẩm nào trong đơn" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "The order must contain at least one item listed in the rule." }
+              - column: { name: description_vi, value: "Đơn hàng phải chứa ít nhất một sản phẩm trong danh sách." }
+              - column: { name: operator_name, value: "order.item.product.applicable" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","from"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-product" }
+              - column: { name: data_loader_config, value: '{"multi":true,"grouped":true,"groupBy":"type","sources":["sku","product","collection"]}' }
+              - column: { name: label_en, value: "Select items" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-every-order-item" }
+              - column: { name: category_id, value: "cat-products" }
+              - column: { name: code, value: "every_order_item" }
+              - column: { name: name, value: "Every order item" }
+              - column: { name: name_vi, value: "Mọi sản phẩm trong đơn" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: description, value: "The order must contain only the listed items." }
+              - column: { name: description_vi, value: "Đơn hàng chỉ chứa các sản phẩm trong danh sách." }
+              - column: { name: operator_name, value: "order.item.product.applicable.all" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","from"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-product" }
+              - column: { name: data_loader_config, value: '{"multi":true,"grouped":true,"groupBy":"type","sources":["sku","product","collection"]}' }
+              - column: { name: label_en, value: "Select items" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-none-of-order-items" }
+              - column: { name: category_id, value: "cat-products" }
+              - column: { name: code, value: "none_of_order_items" }
+              - column: { name: name, value: "None of the order items" }
+              - column: { name: name_vi, value: "Không có sản phẩm nào trong đơn" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: description, value: "The order can't include any of the items listed in the rule." }
+              - column: { name: description_vi, value: "Đơn hàng không được chứa bất kỳ sản phẩm nào trong danh sách." }
+              - column: { name: operator_name, value: "order.item.product.applicable.none" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","from"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-product" }
+              - column: { name: data_loader_config, value: '{"multi":true,"grouped":true,"groupBy":"type","sources":["sku","product","collection"]}' }
+              - column: { name: label_en, value: "Select items" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-most-expensive-order-item" }
+              - column: { name: category_id, value: "cat-products" }
+              - column: { name: code, value: "most_expensive_order_item" }
+              - column: { name: name, value: "Most expensive of the order items" }
+              - column: { name: name_vi, value: "Sản phẩm đắt nhất trong đơn" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: description, value: "The item or collection must be the most expensive in the order." }
+              - column: { name: description_vi, value: "Sản phẩm hoặc bộ sưu tập phải là đắt nhất trong đơn." }
+              - column: { name: operator_name, value: "order.item.most_expensive.in" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","from"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-product" }
+              - column: { name: data_loader_config, value: '{"multi":true,"grouped":true,"groupBy":"type","sources":["sku","product","collection"]}' }
+              - column: { name: label_en, value: "Select items" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-cheapest-order-item" }
+              - column: { name: category_id, value: "cat-products" }
+              - column: { name: code, value: "cheapest_order_item" }
+              - column: { name: name, value: "Cheapest of the order items" }
+              - column: { name: name_vi, value: "Sản phẩm rẻ nhất trong đơn" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: description, value: "The item or collection must be the cheapest in the order." }
+              - column: { name: description_vi, value: "Sản phẩm hoặc bộ sưu tập phải là rẻ nhất trong đơn." }
+              - column: { name: operator_name, value: "order.item.cheapest.in" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is","from"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-product" }
+              - column: { name: data_loader_config, value: '{"multi":true,"grouped":true,"groupBy":"type","sources":["sku","product","collection"]}' }
+              - column: { name: label_en, value: "Select items" }
+              - column: { name: label_vi, value: "Chọn sản phẩm" }
+              - column: { name: is_active, valueBoolean: true }
+
+      rollback:
+        - delete: { tableName: operator_options, where: "id in ('opt-any-order-item','opt-every-order-item','opt-none-of-order-items','opt-most-expensive-order-item','opt-cheapest-order-item')" }
+
+  - changeSet:
+      id: 055-seed-operator-options-v2-prices
+      author: pp-validation
+      comment: "Seed Prices & Quantities operator_options (6 rules — number input)"
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-amount-before-discounts" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "total_amount_before_discounts" }
+              - column: { name: name, value: "Total amount before discounts" }
+              - column: { name: name_vi, value: "Tổng giá trị trước giảm giá" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: operator_name, value: "order.initial.amount.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Amount" }
+              - column: { name: label_vi, value: "Giá trị" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-total-amount-after-discounts" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "total_amount_after_discounts" }
+              - column: { name: name, value: "Total amount after discounts" }
+              - column: { name: name_vi, value: "Tổng giá trị sau giảm giá" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: operator_name, value: "order.total.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Amount" }
+              - column: { name: label_vi, value: "Giá trị" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-initial-amount" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "initial_amount" }
+              - column: { name: name, value: "Initial amount" }
+              - column: { name: name_vi, value: "Giá trị ban đầu" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: operator_name, value: "order.initial.amount.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Amount" }
+              - column: { name: label_vi, value: "Giá trị" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-items-quantity" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "items_quantity" }
+              - column: { name: name, value: "Items quantity" }
+              - column: { name: name_vi, value: "Số lượng sản phẩm" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: operator_name, value: "order.items.count.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_more_than_or_equal_to","is_exactly","is_less_than","is_less_than_or_equal_to","in","not_in"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: data_loader_config, value: '{"forComparators":{"in":"type-to-enter","not_in":"type-to-enter"}}' }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Quantity" }
+              - column: { name: label_vi, value: "Số lượng" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-price-of-each-item" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "price_of_each_item" }
+              - column: { name: name, value: "Price of each item" }
+              - column: { name: name_vi, value: "Đơn giá mỗi sản phẩm" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: operator_name, value: "order.item.price.forall.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Price" }
+              - column: { name: label_vi, value: "Giá" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-price-of-any-item" }
+              - column: { name: category_id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "price_of_any_item" }
+              - column: { name: name, value: "Price of any item" }
+              - column: { name: name_vi, value: "Đơn giá bất kỳ sản phẩm" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: operator_name, value: "order.item.price.gte" }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+              - column: { name: value_type, value: "number" }
+              - column: { name: value_source, value: "input" }
+              - column: { name: data_loader_type, value: "number-input" }
+              - column: { name: min_value, valueNumeric: 0 }
+              - column: { name: label_en, value: "Price" }
+              - column: { name: label_vi, value: "Giá" }
+              - column: { name: is_active, valueBoolean: true }
+
+      rollback:
+        - delete: { tableName: operator_options, where: "id in ('opt-total-amount-before-discounts','opt-total-amount-after-discounts','opt-initial-amount','opt-items-quantity','opt-price-of-each-item','opt-price-of-any-item')" }
+
+  - changeSet:
+      id: 055-seed-operator-options-v2-budget
+      author: pp-validation
+      comment: "Seed Budget constraints operator_options (17 rules — number input, is_more_than/is_exactly/is_less_than)"
+      # All Budget rules share the same shape — define once via SQL for brevity.
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              -- 17 budget rules: same operators (is_more_than, is_exactly, is_less_than), loader number-input.
+              INSERT INTO operator_options
+                (id, category_id, code, name, name_vi, display_order, operator_name,
+                 comparison_type, available_comparators, default_comparator,
+                 value_type, value_source, data_loader_type, min_value,
+                 label_en, label_vi, is_active)
+              VALUES
+                ('opt-total-orders-value','cat-budget-constraints','total_orders_value','Total orders value','Tổng giá trị đơn hàng',1,'budget.orders_value.total.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Amount','Giá trị',true),
+                ('opt-total-discounted-amount','cat-budget-constraints','total_discounted_amount','Total discounted amount','Tổng tiền đã giảm',2,'budget.discounted_amount.total.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Amount','Giá trị',true),
+                ('opt-total-num-redemptions','cat-budget-constraints','total_number_of_redemptions','Total number of redemptions','Tổng số lượt sử dụng',3,'budget.redemptions.total.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-total-num-redemptions-per-day','cat-budget-constraints','total_number_of_redemptions_per_day','Total number of redemptions per day','Tổng số lượt sử dụng/ngày',4,'budget.redemptions.per_day.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-total-num-redemptions-per-month','cat-budget-constraints','total_number_of_redemptions_per_month','Total number of redemptions per month','Tổng số lượt sử dụng/tháng',5,'budget.redemptions.per_month.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-total-num-redemptions-per-week','cat-budget-constraints','total_number_of_redemptions_per_week','Total number of redemptions per week','Tổng số lượt sử dụng/tuần',6,'budget.redemptions.per_week.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-incentive-per-day','cat-budget-constraints','redemptions_per_incentive_per_day','Redemptions per incentive per day','Lượt đổi/ưu đãi/ngày',7,'budget.redemptions.per_incentive.per_day.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-incentive-per-month','cat-budget-constraints','redemptions_per_incentive_per_month','Redemptions per incentive per month','Lượt đổi/ưu đãi/tháng',8,'budget.redemptions.per_incentive.per_month.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-incentive-per-week','cat-budget-constraints','redemptions_per_incentive_per_week','Redemptions per incentive per week','Lượt đổi/ưu đãi/tuần',9,'budget.redemptions.per_incentive.per_week.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-per-incentive','cat-budget-constraints','redemptions_per_customer_per_incentive','Redemptions per customer per incentive','Lượt đổi/khách/ưu đãi',10,'budget.redemptions.per_customer.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-per-incentive-per-day','cat-budget-constraints','redemptions_per_customer_per_incentive_per_day','Redemptions per customer per incentive per day','Lượt đổi/khách/ưu đãi/ngày',11,'budget.redemptions.per_customer.per_day.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-per-incentive-per-month','cat-budget-constraints','redemptions_per_customer_per_incentive_per_month','Redemptions per customer per incentive per month','Lượt đổi/khách/ưu đãi/tháng',12,'budget.redemptions.per_customer.per_month.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-per-incentive-per-week','cat-budget-constraints','redemptions_per_customer_per_incentive_per_week','Redemptions per customer per incentive per week','Lượt đổi/khách/ưu đãi/tuần',13,'budget.redemptions.per_customer.per_week.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-in-campaign','cat-budget-constraints','redemptions_per_customer_in_campaign','Redemptions per customer in a campaign','Lượt đổi/khách/chiến dịch',14,'budget.redemptions.per_customer.in_campaign.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-in-campaign-per-day','cat-budget-constraints','redemptions_per_customer_in_campaign_per_day','Redemptions per customer in a campaign per day','Lượt đổi/khách/chiến dịch/ngày',15,'budget.redemptions.per_customer.in_campaign.per_day.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-in-campaign-per-month','cat-budget-constraints','redemptions_per_customer_in_campaign_per_month','Redemptions per customer in a campaign per month','Lượt đổi/khách/chiến dịch/tháng',16,'budget.redemptions.per_customer.in_campaign.per_month.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true),
+                ('opt-redemptions-per-customer-in-campaign-per-week','cat-budget-constraints','redemptions_per_customer_in_campaign_per_week','Redemptions per customer in a campaign per week','Lượt đổi/khách/chiến dịch/tuần',17,'budget.redemptions.per_customer.in_campaign.per_week.lte','single','["is_more_than","is_exactly","is_less_than"]','is_less_than','number','input','number-input',0,'Count','Số lượng',true);
+
+      rollback:
+        - sql: "DELETE FROM operator_options WHERE category_id = 'cat-budget-constraints'"
+
+  - changeSet:
+      id: 055-seed-operator-options-v2-redemptions
+      author: pp-validation
+      comment: "Seed Redemptions operator_options (1 rule — pp-customer multi-select)"
+      changes:
+        - insert:
+            tableName: operator_options
+            columns:
+              - column: { name: id, value: "opt-redeeming-user" }
+              - column: { name: category_id, value: "cat-redemptions" }
+              - column: { name: code, value: "redeeming_user" }
+              - column: { name: name, value: "Redeeming user" }
+              - column: { name: name_vi, value: "Người sử dụng" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: description, value: "The redeeming customer must meet the defined conditions." }
+              - column: { name: description_vi, value: "Khách hàng sử dụng mã phải khớp các điều kiện đã định." }
+              - column: { name: operator_name, value: "redemption.user.equals" }
+              - column: { name: comparison_type, value: "list" }
+              - column: { name: available_comparators, value: '["is"]' }
+              - column: { name: default_comparator, value: "is" }
+              - column: { name: value_type, value: "list" }
+              - column: { name: value_source, value: "multi_select" }
+              - column: { name: data_loader_type, value: "pp-customer" }
+              - column: { name: data_loader_config, value: '{"multi":true,"searchable":true}' }
+              - column: { name: label_en, value: "Select customers" }
+              - column: { name: label_vi, value: "Chọn khách hàng" }
+              - column: { name: is_active, valueBoolean: true }
+
+      rollback:
+        - delete: { tableName: operator_options, where: "id = 'opt-redeeming-user'" }

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  # Seed v2 (055) added data_loader_type for Products rules but left
+  # data_source_type NULL. RuleBuilderService routes by data_source_type
+  # (NULL → static path → empty). Fix by setting data_source_type=PRODUCT
+  # so the request flows to ProductLookupAdapter (pp-product).
+  - changeSet:
+      id: 056-fix-product-rules-data-source-type
+      author: pp-validation
+      comment: "Set data_source_type=PRODUCT on the 5 Products rules"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET data_source_type = 'PRODUCT'
+              WHERE category_id = 'cat-products'
+                AND data_source_type IS NULL;
+
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET data_source_type = NULL
+              WHERE category_id = 'cat-products';

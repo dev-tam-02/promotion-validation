@@ -575,6 +575,8 @@ public class RuleController {
                                         .end(tw.getEnd())
                                         .build())
                                 .toList() : null)
+                .duration(binding.getDuration())
+                .activityDurationAfterPublishing(binding.getActivityDurationAfterPublishing())
                 .excludedDates(binding.getExcludedDates())
                 .includedAll(binding.getIncludedAll())
                 .includedProducts(binding.getIncludedProducts())

@@ -93,6 +93,15 @@ public class OperatorOptionEntity {
     @Column(name = "data_source_endpoint", length = 255)
     private String dataSourceEndpoint;
 
+    @Column(name = "data_loader_type", length = 50)
+    private String dataLoaderType;
+
+    @Column(name = "data_loader_config", columnDefinition = "TEXT")
+    private String dataLoaderConfig;
+
+    @Column(name = "applies_to_metadata_schema", length = 50)
+    private String appliesToMetadataSchema;
+
     @Column(name = "input_type", length = 20)
     private String inputType;
 

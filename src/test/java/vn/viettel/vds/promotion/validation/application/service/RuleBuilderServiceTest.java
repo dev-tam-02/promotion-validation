@@ -35,13 +35,16 @@ class RuleBuilderServiceTest {
     @Mock
     private RuleOptionsLookupPort ruleOptionsLookupPort;
 
+    @Mock
+    private vn.viettel.vds.promotion.validation.adapter.out.external.MetadataServiceFeignClient metadataServiceFeignClient;
+
     private RuleBuilderService sut;
 
     private static final String TENANT_ID = "tenant-001";
 
     @BeforeEach
     void setUp() {
-        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort);
+        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort, metadataServiceFeignClient);
     }
 
     // -------------------------------------------------------------------------

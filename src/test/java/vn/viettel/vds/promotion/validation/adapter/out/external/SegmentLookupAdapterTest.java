@@ -36,6 +36,9 @@ class SegmentLookupAdapterTest {
     @Mock
     private SegmentServiceFeignClient segmentFeignClient;
 
+    @Mock
+    private ProductServiceFeignClient productFeignClient;
+
     private SegmentLookupAdapter sut;
 
     private static final String TENANT_ID = "tenant-001";
@@ -43,7 +46,7 @@ class SegmentLookupAdapterTest {
 
     @BeforeEach
     void setUp() {
-        sut = new SegmentLookupAdapter(segmentFeignClient);
+        sut = new SegmentLookupAdapter(segmentFeignClient, productFeignClient);
     }
 
     // -------------------------------------------------------------------------

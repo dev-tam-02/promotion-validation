@@ -1,0 +1,19 @@
+databaseChangeLog:
+  # v2 spec rule codes generate ids like
+  # "opt-redemptions-per-customer-per-incentive-per-month" (52 chars)
+  # which overflows the original VARCHAR(36) limit. Bump to VARCHAR(64).
+  - changeSet:
+      id: 052b-expand-operator-options-id-column
+      author: pp-validation
+      comment: Expand operator_options.id from VARCHAR(36) to VARCHAR(64) for descriptive v2 ids
+      changes:
+        - modifyDataType:
+            tableName: operator_options
+            columnName: id
+            newDataType: varchar(64)
+
+      rollback:
+        - modifyDataType:
+            tableName: operator_options
+            columnName: id
+            newDataType: varchar(36)

@@ -1,0 +1,137 @@
+databaseChangeLog:
+  # Seed v2 — 8 categories matching the rule-builder spec:
+  #   5 static categories: audience, products, prices_quantities,
+  #                        budget_constraints, redemptions
+  #   3 metadata categories (dynamic via pp-metadata):
+  #                        customer_metadata, order_metadata, redemption_metadata
+  #
+  # is_metadata_category=true + metadata_schema_type drive the runtime
+  # expansion in RuleBuilderService.getAllCategories (P4a): pp-validation
+  # calls pp-metadata GET /api/v1/schemas?type=STANDARD&name=<schema_type>
+  # and synthesizes one rule per field.
+  - changeSet:
+      id: 054-seed-categories-v2
+      author: pp-validation
+      comment: "Refactor v2: seed 8 categories (5 static + 3 metadata)"
+      changes:
+        # ── Static categories ──────────────────────────────────────────────
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-audience" }
+              - column: { name: code, value: "AUDIENCE" }
+              - column: { name: name, value: "Audience" }
+              - column: { name: name_vi, value: "Đối tượng" }
+              - column: { name: display_order, valueNumeric: 1 }
+              - column: { name: icon, value: "users" }
+              - column: { name: description, value: "Rules targeting customers and code holders" }
+              - column: { name: description_vi, value: "Quy tắc nhắm khách hàng và người giữ mã" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-products" }
+              - column: { name: code, value: "PRODUCTS" }
+              - column: { name: name, value: "Products" }
+              - column: { name: name_vi, value: "Sản phẩm" }
+              - column: { name: display_order, valueNumeric: 2 }
+              - column: { name: icon, value: "package" }
+              - column: { name: description, value: "Rules matching items, SKUs, and collections in the order" }
+              - column: { name: description_vi, value: "Quy tắc khớp sản phẩm/SKU/bộ sưu tập trong đơn hàng" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-prices-quantities" }
+              - column: { name: code, value: "PRICES_QUANTITIES" }
+              - column: { name: name, value: "Prices & Quantities" }
+              - column: { name: name_vi, value: "Giá & Số lượng" }
+              - column: { name: display_order, valueNumeric: 3 }
+              - column: { name: icon, value: "calculator" }
+              - column: { name: description, value: "Order amount / item price / quantity comparisons" }
+              - column: { name: description_vi, value: "So sánh giá trị / giá / số lượng" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-budget-constraints" }
+              - column: { name: code, value: "BUDGET_CONSTRAINTS" }
+              - column: { name: name, value: "Budget constraints" }
+              - column: { name: name_vi, value: "Ngân sách & Giới hạn" }
+              - column: { name: display_order, valueNumeric: 4 }
+              - column: { name: icon, value: "wallet" }
+              - column: { name: description, value: "Spend caps and redemption-count quotas" }
+              - column: { name: description_vi, value: "Giới hạn ngân sách và số lượt sử dụng" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-redemptions" }
+              - column: { name: code, value: "REDEMPTIONS" }
+              - column: { name: name, value: "Redemptions" }
+              - column: { name: name_vi, value: "Quy tắc sử dụng" }
+              - column: { name: display_order, valueNumeric: 5 }
+              - column: { name: icon, value: "ticket" }
+              - column: { name: description, value: "Rules constraining who can redeem and how" }
+              - column: { name: description_vi, value: "Quy tắc giới hạn người và cách sử dụng" }
+              - column: { name: is_metadata_category, valueBoolean: false }
+              - column: { name: is_active, valueBoolean: true }
+
+        # ── Metadata categories (dynamic via pp-metadata) ──────────────────
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-customer-metadata" }
+              - column: { name: code, value: "CUSTOMER_METADATA" }
+              - column: { name: name, value: "Customer metadata" }
+              - column: { name: name_vi, value: "Thuộc tính khách hàng" }
+              - column: { name: display_order, valueNumeric: 6 }
+              - column: { name: icon, value: "user-cog" }
+              - column: { name: description, value: "Customer fields resolved at runtime from pp-metadata (type=STANDARD, name=customer)" }
+              - column: { name: description_vi, value: "Field khách hàng resolve runtime từ pp-metadata" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "customer" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-order-metadata" }
+              - column: { name: code, value: "ORDER_METADATA" }
+              - column: { name: name, value: "Order metadata" }
+              - column: { name: name_vi, value: "Thuộc tính đơn hàng" }
+              - column: { name: display_order, valueNumeric: 7 }
+              - column: { name: icon, value: "shopping-cart" }
+              - column: { name: description, value: "Order fields resolved at runtime from pp-metadata (type=STANDARD, name=order)" }
+              - column: { name: description_vi, value: "Field đơn hàng resolve runtime từ pp-metadata" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "order" }
+              - column: { name: is_active, valueBoolean: true }
+
+        - insert:
+            tableName: operator_categories
+            columns:
+              - column: { name: id, value: "cat-redemption-metadata" }
+              - column: { name: code, value: "REDEMPTION_METADATA" }
+              - column: { name: name, value: "Redemption metadata" }
+              - column: { name: name_vi, value: "Thuộc tính đổi quà" }
+              - column: { name: display_order, valueNumeric: 8 }
+              - column: { name: icon, value: "receipt" }
+              - column: { name: description, value: "Redemption fields resolved at runtime from pp-metadata (type=STANDARD, name=redemption)" }
+              - column: { name: description_vi, value: "Field đổi quà resolve runtime từ pp-metadata" }
+              - column: { name: is_metadata_category, valueBoolean: true }
+              - column: { name: metadata_schema_type, value: "redemption" }
+              - column: { name: is_active, valueBoolean: true }
+
+      rollback:
+        - delete:
+            tableName: operator_categories
+            where: "id in ('cat-audience','cat-products','cat-prices-quantities','cat-budget-constraints','cat-redemptions','cat-customer-metadata','cat-order-metadata','cat-redemption-metadata')"

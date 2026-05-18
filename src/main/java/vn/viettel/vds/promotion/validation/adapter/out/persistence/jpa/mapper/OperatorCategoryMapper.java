@@ -64,6 +64,9 @@ public interface OperatorCategoryMapper {
                 // Input configuration
                 .dataSourceType(entity.getDataSourceType())
                 .dataSourceEndpoint(entity.getDataSourceEndpoint())
+                .dataLoaderType(entity.getDataLoaderType())
+                .dataLoaderConfig(entity.getDataLoaderConfig())
+                .appliesToMetadataSchema(entity.getAppliesToMetadataSchema())
                 .inputType(entity.getInputType())
                 .inputMultiple(entity.getInputMultiple())
                 .inputSearchable(entity.getInputSearchable())
