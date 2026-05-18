@@ -39,6 +39,8 @@ public class RuleWithBindingResponse {
         private String timezone;
         private String rrule;
         private List<TimeWindowDto> timeWindows;
+        private String duration;
+        private String activityDurationAfterPublishing;
         private List<String> excludedDates;
 
         // Applicability

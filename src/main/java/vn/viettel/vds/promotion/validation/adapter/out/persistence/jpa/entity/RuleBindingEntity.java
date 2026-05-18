@@ -72,6 +72,12 @@ public class RuleBindingEntity extends BaseEntity {
     @Column(name = "time_windows", columnDefinition = "TEXT")
     private String timeWindows;
 
+    @Column(name = "duration", length = 50)
+    private String duration;
+
+    @Column(name = "activity_duration_after_publishing", length = 50)
+    private String activityDurationAfterPublishing;
+
     /**
      * JSON array of excluded dates: ["2024-01-01","2024-12-25"]
      */

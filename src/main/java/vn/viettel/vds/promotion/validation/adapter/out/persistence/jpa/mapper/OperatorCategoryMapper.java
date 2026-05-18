@@ -64,6 +64,9 @@ public interface OperatorCategoryMapper {
                 // Input configuration
                 .dataSourceType(entity.getDataSourceType())
                 .dataSourceEndpoint(entity.getDataSourceEndpoint())
+                .dataLoaderType(entity.getDataLoaderType())
+                .dataLoaderConfig(entity.getDataLoaderConfig())
+                .appliesToMetadataSchema(entity.getAppliesToMetadataSchema())
                 .inputType(entity.getInputType())
                 .inputMultiple(entity.getInputMultiple())
                 .inputSearchable(entity.getInputSearchable())
@@ -118,16 +121,48 @@ public interface OperatorCategoryMapper {
         }
     }
 
+    /**
+     * Parse value_options JSON column into domain ValueOption list.
+     * Supports two label shapes stored in the DB:
+     * <ul>
+     *   <li>Object: {@code {"label": {"en": "Paid", "vi": "Trả phí"}}} — full i18n</li>
+     *   <li>String (legacy): {@code {"label": "Paid"}} — same text for EN and VI</li>
+     * </ul>
+     * Defensive: if a language key is missing, falls back to the other language.
+     */
+    @SuppressWarnings("unchecked")
     default List<OperatorOption.ValueOption> parseValueOptions(String json, ObjectMapper objectMapper) {
         if (json == null || json.isBlank()) return Collections.emptyList();
         try {
-            List<java.util.Map<String, String>> options = objectMapper.readValue(json, new TypeReference<>() {
+            List<java.util.Map<String, Object>> options = objectMapper.readValue(json, new TypeReference<>() {
             });
             return options.stream()
-                    .map(opt -> OperatorOption.ValueOption.builder()
-                            .value(opt.get("value"))
-                            .label(opt.get("label"))
-                            .build())
+                    .map(opt -> {
+                        String value = (String) opt.get("value");
+                        Object labelNode = opt.get("label");
+                        String labelEn;
+                        String labelVi;
+                        if (labelNode instanceof java.util.Map) {
+                            java.util.Map<String, Object> labelMap = (java.util.Map<String, Object>) labelNode;
+                            labelEn = labelMap.get("en") != null ? String.valueOf(labelMap.get("en")) : null;
+                            labelVi = labelMap.get("vi") != null ? String.valueOf(labelMap.get("vi")) : null;
+                            // Defensive fallback: if one language is missing, use the other
+                            if (labelEn == null) labelEn = labelVi;
+                            if (labelVi == null) labelVi = labelEn;
+                        } else if (labelNode instanceof String) {
+                            labelEn = (String) labelNode;
+                            labelVi = labelEn;
+                        } else {
+                            labelEn = null;
+                            labelVi = null;
+                        }
+                        return OperatorOption.ValueOption.builder()
+                                .value(value)
+                                .label(labelEn)     // backward compat: label holds EN text
+                                .labelEn(labelEn)
+                                .labelVi(labelVi)
+                                .build();
+                    })
                     .toList();
         } catch (JsonProcessingException e) {
             return Collections.emptyList();

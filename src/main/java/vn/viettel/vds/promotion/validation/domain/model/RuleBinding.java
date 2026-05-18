@@ -103,6 +103,17 @@ public class RuleBinding {
     private List<TimeWindow> timeWindows;
 
     /**
+     * ISO 8601 duration per recurrence (e.g. "PT1H").
+     * DURATION is not a valid RRULE rule-part (RFC 5545 §3.3.10), persisted separately.
+     */
+    private String duration;
+
+    /**
+     * ISO 8601 extension window after a publish event (e.g. "PT5H").
+     */
+    private String activityDurationAfterPublishing;
+
+    /**
      * Dates when the rule does NOT apply (holidays, etc.)
      * Format: ISO date strings ["2024-01-01", "2024-12-25"]
      */

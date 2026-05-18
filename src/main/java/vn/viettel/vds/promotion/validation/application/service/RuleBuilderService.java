@@ -1,14 +1,20 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.*;
+import vn.viettel.vds.promotion.validation.adapter.out.external.MetadataServiceFeignClient;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsLookupPort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsPage;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for Rule Builder API.
@@ -32,10 +38,18 @@ public class RuleBuilderService {
     private static final String OP_LABEL_IS_ANY_OF = "is any of";
     private static final String OP_LABEL_IS_NONE_OF = "is none of";
 
-    private final OperatorConfigService operatorConfigService;
+    private static final String DATA_SOURCE_STATIC = "STATIC";
 
-    public RuleBuilderService(OperatorConfigService operatorConfigService) {
+    private final OperatorConfigService operatorConfigService;
+    private final RuleOptionsLookupPort ruleOptionsLookupPort;
+    private final MetadataServiceFeignClient metadataServiceFeignClient;
+
+    public RuleBuilderService(OperatorConfigService operatorConfigService,
+                               RuleOptionsLookupPort ruleOptionsLookupPort,
+                               MetadataServiceFeignClient metadataServiceFeignClient) {
         this.operatorConfigService = operatorConfigService;
+        this.ruleOptionsLookupPort = ruleOptionsLookupPort;
+        this.metadataServiceFeignClient = metadataServiceFeignClient;
     }
 
     /**
@@ -55,14 +69,13 @@ public class RuleBuilderService {
 
     /**
      * Get options for a specific rule.
-     * This delegates to external services based on dataSourceEndpoint configuration.
+     * Routes by dataSourceType: null/"STATIC" uses in-memory predefined options;
+     * any other value (e.g. "SEGMENT") delegates to the external lookup port.
      */
     public RuleOptionsResponse getRuleOptions(String ruleId, String search, Integer page, Integer size, String tenantId) {
         logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, page, size, tenantId);
 
-        // Get options from the operator configuration
-        // In production, this should call external services based on dataSourceEndpoint
         List<OperatorOption> allOptions = operatorConfigService.getAllCategoriesWithOptions(tenantId)
                 .stream()
                 .flatMap(cat -> cat.getOptions().stream())
@@ -74,23 +87,43 @@ public class RuleBuilderService {
         }
 
         OperatorOption option = allOptions.get(0);
+        String dataSourceType = option.getDataSourceType();
+        int pageNumber = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
 
-        // If option has predefined value options, return them
+        if (dataSourceType == null || DATA_SOURCE_STATIC.equalsIgnoreCase(dataSourceType)) {
+            return getStaticOptions(ruleId, option, search, pageNumber, pageSize);
+        }
+
+        return getExternalOptions(ruleId, option, dataSourceType, search, pageNumber, pageSize, tenantId);
+    }
+
+    /**
+     * Return in-memory predefined value options with client-side filtering and pagination.
+     * Uses {@code labelEn}/{@code labelVi} from the domain model for proper i18n;
+     * falls back to the legacy {@code label} field if not set (backward compat).
+     */
+    private RuleOptionsResponse getStaticOptions(String ruleId, OperatorOption option,
+                                                  String search, int pageNumber, int pageSize) {
         List<RuleOptionResponse> options = Collections.emptyList();
         if (option.getValueOptions() != null && !option.getValueOptions().isEmpty()) {
             options = option.getValueOptions().stream()
-                    .filter(vo -> search == null || search.isBlank() ||
-                            vo.getLabel().toLowerCase().contains(search.toLowerCase()) ||
-                            vo.getValue().toLowerCase().contains(search.toLowerCase()))
-                    .map(vo -> RuleOptionResponse.of(vo.getValue(), vo.getLabel(), vo.getLabel()))
+                    .filter(vo -> {
+                        if (search == null || search.isBlank()) return true;
+                        String searchTarget = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
+                        String lowerSearch = search.toLowerCase();
+                        return (searchTarget != null && searchTarget.toLowerCase().contains(lowerSearch))
+                                || (vo.getValue() != null && vo.getValue().toLowerCase().contains(lowerSearch));
+                    })
+                    .map(vo -> {
+                        String en = vo.getLabelEn() != null ? vo.getLabelEn() : vo.getLabel();
+                        String vi = vo.getLabelVi() != null ? vo.getLabelVi() : vo.getLabel();
+                        return RuleOptionResponse.of(vo.getValue(), en, vi);
+                    })
                     .toList();
         }
 
         int totalElements = options.size();
-        int pageNumber = page != null ? page : 0;
-        int pageSize = size != null ? size : 20;
-
-        // Simple pagination
         int fromIndex = Math.min(pageNumber * pageSize, totalElements);
         int toIndex = Math.min(fromIndex + pageSize, totalElements);
         List<RuleOptionResponse> pagedOptions = options.subList(fromIndex, toIndex);
@@ -99,14 +132,47 @@ public class RuleBuilderService {
     }
 
     /**
+     * Delegate to the external lookup port and map the result to the web DTO.
+     */
+    private RuleOptionsResponse getExternalOptions(String ruleId, OperatorOption option,
+                                                    String dataSourceType, String search,
+                                                    int pageNumber, int pageSize, String tenantId) {
+        RuleOptionsPage resultPage = ruleOptionsLookupPort.lookup(
+                dataSourceType, option.getDataSourceEndpoint(), search, pageNumber, pageSize, tenantId);
+
+        List<RuleOptionResponse> mapped = resultPage.items().stream()
+                .map(item -> {
+                    Map<String, Object> meta = item.metadata();
+                    return (meta == null || meta.isEmpty())
+                            ? RuleOptionResponse.of(item.value(), item.labelEn(), item.labelVi())
+                            : RuleOptionResponse.of(item.value(), item.labelEn(), item.labelVi(), meta);
+                })
+                .toList();
+
+        return RuleOptionsResponse.paginated(ruleId, mapped, resultPage.totalElements(), pageNumber, pageSize);
+    }
+
+    /**
      * Map OperatorCategory domain model to RuleCategoryResponse DTO.
+     *
+     * <p>For metadata categories (customer / order / redemption), rules are
+     * not seeded in operator_options. Instead they are resolved at request
+     * time by calling pp-metadata for the schema's field definitions, and
+     * one rule is synthesized per field. The data type drives the available
+     * comparator list per spec.
      */
     private RuleCategoryResponse mapCategoryToResponse(OperatorCategory category) {
-        List<RuleItemResponse> rules = category.getOptions() != null
-                ? category.getOptions().stream()
-                .map(this::mapOptionToRuleItem)
-                .toList()
-                : Collections.emptyList();
+        List<RuleItemResponse> rules = new ArrayList<>();
+
+        if (category.getOptions() != null) {
+            category.getOptions().stream()
+                    .map(this::mapOptionToRuleItem)
+                    .forEach(rules::add);
+        }
+
+        if (category.isMetadataCategory() && category.getMetadataSchemaType() != null) {
+            rules.addAll(resolveMetadataRules(category));
+        }
 
         return RuleCategoryResponse.builder()
                 .id(category.getCode())
@@ -116,6 +182,98 @@ public class RuleBuilderService {
                 .order(category.getDisplayOrder())
                 .rules(rules)
                 .build();
+    }
+
+    /**
+     * Resolve metadata category rules at request time by calling pp-metadata.
+     * Each field in the schema becomes one synthesized rule; available
+     * comparators are derived from the field's data type.
+     *
+     * <p>Failure modes (pp-metadata down / no schema / no fields) all degrade
+     * to an empty rule list — the category still renders, just empty.
+     */
+    @SuppressWarnings("unchecked")
+    private List<RuleItemResponse> resolveMetadataRules(OperatorCategory category) {
+        String schemaType = "STANDARD";
+        String schemaName = category.getMetadataSchemaType();
+        try {
+            Map<String, Object> listResp = metadataServiceFeignClient.listSchemas(
+                    schemaType, schemaName, 0, 20);
+            Map<String, Object> listData = (Map<String, Object>) listResp.get("data");
+            if (listData == null) return Collections.emptyList();
+            List<Map<String, Object>> schemas = (List<Map<String, Object>>) listData.get("content");
+            if (schemas == null || schemas.isEmpty()) {
+                logger.debug("No metadata schema found for type={}, name={}", schemaType, schemaName);
+                return Collections.emptyList();
+            }
+            String schemaId = (String) schemas.get(0).get("id");
+            if (schemaId == null) return Collections.emptyList();
+
+            Map<String, Object> schemaResp = metadataServiceFeignClient.getSchemaById(schemaId, 0, 100);
+            Map<String, Object> schemaData = (Map<String, Object>) schemaResp.get("data");
+            if (schemaData == null) return Collections.emptyList();
+            Map<String, Object> definitions = (Map<String, Object>) schemaData.get("definitions");
+            if (definitions == null) return Collections.emptyList();
+            List<Map<String, Object>> fields = (List<Map<String, Object>>) definitions.get("content");
+            if (fields == null || fields.isEmpty()) return Collections.emptyList();
+
+            return fields.stream()
+                    .map(f -> synthesizeMetadataRule(category, f))
+                    .toList();
+        } catch (FeignException e) {
+            logger.error("Failed to resolve metadata rules for category {}: {}",
+                    category.getCode(), e.getMessage());
+            return Collections.emptyList();
+        } catch (RuntimeException e) {
+            logger.error("Unexpected error resolving metadata rules for category {}",
+                    category.getCode(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    private RuleItemResponse synthesizeMetadataRule(OperatorCategory category,
+                                                     Map<String, Object> field) {
+        String fieldName = stringOrEmpty(field.get("name"));
+        String displayName = stringOrFallback(field.get("displayName"), fieldName);
+        String dataType = stringOrFallback(field.get("type"), "STRING").toUpperCase();
+        String description = stringOrEmpty(field.get("description"));
+
+        List<String> comparators = comparatorsForMetadataType(dataType);
+
+        return RuleItemResponse.builder()
+                .id(category.getCode().toLowerCase() + "." + fieldName)
+                .code((category.getCode() + "_" + fieldName).toUpperCase())
+                .name(displayName, displayName)
+                .description(description, description)
+                .type(dataType)
+                .operators(comparators.stream().map(this::mapComparatorToOperator).toList())
+                .build();
+    }
+
+    /**
+     * Default comparator set per metadata field data type — per spec.
+     */
+    private List<String> comparatorsForMetadataType(String dataType) {
+        return switch (dataType) {
+            case "STRING", "TEXT" ->
+                    List.of("is", "is_not", "contains", "not_contains", "exists", "not_exists");
+            case "NUMBER", "INTEGER", "DECIMAL" -> List.of(
+                    "is_more_than", "is_exactly", "is_less_than",
+                    "is_more_than_or_equal_to", "is_less_than_or_equal_to");
+            case "BOOLEAN" -> List.of("is");
+            case "DATE", "DATETIME", "TIMESTAMP" ->
+                    List.of("is_before", "is_after", "is_exactly", "between");
+            case "ENUM" -> List.of("is", "is_not", "in", "not_in");
+            default -> List.of("is", "is_not");
+        };
+    }
+
+    private String stringOrEmpty(Object o) {
+        return o == null ? "" : o.toString();
+    }
+
+    private String stringOrFallback(Object o, String fallback) {
+        return o == null ? fallback : o.toString();
     }
 
     /**
@@ -166,7 +324,8 @@ public class RuleBuilderService {
         if (option.getValueType() == OperatorOption.ValueType.BOOLEAN) {
             return null;
         }
-        if (option.getInputType() == null && option.getDataSourceType() == null && option.getValueSource() == null) {
+        if (option.getInputType() == null && option.getDataSourceType() == null
+                && option.getValueSource() == null && option.getDataLoaderType() == null) {
             return null;
         }
 
@@ -184,6 +343,12 @@ public class RuleBuilderService {
         }
         if (option.getDataSourceEndpoint() != null) {
             builder.dataSourceEndpoint(option.getDataSourceEndpoint());
+        }
+        if (option.getDataLoaderType() != null) {
+            builder.dataLoaderType(option.getDataLoaderType());
+        }
+        if (option.getDataLoaderConfig() != null) {
+            builder.dataLoaderConfig(option.getDataLoaderConfig());
         }
     }
 
@@ -309,6 +474,21 @@ public class RuleBuilderService {
             case "is_not" -> OperatorResponse.of("is_not", "is not", "Không là");
             case "is_any" -> OperatorResponse.of("is_any", OP_LABEL_IS_ANY_OF, "Là một trong");
             case "is_none" -> OperatorResponse.of("is_none", OP_LABEL_IS_NONE_OF, "Không là bất kỳ");
+            // v2 spec — friendlier labels for number comparators
+            case "is_more_than" -> OperatorResponse.of("is_more_than", "is more than", "Lớn hơn");
+            case "is_less_than" -> OperatorResponse.of("is_less_than", "is less than", "Nhỏ hơn");
+            case "is_exactly" -> OperatorResponse.of("is_exactly", "is exactly", "Đúng bằng");
+            case "is_more_than_or_equal_to" ->
+                    OperatorResponse.of("is_more_than_or_equal_to", "is more than or equal to", "Lớn hơn hoặc bằng");
+            case "is_less_than_or_equal_to" ->
+                    OperatorResponse.of("is_less_than_or_equal_to", "is less than or equal to", "Nhỏ hơn hoặc bằng");
+            // v2 spec — Products "from collection" semantics
+            case "from" -> OperatorResponse.of("from", "from", "Từ");
+            // v2 spec — metadata-only
+            case "exists" -> OperatorResponse.of("exists", "exists", "Tồn tại");
+            case "not_exists" -> OperatorResponse.of("not_exists", "does not exist", "Không tồn tại");
+            case "is_before" -> OperatorResponse.of("is_before", "is before", "Trước");
+            case "is_after" -> OperatorResponse.of("is_after", "is after", "Sau");
             default -> OperatorResponse.of(comparator, comparator, comparator);
         };
     }

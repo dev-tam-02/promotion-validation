@@ -63,6 +63,12 @@ public class RuleBindingResponse {
     @Schema(description = "Time windows within each day")
     private List<TimeWindowDto> timeWindows;
 
+    @Schema(description = "ISO 8601 duration per recurrence", example = "PT2H")
+    private String duration;
+
+    @Schema(description = "ISO 8601 extension window after publish", example = "PT6H")
+    private String activityDurationAfterPublishing;
+
     @Schema(description = "Excluded dates", example = "[\"2024-01-01\",\"2024-12-25\"]")
     private List<String> excludedDates;
 

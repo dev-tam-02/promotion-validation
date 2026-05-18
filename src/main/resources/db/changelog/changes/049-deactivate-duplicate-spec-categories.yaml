@@ -1,0 +1,59 @@
+databaseChangeLog:
+  # ============================================================================
+  # Deactivate 5 duplicate UPPERCASE spec categories (seeded by 028).
+  # Reason: Rule Builder FE lists ALL operator_categories. Bộ `spec-cat-*-001`
+  # song song với bộ `cat-*-001` (seed 022) gây hiển thị 12 categories thay vì 7,
+  # và 5 row spec-cat-* luôn count=0 vì `operator_options` đều trỏ vào bộ cũ.
+  # Operators (customer.is_owner, binding.validity_window, 8 ops từ 028) vẫn giữ
+  # category_id=spec-cat-* — FK vẫn valid, chỉ ẩn category khỏi UI list.
+  # ============================================================================
+
+  - changeSet:
+      id: 049-deactivate-spec-cat-audience
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='spec-cat-audience-001'
+
+  - changeSet:
+      id: 049-deactivate-spec-cat-order
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='spec-cat-order-001'
+
+  - changeSet:
+      id: 049-deactivate-spec-cat-product
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='spec-cat-product-001'
+
+  - changeSet:
+      id: 049-deactivate-spec-cat-time
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='spec-cat-time-001'
+
+  - changeSet:
+      id: 049-deactivate-spec-cat-loyalty
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='spec-cat-loyalty-001'

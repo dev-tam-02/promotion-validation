@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public record RuleInputConfigResponse(
         String dataSourceType,
         String dataSourceEndpoint,
+        String dataLoaderType,
+        String dataLoaderConfig,
         I18nLabel label,
         I18nLabel placeholder,
         Boolean multiple,
@@ -26,6 +28,8 @@ public record RuleInputConfigResponse(
     public static class Builder {
         private String dataSourceType;
         private String dataSourceEndpoint;
+        private String dataLoaderType;
+        private String dataLoaderConfig;
         private I18nLabel label;
         private I18nLabel placeholder;
         private Boolean multiple;
@@ -42,6 +46,16 @@ public record RuleInputConfigResponse(
 
         public Builder dataSourceEndpoint(String dataSourceEndpoint) {
             this.dataSourceEndpoint = dataSourceEndpoint;
+            return this;
+        }
+
+        public Builder dataLoaderType(String dataLoaderType) {
+            this.dataLoaderType = dataLoaderType;
+            return this;
+        }
+
+        public Builder dataLoaderConfig(String dataLoaderConfig) {
+            this.dataLoaderConfig = dataLoaderConfig;
             return this;
         }
 
@@ -99,6 +113,8 @@ public record RuleInputConfigResponse(
             return new RuleInputConfigResponse(
                     dataSourceType,
                     dataSourceEndpoint,
+                    dataLoaderType,
+                    dataLoaderConfig,
                     label,
                     placeholder,
                     multiple,

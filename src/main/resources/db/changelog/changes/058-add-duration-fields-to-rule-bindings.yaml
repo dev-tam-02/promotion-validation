@@ -1,0 +1,28 @@
+databaseChangeLog:
+  # ============================================================================
+  # Add duration fields to rule_bindings
+  # Persist ISO 8601 duration values from campaign timeframe:
+  #   - duration: window length per recurrence (e.g. "PT1H")
+  #   - activity_duration_after_publishing: extension window after publish (e.g. "PT5H")
+  # RFC 5545 RRULE cannot carry DURATION (§3.3.10), so stored in dedicated columns.
+  # ============================================================================
+
+  - changeSet:
+      id: 058-add-duration-to-rule-bindings
+      author: harley hoang
+      changes:
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: duration
+                  type: varchar(50)
+                  remarks: ISO 8601 duration per occurrence (e.g. PT1H)
+
+        - addColumn:
+            tableName: rule_bindings
+            columns:
+              - column:
+                  name: activity_duration_after_publishing
+                  type: varchar(50)
+                  remarks: ISO 8601 extension window after publish (e.g. PT5H)

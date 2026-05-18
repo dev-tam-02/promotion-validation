@@ -1,0 +1,56 @@
+databaseChangeLog:
+  # ============================================================================
+  # Backfill `name_vi` cho 5 row spec-cat-*-001 (seed 028 thiếu, chỉ có display_name JSON).
+  # FE đọc trực tiếp column `name_vi`, không parse display_name. Nếu sau này tái sử dụng
+  # bộ spec-cat-* (re-activate ở 049), tên tiếng Việt sẽ hiển thị đúng thay vì rơi về tiếng Anh.
+  # ============================================================================
+
+  - changeSet:
+      id: 050-name-vi-spec-cat-audience
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Đối tượng" }
+            where: id='spec-cat-audience-001'
+
+  - changeSet:
+      id: 050-name-vi-spec-cat-order
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Đơn hàng" }
+            where: id='spec-cat-order-001'
+
+  - changeSet:
+      id: 050-name-vi-spec-cat-product
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Sản phẩm" }
+            where: id='spec-cat-product-001'
+
+  - changeSet:
+      id: 050-name-vi-spec-cat-time
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Thời gian" }
+            where: id='spec-cat-time-001'
+
+  - changeSet:
+      id: 050-name-vi-spec-cat-loyalty
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Hạng thành viên" }
+            where: id='spec-cat-loyalty-001'

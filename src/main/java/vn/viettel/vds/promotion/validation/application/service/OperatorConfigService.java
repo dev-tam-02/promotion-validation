@@ -45,17 +45,11 @@ public class OperatorConfigService {
     public List<OperatorCategory> getAllCategoriesWithOptions(String tenantId) {
         logger.debug("Getting all categories with options for tenant: {}", tenantId);
 
-        List<OperatorCategory> categories = categoryPort.findAllActiveWithOptions();
-
-        // Enhance metadata categories with dynamic options from schema
-        return categories.stream()
-                .map(category -> {
-                    if (category.isMetadataCategory()) {
-                        return enrichMetadataCategory(category, tenantId);
-                    }
-                    return category;
-                })
-                .toList();
+        // Metadata categories are resolved at the RuleBuilderService layer by
+        // calling pp-metadata directly (v2 spec). The legacy in-process
+        // `metadata_schemas` enrichment is kept only as a fallback for
+        // non-rule-builder callers — see getCategoryByCode below.
+        return categoryPort.findAllActiveWithOptions();
     }
 
     /**
@@ -202,7 +196,7 @@ public class OperatorConfigService {
 
         List<OperatorOption.ValueOption> valueOptions = hasStaticValues
                 ? field.getAvailableValues().stream()
-                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).build())
+                .map(v -> OperatorOption.ValueOption.builder().value(v).label(v).labelEn(v).labelVi(v).build())
                 .toList()
                 : Collections.emptyList();
 

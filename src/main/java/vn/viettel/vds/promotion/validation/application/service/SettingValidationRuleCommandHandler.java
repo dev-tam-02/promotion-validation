@@ -582,12 +582,14 @@ public class SettingValidationRuleCommandHandler {
 
         String interval = null;
         String duration = null;
+        String activityDurationAfterPublishing = null;
         if (timeframe.getValidityTimeframe() != null) {
             var validity = timeframe.getValidityTimeframe();
             builder.validFrom(validity.getStartDate());
             builder.validTo(validity.getExpirationDate());
             interval = validity.getInterval();
             duration = validity.getDuration();
+            activityDurationAfterPublishing = validity.getActivityDurationAfterPublishing();
         }
 
         List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
@@ -595,15 +597,20 @@ public class SettingValidationRuleCommandHandler {
             builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
         }
 
-        // F2: persist DURATION in scopeTimeWindows (not inside RRULE — RFC 5545 §3.3.10
+        // F2: persist DURATION in dedicated column (not inside RRULE — RFC 5545 §3.3.10
         // RECUR rule parts do not include DURATION; it is a separate iCal property)
         if (duration != null && !duration.isBlank()) {
+            builder.duration(duration);
             Map<String, Object> stw = new HashMap<>();
             stw.put("duration", duration);
             if (timeframe.getTimezone() != null) {
                 stw.put("timezone", timeframe.getTimezone());
             }
             builder.scopeTimeWindows(stw);
+        }
+
+        if (activityDurationAfterPublishing != null && !activityDurationAfterPublishing.isBlank()) {
+            builder.activityDurationAfterPublishing(activityDurationAfterPublishing);
         }
 
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {

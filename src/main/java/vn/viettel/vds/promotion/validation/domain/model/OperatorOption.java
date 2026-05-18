@@ -43,6 +43,9 @@ public class OperatorOption {
     // Input configuration
     String dataSourceType;
     String dataSourceEndpoint;
+    String dataLoaderType;
+    String dataLoaderConfig;
+    String appliesToMetadataSchema;
     String inputType;
     Boolean inputMultiple;
     Boolean inputSearchable;
@@ -95,11 +98,19 @@ public class OperatorOption {
 
     /**
      * Predefined value option for select/multi-select.
+     * Supports full i18n: labelEn + labelVi.
+     * Legacy field {@code label} is kept for backward compatibility (holds EN text).
      */
     @Value
     @Builder
     public static class ValueOption {
         String value;
+        /** @deprecated Use {@link #labelEn} instead. Kept for backward compatibility. */
+        @Deprecated
         String label;
+        /** English label. */
+        String labelEn;
+        /** Vietnamese label. */
+        String labelVi;
     }
 }

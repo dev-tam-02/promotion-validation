@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 051-fix-customer-segment-data-source-endpoint
+      author: pp-validation
+      comment: "Fix wrong data_source_endpoint for opt-customer-segment-001 from /segment/api/v1/segments to /promotion/promotion-segment/api/segments"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column:
+                  name: data_source_endpoint
+                  value: "/promotion/promotion-segment/api/segments"
+            where: "id = 'opt-customer-segment-001'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column:
+                  name: data_source_endpoint
+                  value: "/segment/api/v1/segments"
+            where: "id = 'opt-customer-segment-001'"

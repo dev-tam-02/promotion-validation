@@ -1,0 +1,32 @@
+databaseChangeLog:
+  # Wipe all seed data from operator_options, operator_categories, operators.
+  # Schema kept intact; downstream seed changesets (054, 055) reseed v2 spec.
+  #
+  # Idempotent: DELETE is naturally idempotent — rerun is a no-op once empty.
+  # Order matters: operator_options has FK to operator_categories, so delete
+  # children first.
+  #
+  # No rollback content beyond the inverse delete — the prior seed lives in
+  # historical changesets (022, 028, 030, 031, 036, 040, 041, 043, 044, 046,
+  # 049, 050, 051). To restore the v1 dataset, run those changesets in a
+  # fresh context.
+  - changeSet:
+      id: 053-wipe-categories-operators-seed
+      author: pp-validation
+      comment: "Refactor v2: wipe operator_options + operator_categories + operators seed"
+      changes:
+        - delete:
+            tableName: operator_options
+        - delete:
+            tableName: operator_categories
+        - delete:
+            tableName: operators
+
+      rollback:
+        - sqlFile:
+            comment: No rollback — historical seeds 022..051 must be re-applied manually.
+            path: db/changelog/changes/noop.sql
+            relativeToChangelogFile: false
+            stripComments: true
+            splitStatements: true
+            ignoreIfMissing: true

@@ -1,0 +1,34 @@
+databaseChangeLog:
+  # Seed v2 left placeholder_en/vi blank for Products + Redemptions, so the FE
+  # fell back to the default validation-rule placeholder ("Tìm kiếm tập khách
+  # hàng"). Set proper per-rule placeholders here.
+  - changeSet:
+      id: 057-seed-placeholders-products-redemptions
+      author: pp-validation
+      comment: "Set placeholder_en/vi for the 5 Products rules + redeeming_user"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET placeholder_en = 'Search products...',
+                  placeholder_vi = 'Tìm kiếm sản phẩm...'
+              WHERE category_id = 'cat-products';
+
+              UPDATE operator_options
+              SET placeholder_en = 'Search customers...',
+                  placeholder_vi = 'Tìm kiếm khách hàng...'
+              WHERE id = 'opt-redeeming-user';
+
+              UPDATE operator_options
+              SET placeholder_en = 'Search segments...',
+                  placeholder_vi = 'Tìm kiếm tập khách hàng...'
+              WHERE id = 'opt-customer-segment';
+
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET placeholder_en = NULL,
+                  placeholder_vi = NULL
+              WHERE category_id = 'cat-products'
+                 OR id IN ('opt-redeeming-user', 'opt-customer-segment');
