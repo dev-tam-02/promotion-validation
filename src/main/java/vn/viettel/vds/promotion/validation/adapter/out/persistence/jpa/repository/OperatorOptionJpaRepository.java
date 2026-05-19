@@ -32,8 +32,23 @@ public interface OperatorOptionJpaRepository extends JpaRepository<OperatorOptio
 
     /**
      * Find option by operator name.
+     *
+     * @deprecated Some seed rows share the same canonical operator_name (e.g.
+     * both {@code opt-total-amount-before-discounts} and {@code opt-initial-amount}
+     * map to {@code order.initial.amount}) — this method throws
+     * NonUniqueResultException in that case. Prefer
+     * {@link #findFirstByOperatorNameOrderByDisplayOrderAsc(String)} for lookups
+     * that only need shared metadata (params_schema, value_type) since duplicates
+     * carry the same schema anyway.
      */
+    @Deprecated
     Optional<OperatorOptionEntity> findByOperatorName(String operatorName);
+
+    /**
+     * First active option matching the given operator name, ordered by displayOrder.
+     * Safe to call when multiple rows share the same canonical operator_name.
+     */
+    Optional<OperatorOptionEntity> findFirstByOperatorNameOrderByDisplayOrderAsc(String operatorName);
 
     /**
      * Find active options by operator name.

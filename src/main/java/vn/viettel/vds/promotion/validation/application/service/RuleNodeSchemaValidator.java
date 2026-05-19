@@ -95,7 +95,7 @@ public class RuleNodeSchemaValidator {
 
         String canonical = stripComparatorSuffix(operatorName);
 
-        Optional<OperatorOptionEntity> optionOpt = operatorOptionRepo.findByOperatorName(canonical);
+        Optional<OperatorOptionEntity> optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
         if (optionOpt.isEmpty()) {
             throw new InvalidRuleStructureException(
                     cond.getId(),
