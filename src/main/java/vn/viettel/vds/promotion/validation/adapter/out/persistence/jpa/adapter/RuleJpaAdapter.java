@@ -373,7 +373,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
             return Map.of();
         }
         List<Object[]> rows = nodeRepository.countByRuleIds(ruleIds);
-        Map<String, Integer> result = new HashMap<>(rows.size());
+        Map<String, Integer> result = HashMap.newHashMap(rows.size());
         for (Object[] row : rows) {
             result.put((String) row[0], ((Number) row[1]).intValue());
         }

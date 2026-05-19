@@ -12,15 +12,23 @@ import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for OperatorConfigService — virtual operator generation from metadata schemas (T15).
+ *
+ * <p>Note: getAllCategoriesWithOptions no longer enriches metadata categories
+ * (enrichment moved to RuleBuilderService per v2 spec). Tests exercise the
+ * remaining enrichment path via getCategoryByCode.</p>
  */
 @ExtendWith(MockitoExtension.class)
 class OperatorConfigServiceMetadataTest {
+
+    private static final String CATEGORY_CODE = "customer_metadata";
+    private static final String TENANT = "default";
 
     @Mock
     private OperatorCategoryPersistencePort categoryPort;
@@ -40,12 +48,12 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_numberField_rangeComparators() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(schema("loyalty_score", MetadataSchema.FieldType.NUMBER)));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getAvailableComparators()).containsExactly("equals", "gte", "lte", "between");
         assertThat(opt.getDefaultComparator()).isEqualTo("equals");
@@ -57,12 +65,12 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_stringFieldNoValues_textInput() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(schema("region", MetadataSchema.FieldType.STRING)));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getAvailableComparators())
                 .containsExactly("equals", "not_equals", "in", "not_in", "contains", "starts_with");
@@ -74,10 +82,10 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_stringFieldWithValues_selectInput() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
         MetadataSchema s = MetadataSchema.builder()
                 .id("id-vip")
-                .tenantId("default")
+                .tenantId(TENANT)
                 .schemaType(MetadataSchema.SchemaType.CUSTOMER)
                 .fieldKey("vip_tier")
                 .fieldName("VIP tier")
@@ -86,11 +94,11 @@ class OperatorConfigServiceMetadataTest {
                 .displayOrder(10)
                 .active(true)
                 .build();
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(s));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getInputType()).isEqualTo("select");
         assertThat(opt.getValueSource()).isEqualTo(OperatorOption.ValueSource.SELECT);
@@ -102,12 +110,12 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_booleanField_isTrueIsFalseComparators() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(schema("is_vip", MetadataSchema.FieldType.BOOLEAN)));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getAvailableComparators()).containsExactly("is_true", "is_false");
         assertThat(opt.getDefaultComparator()).isEqualTo("is_true");
@@ -118,12 +126,12 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_dateField_temporalComparators() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(schema("first_purchase_date", MetadataSchema.FieldType.DATE)));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getAvailableComparators()).containsExactly("before", "after", "between", "equals");
         assertThat(opt.getDefaultComparator()).isEqualTo("equals");
@@ -135,12 +143,12 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_optionCode_namespacedWithSchemaType() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(schema("loyalty_score", MetadataSchema.FieldType.NUMBER)));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        OperatorOption opt = result.get(0).getOptions().get(0);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        OperatorOption opt = result.getOptions().get(0);
 
         assertThat(opt.getCode()).isEqualTo("customer.loyalty_score");
         assertThat(opt.getOperatorName()).isEqualTo("metadata.access");
@@ -151,27 +159,27 @@ class OperatorConfigServiceMetadataTest {
     @Test
     void enrichMetadataCategory_3fields_allReturned() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of(
                         schema("vip_tier", MetadataSchema.FieldType.STRING),
                         schema("loyalty_score", MetadataSchema.FieldType.NUMBER),
                         schema("first_purchase_date", MetadataSchema.FieldType.DATE)
                 ));
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        assertThat(result.get(0).getOptions()).hasSize(3);
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        assertThat(result.getOptions()).hasSize(3);
     }
 
     @Test
     void enrichMetadataCategory_noFields_emptyOptions() {
         OperatorCategory cat = customerMetadataCategory();
-        when(categoryPort.findAllActiveWithOptions()).thenReturn(List.of(cat));
-        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType("default", "customer"))
+        when(categoryPort.findByCodeWithOptions(CATEGORY_CODE)).thenReturn(Optional.of(cat));
+        when(metadataSchemaPort.findActiveByTenantIdAndSchemaType(TENANT, "customer"))
                 .thenReturn(List.of());
 
-        List<OperatorCategory> result = service.getAllCategoriesWithOptions("default");
-        assertThat(result.get(0).getOptions()).isEmpty();
+        OperatorCategory result = service.getCategoryByCode(CATEGORY_CODE, TENANT).orElseThrow();
+        assertThat(result.getOptions()).isEmpty();
     }
 
     // --- helpers ---
