@@ -104,9 +104,7 @@ public class RuleResponseMapper {
                                                    @Nullable Integer nodeCountOverride) {
         if (rule == null) return null;
 
-        int nodeCount = nodeCountOverride != null
-                ? nodeCountOverride
-                : (rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0);
+        int nodeCount = resolveNodeCount(rule, nodeCountOverride);
 
         return new RuleListItemResponse(
                 rule.getId(),                                                     // id
@@ -182,9 +180,16 @@ public class RuleResponseMapper {
      * Compose the effective operator_name from a canonical operatorName + UI comparator
      * (e.g. {@code "order.total" + "is_more_than"} → {@code "order.total.gt"}).
      *
-     * <p>Returns the operatorName unchanged when comparator is null/blank, when operatorName
-     * already carries a known comparator suffix (.gt/.gte/.equals/.lt/.lte), or for non-numeric
-     * operators that never accept a comparator suffix (e.g. customer.in_segment).
+     * <p>Returns the operatorName unchanged when:
+     * <ul>
+     *   <li>comparator is null/blank,</li>
+     *   <li>operatorName already carries a known comparator suffix (.gt/.gte/.equals/.lt/.lte), or</li>
+     *   <li>comparator is not one of the 5 numeric comparators ({@code is_more_than},
+     *       {@code is_more_than_or_equal_to}, {@code is_exactly}, {@code is_less_than},
+     *       {@code is_less_than_or_equal_to}) — non-numeric operators like
+     *       {@code customer.in_segment} use {@code is}/{@code is_not}/{@code in} which
+     *       carry semantic in {@code operatorName} itself rather than a suffix.</li>
+     * </ul>
      */
     private String resolveEffectiveOperatorName(String operatorName, String comparator) {
         if (operatorName == null || operatorName.isBlank()) {
@@ -194,6 +199,9 @@ public class RuleResponseMapper {
             return operatorName;
         }
         if (ComparatorSuffix.hasComparatorSuffix(operatorName)) {
+            return operatorName;
+        }
+        if (!ComparatorSuffix.isSupported(comparator)) {
             return operatorName;
         }
         return ComparatorSuffix.resolve(operatorName, comparator);
@@ -287,6 +295,13 @@ public class RuleResponseMapper {
         } catch (IllegalArgumentException e) {
             return null; // Return null for invalid values
         }
+    }
+
+    private int resolveNodeCount(Rule rule, Integer nodeCountOverride) {
+        if (nodeCountOverride != null) {
+            return nodeCountOverride;
+        }
+        return rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0;
     }
 
     /**
