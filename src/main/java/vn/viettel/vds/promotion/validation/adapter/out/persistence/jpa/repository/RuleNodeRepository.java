@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,4 +50,13 @@ public interface RuleNodeRepository extends JpaRepository<RuleNodeEntity, String
      * Delete all nodes for a validation rule.
      */
     void deleteByValidationRuleId(String validationRuleId);
+
+    /**
+     * Bulk count nodes grouped by validation rule id. Returns rows of
+     * {@code [ruleId, count]} for IDs that have at least one node. Rules with no
+     * nodes are absent from the result — callers must default to 0.
+     */
+    @Query("SELECT n.validationRule.id, COUNT(n) FROM RuleNodeEntity n "
+            + "WHERE n.validationRule.id IN :ruleIds GROUP BY n.validationRule.id")
+    List<Object[]> countByRuleIds(@Param("ruleIds") Collection<String> ruleIds);
 }

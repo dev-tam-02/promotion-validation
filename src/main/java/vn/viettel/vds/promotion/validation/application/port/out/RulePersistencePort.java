@@ -4,7 +4,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -56,4 +58,10 @@ public interface RulePersistencePort {
      * Used by the bootstrap runner to populate bundle_hash for seeded system rules.
      */
     List<Rule> findPublishedWithNullBundleHash();
+
+    /**
+     * Bulk count nodes for a set of rule ids in a single query. Returned map only
+     * contains ids that have ≥1 node; callers must default missing keys to 0.
+     */
+    Map<String, Integer> countNodesByRuleIds(Collection<String> ruleIds);
 }
