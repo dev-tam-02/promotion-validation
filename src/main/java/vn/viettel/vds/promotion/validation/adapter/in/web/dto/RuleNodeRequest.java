@@ -43,6 +43,12 @@ public record RuleNodeRequest(
 
         @Schema(description = "Display order", example = "1")
         @JsonProperty("order")
-        Integer order
+        Integer order,
+
+        @Schema(description = "UI comparator chosen by the user (e.g. is_more_than). When present, BE composes the effective operator_name as 'operatorName + . + comparatorSuffix'. Omit when operatorName already carries the suffix or for non-numeric operators.",
+                example = "is_more_than",
+                allowableValues = {"is_more_than", "is_more_than_or_equal_to", "is_exactly", "is_less_than", "is_less_than_or_equal_to"})
+        @JsonProperty("comparator")
+        String comparator
 ) {
 }

@@ -1,0 +1,86 @@
+databaseChangeLog:
+  # Rename operator_name from `<canonical>.gte` to canonical (no suffix) for all
+  # numeric operator_options. The effective operator_name (matched against DRL
+  # templates) is composed at runtime as `canonical + "." + COMPARATOR_SUFFIX[comparator]`
+  # in vn.viettel.vds.promotion.validation.domain.model.ComparatorSuffix.
+  #
+  # Legacy rule_nodes data is intentionally NOT migrated — existing rows keep
+  # operator_name `<canonical>.gte` and continue to resolve against the unchanged
+  # tpl_*_gte_v1 templates via the DrlCompiler fallback path.
+  - changeSet:
+      id: 059-rename-operator-name-to-canonical
+      author: pp-validation
+      comment: "Strip .gte suffix from operator_name in numeric operator_options"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.initial.amount" }
+            where: "id='opt-total-amount-before-discounts'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.total" }
+            where: "id='opt-total-amount-after-discounts'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.initial.amount" }
+            where: "id='opt-initial-amount'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.items.count" }
+            where: "id='opt-items-quantity'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.price.forall" }
+            where: "id='opt-price-of-each-item'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.price" }
+            where: "id='opt-price-of-any-item'"
+
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.initial.amount.gte" }
+            where: "id='opt-total-amount-before-discounts'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.total.gte" }
+            where: "id='opt-total-amount-after-discounts'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.initial.amount.gte" }
+            where: "id='opt-initial-amount'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.items.count.gte" }
+            where: "id='opt-items-quantity'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.price.forall.gte" }
+            where: "id='opt-price-of-each-item'"
+
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.price.gte" }
+            where: "id='opt-price-of-any-item'"

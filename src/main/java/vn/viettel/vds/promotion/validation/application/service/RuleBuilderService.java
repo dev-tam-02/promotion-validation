@@ -370,6 +370,8 @@ public class RuleBuilderService {
                 .type(mapValueTypeToRuleType(option.getValueType(), option.getDataSourceType()))
                 .autoApply(option.getAutoApply())
                 .defaultOperator(option.getDefaultOperator())
+                .operatorName(option.getOperatorName())
+                .defaultComparator(option.getDefaultComparator())
                 .inputConfig(buildInputConfig(option))
                 .operators(buildOperators(option))
                 .build();

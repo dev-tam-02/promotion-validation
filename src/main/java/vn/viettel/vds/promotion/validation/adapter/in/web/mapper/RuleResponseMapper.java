@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleListItemResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleNodeDto;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleResponse;
+import vn.viettel.vds.promotion.validation.domain.model.ComparatorSuffix;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -88,7 +89,24 @@ public class RuleResponseMapper {
 
     @Nullable
     public RuleListItemResponse toListItemResponse(@Nullable Rule rule, @Nullable Long assignmentCount) {
+        return toListItemResponse(rule, assignmentCount, null);
+    }
+
+    /**
+     * List-view variant that lets the caller inject {@code nodeCount} computed
+     * by a bulk query. Needed because paged finders don't load the rule tree —
+     * {@code rule.getNodes()} is always null in list responses, which would
+     * make the inline count fall back to 0 for every row.
+     */
+    @Nullable
+    public RuleListItemResponse toListItemResponse(@Nullable Rule rule,
+                                                   @Nullable Long assignmentCount,
+                                                   @Nullable Integer nodeCountOverride) {
         if (rule == null) return null;
+
+        int nodeCount = nodeCountOverride != null
+                ? nodeCountOverride
+                : (rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0);
 
         return new RuleListItemResponse(
                 rule.getId(),                                                     // id
@@ -98,7 +116,7 @@ public class RuleResponseMapper {
                 rule.getContext(),                                                 // context
                 rule.getRuleVersion(),                                            // ruleVersion
                 rule.getVersion(),                                                // version
-                rule.getNodes() != null ? countAllNodes(rule.getNodes()) : 0,    // nodeCount
+                nodeCount,                                                        // nodeCount
                 assignmentCount,                                                  // assignmentCount
                 rule.getCreatedAt(),                                              // createdAt
                 rule.getCreatedBy(),                                              // createdBy
@@ -131,7 +149,8 @@ public class RuleResponseMapper {
                 ruleNode.getParams(),
                 ruleNode.getReasonCode(),
                 ruleNodesToIds(ruleNode.getChildren()),
-                null  // order - not available in RuleNode
+                null, // order - not available in RuleNode
+                ComparatorSuffix.comparatorFromOperatorName(ruleNode.getOperatorName()).orElse(null)
         );
     }
 
@@ -152,11 +171,32 @@ public class RuleResponseMapper {
                 .nodeId(dto.id())
                 .type(stringToNodeType(dto.type()))
                 .groupLogic(stringToLogicType(dto.groupLogic()))
-                .operatorName(dto.operatorName())
+                .operatorName(resolveEffectiveOperatorName(dto.operatorName(), dto.comparator()))
                 .params(dto.params())
                 .reasonCode(dto.reasonCode())
                 .children(idsToRuleNodes(dto.children()))
                 .build();
+    }
+
+    /**
+     * Compose the effective operator_name from a canonical operatorName + UI comparator
+     * (e.g. {@code "order.total" + "is_more_than"} → {@code "order.total.gt"}).
+     *
+     * <p>Returns the operatorName unchanged when comparator is null/blank, when operatorName
+     * already carries a known comparator suffix (.gt/.gte/.equals/.lt/.lte), or for non-numeric
+     * operators that never accept a comparator suffix (e.g. customer.in_segment).
+     */
+    private String resolveEffectiveOperatorName(String operatorName, String comparator) {
+        if (operatorName == null || operatorName.isBlank()) {
+            return operatorName;
+        }
+        if (comparator == null || comparator.isBlank()) {
+            return operatorName;
+        }
+        if (ComparatorSuffix.hasComparatorSuffix(operatorName)) {
+            return operatorName;
+        }
+        return ComparatorSuffix.resolve(operatorName, comparator);
     }
 
     /**

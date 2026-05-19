@@ -47,6 +47,11 @@ public record RuleNodeResponse(
 
         @Schema(description = "Display order", example = "1")
         @JsonProperty("order")
-        Integer order
+        Integer order,
+
+        @Schema(description = "UI comparator derived from operatorName suffix (is_more_than/.gt, etc.). Null for non-numeric operators.",
+                example = "is_more_than")
+        @JsonProperty("comparator")
+        String comparator
 ) {
 }

@@ -13,19 +13,21 @@ public record RuleNodeDto(
         java.util.Map<String, Object> params,
         String reasonCode,
         java.util.List<String> children,
-        Integer order
+        Integer order,
+        String comparator
 ) {
     // Create from request format
     public static RuleNodeDto fromRequest(RuleNodeRequest request) {
         return new RuleNodeDto(
                 request.id(), request.type(), request.groupLogic(),
                 request.operatorName(), request.operatorVersion(), request.params(),
-                request.reasonCode(), request.children(), request.order()
+                request.reasonCode(), request.children(), request.order(),
+                request.comparator()
         );
     }
 
     // Convert to response format
     public RuleNodeResponse toResponse() {
-        return new RuleNodeResponse(id, type, groupLogic, operatorName, operatorVersion, params, reasonCode, children, order);
+        return new RuleNodeResponse(id, type, groupLogic, operatorName, operatorVersion, params, reasonCode, children, order, comparator);
     }
 }
