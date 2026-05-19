@@ -17,6 +17,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,16 +35,19 @@ public class RuleService {
     private final OutboxEventPersistencePort outboxEventPort;
     private final RuleService self;
     private final RuleLinter ruleLinter;
+    private final RuleNodeSchemaValidator schemaValidator;
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
                        OutboxEventPersistencePort outboxEventPort,
-                       @Lazy RuleService self) {
+                       @Lazy RuleService self,
+                       RuleNodeSchemaValidator schemaValidator) {
         this.rulePersistencePort = rulePersistencePort;
         this.ruleBindingPort = ruleBindingPort;
         this.outboxEventPort = outboxEventPort;
         this.self = self;
         this.ruleLinter = new RuleLinter();
+        this.schemaValidator = schemaValidator;
     }
 
     /**
@@ -133,6 +137,16 @@ public class RuleService {
     @Transactional(readOnly = true)
     public long countBindingsForRule(String ruleId) {
         return ruleBindingPort.findByRuleId(ruleId).size();
+    }
+
+    /**
+     * Bulk count nodes for multiple rules in a single query. Used by the list
+     * endpoint to populate {@code nodeCount} without loading every rule's tree.
+     * Missing ids in the returned map mean zero nodes.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Integer> countNodesByRuleIds(Collection<String> ruleIds) {
+        return rulePersistencePort.countNodesByRuleIds(ruleIds);
     }
 
     /**
@@ -421,6 +435,14 @@ public class RuleService {
         long uniqueIds = nodes.stream().map(RuleNode::getId).distinct().count();
         if (uniqueIds != nodes.size()) {
             throw new InvalidRuleStructureException("Rule node IDs must be unique");
+        }
+
+        // Schema-driven validation: tree must contain ≥ 1 COND, every COND's
+        // operatorName must exist in operator_options, and every COND's params
+        // must satisfy the operator's params_schema when one is defined.
+        // Null-guard for unit tests that construct RuleService directly without DI.
+        if (schemaValidator != null) {
+            schemaValidator.validate(nodes);
         }
     }
 

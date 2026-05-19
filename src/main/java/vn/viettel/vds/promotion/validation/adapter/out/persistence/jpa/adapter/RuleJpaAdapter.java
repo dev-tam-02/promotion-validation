@@ -104,12 +104,27 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
         Map<String, RuleNode> nodeMap = new HashMap<>();
+        collectNodes(nodes, nodeMap);
+        return nodeMap;
+    }
+
+    /**
+     * Walk the input list and recurse into GROUP children so the map contains
+     * every node in the tree — not just the roots. This lets save() accept both
+     * flat input (e.g. createRule with a request DTO list) and tree input
+     * (e.g. activateRule after getRuleById returns roots-only with children embedded).
+     */
+    private void collectNodes(List<RuleNode> nodes, Map<String, RuleNode> out) {
+        if (nodes == null) return;
         for (RuleNode node : nodes) {
-            if (node.getNodeId() != null && node.getType() != null) {
-                nodeMap.put(node.getNodeId(), node);
+            if (node == null || node.getNodeId() == null || node.getType() == null) {
+                continue;
+            }
+            out.putIfAbsent(node.getNodeId(), node);
+            if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+                collectNodes(node.getChildren(), out);
             }
         }
-        return nodeMap;
     }
 
     private Set<String> findChildNodeIds(Map<String, RuleNode> nodeMap) {
@@ -350,6 +365,19 @@ public class RuleJpaAdapter implements RulePersistencePort {
         return repository.findPublishedWithNullBundleHash().stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Map<String, Integer> countNodesByRuleIds(Collection<String> ruleIds) {
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return Map.of();
+        }
+        List<Object[]> rows = nodeRepository.countByRuleIds(ruleIds);
+        Map<String, Integer> result = HashMap.newHashMap(rows.size());
+        for (Object[] row : rows) {
+            result.put((String) row[0], ((Number) row[1]).intValue());
+        }
+        return result;
     }
 
     private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {

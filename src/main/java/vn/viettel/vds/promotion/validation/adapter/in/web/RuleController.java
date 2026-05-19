@@ -162,9 +162,16 @@ public class RuleController {
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
         Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
+
+        // Bulk-fetch node counts in one query — paged finders skip rule_nodes,
+        // so rule.getNodes() is null and the per-row count would fall back to 0.
+        List<String> ruleIds = rules.getContent().stream().map(Rule::getId).toList();
+        Map<String, Integer> nodeCounts = ruleService.countNodesByRuleIds(ruleIds);
+
         Page<RuleListItemResponse> responses = rules.map(rule -> {
             long assignmentCount = ruleService.countBindingsForRule(rule.getId());
-            return ruleMapper.toListItemResponse(rule, assignmentCount);
+            int nodeCount = nodeCounts.getOrDefault(rule.getId(), 0);
+            return ruleMapper.toListItemResponse(rule, assignmentCount, nodeCount);
         });
 
         return PageResponse.from(responses);

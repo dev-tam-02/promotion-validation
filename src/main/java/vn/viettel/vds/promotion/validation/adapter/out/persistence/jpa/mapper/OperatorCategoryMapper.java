@@ -79,6 +79,7 @@ public interface OperatorCategoryMapper {
                 .autoApply(entity.getAutoApply())
                 .defaultOperator(entity.getDefaultOperator())
                 .active(entity.getActive())
+                .paramsSchema(entity.getParamsSchema())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

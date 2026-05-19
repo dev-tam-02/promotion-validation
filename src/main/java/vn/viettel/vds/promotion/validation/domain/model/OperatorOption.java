@@ -61,6 +61,8 @@ public class OperatorOption {
 
     boolean active;
 
+    String paramsSchema;
+
     // Audit fields
     Instant createdAt;
     Instant updatedAt;

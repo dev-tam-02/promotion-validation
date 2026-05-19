@@ -115,9 +115,9 @@ class RuleServiceTest {
         // RuleService uses @Lazy self-injection for transactional proxying.
         // In unit tests without Spring context, we pass 'sut' itself as the self reference.
         // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null, null);
         // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut, null);
     }
 
     // ========================================================================

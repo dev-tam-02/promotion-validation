@@ -17,6 +17,8 @@ public record RuleItemResponse(
         String type,
         Boolean autoApply,
         String defaultOperator,
+        String operatorName,
+        String defaultComparator,
         RuleInputConfigResponse inputConfig,
         List<OperatorResponse> operators
 ) {
@@ -32,6 +34,8 @@ public record RuleItemResponse(
         private String type;
         private Boolean autoApply;
         private String defaultOperator;
+        private String operatorName;
+        private String defaultComparator;
         private RuleInputConfigResponse inputConfig;
         private List<OperatorResponse> operators;
 
@@ -80,6 +84,16 @@ public record RuleItemResponse(
             return this;
         }
 
+        public Builder operatorName(String operatorName) {
+            this.operatorName = operatorName;
+            return this;
+        }
+
+        public Builder defaultComparator(String defaultComparator) {
+            this.defaultComparator = defaultComparator;
+            return this;
+        }
+
         public Builder inputConfig(RuleInputConfigResponse inputConfig) {
             this.inputConfig = inputConfig;
             return this;
@@ -91,7 +105,7 @@ public record RuleItemResponse(
         }
 
         public RuleItemResponse build() {
-            return new RuleItemResponse(id, code, name, description, type, autoApply, defaultOperator, inputConfig, operators);
+            return new RuleItemResponse(id, code, name, description, type, autoApply, defaultOperator, operatorName, defaultComparator, inputConfig, operators);
         }
     }
 }

@@ -168,3 +168,13 @@ databaseChangeLog:
   # (RFC 5545 RRULE cannot carry DURATION; stored as dedicated ISO 8601 columns)
   - include:
       file: db/changelog/changes/058-add-duration-fields-to-rule-bindings.yaml
+
+  # Strip .gte suffix from operator_name in numeric operator_options. BE composes
+  # effective operator_name at runtime via ComparatorSuffix (canonical + "." + suffix).
+  - include:
+      file: db/changelog/changes/059-rename-operator-name-to-canonical.yaml
+
+  # Add params_schema column + seed JSON Schema for 6 numeric operator_options.
+  # RuleService validates each COND node's params against the schema before save.
+  - include:
+      file: db/changelog/changes/060-add-params-schema-to-operator-options.yaml
