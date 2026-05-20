@@ -503,11 +503,15 @@ public class RulePublishingService {
         data.setStartTs(binding.getValidFrom() != null ? binding.getValidFrom().toString() : null);
         data.setEndTs(binding.getValidTo() != null ? binding.getValidTo().toString() : null);
 
-        // Convert time windows from RuleBinding
+        // Convert time windows from RuleBinding — carry per-window daysOfWeek
+        // so the DRL generator can emit a time.window.active check that filters
+        // both by time-of-day AND the specific weekdays this window applies to
+        // (binding-level rrule BYDAY remains the fallback when daysOfWeek is
+        // null/empty).
         List<CompileRequest.TimeWindow> windowDtos;
         if (binding.getTimeWindows() != null && !binding.getTimeWindows().isEmpty()) {
             windowDtos = binding.getTimeWindows().stream()
-                    .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd()))
+                    .map(w -> new CompileRequest.TimeWindow(w.getStart(), w.getEnd(), w.getDaysOfWeek()))
                     .toList();
         } else {
             // Default to full-day window (00:00-23:59) if no specific hours defined

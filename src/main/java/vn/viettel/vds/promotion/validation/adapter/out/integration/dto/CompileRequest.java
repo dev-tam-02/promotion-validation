@@ -271,12 +271,21 @@ public class CompileRequest {
         @JsonProperty("endTime")
         private String endTime;
 
+        @Schema(description = "Days of week this window applies to (1=Mon..7=Sun). Null/empty = every day.")
+        @JsonProperty("daysOfWeek")
+        private List<Integer> daysOfWeek;
+
         public TimeWindow() {
         }
 
         public TimeWindow(String startTime, String endTime) {
+            this(startTime, endTime, null);
+        }
+
+        public TimeWindow(String startTime, String endTime, List<Integer> daysOfWeek) {
             this.startTime = startTime;
             this.endTime = endTime;
+            this.daysOfWeek = daysOfWeek;
         }
 
         public String getStartTime() {
@@ -293,6 +302,14 @@ public class CompileRequest {
 
         public void setEndTime(String endTime) {
             this.endTime = endTime;
+        }
+
+        public List<Integer> getDaysOfWeek() {
+            return daysOfWeek;
+        }
+
+        public void setDaysOfWeek(List<Integer> daysOfWeek) {
+            this.daysOfWeek = daysOfWeek;
         }
     }
 }

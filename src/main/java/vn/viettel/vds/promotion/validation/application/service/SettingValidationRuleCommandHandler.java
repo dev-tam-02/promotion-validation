@@ -614,14 +614,53 @@ public class SettingValidationRuleCommandHandler {
         }
 
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
-            List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
-                    .map(hours -> RuleBinding.TimeWindow.builder()
-                            .start(extractTimeOnly(hours.getStartTime()))
-                            .end(extractTimeOnly(hours.getExpirationTime()))
-                            .build())
-                    .toList();
-            builder.timeWindows(windows);
+            builder.timeWindows(buildTimeWindowsGroupedByRange(timeframe.getValidityHoursPerDay()));
         }
+    }
+
+    /**
+     * Group hours-per-day entries that share the same (start, end) into a
+     * single {@link RuleBinding.TimeWindow} carrying the union of their days.
+     * <p>
+     * Example input (4 entries):
+     * <pre>
+     *   (1, 00:00, 01:30), (7, 00:00, 01:30),
+     *   (3, 01:30, 04:00), (4, 01:30, 04:00)
+     * </pre>
+     * Output (2 windows):
+     * <pre>
+     *   TimeWindow(00:00, 01:30, [1, 7])
+     *   TimeWindow(01:30, 04:00, [3, 4])
+     * </pre>
+     * Preserves input order of distinct ranges; days within a window are
+     * sorted ascending for deterministic JSON output.
+     */
+    private List<RuleBinding.TimeWindow> buildTimeWindowsGroupedByRange(
+            List<SettingValidationRuleCommand.ValidityHoursPerDay> hours) {
+        LinkedHashMap<String, RuleBinding.TimeWindow> byRange = new LinkedHashMap<>();
+        for (SettingValidationRuleCommand.ValidityHoursPerDay h : hours) {
+            String start = extractTimeOnly(h.getStartTime());
+            String end = extractTimeOnly(h.getExpirationTime());
+            String key = start + "-" + end;
+            RuleBinding.TimeWindow window = byRange.computeIfAbsent(key, k -> RuleBinding.TimeWindow.builder()
+                    .start(start)
+                    .end(end)
+                    .daysOfWeek(new ArrayList<>())
+                    .build());
+            Integer day = h.getDayOfWeek();
+            if (day != null && !window.getDaysOfWeek().contains(day)) {
+                window.getDaysOfWeek().add(day);
+            }
+        }
+        for (RuleBinding.TimeWindow window : byRange.values()) {
+            if (window.getDaysOfWeek().isEmpty()) {
+                // No dayOfWeek provided → null marks "every day" (back-compat).
+                window.setDaysOfWeek(null);
+            } else {
+                Collections.sort(window.getDaysOfWeek());
+            }
+        }
+        return new ArrayList<>(byRange.values());
     }
 
     /**

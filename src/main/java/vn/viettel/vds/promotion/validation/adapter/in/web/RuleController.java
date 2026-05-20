@@ -580,6 +580,7 @@ public class RuleController {
                                 .map(tw -> RuleWithBindingResponse.TimeWindowDto.builder()
                                         .start(tw.getStart())
                                         .end(tw.getEnd())
+                                        .daysOfWeek(tw.getDaysOfWeek())
                                         .build())
                                 .toList() : null)
                 .duration(binding.getDuration())

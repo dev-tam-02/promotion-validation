@@ -257,13 +257,20 @@ public class RuleBinding {
     // ========== Business Methods ==========
 
     /**
-     * Check if current time falls within any of the time windows
+     * Check if current time falls within any of the time windows.
+     * A window matches when BOTH the time-of-day and the day-of-week match
+     * (a window with null/empty daysOfWeek applies to every day — legacy
+     * back-compat for records persisted before the daysOfWeek field existed).
      */
     private boolean isWithinTimeWindows(Instant timestamp) {
         ZonedDateTime zonedTime = timestamp.atZone(ZoneId.of(timezone != null ? timezone : DEFAULT_TIMEZONE));
         int currentMinutes = zonedTime.getHour() * 60 + zonedTime.getMinute();
+        int currentDayOfWeek = zonedTime.getDayOfWeek().getValue();
 
         for (TimeWindow window : timeWindows) {
+            if (!appliesToDayOfWeek(window, currentDayOfWeek)) {
+                continue;
+            }
             int startMinutes = parseTimeToMinutes(window.getStart());
             int endMinutes = parseTimeToMinutes(window.getEnd());
 
@@ -272,6 +279,11 @@ public class RuleBinding {
             }
         }
         return false;
+    }
+
+    private boolean appliesToDayOfWeek(TimeWindow window, int dayOfWeek) {
+        List<Integer> days = window.getDaysOfWeek();
+        return days == null || days.isEmpty() || days.contains(dayOfWeek);
     }
 
     /**
@@ -391,7 +403,7 @@ public class RuleBinding {
     }
 
     /**
-     * Time window within a day
+     * Time window within a day, optionally scoped to specific days of week.
      */
     @Data
     @Builder
@@ -407,5 +419,12 @@ public class RuleBinding {
          * End time in HH:mm format (e.g., "17:00")
          */
         private String end;
+
+        /**
+         * Days of week this window applies to (1=Monday..7=Sunday, ISO-8601).
+         * Null or empty = applies to all days (legacy JSON without this field
+         * keeps current behaviour and is treated as "any day").
+         */
+        private List<Integer> daysOfWeek;
     }
 }

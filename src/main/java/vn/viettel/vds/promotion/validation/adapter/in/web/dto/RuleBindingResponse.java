@@ -139,5 +139,9 @@ public class RuleBindingResponse {
 
         @Schema(description = "End time (HH:mm)", example = "17:00")
         private String end;
+
+        @Schema(description = "Days of week this window applies to (1=Monday..7=Sunday, ISO-8601). "
+                + "Null/empty means every day.", example = "[1, 2, 3, 4, 5]")
+        private List<Integer> daysOfWeek;
     }
 }
