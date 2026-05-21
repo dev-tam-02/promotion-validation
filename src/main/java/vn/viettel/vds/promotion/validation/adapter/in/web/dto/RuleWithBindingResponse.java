@@ -73,5 +73,7 @@ public class RuleWithBindingResponse {
     public static class TimeWindowDto {
         private String start;
         private String end;
+        /** ISO-8601 days (1=Mon..7=Sun). Null/empty = every day. */
+        private List<Integer> daysOfWeek;
     }
 }

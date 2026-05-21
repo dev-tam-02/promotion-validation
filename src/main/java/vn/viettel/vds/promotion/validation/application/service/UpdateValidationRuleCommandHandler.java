@@ -25,7 +25,10 @@ import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.event.ValidationSettingUpdateResultEvent;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -245,14 +248,42 @@ public class UpdateValidationRuleCommandHandler {
             builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
         }
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
-            List<RuleBinding.TimeWindow> windows = timeframe.getValidityHoursPerDay().stream()
-                    .map(hours -> RuleBinding.TimeWindow.builder()
-                            .start(extractTimeOnly(hours.getStartTime()))
-                            .end(extractTimeOnly(hours.getExpirationTime()))
-                            .build())
-                    .toList();
-            builder.timeWindows(windows);
+            builder.timeWindows(buildTimeWindowsGroupedByRange(timeframe.getValidityHoursPerDay()));
         }
+    }
+
+    /**
+     * Group hours-per-day entries that share the same (start, end) into a
+     * single {@link RuleBinding.TimeWindow} carrying the union of their days.
+     * Mirrors {@link SettingValidationRuleCommandHandler#buildTimeWindowsGroupedByRange};
+     * kept here so the update path also persists per-window daysOfWeek
+     * (otherwise edits would lose the day filter even when create stored it).
+     */
+    private List<RuleBinding.TimeWindow> buildTimeWindowsGroupedByRange(
+            List<UpdateValidationRuleCommand.ValidityHoursPerDay> hours) {
+        LinkedHashMap<String, RuleBinding.TimeWindow> byRange = new LinkedHashMap<>();
+        for (UpdateValidationRuleCommand.ValidityHoursPerDay h : hours) {
+            String start = extractTimeOnly(h.getStartTime());
+            String end = extractTimeOnly(h.getExpirationTime());
+            String key = start + "-" + end;
+            RuleBinding.TimeWindow window = byRange.computeIfAbsent(key, k -> RuleBinding.TimeWindow.builder()
+                    .start(start)
+                    .end(end)
+                    .daysOfWeek(new ArrayList<>())
+                    .build());
+            Integer day = h.getDayOfWeek();
+            if (day != null && !window.getDaysOfWeek().contains(day)) {
+                window.getDaysOfWeek().add(day);
+            }
+        }
+        for (RuleBinding.TimeWindow window : byRange.values()) {
+            if (window.getDaysOfWeek().isEmpty()) {
+                window.setDaysOfWeek(null);
+            } else {
+                Collections.sort(window.getDaysOfWeek());
+            }
+        }
+        return new ArrayList<>(byRange.values());
     }
 
     private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
