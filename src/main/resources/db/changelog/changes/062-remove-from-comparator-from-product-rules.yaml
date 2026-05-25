@@ -1,0 +1,35 @@
+databaseChangeLog:
+  # Drop the "from" comparator from the 5 cat-products operator_options seeded
+  # in 055. FE only needs "is"; keeping "from" exposes a redundant option in the
+  # rule builder dropdown.
+  - changeSet:
+      id: 062-remove-from-comparator-from-product-rules
+      author: pp-validation
+      comment: "Set available_comparators=[\"is\"] on the 5 Products rules (drop \"from\")"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["is"]',
+                  default_comparator = 'is'
+              WHERE id IN (
+                'opt-any-order-item',
+                'opt-every-order-item',
+                'opt-none-of-order-items',
+                'opt-most-expensive-order-item',
+                'opt-cheapest-order-item'
+              );
+
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["is","from"]',
+                  default_comparator = 'is'
+              WHERE id IN (
+                'opt-any-order-item',
+                'opt-every-order-item',
+                'opt-none-of-order-items',
+                'opt-most-expensive-order-item',
+                'opt-cheapest-order-item'
+              );

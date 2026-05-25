@@ -51,6 +51,17 @@ public class ValidationRuleSnapshotData {
     private List<TimeFrameSnapshot> timeFrames;
 
     /**
+     * The specific {@code rule_binding} row whose state should be reverted on
+     * compensation. The update flow modifies a binding row (validFrom, validTo,
+     * timezone, rrule, timeWindows, included/excluded products, etc.), so the
+     * snapshot must capture binding state — restoring only the rule would leave
+     * all the user-edited fields at post-update values.
+     * <p>Null when the snapshot was taken for an entity other than a binding
+     * (e.g. node/limit edits — not currently used by coupon update saga).
+     */
+    private BindingSnapshot binding;
+
+    /**
      * Snapshot of RuleUsageLimitsEntity
      */
     @Data
@@ -89,5 +100,47 @@ public class ValidationRuleSnapshotData {
         private String id;
         private String timeFrameId;
         private String mode;
+    }
+
+    /**
+     * Snapshot of {@code RuleBindingEntity} — captures the fields the update
+     * path modifies so revert can fully restore pre-update state.
+     */
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class BindingSnapshot {
+        private String id;
+        private String ruleId;
+        private Integer ruleVersionPinned;
+        private String objectType;
+        private String objectId;
+
+        // Lifecycle + traffic
+        private Integer priority;
+        private Boolean active;
+        private Integer trafficPercent;
+
+        // Time window
+        private Instant validFrom;
+        private Instant validTo;
+        private String timezone;
+        private String rrule;
+        private String duration;
+        private String activityDurationAfterPublishing;
+        // Stored as JSON string at rest in the entity; round-trip as String.
+        private String timeWindows;
+        private String excludedDates;
+
+        // Applicability
+        private Boolean includedAll;
+        // Stored as JSON string columns at rest.
+        private String includedProducts;
+        private String excludedProducts;
+        private String includedCategories;
+        private String excludedCategories;
+        private String includedBrands;
+        private String excludedBrands;
+
+        private String bundleHash;
     }
 }

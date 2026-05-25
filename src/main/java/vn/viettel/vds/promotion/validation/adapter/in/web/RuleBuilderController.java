@@ -48,7 +48,7 @@ public class RuleBuilderController {
      * @return all categories with rules
      */
     @Operation(summary = "Get all rule categories",
-            description = "Returns static operator categories (Audience, Order, Product, Time, Loyalty, Budget) plus dynamic categories generated from metadata_schemas. Each category contains its rule items with codes, comparators, and value types.")
+            description = "Returns static operator categories (Audience, Order, Product, Time, Loyalty, Budget) plus dynamic categories whose rule items are resolved at request time by calling pp-metadata. Each category contains its rule items with codes, comparators, and value types.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Categories returned successfully"),
     })

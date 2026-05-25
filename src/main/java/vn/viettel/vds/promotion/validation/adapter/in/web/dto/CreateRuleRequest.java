@@ -29,9 +29,9 @@ public class CreateRuleRequest {
     @JsonProperty("logic")
     private String logic;
 
-    @Schema(description = "Rule context indicating the trigger event",
-            example = "ORDER_CREATED",
-            allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED", "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
+    @Schema(description = "Rule context — scenario in which the rule applies",
+            example = "GENERAL_USAGE",
+            allowableValues = {"GENERAL_USAGE"})
     @NotBlank(message = "VALIDATION_RULE_CONTEXT_REQUIRED")
     @ValidEnum(value = RuleContext.class, message = "VALIDATION_RULE_CONTEXT_INVALID")
     @JsonProperty("context")

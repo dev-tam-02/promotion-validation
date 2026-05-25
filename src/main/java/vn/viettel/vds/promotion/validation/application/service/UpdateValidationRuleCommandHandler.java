@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.UpdateValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.UpdateValidationRuleCommandDTOMapper;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.ValidationRuleSnapshotEntity;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand;
@@ -30,6 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,6 +52,7 @@ public class UpdateValidationRuleCommandHandler {
     private final ValidationRuleRepositoryPort validationRulePort;
     private final IdempotencyService idempotencyService;
     private final RulePublishingService rulePublishingService;
+    private final ValidationRuleSnapshotService snapshotService;
     private final Validator validator;
     private final UpdateValidationRuleCommandDTOMapper dtoMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -62,6 +65,7 @@ public class UpdateValidationRuleCommandHandler {
             ValidationRuleRepositoryPort validationRulePort,
             IdempotencyService idempotencyService,
             RulePublishingService rulePublishingService,
+            ValidationRuleSnapshotService snapshotService,
             Validator validator,
             UpdateValidationRuleCommandDTOMapper dtoMapper,
             KafkaTemplate<String, Object> kafkaTemplate) {
@@ -69,6 +73,7 @@ public class UpdateValidationRuleCommandHandler {
         this.validationRulePort = validationRulePort;
         this.idempotencyService = idempotencyService;
         this.rulePublishingService = rulePublishingService;
+        this.snapshotService = snapshotService;
         this.validator = validator;
         this.dtoMapper = dtoMapper;
         this.kafkaTemplate = kafkaTemplate;
@@ -110,6 +115,18 @@ public class UpdateValidationRuleCommandHandler {
                 throw new BindingNotFoundException(assignmentId);
             }
 
+            // Capture BEFORE_UPDATE snapshot so saga compensation can call
+            // RevertValidationRuleCommand to restore the prior rule state. The
+            // snapshot is keyed by the rule's current optimistic-lock version,
+            // which becomes targetVersion for revert. Also captures the binding
+            // row so revert can restore validFrom/validTo/timezone/rrule/
+            // timeWindows/applicability — fields the update path actually
+            // modifies on the binding (separate entity from validation_rule).
+            // Skip silently when the binding has no ruleId (legacy/incomplete rows).
+            Long snapshotVersion = captureBeforeUpdateSnapshot(
+                    existingBinding.getRuleId(), existingBinding.getId(),
+                    command.getMetadata(), commandId);
+
             // Update binding
             RuleBinding updatedBinding = updateBinding(existingBinding, payload);
 
@@ -119,8 +136,9 @@ public class UpdateValidationRuleCommandHandler {
             // Mark as processed
             idempotencyService.markAsProcessed(commandId, "Update completed successfully");
 
-            // Publish success event
-            publishSuccessEvent(commandId, objectId, updatedBinding);
+            // Publish success event — include snapshotVersion as previousVersion
+            // so saga can later send RevertValidationRuleCommand with the right target.
+            publishSuccessEvent(commandId, objectId, updatedBinding, snapshotVersion);
 
             logger.info("Successfully processed UpdateValidationRuleCommand: commandId={}", commandId);
             return true;
@@ -233,20 +251,44 @@ public class UpdateValidationRuleCommandHandler {
         if (timeframe.getTimezone() != null) {
             builder.timezone(timeframe.getTimezone());
         }
+
+        String interval = null;
+        String duration = null;
+        String activityDurationAfterPublishing = null;
         if (timeframe.getValidityTimeframe() != null) {
             var validity = timeframe.getValidityTimeframe();
             builder.validFrom(validity.getStartDate());
             builder.validTo(validity.getExpirationDate());
-            if (validity.getDuration() != null) {
-                builder.duration(validity.getDuration());
-            }
-            if (validity.getActivityDurationAfterPublishing() != null) {
-                builder.activityDurationAfterPublishing(validity.getActivityDurationAfterPublishing());
-            }
+            interval = validity.getInterval();
+            duration = validity.getDuration();
+            activityDurationAfterPublishing = validity.getActivityDurationAfterPublishing();
         }
-        if (timeframe.getValidityDaysOfWeek() != null && !timeframe.getValidityDaysOfWeek().isEmpty()) {
-            builder.rrule(buildRRuleFromDaysOfWeek(timeframe.getValidityDaysOfWeek()));
+
+        // Build rrule using interval (FREQ/INTERVAL derived from ISO 8601 period
+        // when present) alongside daysOfWeek (BYDAY) — same shape as the create
+        // path so edits preserve "lặp lại sau N ngày/tuần/tháng" semantics.
+        List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
+        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || (interval != null && !interval.isBlank())) {
+            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
         }
+
+        // Persist duration in dedicated column AND in scope_time_windows JSON
+        // alongside the timezone — mirrors create path so subsequent reads of
+        // scope_time_windows see consistent (duration, timezone) metadata.
+        if (duration != null && !duration.isBlank()) {
+            builder.duration(duration);
+            Map<String, Object> stw = new HashMap<>();
+            stw.put("duration", duration);
+            if (timeframe.getTimezone() != null) {
+                stw.put("timezone", timeframe.getTimezone());
+            }
+            builder.scopeTimeWindows(stw);
+        }
+
+        if (activityDurationAfterPublishing != null && !activityDurationAfterPublishing.isBlank()) {
+            builder.activityDurationAfterPublishing(activityDurationAfterPublishing);
+        }
+
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
             builder.timeWindows(buildTimeWindowsGroupedByRange(timeframe.getValidityHoursPerDay()));
         }
@@ -286,13 +328,70 @@ public class UpdateValidationRuleCommandHandler {
         return new ArrayList<>(byRange.values());
     }
 
-    private String buildRRuleFromDaysOfWeek(List<Integer> daysOfWeek) {
-        String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
-        String byDay = daysOfWeek.stream()
-                .filter(day -> day >= 1 && day <= 7)
-                .map(day -> dayCodes[day - 1])
-                .collect(Collectors.joining(","));
-        return "FREQ=WEEKLY;BYDAY=" + byDay;
+    private static final String DEFAULT_FREQ = "FREQ=DAILY;INTERVAL=1";
+
+    /**
+     * Build RFC 5545 RRULE from daysOfWeek (BYDAY) and ISO 8601 interval period
+     * (FREQ/INTERVAL). Mirrors {@code SettingValidationRuleCommandHandler.buildRRuleFromTimeframe}
+     * so create + update produce identical rrule shapes for the same inputs.
+     */
+    private String buildRRuleFromTimeframe(List<Integer> daysOfWeek, String interval) {
+        StringBuilder rrule = new StringBuilder();
+        if (interval != null && !interval.isBlank()) {
+            rrule.append(parseFreqAndInterval(interval));
+        } else if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            rrule.append("FREQ=WEEKLY");
+        } else {
+            rrule.append("FREQ=DAILY");
+        }
+        if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            String[] dayCodes = {"MO", "TU", "WE", "TH", "FR", "SA", "SU"};
+            String byDay = daysOfWeek.stream()
+                    .filter(day -> day >= 1 && day <= 7)
+                    .map(day -> dayCodes[day - 1])
+                    .collect(Collectors.joining(","));
+            if (!byDay.isEmpty()) {
+                rrule.append(";BYDAY=").append(byDay);
+            }
+        }
+        return rrule.toString();
+    }
+
+    /**
+     * Parse ISO 8601 period (PnD/PnW/PnM/PnY/PTnH) into RFC 5545 FREQ;INTERVAL.
+     * Falls back to {@link #DEFAULT_FREQ} on parse failure. Mirrors
+     * {@code SettingValidationRuleCommandHandler.parseFreqAndInterval}.
+     */
+    private String parseFreqAndInterval(String isoPeriod) {
+        if (isoPeriod == null || isoPeriod.isBlank()) {
+            return DEFAULT_FREQ;
+        }
+        if (isoPeriod.startsWith("PT")) {
+            try {
+                java.time.Duration d = java.time.Duration.parse(isoPeriod);
+                long hours = d.toHours();
+                if (hours > 0) {
+                    return "FREQ=HOURLY;INTERVAL=" + hours;
+                }
+            } catch (java.time.format.DateTimeParseException ignored) {
+                // fall through
+            }
+            return DEFAULT_FREQ;
+        }
+        try {
+            java.time.Period period = java.time.Period.parse(isoPeriod);
+            if (period.getYears() > 0) return "FREQ=YEARLY;INTERVAL=" + period.getYears();
+            if (period.getMonths() > 0) return "FREQ=MONTHLY;INTERVAL=" + period.getMonths();
+            int days = period.getDays();
+            if (days > 0) {
+                if (days % 7 == 0) return "FREQ=WEEKLY;INTERVAL=" + (days / 7);
+                return "FREQ=DAILY;INTERVAL=" + days;
+            }
+            return DEFAULT_FREQ;
+        } catch (java.time.format.DateTimeParseException e) {
+            logger.warn("Failed to parse ISO 8601 period '{}', defaulting to FREQ=DAILY;INTERVAL=1", isoPeriod);
+            return DEFAULT_FREQ;
+        }
     }
 
     private String extractTimeOnly(String timeString) {
@@ -371,8 +470,42 @@ public class UpdateValidationRuleCommandHandler {
                 .build();
     }
 
-    private void publishSuccessEvent(String commandId, String objectId, RuleBinding binding) {
+    /**
+     * Persist a BEFORE_UPDATE snapshot of the rule's current state so the saga
+     * orchestrator can revert via {@code RevertValidationRuleCommand} on
+     * compensation. Returns the snapshot version (= rule's pre-update
+     * optimistic-lock version) for inclusion in the success event, or null when
+     * the binding has no ruleId or snapshot creation fails (best-effort — do not
+     * abort the update for a snapshot error).
+     */
+    private Long captureBeforeUpdateSnapshot(String ruleId, String bindingId,
+                                              java.util.Map<String, String> commandMetadata,
+                                              String commandId) {
+        if (ruleId == null || ruleId.isBlank()) {
+            logger.warn("Skipping BEFORE_UPDATE snapshot — binding has no ruleId (commandId={})", commandId);
+            return null;
+        }
+        String sagaId = commandMetadata != null ? commandMetadata.get("sagaId") : null;
+        if (sagaId == null || sagaId.isBlank()) {
+            sagaId = commandMetadata != null ? commandMetadata.get("correlationId") : null;
+        }
         try {
+            var snapshot = snapshotService.createSnapshot(
+                    ruleId, bindingId, sagaId, commandId,
+                    ValidationRuleSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
+            logger.info("Created BEFORE_UPDATE snapshot: ruleId={}, bindingId={}, version={}, sagaId={}",
+                    ruleId, bindingId, snapshot.getVersion(), sagaId);
+            return snapshot.getVersion();
+        } catch (Exception e) {
+            logger.error("Failed to create BEFORE_UPDATE snapshot for ruleId={}, bindingId={}, sagaId={}, error={}",
+                    ruleId, bindingId, sagaId, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private void publishSuccessEvent(String commandId, String objectId, RuleBinding binding, Long snapshotVersion) {
+        try {
+            Long currentVersion = snapshotVersion != null ? snapshotVersion + 1 : null;
             ValidationSettingUpdateResultEvent event = ValidationSettingUpdateResultEvent.builder()
                     .id(IdGenerator.generateId())
                     .aggregate("Validation")
@@ -391,6 +524,8 @@ public class UpdateValidationRuleCommandHandler {
                                     .assignmentId(binding.getId())
                                     .ruleId(binding.getRuleId())
                                     .active(binding.getActive())
+                                    .previousVersion(snapshotVersion)
+                                    .currentVersion(currentVersion)
                                     .build())
                             .build())
                     .metadata(new HashMap<>())
@@ -398,7 +533,8 @@ public class UpdateValidationRuleCommandHandler {
 
             kafkaTemplate.send(validationEventTopic, objectId, event);
 
-            logger.info("Published ValidationSettingUpdateResultEvent: commandId={}", commandId);
+            logger.info("Published ValidationSettingUpdateResultEvent: commandId={}, previousVersion={}, currentVersion={}",
+                    commandId, snapshotVersion, currentVersion);
 
         } catch (Exception e) {
             logger.error("Failed to publish success event: commandId={}", commandId, e);

@@ -95,7 +95,6 @@ public class RuleBuilderService {
                 OperatorResponse.of(OP_IS_MORE_THAN_OR_EQUAL_TO, "is more than or equal to", OP_LABEL_VI_GTE));
         m.put(OP_IS_LESS_THAN_OR_EQUAL_TO,
                 OperatorResponse.of(OP_IS_LESS_THAN_OR_EQUAL_TO, "is less than or equal to", OP_LABEL_VI_LTE));
-        m.put("from", OperatorResponse.of("from", "from", "Từ"));
         m.put(OP_EXISTS, OperatorResponse.of(OP_EXISTS, OP_EXISTS, "Tồn tại"));
         m.put(OP_NOT_EXISTS, OperatorResponse.of(OP_NOT_EXISTS, "does not exist", "Không tồn tại"));
         m.put(OP_IS_BEFORE, OperatorResponse.of(OP_IS_BEFORE, "is before", "Trước"));

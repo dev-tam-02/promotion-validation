@@ -490,7 +490,7 @@ class RuleServiceTest {
         void shouldSkipContext_whenNull() {
             // Given
             Rule existing = draftRule("r1", "CODE_1", "Name");
-            existing.setContext("ORDER_CREATED");
+            existing.setContext("GENERAL_USAGE");
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
             when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -498,7 +498,7 @@ class RuleServiceTest {
             Rule result = sut.updateRule("r1", null, null, null, null, null, null, "editor");
 
             // Then
-            assertThat(result.getContext()).isEqualTo("ORDER_CREATED");
+            assertThat(result.getContext()).isEqualTo("GENERAL_USAGE");
         }
 
         @Test
@@ -506,7 +506,7 @@ class RuleServiceTest {
         void shouldClearContext_whenEmptyString() {
             // Given
             Rule existing = draftRule("r1", "CODE_1", "Name");
-            existing.setContext("ORDER_CREATED");
+            existing.setContext("GENERAL_USAGE");
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
             when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -522,15 +522,15 @@ class RuleServiceTest {
         void shouldSetNewContext_whenNonEmptyString() {
             // Given
             Rule existing = draftRule("r1", "CODE_1", "Name");
-            existing.setContext("ORDER_CREATED");
+            existing.setContext("");
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
             when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
 
             // When
-            Rule result = sut.updateRule("r1", null, null, null, "PAYMENT_COMPLETED", null, null, "editor");
+            Rule result = sut.updateRule("r1", null, null, null, "GENERAL_USAGE", null, null, "editor");
 
             // Then
-            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+            assertThat(result.getContext()).isEqualTo("GENERAL_USAGE");
         }
 
         @Test
@@ -643,11 +643,11 @@ class RuleServiceTest {
             // When
             Rule result = sut.updateRule(
                     "r1", null, null, null,
-                    "PAYMENT_COMPLETED", "New desc", "Payment required", "editor"
+                    "GENERAL_USAGE", "New desc", "Payment required", "editor"
             );
 
             // Then
-            assertThat(result.getContext()).isEqualTo("PAYMENT_COMPLETED");
+            assertThat(result.getContext()).isEqualTo("GENERAL_USAGE");
             assertThat(result.getDescription()).isEqualTo("New desc");
             assertThat(result.getFallbackErrorMessage()).isEqualTo("Payment required");
         }

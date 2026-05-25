@@ -260,7 +260,7 @@ public class RuleController {
     public List<ContextOptionResponse> getContexts() {
         logger.info("Getting rule context options");
         return Arrays.stream(RuleContextType.values())
-                .map(ctx -> new ContextOptionResponse(ctx.name(), ctx.getLabel()))
+                .map(ctx -> new ContextOptionResponse(ctx.name(), ctx.getLabel(), ctx.getLabelVi()))
                 .toList();
     }
 
