@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleBindingJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.ValidationRuleSnapshotRepository;
 import vn.viettel.vds.promotion.validation.application.service.dto.ValidationRuleSnapshotData;
@@ -39,6 +40,7 @@ public class ValidationRuleSnapshotService {
     private static final int DEFAULT_SNAPSHOT_RETENTION_DAYS = 30;
     private final ValidationRuleSnapshotRepository snapshotRepository;
     private final ValidationRuleJpaRepository validationRuleRepository;
+    private final RuleBindingJpaRepository ruleBindingRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -56,9 +58,24 @@ public class ValidationRuleSnapshotService {
             String sagaId,
             String correlationId,
             ValidationRuleSnapshotEntity.SnapshotReason reason) {
+        return createSnapshot(validationRuleId, null, sagaId, correlationId, reason);
+    }
 
-        log.info("Creating snapshot for validation rule: {}, sagaId: {}, reason: {}",
-                validationRuleId, sagaId, reason);
+    /**
+     * Overload that captures the specific {@code rule_binding} being updated so a
+     * later revert can restore both rule and binding state. {@code bindingId} may
+     * be null when no binding is in play (rule-only edits).
+     */
+    @Transactional
+    public ValidationRuleSnapshotEntity createSnapshot(
+            String validationRuleId,
+            String bindingId,
+            String sagaId,
+            String correlationId,
+            ValidationRuleSnapshotEntity.SnapshotReason reason) {
+
+        log.info("Creating snapshot for validation rule: {}, bindingId: {}, sagaId: {}, reason: {}",
+                validationRuleId, bindingId, sagaId, reason);
 
         // Load the complete aggregate
         ValidationRuleEntity rule = validationRuleRepository.findById(validationRuleId)
@@ -77,8 +94,12 @@ public class ValidationRuleSnapshotService {
             return existingSnapshot.get();
         }
 
-        // Convert to snapshot data
+        // Convert to snapshot data (rule + optional binding capture)
         ValidationRuleSnapshotData snapshotData = toSnapshotData(rule);
+        if (bindingId != null && !bindingId.isBlank()) {
+            ruleBindingRepository.findById(bindingId).ifPresent(binding ->
+                    snapshotData.setBinding(toBindingSnapshot(binding)));
+        }
 
         // Serialize to JSON
         String snapshotJson;
@@ -148,6 +169,14 @@ public class ValidationRuleSnapshotService {
 
         // Save restored entity
         ValidationRuleEntity restored = validationRuleRepository.save(rule);
+
+        // Restore the rule_binding row separately when present — update path
+        // modifies the binding (validFrom/validTo/timezone/rrule/timeWindows/
+        // applicability/etc.) which is a distinct entity from validation_rule.
+        if (snapshotData.getBinding() != null && snapshotData.getBinding().getId() != null) {
+            restoreBindingFromSnapshotData(snapshotData.getBinding());
+        }
+
         log.info("Restored validation rule: {} to version: {}", validationRuleId, targetVersion);
 
         return restored;
@@ -278,6 +307,36 @@ public class ValidationRuleSnapshotService {
         return snapshot;
     }
 
+    private ValidationRuleSnapshotData.BindingSnapshot toBindingSnapshot(RuleBindingEntity binding) {
+        ValidationRuleSnapshotData.BindingSnapshot snapshot =
+                new ValidationRuleSnapshotData.BindingSnapshot();
+        snapshot.setId(binding.getId());
+        snapshot.setRuleId(binding.getRuleId());
+        snapshot.setRuleVersionPinned(binding.getRuleVersionPinned());
+        snapshot.setObjectType(binding.getObjectType());
+        snapshot.setObjectId(binding.getObjectId());
+        snapshot.setPriority(binding.getPriority());
+        snapshot.setActive(binding.getActive());
+        snapshot.setTrafficPercent(binding.getTrafficPercent());
+        snapshot.setValidFrom(binding.getValidFrom());
+        snapshot.setValidTo(binding.getValidTo());
+        snapshot.setTimezone(binding.getTimezone());
+        snapshot.setRrule(binding.getRrule());
+        snapshot.setDuration(binding.getDuration());
+        snapshot.setActivityDurationAfterPublishing(binding.getActivityDurationAfterPublishing());
+        snapshot.setTimeWindows(binding.getTimeWindows());
+        snapshot.setExcludedDates(binding.getExcludedDates());
+        snapshot.setIncludedAll(binding.getIncludedAll());
+        snapshot.setIncludedProducts(binding.getIncludedProducts());
+        snapshot.setExcludedProducts(binding.getExcludedProducts());
+        snapshot.setIncludedCategories(binding.getIncludedCategories());
+        snapshot.setExcludedCategories(binding.getExcludedCategories());
+        snapshot.setIncludedBrands(binding.getIncludedBrands());
+        snapshot.setExcludedBrands(binding.getExcludedBrands());
+        snapshot.setBundleHash(binding.getBundleHash());
+        return snapshot;
+    }
+
     /**
      * Restore a ValidationRuleEntity from snapshot data.
      */
@@ -336,5 +395,41 @@ public class ValidationRuleSnapshotService {
                 rule.getTimeFrames().add(tf);
             }
         }
+    }
+
+    /**
+     * Restore a {@code rule_binding} row from the binding section of the snapshot.
+     * Looks up the binding by id (from the snapshot) and copies the captured
+     * fields. Skips silently when the binding no longer exists (e.g. deleted
+     * between snapshot creation and revert).
+     */
+    private void restoreBindingFromSnapshotData(ValidationRuleSnapshotData.BindingSnapshot snap) {
+        ruleBindingRepository.findById(snap.getId()).ifPresentOrElse(binding -> {
+            binding.setRuleId(snap.getRuleId());
+            binding.setRuleVersionPinned(snap.getRuleVersionPinned());
+            binding.setObjectType(snap.getObjectType());
+            binding.setObjectId(snap.getObjectId());
+            binding.setPriority(snap.getPriority());
+            binding.setActive(snap.getActive());
+            binding.setTrafficPercent(snap.getTrafficPercent());
+            binding.setValidFrom(snap.getValidFrom());
+            binding.setValidTo(snap.getValidTo());
+            binding.setTimezone(snap.getTimezone());
+            binding.setRrule(snap.getRrule());
+            binding.setDuration(snap.getDuration());
+            binding.setActivityDurationAfterPublishing(snap.getActivityDurationAfterPublishing());
+            binding.setTimeWindows(snap.getTimeWindows());
+            binding.setExcludedDates(snap.getExcludedDates());
+            binding.setIncludedAll(snap.getIncludedAll());
+            binding.setIncludedProducts(snap.getIncludedProducts());
+            binding.setExcludedProducts(snap.getExcludedProducts());
+            binding.setIncludedCategories(snap.getIncludedCategories());
+            binding.setExcludedCategories(snap.getExcludedCategories());
+            binding.setIncludedBrands(snap.getIncludedBrands());
+            binding.setExcludedBrands(snap.getExcludedBrands());
+            binding.setBundleHash(snap.getBundleHash());
+            ruleBindingRepository.save(binding);
+            log.info("Restored rule_binding: id={}, ruleId={}", binding.getId(), binding.getRuleId());
+        }, () -> log.warn("Skipping binding restore — binding not found: id={}", snap.getId()));
     }
 }

@@ -41,9 +41,8 @@ public record RuleListItemResponse(
         @JsonProperty("state")
         String state,
 
-        @Schema(description = "Trigger-event context", example = "ORDER_CREATED",
-                allowableValues = {"COMMON", "CUSTOMER_CREATED", "ORDER_CREATED",
-                        "PAYMENT_COMPLETED", "PROMOTION_APPLIED"})
+        @Schema(description = "Rule context", example = "GENERAL_USAGE",
+                allowableValues = {"GENERAL_USAGE"})
         @JsonProperty("context")
         String context,
 

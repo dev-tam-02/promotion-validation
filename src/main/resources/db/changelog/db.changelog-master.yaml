@@ -178,3 +178,15 @@ databaseChangeLog:
   # RuleService validates each COND node's params against the schema before save.
   - include:
       file: db/changelog/changes/060-add-params-schema-to-operator-options.yaml
+
+  # Drop metadata_schemas — pp-validation now fetches metadata field definitions
+  # directly from pp-metadata via MetadataServiceFeignClient. The local table,
+  # its Java stack and the OperatorConfigController metadata-schema endpoints
+  # had no consumer.
+  - include:
+      file: db/changelog/changes/061-drop-metadata-schemas-table.yaml
+
+  # Remove "from" comparator from the 5 cat-products operator_options.
+  # FE only displays "is" now.
+  - include:
+      file: db/changelog/changes/062-remove-from-comparator-from-product-rules.yaml
