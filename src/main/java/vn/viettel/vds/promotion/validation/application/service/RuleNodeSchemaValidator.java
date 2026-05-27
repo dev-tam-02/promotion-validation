@@ -95,7 +95,17 @@ public class RuleNodeSchemaValidator {
 
         String canonical = stripComparatorSuffix(operatorName);
 
-        Optional<OperatorOptionEntity> optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
+        // PROM-985: thử khớp CHÍNH XÁC operatorName trước. Một số operator có hậu
+        // tố trông giống comparator (vd ".lte") nhưng thực ra là PHẦN của canonical
+        // name trong operator_options (vd "budget.redemptions.per_customer.in_campaign.lte").
+        // stripComparatorSuffix sẽ cắt nhầm ".lte" -> không tìm thấy -> báo
+        // "Invalid rule structure". Nếu khớp chính xác thất bại mới fallback về tên
+        // đã strip (operator thường: "order.total.is_more_than" -> "order.total").
+        Optional<OperatorOptionEntity> optionOpt =
+                operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(operatorName);
+        if (optionOpt.isEmpty()) {
+            optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
+        }
         if (optionOpt.isEmpty()) {
             throw new InvalidRuleStructureException(
                     cond.getId(),
