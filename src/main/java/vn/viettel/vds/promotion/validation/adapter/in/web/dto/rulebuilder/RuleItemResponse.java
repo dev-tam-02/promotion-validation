@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Individual rule definition within a category.
@@ -20,7 +21,14 @@ public record RuleItemResponse(
         String operatorName,
         String defaultComparator,
         RuleInputConfigResponse inputConfig,
-        List<OperatorResponse> operators
+        List<OperatorResponse> operators,
+        /**
+         * Static params the FE must relay verbatim into the saved COND node's
+         * params (in addition to the user-chosen comparator + value). Used by
+         * metadata rules driving the {@code metadata.access} operator:
+         * {@code {schema_type, field_key, data_type}}. Null for static rules.
+         */
+        Map<String, Object> operatorParams
 ) {
     public static Builder builder() {
         return new Builder();
@@ -38,6 +46,7 @@ public record RuleItemResponse(
         private String defaultComparator;
         private RuleInputConfigResponse inputConfig;
         private List<OperatorResponse> operators;
+        private Map<String, Object> operatorParams;
 
         public Builder id(String id) {
             this.id = id;
@@ -104,8 +113,13 @@ public record RuleItemResponse(
             return this;
         }
 
+        public Builder operatorParams(Map<String, Object> operatorParams) {
+            this.operatorParams = operatorParams;
+            return this;
+        }
+
         public RuleItemResponse build() {
-            return new RuleItemResponse(id, code, name, description, type, autoApply, defaultOperator, operatorName, defaultComparator, inputConfig, operators);
+            return new RuleItemResponse(id, code, name, description, type, autoApply, defaultOperator, operatorName, defaultComparator, inputConfig, operators, operatorParams);
         }
     }
 }
