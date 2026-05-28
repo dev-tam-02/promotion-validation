@@ -55,6 +55,7 @@ public class RuleBuilderService {
     private static final String OP_LABEL_IS_NONE_OF = "is none of";
 
     private static final String DATA_SOURCE_STATIC = "STATIC";
+    private static final String METADATA_ACCESS_OPERATOR = "metadata.access";
 
     private static final Map<String, OperatorResponse> OPERATOR_MAP = buildOperatorMap();
 
@@ -99,6 +100,11 @@ public class RuleBuilderService {
         m.put(OP_NOT_EXISTS, OperatorResponse.of(OP_NOT_EXISTS, "does not exist", "Không tồn tại"));
         m.put(OP_IS_BEFORE, OperatorResponse.of(OP_IS_BEFORE, "is before", "Trước"));
         m.put(OP_IS_AFTER, OperatorResponse.of(OP_IS_AFTER, "is after", "Sau"));
+        // Engine-native comparators used by metadata.access (see MetadataAccessOperatorTranslator).
+        m.put("before", OperatorResponse.of("before", "is before", "Trước"));
+        m.put("after", OperatorResponse.of("after", "is after", "Sau"));
+        m.put("size_gte", OperatorResponse.of("size_gte", "size at least", "Số phần tử ≥"));
+        m.put("size_lte", OperatorResponse.of("size_lte", "size at most", "Số phần tử ≤"));
         return Collections.unmodifiableMap(m);
     }
 
@@ -310,14 +316,31 @@ public class RuleBuilderService {
         }
     }
 
+    /**
+     * Synthesize one rule item per metadata field, wired to the generic
+     * {@code metadata.access} engine operator.
+     *
+     * <p>The FE rule builder requires a non-null {@code operatorName} to let the
+     * user pick a rule; it then relays {@code operatorParams} verbatim into the
+     * saved COND node together with the chosen comparator + value. The
+     * comparators returned here are the engine-native codes understood by
+     * {@code MetadataAccessOperatorTranslator}, so the FE comparator maps 1:1 to
+     * the engine comparator (no suffix composition).
+     */
     private RuleItemResponse synthesizeMetadataRule(OperatorCategory category,
                                                      Map<String, Object> field) {
         String fieldName = stringOrEmpty(field.get("name"));
         String displayName = stringOrFallback(field.get("displayName"), fieldName);
-        String dataType = stringOrFallback(field.get("type"), "STRING").toUpperCase();
+        String rawType = stringOrFallback(field.get("type"), "STRING").toUpperCase();
+        String dataType = mapMetadataDataType(rawType);
         String description = stringOrEmpty(field.get("description"));
 
-        List<String> comparators = comparatorsForMetadataType(dataType);
+        List<String> comparators = metadataComparatorsForType(dataType);
+
+        Map<String, Object> operatorParams = new LinkedHashMap<>();
+        operatorParams.put("schema_type", category.getMetadataSchemaType());
+        operatorParams.put("field_key", fieldName);
+        operatorParams.put("data_type", dataType);
 
         return RuleItemResponse.builder()
                 .id(category.getCode().toLowerCase() + "." + fieldName)
@@ -325,25 +348,40 @@ public class RuleBuilderService {
                 .name(displayName, displayName)
                 .description(description, description)
                 .type(dataType)
+                .operatorName(METADATA_ACCESS_OPERATOR)
+                .defaultComparator(comparators.isEmpty() ? null : comparators.get(0))
+                .operatorParams(operatorParams)
                 .operators(comparators.stream().map(this::mapComparatorToOperator).toList())
                 .build();
     }
 
     /**
-     * Default comparator set per metadata field data type — per spec.
+     * Map a raw metadata PropertyType to the {@code data_type} understood by
+     * {@code MetadataAccessOperatorTranslator} (STRING/NUMBER/BOOLEAN/DATE/LIST).
      */
-    private List<String> comparatorsForMetadataType(String dataType) {
+    private String mapMetadataDataType(String rawType) {
+        return switch (rawType) {
+            case "NUMBER", "INTEGER", "DECIMAL" -> "NUMBER";
+            case "BOOLEAN" -> "BOOLEAN";
+            case "DATE", "DATETIME", "TIMESTAMP" -> "DATE";
+            case "ARRAY", "LIST" -> "LIST";
+            default -> "STRING"; // STRING, TEXT, ENUM, OBJECT, ...
+        };
+    }
+
+    /**
+     * Engine-native comparator codes per metadata data type, matching the
+     * branches of {@code MetadataAccessOperatorTranslator}. Range comparators
+     * ({@code between}) are intentionally omitted because the generic rule
+     * modal renders a single value input per data type, not a min/max pair.
+     */
+    private List<String> metadataComparatorsForType(String dataType) {
         return switch (dataType) {
-            case "STRING", "TEXT" ->
-                    List.of(OP_IS, OP_IS_NOT, OP_CONTAINS, OP_NOT_CONTAINS, OP_EXISTS, OP_NOT_EXISTS);
-            case "NUMBER", "INTEGER", "DECIMAL" -> List.of(
-                    OP_IS_MORE_THAN, OP_IS_EXACTLY, OP_IS_LESS_THAN,
-                    OP_IS_MORE_THAN_OR_EQUAL_TO, OP_IS_LESS_THAN_OR_EQUAL_TO);
-            case "BOOLEAN" -> List.of(OP_IS);
-            case "DATE", "DATETIME", "TIMESTAMP" ->
-                    List.of(OP_IS_BEFORE, OP_IS_AFTER, OP_IS_EXACTLY, OP_BETWEEN);
-            case "ENUM" -> List.of(OP_IS, OP_IS_NOT, "in", OP_NOT_IN);
-            default -> List.of(OP_IS, OP_IS_NOT);
+            case "NUMBER" -> List.of(OP_EQUALS, "gte", "lte");
+            case "BOOLEAN" -> List.of(OP_IS_TRUE, OP_IS_FALSE);
+            case "DATE" -> List.of(OP_EQUALS, "before", "after");
+            case "LIST" -> List.of(OP_CONTAINS, OP_NOT_CONTAINS);
+            default -> List.of(OP_EQUALS, OP_NOT_EQUALS, "in", OP_NOT_IN, OP_CONTAINS, "starts_with");
         };
     }
 
