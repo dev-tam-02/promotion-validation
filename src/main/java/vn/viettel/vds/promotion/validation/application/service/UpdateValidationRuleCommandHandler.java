@@ -497,8 +497,12 @@ public class UpdateValidationRuleCommandHandler {
                     ruleId, bindingId, snapshot.getVersion(), sagaId);
             return snapshot.getVersion();
         } catch (Exception e) {
-            logger.error("Failed to create BEFORE_UPDATE snapshot for ruleId={}, bindingId={}, sagaId={}, error={}",
-                    ruleId, bindingId, sagaId, e.getMessage(), e);
+            // PROM-942 round 3: createSnapshot now runs in REQUIRES_NEW so the
+            // outer transaction (updateBinding's save) is not poisoned even if
+            // we land here. Keep the explicit class+message log so the original
+            // serialization / constraint failure is easy to identify next time.
+            logger.error("Failed to create BEFORE_UPDATE snapshot for ruleId={}, bindingId={}, sagaId={}, errorClass={}, error={}",
+                    ruleId, bindingId, sagaId, e.getClass().getName(), e.getMessage(), e);
             return null;
         }
     }
