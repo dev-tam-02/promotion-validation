@@ -44,27 +44,8 @@ public class ValidationRuleSnapshotService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Create a snapshot of the current validation rule state before modification.
-     *
-     * @param validationRuleId the rule ID to snapshot
-     * @param sagaId           the saga ID (for correlation during compensation)
-     * @param correlationId    the correlation ID
-     * @param reason           the reason for creating the snapshot
-     * @return the created snapshot entity
-     */
-    @Transactional
-    public ValidationRuleSnapshotEntity createSnapshot(
-            String validationRuleId,
-            String sagaId,
-            String correlationId,
-            ValidationRuleSnapshotEntity.SnapshotReason reason) {
-        return createSnapshot(validationRuleId, null, sagaId, correlationId, reason);
-    }
-
-    /**
-     * Overload that captures the specific {@code rule_binding} being updated so a
-     * later revert can restore both rule and binding state. {@code bindingId} may
-     * be null when no binding is in play (rule-only edits).
+     * Create a snapshot capturing rule + optional binding state for later revert.
+     * {@code bindingId} may be null for rule-only edits.
      */
     @Transactional
     public ValidationRuleSnapshotEntity createSnapshot(

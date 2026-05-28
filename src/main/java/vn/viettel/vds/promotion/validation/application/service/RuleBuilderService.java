@@ -44,6 +44,11 @@ public class RuleBuilderService {
     private static final String OP_IS_LESS_THAN_OR_EQUAL_TO = "is_less_than_or_equal_to";
     private static final String OP_IS_BEFORE = "is_before";
     private static final String OP_IS_AFTER = "is_after";
+    private static final String OP_STARTS_WITH = "starts_with";
+    private static final String OP_BEFORE = "before";
+    private static final String OP_AFTER = "after";
+    private static final String TYPE_NUMBER = "NUMBER";
+    private static final String TYPE_BOOLEAN = "BOOLEAN";
     private static final String OP_IS_TRUE = "is_true";
     private static final String OP_IS_FALSE = "is_false";
     private static final String OP_LABEL_NOT_EQUALS = "not equals";
@@ -81,7 +86,7 @@ public class RuleBuilderService {
         m.put("not_between", OperatorResponse.of("not_between", "not between", "Ngoài khoảng"));
         m.put(OP_CONTAINS, OperatorResponse.of(OP_CONTAINS, OP_CONTAINS, "Chứa"));
         m.put(OP_NOT_CONTAINS, OperatorResponse.of(OP_NOT_CONTAINS, "does not contain", "Không chứa"));
-        m.put("starts_with", OperatorResponse.of("starts_with", "starts with", "Bắt đầu bằng"));
+        m.put(OP_STARTS_WITH, OperatorResponse.of(OP_STARTS_WITH, "starts with", "Bắt đầu bằng"));
         m.put("ends_with", OperatorResponse.of("ends_with", "ends with", "Kết thúc bằng"));
         m.put(OP_IS_TRUE, OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng"));
         m.put(OP_IS_FALSE, OperatorResponse.of(OP_IS_FALSE, "is false", "Sai"));
@@ -101,8 +106,8 @@ public class RuleBuilderService {
         m.put(OP_IS_BEFORE, OperatorResponse.of(OP_IS_BEFORE, "is before", "Trước"));
         m.put(OP_IS_AFTER, OperatorResponse.of(OP_IS_AFTER, "is after", "Sau"));
         // Engine-native comparators used by metadata.access (see MetadataAccessOperatorTranslator).
-        m.put("before", OperatorResponse.of("before", "is before", "Trước"));
-        m.put("after", OperatorResponse.of("after", "is after", "Sau"));
+        m.put(OP_BEFORE, OperatorResponse.of(OP_BEFORE, "is before", "Trước"));
+        m.put(OP_AFTER, OperatorResponse.of(OP_AFTER, "is after", "Sau"));
         m.put("size_gte", OperatorResponse.of("size_gte", "size at least", "Số phần tử ≥"));
         m.put("size_lte", OperatorResponse.of("size_lte", "size at most", "Số phần tử ≤"));
         return Collections.unmodifiableMap(m);
@@ -361,8 +366,8 @@ public class RuleBuilderService {
      */
     private String mapMetadataDataType(String rawType) {
         return switch (rawType) {
-            case "NUMBER", "INTEGER", "DECIMAL" -> "NUMBER";
-            case "BOOLEAN" -> "BOOLEAN";
+            case TYPE_NUMBER, "INTEGER", "DECIMAL" -> TYPE_NUMBER;
+            case TYPE_BOOLEAN -> TYPE_BOOLEAN;
             case "DATE", "DATETIME", "TIMESTAMP" -> "DATE";
             case "ARRAY", "LIST" -> "LIST";
             default -> "STRING"; // STRING, TEXT, ENUM, OBJECT, ...
@@ -377,11 +382,11 @@ public class RuleBuilderService {
      */
     private List<String> metadataComparatorsForType(String dataType) {
         return switch (dataType) {
-            case "NUMBER" -> List.of(OP_EQUALS, "gte", "lte");
-            case "BOOLEAN" -> List.of(OP_IS_TRUE, OP_IS_FALSE);
-            case "DATE" -> List.of(OP_EQUALS, "before", "after");
+            case TYPE_NUMBER -> List.of(OP_EQUALS, "gte", "lte");
+            case TYPE_BOOLEAN -> List.of(OP_IS_TRUE, OP_IS_FALSE);
+            case "DATE" -> List.of(OP_EQUALS, OP_BEFORE, OP_AFTER);
             case "LIST" -> List.of(OP_CONTAINS, OP_NOT_CONTAINS);
-            default -> List.of(OP_EQUALS, OP_NOT_EQUALS, "in", OP_NOT_IN, OP_CONTAINS, "starts_with");
+            default -> List.of(OP_EQUALS, OP_NOT_EQUALS, "in", OP_NOT_IN, OP_CONTAINS, OP_STARTS_WITH);
         };
     }
 
@@ -428,8 +433,8 @@ public class RuleBuilderService {
         }
 
         return switch (valueType) {
-            case NUMBER -> "NUMBER";
-            case BOOLEAN -> "BOOLEAN";
+            case NUMBER -> TYPE_NUMBER;
+            case BOOLEAN -> TYPE_BOOLEAN;
             case DATE -> "DATE";
             case LIST -> "LIST";
             default -> "TEXT";
