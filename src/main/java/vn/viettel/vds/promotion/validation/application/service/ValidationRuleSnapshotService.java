@@ -6,6 +6,7 @@ import com.promix.platform.core.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.*;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleBindingJpaRepository;
@@ -46,8 +47,20 @@ public class ValidationRuleSnapshotService {
     /**
      * Create a snapshot capturing rule + optional binding state for later revert.
      * {@code bindingId} may be null for rule-only edits.
+     *
+     * <p>PROM-942 round 3: propagation = REQUIRES_NEW so that a failure here (e.g.
+     * JSON serialization, unique-constraint race on
+     * {@code idx_snapshot_rule_version}) is isolated from the caller's transaction.
+     * Previously REQUIRED joined the outer {@code UpdateValidationRuleCommandHandler}
+     * transaction; any RuntimeException thrown out of this method marked that tx
+     * rollback-only, even though the caller caught the exception and treated the
+     * snapshot as best-effort. The result was a silent rollback of the binding
+     * update (rule_bindings.time_windows / active / updated_at all stayed at the
+     * pre-update values) while the kafka SUCCESS event still went out (kafka send
+     * is non-transactional). REQUIRES_NEW gives the snapshot its own tx so a
+     * failure costs only the snapshot row, not the binding update.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ValidationRuleSnapshotEntity createSnapshot(
             String validationRuleId,
             String bindingId,
