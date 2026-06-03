@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
@@ -34,6 +35,7 @@ public class RollbackValidationRuleCommandHandler {
     // Canonical object types that can be bound to a campaign-level object.
     private static final List<String> CAMPAIGN_OBJECT_TYPES = List.of("CAMPAIGN", "DISCOUNT_COUPON", "CASHBACK");
     private final RuleBindingPersistencePort ruleBindingPort;
+    private final RulePersistencePort rulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
     private final IdempotencyService idempotencyService;
     private final Validator validator;
@@ -41,11 +43,13 @@ public class RollbackValidationRuleCommandHandler {
 
     public RollbackValidationRuleCommandHandler(
             RuleBindingPersistencePort ruleBindingPort,
+            RulePersistencePort rulePort,
             SettingValidationRuleEventPublisher eventPublisher,
             IdempotencyService idempotencyService,
             Validator validator,
             RollbackValidationRuleCommandDTOMapper dtoMapper) {
         this.ruleBindingPort = ruleBindingPort;
+        this.rulePort = rulePort;
         this.eventPublisher = eventPublisher;
         this.idempotencyService = idempotencyService;
         this.validator = validator;
@@ -149,34 +153,35 @@ public class RollbackValidationRuleCommandHandler {
                     total += ruleBindingPort.deleteByObjectIgnoreCase(objectType, campaignId);
                 }
                 logger.info("Deleted {} rule_bindings for campaign: {}", total, campaignId);
-                return true;
+            } else {
+                // Find bindings across all supported object types (case-insensitive)
+                List<RuleBinding> bindings = new ArrayList<>();
+                for (String objectType : CAMPAIGN_OBJECT_TYPES) {
+                    bindings.addAll(ruleBindingPort.findByObjectIgnoreCase(objectType, campaignId));
+                }
+
+                // Filter to target binding by ruleId only (F4: drop ambiguous id OR clause)
+                List<RuleBinding> toDelete = bindings.stream()
+                        .filter(b -> validationRuleId.equals(b.getRuleId()))
+                        .toList();
+
+                if (toDelete.isEmpty()) {
+                    logger.warn("No binding found matching validationRuleId={} for campaign={}", validationRuleId, campaignId);
+                } else {
+                    logger.info("Found {} binding(s) to delete for campaign: {}", toDelete.size(), campaignId);
+                    for (RuleBinding binding : toDelete) {
+                        deleteBinding(binding);
+                    }
+                }
             }
 
-            // Find bindings across all supported object types (case-insensitive)
-            List<RuleBinding> bindings = new ArrayList<>();
-            for (String objectType : CAMPAIGN_OBJECT_TYPES) {
-                bindings.addAll(ruleBindingPort.findByObjectIgnoreCase(objectType, campaignId));
-            }
-
-            if (bindings.isEmpty()) {
-                logger.warn("No bindings found for campaign: {}", campaignId);
-                return true;
-            }
-
-            // Filter to target binding by ruleId only (F4: drop ambiguous id OR clause)
-            List<RuleBinding> toDelete = bindings.stream()
-                    .filter(b -> validationRuleId.equals(b.getRuleId()))
-                    .toList();
-
-            if (toDelete.isEmpty()) {
-                logger.warn("No binding found matching validationRuleId={} for campaign={}", validationRuleId, campaignId);
-                return true;
-            }
-
-            logger.info("Found {} binding(s) to delete for campaign: {}", toDelete.size(), campaignId);
-            for (RuleBinding binding : toDelete) {
-                deleteBinding(binding);
-            }
+            // Compensation must also remove the saga-auto-generated timeframe-gate rule
+            // (code = CAMPAIGN_<id>, Path B in SettingValidationRuleCommandHandler). Deleting
+            // the binding alone leaves that rule's row behind, keeping its UNIQUE code
+            // occupied — so a later re-create (editing the campaign out of ERROR) fails with
+            // "Duplicate entry 'CAMPAIGN_...' for key 'idx_validation_rules_code'". User-picked
+            // shared rules (Path A) keep their own code and are never matched here.
+            deleteAutoGeneratedCampaignRule(campaignId);
 
             return true;
 
@@ -184,6 +189,31 @@ public class RollbackValidationRuleCommandHandler {
             logger.error("Error executing rollback for campaign: {}", campaignId, e);
             return false;
         }
+    }
+
+    /**
+     * Hard-delete the campaign's auto-generated validation rule (and its nodes), if present.
+     *
+     * <p>The code is derived exactly as {@code SettingValidationRuleCommandHandler} Path B
+     * ({@code "CAMPAIGN_" + objectId-without-dashes, capped at 20 chars}). That synthetic code
+     * is itself the ownership proof — it embeds the campaignId and a user-picked shared rule
+     * (Path A) can never carry it — so matching by code is sufficient. (We do NOT gate on
+     * {@code rule.getCampaignId()}: that column is not persisted on validation_rules and reads
+     * back null.)
+     */
+    private void deleteAutoGeneratedCampaignRule(String campaignId) {
+        if (campaignId == null || campaignId.isBlank()) {
+            return;
+        }
+        String normalized = campaignId.replace("-", "");
+        String code = "CAMPAIGN_" + normalized.substring(0, Math.min(normalized.length(), 20));
+
+        rulePort.findByCode(code).ifPresent(rule -> {
+            rulePort.deleteNodesByRuleId(rule.getId());
+            rulePort.deleteById(rule.getId());
+            logger.info("Deleted auto-generated campaign rule on rollback: code={}, ruleId={}, campaignId={}",
+                    code, rule.getId(), campaignId);
+        });
     }
 
     private void deleteBinding(RuleBinding binding) {
