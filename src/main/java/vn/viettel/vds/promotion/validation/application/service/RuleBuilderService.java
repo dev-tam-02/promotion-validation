@@ -149,8 +149,21 @@ public class RuleBuilderService {
         logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, page, size, tenantId);
 
-        List<OperatorOption> allOptions = operatorConfigService.getAllCategoriesWithOptions(tenantId)
-                .stream()
+        int pageNumber = page != null ? page : 0;
+        int pageSize = size != null ? size : 20;
+
+        List<OperatorCategory> categories = operatorConfigService.getAllCategoriesWithOptions(tenantId);
+
+        // Metadata enum rules ("<categoryCode>.<fieldName>") are not seeded in
+        // operator_options; their allowed values come from the pp-schema
+        // definition (equalToAnyOf), resolved at request time.
+        RuleOptionsResponse metadataOptions =
+                resolveMetadataEnumOptions(ruleId, categories, search, pageNumber, pageSize);
+        if (metadataOptions != null) {
+            return metadataOptions;
+        }
+
+        List<OperatorOption> allOptions = categories.stream()
                 .flatMap(cat -> cat.getOptions().stream())
                 .filter(opt -> opt.getCode().equals(ruleId) || opt.getId().equals(ruleId))
                 .toList();
@@ -161,14 +174,57 @@ public class RuleBuilderService {
 
         OperatorOption option = allOptions.get(0);
         String dataSourceType = option.getDataSourceType();
-        int pageNumber = page != null ? page : 0;
-        int pageSize = size != null ? size : 20;
 
         if (dataSourceType == null || DATA_SOURCE_STATIC.equalsIgnoreCase(dataSourceType)) {
             return getStaticOptions(ruleId, option, search, pageNumber, pageSize);
         }
 
         return getExternalOptions(ruleId, option, dataSourceType, search, pageNumber, pageSize, tenantId);
+    }
+
+    /**
+     * Resolve value options for a metadata enum rule. The rule id has the shape
+     * {@code <categoryCode>.<fieldName>}; the allowed values are the STRING
+     * field's {@code equalToAnyOf} constraint from pp-schema.
+     *
+     * <p>Returns {@code null} when {@code ruleId} is not a metadata rule (so the
+     * caller falls back to operator-option lookup). Returns an empty page when
+     * it is a metadata rule but the field has no enum constraint.
+     */
+    private RuleOptionsResponse resolveMetadataEnumOptions(String ruleId, List<OperatorCategory> categories,
+                                                            String search, int pageNumber, int pageSize) {
+        int dot = ruleId.indexOf('.');
+        if (dot <= 0 || dot >= ruleId.length() - 1) {
+            return null;
+        }
+        String categoryCode = ruleId.substring(0, dot);
+        String fieldName = ruleId.substring(dot + 1);
+
+        OperatorCategory category = categories.stream()
+                .filter(c -> c.isMetadataCategory() && c.getMetadataSchemaType() != null)
+                .filter(c -> c.getCode().equalsIgnoreCase(categoryCode))
+                .findFirst()
+                .orElse(null);
+        if (category == null) {
+            return null;
+        }
+
+        Map<String, Object> field = findMetadataField(category, fieldName);
+        if (field == null) {
+            return RuleOptionsResponse.paginated(ruleId, Collections.emptyList(), 0, pageNumber, pageSize);
+        }
+
+        String lower = (search == null || search.isBlank()) ? null : search.toLowerCase();
+        List<RuleOptionResponse> options = stringEnumValues(field).stream()
+                .filter(v -> lower == null || v.toLowerCase().contains(lower))
+                .map(v -> RuleOptionResponse.of(v, v, v))
+                .toList();
+
+        int totalElements = options.size();
+        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        return RuleOptionsResponse.paginated(
+                ruleId, options.subList(fromIndex, toIndex), totalElements, pageNumber, pageSize);
     }
 
     /**
@@ -282,8 +338,19 @@ public class RuleBuilderService {
      * <p>Failure modes (pp-metadata down / no schema / no fields) all degrade
      * to an empty rule list — the category still renders, just empty.
      */
-    @SuppressWarnings("unchecked")
     private List<RuleItemResponse> resolveMetadataRules(OperatorCategory category) {
+        return fetchMetadataFields(category).stream()
+                .map(f -> synthesizeMetadataRule(category, f))
+                .toList();
+    }
+
+    /**
+     * Fetch the pp-schema field definitions for a metadata category. Returns an
+     * empty list on any failure (pp-metadata down / no schema / no fields) so the
+     * category still renders, just empty.
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> fetchMetadataFields(OperatorCategory category) {
         String schemaType = "STANDARD";
         String schemaName = category.getMetadataSchemaType();
         try {
@@ -305,20 +372,23 @@ public class RuleBuilderService {
             Map<String, Object> definitions = (Map<String, Object>) schemaData.get("definitions");
             if (definitions == null) return Collections.emptyList();
             List<Map<String, Object>> fields = (List<Map<String, Object>>) definitions.get("content");
-            if (fields == null || fields.isEmpty()) return Collections.emptyList();
-
-            return fields.stream()
-                    .map(f -> synthesizeMetadataRule(category, f))
-                    .toList();
+            return fields == null ? Collections.emptyList() : fields;
         } catch (FeignException e) {
-            logger.error("Failed to resolve metadata rules for category {}: {}",
+            logger.error("Failed to fetch metadata fields for category {}: {}",
                     category.getCode(), e.getMessage());
             return Collections.emptyList();
         } catch (RuntimeException e) {
-            logger.error("Unexpected error resolving metadata rules for category {}",
+            logger.error("Unexpected error fetching metadata fields for category {}",
                     category.getCode(), e);
             return Collections.emptyList();
         }
+    }
+
+    private Map<String, Object> findMetadataField(OperatorCategory category, String fieldName) {
+        return fetchMetadataFields(category).stream()
+                .filter(f -> fieldName.equals(stringOrEmpty(f.get("name"))))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -340,7 +410,15 @@ public class RuleBuilderService {
         String dataType = mapMetadataDataType(rawType);
         String description = stringOrEmpty(field.get("description"));
 
-        List<String> comparators = metadataComparatorsForType(dataType);
+        // A STRING field constrained to an enum (equalToAnyOf) renders as a
+        // multi-select picker fed by the schema's allowed values, instead of a
+        // free text box. The engine data_type stays STRING (membership via
+        // in/not_in); only the FE render type becomes LIST.
+        boolean stringEnum = "STRING".equals(dataType) && hasStringEnum(field);
+        String feType = stringEnum ? "LIST" : dataType;
+        List<String> comparators = stringEnum
+                ? List.of("in", OP_NOT_IN)
+                : metadataComparatorsForType(dataType);
 
         Map<String, Object> operatorParams = new LinkedHashMap<>();
         operatorParams.put("schema_type", category.getMetadataSchemaType());
@@ -352,12 +430,127 @@ public class RuleBuilderService {
                 .code((category.getCode() + "_" + fieldName).toUpperCase())
                 .name(displayName, displayName)
                 .description(description, description)
-                .type(dataType)
+                .type(feType)
                 .operatorName(METADATA_ACCESS_OPERATOR)
                 .defaultComparator(comparators.isEmpty() ? null : comparators.get(0))
                 .operatorParams(operatorParams)
+                .inputConfig(buildMetadataInputConfig(displayName, feType, field))
                 .operators(comparators.stream().map(this::mapComparatorToOperator).toList())
                 .build();
+    }
+
+    /**
+     * Read the allowed values of a STRING field's enum constraint
+     * ({@code validation.stringValidation.equalToAnyOf}) from the pp-schema
+     * definition. Empty when the field is not an enum.
+     */
+    private List<String> stringEnumValues(Map<String, Object> field) {
+        if (!(field.get("validation") instanceof Map<?, ?> validation)) {
+            return Collections.emptyList();
+        }
+        if (!(validation.get("stringValidation") instanceof Map<?, ?> stringValidation)) {
+            return Collections.emptyList();
+        }
+        if (!(stringValidation.get("equalToAnyOf") instanceof List<?> values)) {
+            return Collections.emptyList();
+        }
+        return values.stream()
+                .filter(v -> v != null)
+                .map(Object::toString)
+                .toList();
+    }
+
+    private boolean hasStringEnum(Map<String, Object> field) {
+        return !stringEnumValues(field).isEmpty();
+    }
+
+    /**
+     * Build the FE input configuration for a metadata-driven rule from its
+     * pp-schema definition. Without this the FE falls back to the generic
+     * "Tập khách hàng" segment label/multi-select, because {@code inputConfig}
+     * would be null. The label, input type and constraints are all derived
+     * from the schema definition so each attribute renders with its own name
+     * and the correct value editor.
+     */
+    private RuleInputConfigResponse buildMetadataInputConfig(String displayName, String dataType,
+                                                              Map<String, Object> field) {
+        RuleInputConfigResponse.Builder builder = RuleInputConfigResponse.builder();
+
+        // Label = the attribute's own display name (from pp-schema), not the
+        // segment default. Same text for en/vi since the schema carries one name.
+        builder.label(displayName, displayName);
+        builder.inputType(metadataInputType(dataType));
+        applyMetadataPlaceholder(builder, dataType);
+
+        // MULTIPLE cardinality (or a LIST/ARRAY type) renders a multi-value input.
+        boolean multiple = "LIST".equals(dataType)
+                || "MULTIPLE".equalsIgnoreCase(stringOrEmpty(field.get("cardinality")));
+        if (multiple) {
+            builder.multiple(Boolean.TRUE);
+        }
+
+        // Numeric range constraints come straight from the schema's NumberValidation.
+        if (TYPE_NUMBER.equals(dataType)) {
+            applyMetadataNumberConstraints(builder, field);
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Map the resolved metadata {@code data_type} to an HTML-ish input type hint.
+     */
+    private String metadataInputType(String dataType) {
+        return switch (dataType) {
+            case TYPE_NUMBER -> "number";
+            case TYPE_BOOLEAN -> "checkbox";
+            case "DATE" -> "date";
+            case "LIST" -> "select";
+            default -> "text";
+        };
+    }
+
+    private void applyMetadataPlaceholder(RuleInputConfigResponse.Builder builder, String dataType) {
+        String en;
+        String vi;
+        switch (dataType) {
+            case TYPE_NUMBER -> { en = "Enter a number"; vi = "Nhập số"; }
+            case "DATE" -> { en = "Select a date"; vi = "Chọn ngày"; }
+            case "LIST" -> { en = "Select values"; vi = "Chọn giá trị"; }
+            case TYPE_BOOLEAN -> { en = ""; vi = ""; }
+            default -> { en = "Enter a value"; vi = "Nhập giá trị"; }
+        }
+        if (!en.isEmpty() || !vi.isEmpty()) {
+            builder.placeholder(en, vi);
+        }
+    }
+
+    /**
+     * Pull min/max from the schema's NumberValidation. Prefers the inclusive
+     * bound ({@code greaterThanOrEqual}/{@code lessThanOrEqual}) and falls back
+     * to the exclusive one when only that is configured.
+     */
+    @SuppressWarnings("unchecked")
+    private void applyMetadataNumberConstraints(RuleInputConfigResponse.Builder builder,
+                                                 Map<String, Object> field) {
+        if (!(field.get("validation") instanceof Map<?, ?> validation)) {
+            return;
+        }
+        if (!(validation.get("numberValidation") instanceof Map<?, ?> number)) {
+            return;
+        }
+        Object min = firstNonNull(number.get("greaterThanOrEqual"), number.get("greaterThan"));
+        Object max = firstNonNull(number.get("lessThanOrEqual"), number.get("lessThan"));
+        if (min != null) {
+            builder.minValue(min.toString());
+        }
+        if (max != null) {
+            builder.maxValue(max.toString());
+        }
+    }
+
+    private Object firstNonNull(Object a, Object b) {
+        return a != null ? a : b;
     }
 
     /**
