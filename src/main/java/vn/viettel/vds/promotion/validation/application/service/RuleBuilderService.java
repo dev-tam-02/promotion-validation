@@ -49,6 +49,7 @@ public class RuleBuilderService {
     private static final String OP_AFTER = "after";
     private static final String TYPE_NUMBER = "NUMBER";
     private static final String TYPE_BOOLEAN = "BOOLEAN";
+    private static final String TYPE_STRING = "STRING";
     private static final String OP_IS_TRUE = "is_true";
     private static final String OP_IS_FALSE = "is_false";
     private static final String OP_LABEL_NOT_EQUALS = "not equals";
@@ -406,7 +407,7 @@ public class RuleBuilderService {
                                                      Map<String, Object> field) {
         String fieldName = stringOrEmpty(field.get("name"));
         String displayName = stringOrFallback(field.get("displayName"), fieldName);
-        String rawType = stringOrFallback(field.get("type"), "STRING").toUpperCase();
+        String rawType = stringOrFallback(field.get("type"), TYPE_STRING).toUpperCase();
         String dataType = mapMetadataDataType(rawType);
         String description = stringOrEmpty(field.get("description"));
 
@@ -414,7 +415,7 @@ public class RuleBuilderService {
         // multi-select picker fed by the schema's allowed values, instead of a
         // free text box. The engine data_type stays STRING (membership via
         // in/not_in); only the FE render type becomes LIST.
-        boolean stringEnum = "STRING".equals(dataType) && hasStringEnum(field);
+        boolean stringEnum = TYPE_STRING.equals(dataType) && hasStringEnum(field);
         String feType = stringEnum ? "LIST" : dataType;
         List<String> comparators = stringEnum
                 ? List.of("in", OP_NOT_IN)
@@ -563,7 +564,7 @@ public class RuleBuilderService {
             case TYPE_BOOLEAN -> TYPE_BOOLEAN;
             case "DATE", "DATETIME", "TIMESTAMP" -> "DATE";
             case "ARRAY", "LIST" -> "LIST";
-            default -> "STRING"; // STRING, TEXT, ENUM, OBJECT, ...
+            default -> TYPE_STRING; // STRING, TEXT, ENUM, OBJECT, ...
         };
     }
 
