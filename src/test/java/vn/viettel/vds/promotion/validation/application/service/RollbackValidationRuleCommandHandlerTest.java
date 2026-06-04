@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.dto.RollbackValidationRuleCommandDTO;
 import vn.viettel.vds.promotion.validation.adapter.in.messaging.mapper.RollbackValidationRuleCommandDTOMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.RollbackValidationRuleCommand.RollbackValidationRuleCommandPayload;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
@@ -36,6 +37,8 @@ class RollbackValidationRuleCommandHandlerTest {
     @Mock
     private RuleBindingPersistencePort ruleBindingPort;
     @Mock
+    private RulePersistencePort rulePort;
+    @Mock
     private SettingValidationRuleEventPublisher eventPublisher;
     @Mock
     private IdempotencyService idempotencyService;
@@ -49,7 +52,7 @@ class RollbackValidationRuleCommandHandlerTest {
     @BeforeEach
     void setUp() {
         handler = new RollbackValidationRuleCommandHandler(
-                ruleBindingPort, eventPublisher, idempotencyService, validator, dtoMapper);
+                ruleBindingPort, rulePort, eventPublisher, idempotencyService, validator, dtoMapper);
     }
 
     // ---- helpers ----
