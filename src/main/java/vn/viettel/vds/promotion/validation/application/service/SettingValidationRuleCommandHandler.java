@@ -275,17 +275,18 @@ public class SettingValidationRuleCommandHandler {
                     components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
             // Deploy to validation-engine (does NOT save the binding)
-            ruleBinding = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
+            DeployResult deployResult = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
+            ruleBinding = deployResult.binding();
 
             // Save binding once (avoids double-save OptimisticLockException)
             logger.info("[SAGA-DEBUG] BEFORE ruleBindingPort.save: commandId={}, bindingId={}", commandId, ruleBinding.getId());
             ruleBinding = ruleBindingPort.save(ruleBinding);
             logger.info("[SAGA-DEBUG] AFTER ruleBindingPort.save: commandId={}, bindingId={}", commandId, ruleBinding.getId());
 
-            // If a ruleId was present (compile required), verify deployment succeeded
-            // Deploy failure is indicated by bundleHash being null after the attempt
-            if (components.ruleId() != null && !components.ruleId().isEmpty()
-                    && ruleBinding.getBundleHash() == null) {
+            // Only a genuine deploy FAILURE blocks the saga. A SKIPPED deploy (rule has no
+            // conditions/constraints — nothing to compile) is a valid success path and must NOT
+            // be reported as COMPILE_DEPLOY_ERROR.
+            if (deployResult.outcome() == DeployOutcome.FAILED) {
                 logger.warn("Rule binding created but compilation to rule-engine failed: bindingId={}, ruleId={}",
                         ruleBinding.getId(), components.ruleId());
                 return CommandProcessingResult.failure("COMPILE_DEPLOY_ERROR",
@@ -798,14 +799,19 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
-     * Deploy rule to validation-engine
+     * Deploy rule to validation-engine.
+     *
+     * <p>Returns a {@link DeployResult} carrying the (possibly updated) binding plus an explicit
+     * outcome, so the caller can tell a legitimate SKIP (nothing to compile) apart from a real
+     * FAILURE. Previously success was inferred from {@code bundleHash != null}, which wrongly
+     * flagged a skipped deployment (rule with no conditions/constraints) as a compile failure.
      */
     @SuppressWarnings("java:S3776")
-    private RuleBinding deployRuleToEngine(RuleBinding binding, String ruleId, ApplicabilityScope applicableToData) {
+    private DeployResult deployRuleToEngine(RuleBinding binding, String ruleId, ApplicabilityScope applicableToData) {
         try {
             if (!Boolean.TRUE.equals(binding.getActive())) {
                 logger.info("Skipping deployment - binding is not active: bindingId={}", binding.getId());
-                return binding;
+                return DeployResult.skipped(binding);
             }
 
             boolean hasTemporalPolicy = binding.hasTemporalConstraints();
@@ -815,7 +821,7 @@ public class SettingValidationRuleCommandHandler {
                 // Deploy assignment bundle without business rule
                 if (!hasApplicability && !hasTemporalPolicy) {
                     logger.info("Skipping deployment - no ruleId and no constraints: bindingId={}", binding.getId());
-                    return binding;
+                    return DeployResult.skipped(binding);
                 }
 
                 logger.info("Deploying binding bundle (no ruleId): bindingId={}, hasApplicability={}, hasTemporalPolicy={}",
@@ -830,7 +836,7 @@ public class SettingValidationRuleCommandHandler {
                 var validationRuleOpt = validationRulePort.findById(ruleId);
                 if (validationRuleOpt.isEmpty()) {
                     logger.warn("Validation rule not found for deployment: ruleId={}", ruleId);
-                    return binding;
+                    return DeployResult.failed(binding);
                 }
 
                 var validationRule = validationRuleOpt.get();
@@ -840,7 +846,7 @@ public class SettingValidationRuleCommandHandler {
                 if (validationRule.getNodes() == null || validationRule.getNodes().isEmpty()) {
                     if (!hasApplicability && !hasTemporalPolicy) {
                         logger.info("Rule has no conditions and no constraints, skipping deployment: bindingId={}", binding.getId());
-                        return binding;
+                        return DeployResult.skipped(binding);
                     }
                     logger.info("Rule has no business conditions, deploying temporal-only bundle: bindingId={}, ruleId={}",
                             binding.getId(), ruleId);
@@ -857,11 +863,11 @@ public class SettingValidationRuleCommandHandler {
             }
         } catch (Exception e) {
             logger.error("Error deploying rule to engine: bindingId={}, ruleId={}", binding.getId(), ruleId, e);
-            return binding;
+            return DeployResult.failed(binding);
         }
     }
 
-    private RuleBinding handlePublishResult(RuleBinding binding, RulePublishingService.RulePublishResult publishResult) {
+    private DeployResult handlePublishResult(RuleBinding binding, RulePublishingService.RulePublishResult publishResult) {
         if (publishResult.isSuccess()) {
             // Re-fetch the binding from DB to get the managed entity and avoid OptimisticLockException
             RuleBinding current = ruleBindingPort.findById(binding.getId()).orElse(binding);
@@ -870,10 +876,28 @@ public class SettingValidationRuleCommandHandler {
                     .updatedAt(Instant.now())
                     .build();
             logger.info("Rule deployed successfully: bindingId={}, bundleHash={}", updated.getId(), publishResult.getBundleHash());
-            return updated;
+            return DeployResult.deployed(updated);
         } else {
             logger.error("Failed to deploy rule: bindingId={}, error={}", binding.getId(), publishResult.getErrorMessage());
-            return binding;
+            return DeployResult.failed(binding);
+        }
+    }
+
+    /** Outcome of a deploy attempt — separates a legitimate skip from a real failure. */
+    private enum DeployOutcome { DEPLOYED, SKIPPED, FAILED }
+
+    /** Carries the (possibly updated) binding plus the deploy outcome. */
+    private record DeployResult(RuleBinding binding, DeployOutcome outcome) {
+        static DeployResult deployed(RuleBinding b) {
+            return new DeployResult(b, DeployOutcome.DEPLOYED);
+        }
+
+        static DeployResult skipped(RuleBinding b) {
+            return new DeployResult(b, DeployOutcome.SKIPPED);
+        }
+
+        static DeployResult failed(RuleBinding b) {
+            return new DeployResult(b, DeployOutcome.FAILED);
         }
     }
 
