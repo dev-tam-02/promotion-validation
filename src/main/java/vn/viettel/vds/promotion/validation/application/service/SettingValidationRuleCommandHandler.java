@@ -512,30 +512,12 @@ public class SettingValidationRuleCommandHandler {
 
     /**
      * Build a rule-node list containing a single {@code binding.validity_window} COND node
-     * wrapped in a root GROUP(ALL), derived from the payload's validity timeframe.
+     * wrapped in a root GROUP(ALL), derived from start/end dates and timezone.
      *
-     * <p>Returns an empty list when:
-     * <ul>
-     *   <li>{@code tf} is null</li>
-     *   <li>{@code tf.validityTimeframe} is null</li>
-     *   <li>Both {@code startDate} and {@code expirationDate} are null</li>
-     * </ul>
-     * In those cases the auto-generated DRL becomes an unconditional ALLOW skeleton.
-     */
-    private List<RuleNode> buildTimeframeNodes(TimeFrame tf) {
-        if (tf == null || tf.getValidityTimeframe() == null) {
-            return List.of();
-        }
-        return buildTimeframeNodes(
-                tf.getValidityTimeframe().getStartDate(),
-                tf.getValidityTimeframe().getExpirationDate(),
-                tf.getTimezone());
-    }
-
-    /**
-     * Primitive-based overload so callers holding a different command type
+     * <p>Primitive-based so callers holding a different command type
      * (e.g. {@link UpdateValidationRuleCommandHandler} backfill, issue #4) can reuse
      * the same {@code binding.validity_window} temporal-gate node construction.
+     * Returns an empty list when both {@code startDate} and {@code endDate} are null.
      */
     private List<RuleNode> buildTimeframeNodes(Instant startDate, Instant endDate, String timezoneIn) {
         String timezone = timezoneIn != null ? timezoneIn : "Asia/Ho_Chi_Minh";
