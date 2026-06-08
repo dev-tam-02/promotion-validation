@@ -4,7 +4,10 @@ import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJ
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleNodeEntity;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleNodeEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleNodeRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.mapper.ValidationRuleMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.ValidationRuleRepositoryPort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -22,17 +25,43 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
 
     private final RuleJpaRepository jpaRepository;
     private final ValidationRuleMapper mapper;
+    private final RuleNodeRepository nodeRepository;
+    private final RuleNodeEntityMapper nodeMapper;
 
-    public ValidationRuleJpaAdapter(RuleJpaRepository jpaRepository, ValidationRuleMapper mapper) {
+    public ValidationRuleJpaAdapter(RuleJpaRepository jpaRepository, ValidationRuleMapper mapper,
+                                    RuleNodeRepository nodeRepository, RuleNodeEntityMapper nodeMapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
+        this.nodeRepository = nodeRepository;
+        this.nodeMapper = nodeMapper;
     }
 
     @Override
     public Optional<Rule> findById(String ruleId) {
         log.debug("Finding rule by ID: {}", ruleId);
+        // Rule conditions live in a separate rule_nodes table; the base mapper only maps the
+        // rule row. Hydrate nodes here so callers (notably the coupon-creation saga's
+        // deployRuleToEngine) see the real conditions instead of an empty rule — otherwise a
+        // rule WITH conditions is treated as "no conditions" and deployment is wrongly skipped.
         return jpaRepository.findById(ruleId)
-                .map(mapper::jpaEntityToDomain);
+                .map(mapper::jpaEntityToDomain)
+                .map(this::hydrateNodes);
+    }
+
+    /**
+     * Load the rule's nodes from {@code rule_nodes} and attach them to the domain object,
+     * mirroring {@code RuleJpaAdapter.findById}. Without this the {@code nodes} list stays empty.
+     */
+    private Rule hydrateNodes(Rule rule) {
+        if (rule.getId() == null) {
+            return rule;
+        }
+        List<RuleNodeEntity> nodeEntities = nodeRepository.findByValidationRuleIdOrderByOrder(rule.getId());
+        if (nodeEntities != null && !nodeEntities.isEmpty()) {
+            rule.setNodes(nodeMapper.toDomainList(nodeEntities));
+            log.debug("Hydrated {} node(s) for rule {}", nodeEntities.size(), rule.getId());
+        }
+        return rule;
     }
 
     @Override
