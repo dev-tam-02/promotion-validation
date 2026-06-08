@@ -264,6 +264,17 @@ public class SettingValidationRuleCommandHandler {
                         components.timeframeData(),
                         components.priority()
                 );
+            } else if (resolvedRule.getState() == Rule.RuleState.DRAFT) {
+                // Path A (issue #5): the CMS wizard creates rules in DRAFT
+                // (RuleService.createRule) and no caller activates them, so the rule would
+                // reach RulePublishingService.publishRule() in DRAFT and be rejected by the
+                // pre-publish guard — surfacing as a misleading COMPILE_DEPLOY_ERROR.
+                // Activate it here, symmetric with Path B which builds rules already PUBLISHED.
+                // Idempotent: a saga retry finds the rule already PUBLISHED and skips this branch.
+                logger.info("[Path A] Activating DRAFT rule {} before deploy (issue #5)", resolvedRule.getId());
+                resolvedRule.publish(SYSTEM_USER);
+                resolvedRule = validationRulePort.save(resolvedRule);
+                historyPort.save(buildHistorySnapshot(resolvedRule, "Activated by saga before deploy (Path A, issue #5)"));
             }
             // Path A: rule already in DB; ruleId in components matches payload.ruleId
 
@@ -395,22 +406,35 @@ public class SettingValidationRuleCommandHandler {
         }
 
         // ===== Path B: auto-generate timeframe-gate rule =====
+        Instant effectiveFrom = null;
+        Instant effectiveTo = null;
+        String timezone = null;
+        TimeFrame tf = payload.getTimeframe();
+        if (tf != null) {
+            timezone = tf.getTimezone();
+            if (tf.getValidityTimeframe() != null) {
+                effectiveFrom = tf.getValidityTimeframe().getStartDate();
+                effectiveTo = tf.getValidityTimeframe().getExpirationDate();
+            }
+        }
+        return buildAutoTimeframeRule(payload.getObjectId(), effectiveFrom, effectiveTo, timezone);
+    }
+
+    /**
+     * Build (but do NOT persist) an auto-generated timeframe-gate rule for a campaign,
+     * derived from primitive timeframe bounds. Extracted from {@link #resolveOrCreateRule}
+     * Path B so callers holding a different command type (e.g.
+     * {@link UpdateValidationRuleCommandHandler} backfill, issue #4) can reuse the exact
+     * same rule shape without coupling to {@code SettingValidationRuleCommand}.
+     */
+    Rule buildAutoTimeframeRule(String objectId, Instant startDate, Instant endDate, String timezone) {
         String ruleId = IdGenerator.generateId();
-        String objectId = payload.getObjectId();
         String code = "CAMPAIGN_" + objectId.replace("-", "").substring(
                 0, Math.min(objectId.replace("-", "").length(), 20));
 
-        List<RuleNode> nodes = buildTimeframeNodes(payload.getTimeframe());
+        List<RuleNode> nodes = buildTimeframeNodes(startDate, endDate, timezone);
 
         Instant now = Instant.now();
-        Instant effectiveFrom = null;
-        Instant effectiveTo = null;
-        TimeFrame tf = payload.getTimeframe();
-        if (tf != null && tf.getValidityTimeframe() != null) {
-            effectiveFrom = tf.getValidityTimeframe().getStartDate();
-            effectiveTo = tf.getValidityTimeframe().getExpirationDate();
-        }
-
         Rule rule = Rule.builder()
                 .id(ruleId)
                 .code(code)
@@ -421,8 +445,8 @@ public class SettingValidationRuleCommandHandler {
                 .ruleVersion(1L)
                 .logic(Rule.LogicType.ALL)
                 .nodes(nodes)
-                .effectiveFrom(effectiveFrom)
-                .effectiveTo(effectiveTo)
+                .effectiveFrom(startDate)
+                .effectiveTo(endDate)
                 .campaignId(objectId)
                 .publishedAt(now)
                 .publishedBy(SYSTEM_USER)
@@ -442,6 +466,51 @@ public class SettingValidationRuleCommandHandler {
     }
 
     /**
+     * Backfill a rule + binding for a campaign that has no validation binding yet,
+     * then deploy the bundle and return the persisted binding. Reused by
+     * {@link UpdateValidationRuleCommandHandler} (issue #4) so a first-time timeframe
+     * update creates the missing rule+binding instead of failing with
+     * {@code BindingNotFoundException}. When {@code existingRuleId} is provided the
+     * rule is loaded (Path A); otherwise a timeframe-gate rule is auto-generated
+     * (Path B). The caller owns success-event publishing and idempotency for its own
+     * command type. On saga rollback the binding is removed by delete-style
+     * compensation (the caller publishes previousVersion=null), so no orphan is left.
+     *
+     * @param binding        binding pre-built by the caller from its payload, WITHOUT ruleId
+     * @param existingRuleId user-selected rule id, or null/blank to auto-generate
+     * @param startDate      validity window start for the temporal node (nullable)
+     * @param endDate        validity window end (nullable)
+     * @param timezone       timezone for the temporal node (nullable → default)
+     * @return the persisted binding with ruleId (and bundleHash when deployment succeeds)
+     */
+    public RuleBinding backfillRuleAndBinding(RuleBinding binding, String existingRuleId,
+                                              Instant startDate, Instant endDate, String timezone) {
+        Rule rule;
+        if (existingRuleId != null && !existingRuleId.isBlank()) {
+            rule = validationRulePort.findById(existingRuleId)
+                    .orElseThrow(() -> new RuleNotFoundException(existingRuleId));
+            logger.info("[Backfill] Reusing existing rule {} for campaign {}", existingRuleId, binding.getObjectId());
+        } else {
+            rule = validationRulePort.save(buildAutoTimeframeRule(
+                    binding.getObjectId(), startDate, endDate, timezone));
+            historyPort.save(buildHistorySnapshot(rule, "Auto-generated by first-time update backfill (issue #4)"));
+            logger.info("[Backfill] Saved auto-generated rule {} for campaign {}", rule.getId(), binding.getObjectId());
+        }
+
+        RuleBinding withRule = binding.toBuilder().ruleId(rule.getId()).build();
+        withRule = deployRuleToEngine(withRule, rule.getId(), null).binding();
+        withRule = ruleBindingPort.save(withRule);
+
+        if (rule.getNodes() != null && !rule.getNodes().isEmpty()) {
+            compileDrlAndRegisterInEngine(rule);
+        }
+
+        logger.info("[Backfill] Created rule binding for first-time update: objectId={}, ruleId={}, bindingId={}",
+                binding.getObjectId(), rule.getId(), withRule.getId());
+        return withRule;
+    }
+
+    /**
      * Build a rule-node list containing a single {@code binding.validity_window} COND node
      * wrapped in a root GROUP(ALL), derived from the payload's validity timeframe.
      *
@@ -457,10 +526,19 @@ public class SettingValidationRuleCommandHandler {
         if (tf == null || tf.getValidityTimeframe() == null) {
             return List.of();
         }
+        return buildTimeframeNodes(
+                tf.getValidityTimeframe().getStartDate(),
+                tf.getValidityTimeframe().getExpirationDate(),
+                tf.getTimezone());
+    }
 
-        Instant startDate = tf.getValidityTimeframe().getStartDate();
-        Instant endDate = tf.getValidityTimeframe().getExpirationDate();
-        String timezone = tf.getTimezone() != null ? tf.getTimezone() : "Asia/Ho_Chi_Minh";
+    /**
+     * Primitive-based overload so callers holding a different command type
+     * (e.g. {@link UpdateValidationRuleCommandHandler} backfill, issue #4) can reuse
+     * the same {@code binding.validity_window} temporal-gate node construction.
+     */
+    private List<RuleNode> buildTimeframeNodes(Instant startDate, Instant endDate, String timezoneIn) {
+        String timezone = timezoneIn != null ? timezoneIn : "Asia/Ho_Chi_Minh";
 
         if (startDate == null && endDate == null) {
             return List.of();

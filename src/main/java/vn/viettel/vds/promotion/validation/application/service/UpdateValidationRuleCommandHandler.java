@@ -7,6 +7,7 @@ import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +21,6 @@ import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.ApplicabilityScope;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.command.UpdateValidationRuleCommand.UpdateValidationRuleCommandPayload;
-import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidCommandDataException;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.event.ValidationSettingUpdateResultEvent;
@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  * <p>
  * Refactored to use unified RuleBinding model.
  */
+@ConditionalOnProperty(prefix = "promix.messaging", name = "enabled", havingValue = "true")
 @Service
 @Transactional
 public class UpdateValidationRuleCommandHandler {
@@ -53,6 +54,7 @@ public class UpdateValidationRuleCommandHandler {
     private final IdempotencyService idempotencyService;
     private final RulePublishingService rulePublishingService;
     private final ValidationRuleSnapshotService snapshotService;
+    private final SettingValidationRuleCommandHandler settingHandler;
     private final Validator validator;
     private final UpdateValidationRuleCommandDTOMapper dtoMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -66,6 +68,7 @@ public class UpdateValidationRuleCommandHandler {
             IdempotencyService idempotencyService,
             RulePublishingService rulePublishingService,
             ValidationRuleSnapshotService snapshotService,
+            SettingValidationRuleCommandHandler settingHandler,
             Validator validator,
             UpdateValidationRuleCommandDTOMapper dtoMapper,
             KafkaTemplate<String, Object> kafkaTemplate) {
@@ -74,6 +77,7 @@ public class UpdateValidationRuleCommandHandler {
         this.idempotencyService = idempotencyService;
         this.rulePublishingService = rulePublishingService;
         this.snapshotService = snapshotService;
+        this.settingHandler = settingHandler;
         this.validator = validator;
         this.dtoMapper = dtoMapper;
         this.kafkaTemplate = kafkaTemplate;
@@ -109,10 +113,13 @@ public class UpdateValidationRuleCommandHandler {
             // Find existing binding
             RuleBinding existingBinding = findExistingBinding(assignmentId, objectType, objectId);
             if (existingBinding == null) {
-                String errorMessage = "Binding not found: assignmentId=" + assignmentId;
-                logger.error(errorMessage);
-                publishErrorEvent(commandId, objectId, "BINDING_NOT_FOUND", errorMessage);
-                throw new BindingNotFoundException(assignmentId);
+                // issue #4: a campaign created WITHOUT validation criteria has no RuleBinding
+                // (create saga gates on hasValidationCriteria — PROM-972). A first-time
+                // timeframe update must therefore CREATE the rule+binding (upsert) instead of
+                // failing — otherwise the update saga rolls back and the timeframe is lost.
+                logger.info("No existing binding for objectType={}, objectId={} — creating one (first-time update backfill)",
+                        objectType, objectId);
+                return createBindingForFirstTimeUpdate(payload, commandId);
             }
 
             // Capture BEFORE_UPDATE snapshot so saga compensation can call
@@ -223,6 +230,60 @@ public class UpdateValidationRuleCommandHandler {
         applyTimeframeUpdate(builder, payload.getTimeframe());
 
         return ruleBindingPort.save(builder.build());
+    }
+
+    /**
+     * issue #4 — handle an UpdateValidationRuleCommand for a campaign that has no
+     * RuleBinding yet (created without validation criteria). Builds a fresh binding
+     * from the update payload using the same field-mapping as a normal update, then
+     * delegates rule creation + deployment to
+     * {@link SettingValidationRuleCommandHandler#backfillRuleAndBinding} so create and
+     * backfill stay single-sourced. Publishes the same
+     * {@link ValidationSettingUpdateResultEvent} success shape as a normal update but
+     * with previousVersion=null, so the update saga treats compensation as a delete
+     * (CREATE-style rollback) rather than a snapshot revert — leaving no orphan binding.
+     */
+    private boolean createBindingForFirstTimeUpdate(UpdateValidationRuleCommandPayload payload, String commandId) {
+        RuleBinding.RuleBindingBuilder builder = RuleBinding.builder()
+                .id(IdGenerator.generateId())
+                .objectType(payload.getObjectType())
+                .objectId(payload.getObjectId())
+                .active(payload.getActive() == null || payload.getActive())
+                .trafficPercent(payload.getTrafficPercent() != null ? payload.getTrafficPercent() : 100)
+                .priority(payload.getPriority() != null ? payload.getPriority() : 1)
+                .stickyKeyStrategy(RuleBinding.StickyKeyStrategy.CUSTOMER_ID)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .createdBy("system")
+                .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : "system")
+                .version(0L);
+
+        applyApplicabilityUpdate(builder, payload.getApplicableTo());
+        applyTimeframeUpdate(builder, payload.getTimeframe());
+
+        Instant startDate = null;
+        Instant endDate = null;
+        String timezone = null;
+        TimeFrame tf = payload.getTimeframe();
+        if (tf != null) {
+            timezone = tf.getTimezone();
+            if (tf.getValidityTimeframe() != null) {
+                startDate = tf.getValidityTimeframe().getStartDate();
+                endDate = tf.getValidityTimeframe().getExpirationDate();
+            }
+        }
+
+        RuleBinding created = settingHandler.backfillRuleAndBinding(
+                builder.build(), payload.getRuleId(), startDate, endDate, timezone);
+
+        idempotencyService.markAsProcessed(commandId, "First-time update created binding");
+
+        // previousVersion=null → saga compensates this as a CREATE (delete binding) on rollback.
+        publishSuccessEvent(commandId, payload.getObjectId(), created, null);
+
+        logger.info("Successfully created binding for first-time update: commandId={}, bindingId={}, ruleId={}",
+                commandId, created.getId(), created.getRuleId());
+        return true;
     }
 
     private void applyApplicabilityUpdate(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
