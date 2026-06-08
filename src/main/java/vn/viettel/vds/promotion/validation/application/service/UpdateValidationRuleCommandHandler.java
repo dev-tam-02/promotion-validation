@@ -48,6 +48,7 @@ public class UpdateValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UpdateValidationRuleCommandHandler.class);
     private static final String SOURCE = "validation-service";
+    private static final String DEFAULT_USER = "system";
 
     private final RuleBindingPersistencePort ruleBindingPort;
     private final ValidationRuleRepositoryPort validationRulePort;
@@ -211,7 +212,7 @@ public class UpdateValidationRuleCommandHandler {
     private RuleBinding updateBinding(RuleBinding existing, UpdateValidationRuleCommandPayload payload) {
         RuleBinding.RuleBindingBuilder builder = existing.toBuilder()
                 .updatedAt(Instant.now())
-                .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : "system");
+                .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : DEFAULT_USER);
 
         if (payload.getRuleId() != null && !payload.getRuleId().isBlank()) {
             builder.ruleId(payload.getRuleId());
@@ -254,8 +255,8 @@ public class UpdateValidationRuleCommandHandler {
                 .stickyKeyStrategy(RuleBinding.StickyKeyStrategy.CUSTOMER_ID)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .createdBy("system")
-                .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : "system")
+                .createdBy(DEFAULT_USER)
+                .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : DEFAULT_USER)
                 .version(0L);
 
         applyApplicabilityUpdate(builder, payload.getApplicableTo());
