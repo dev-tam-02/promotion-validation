@@ -76,6 +76,21 @@ public class EnableValidationRuleCommandHandler {
             RuleBinding enabledBinding = executeEnable(campaignId, validationRuleId);
 
             if (enabledBinding == null) {
+                // issue #4 family: a campaign created WITHOUT validation criteria (PROM-972 gate)
+                // has no RuleBinding. "Enable validation" is then vacuously satisfied — there is
+                // nothing to enable — so treat the absent-binding case as an idempotent success
+                // (mirrors the DISABLE handler) instead of failing. Otherwise such campaigns could
+                // never be enabled: the enable saga waits for ValidationRuleEnabledEvent forever and
+                // times out to ERROR. A null return when a binding DOES exist means the activation
+                // itself failed (e.g. DB error) and must still surface as ENABLE_FAILED so the saga
+                // does not falsely report the campaign ACTIVE.
+                if (!bindingExists(campaignId, validationRuleId)) {
+                    logger.info("No binding to enable for campaignId={} - idempotent success", campaignId);
+                    idempotencyService.markAsProcessed(commandId, "No binding to enable - idempotent success");
+                    publishEnableSuccessEvent(commandId, campaignId, null);
+                    return true;
+                }
+
                 String errorCode = "ENABLE_FAILED";
                 String errorMessage = "Failed to enable validation rule binding";
                 publishEnableErrorEvent(commandId, campaignId, errorCode, errorMessage);
@@ -126,6 +141,20 @@ public class EnableValidationRuleCommandHandler {
      * Returns the first enabled binding so the existing success event format can
      * still be published, or {@code null} when no binding was found.
      */
+    /**
+     * Distinguish "campaign has no validation binding at all" (idempotent enable
+     * success — issue #4 family) from "a binding exists but its activation failed"
+     * (a real error). Re-queries by ruleId then by campaign objectId, matching the
+     * lookup order of {@link #executeEnable}.
+     */
+    private boolean bindingExists(String campaignId, String validationRuleId) {
+        if (validationRuleId != null && !validationRuleId.isBlank()
+                && ruleBindingPort.findById(validationRuleId).isPresent()) {
+            return true;
+        }
+        return !ruleBindingPort.findByObjectId(campaignId).isEmpty();
+    }
+
     private RuleBinding executeEnable(String campaignId, String validationRuleId) {
         try {
             if (validationRuleId != null && !validationRuleId.isBlank()) {
