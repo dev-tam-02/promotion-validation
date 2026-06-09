@@ -40,6 +40,11 @@ public class SettingValidationRuleCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
+    // TEMP: tắt bước compile/deploy rule sang pp-rule-engine khi tính năng validation chưa hoàn thiện.
+    // Khi false: chỉ cần lưu rule binding thành công là coi như pass, KHÔNG gọi rule-engine.
+    // Đổi lại true sau khi validation hoàn thành (hoặc fix key mismatch values->segments ở rule-engine).
+    private static final boolean RULE_ENGINE_DEPLOY_ENABLED = false;
+
     private static final String PROCESSING_ERROR = "PROCESSING_ERROR";
     private static final String SYSTEM_USER = "system";
     private static final String DEFAULT_FREQ = "FREQ=DAILY;INTERVAL=1";
@@ -285,9 +290,17 @@ public class SettingValidationRuleCommandHandler {
             logger.info("Created rule binding: objectType={}, objectId={}, ruleId={}, bindingId={}",
                     components.objectType(), components.objectId(), components.ruleId(), ruleBinding.getId());
 
-            // Deploy to validation-engine (does NOT save the binding)
-            DeployResult deployResult = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
-            ruleBinding = deployResult.binding();
+            // Deploy to validation-engine (does NOT save the binding).
+            // TEMP: bỏ qua khi rule-engine deploy bị tắt — lưu binding là đủ để pass.
+            DeployResult deployResult;
+            if (RULE_ENGINE_DEPLOY_ENABLED) {
+                deployResult = deployRuleToEngine(ruleBinding, components.ruleId(), components.applicableToData());
+                ruleBinding = deployResult.binding();
+            } else {
+                logger.warn("[RULE-ENGINE DEPLOY DISABLED] Bỏ qua compile/deploy sang rule-engine; coi binding đã lưu là success. bindingId={}, ruleId={}",
+                        ruleBinding.getId(), components.ruleId());
+                deployResult = DeployResult.skipped(ruleBinding);
+            }
 
             // Save binding once (avoids double-save OptimisticLockException)
             logger.info("[SAGA-DEBUG] BEFORE ruleBindingPort.save: commandId={}, bindingId={}", commandId, ruleBinding.getId());
@@ -307,7 +320,7 @@ public class SettingValidationRuleCommandHandler {
             // Step 4 (T4): Register DRL into KieBase (pp-rule-engine) for live evaluation.
             // This is a best-effort step — failures are logged but do not block the saga.
             // The T0 bootstrap loader will re-register rules on next service restart if needed.
-            if (resolvedRule.getNodes() != null && !resolvedRule.getNodes().isEmpty()) {
+            if (RULE_ENGINE_DEPLOY_ENABLED && resolvedRule.getNodes() != null && !resolvedRule.getNodes().isEmpty()) {
                 compileDrlAndRegisterInEngine(resolvedRule);
             }
 
