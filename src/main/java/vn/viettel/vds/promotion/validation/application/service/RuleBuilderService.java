@@ -91,8 +91,11 @@ public class RuleBuilderService {
         m.put("ends_with", OperatorResponse.of("ends_with", "ends with", "Kết thúc bằng"));
         m.put(OP_IS_TRUE, OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng"));
         m.put(OP_IS_FALSE, OperatorResponse.of(OP_IS_FALSE, "is false", "Sai"));
-        m.put(OP_IS, OperatorResponse.of(OP_IS, OP_IS, "Là"));
-        m.put(OP_IS_NOT, OperatorResponse.of(OP_IS_NOT, "is not", "Không là"));
+        // Membership-style rules (customer_segment, *_order_item, redeeming_user)
+        // dùng comparator is/is_not; nhãn VN hiển thị "Thuộc/Không thuộc" theo
+        // wireframe. Giữ nguyên value/labelEn để rule-engine + round-trip không đổi.
+        m.put(OP_IS, OperatorResponse.of(OP_IS, OP_IS, "Thuộc"));
+        m.put(OP_IS_NOT, OperatorResponse.of(OP_IS_NOT, "is not", "Không thuộc"));
         m.put("is_any", OperatorResponse.of("is_any", OP_LABEL_IS_ANY_OF, "Là một trong"));
         m.put("is_none", OperatorResponse.of("is_none", OP_LABEL_IS_NONE_OF, "Không là bất kỳ"));
         m.put(OP_IS_MORE_THAN, OperatorResponse.of(OP_IS_MORE_THAN, "is more than", "Lớn hơn"));
