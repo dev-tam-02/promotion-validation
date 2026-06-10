@@ -87,20 +87,18 @@ class UpdateValidationRuleCommandHandlerBackfillTest {
 
         RuleBinding created = RuleBinding.builder()
                 .id("binding-new")
-                .ruleId("rule-new")
+                // Rule-less binding: Path B no longer auto-generates a skeleton rule.
                 .objectType(OBJECT_TYPE)
                 .objectId(CAMPAIGN_ID)
                 .build();
-        when(settingHandler.backfillRuleAndBinding(
-                any(RuleBinding.class), isNull(), eq(START), eq(END), eq("Asia/Ho_Chi_Minh")))
+        when(settingHandler.backfillRuleAndBinding(any(RuleBinding.class), isNull()))
                 .thenReturn(created);
 
         boolean result = handler.handleCommand(command);
 
         assertThat(result).isTrue();
-        // Backfilled the missing rule+binding (Path B — ruleId null → auto-generate).
-        verify(settingHandler).backfillRuleAndBinding(
-                any(RuleBinding.class), isNull(), eq(START), eq(END), eq("Asia/Ho_Chi_Minh"));
+        // Backfilled the missing binding (Path B — ruleId null → rule-less binding).
+        verify(settingHandler).backfillRuleAndBinding(any(RuleBinding.class), isNull());
         // Marked processed + published the success event (saga proceeds, no rollback).
         verify(idempotencyService).markAsProcessed(eq("cmd-issue4"), anyString());
         verify(kafkaTemplate).send(any(), eq(CAMPAIGN_ID), any());
@@ -117,8 +115,8 @@ class UpdateValidationRuleCommandHandlerBackfillTest {
         when(validator.validate(dto)).thenReturn(Collections.emptySet());
         when(idempotencyService.isProcessed("cmd-issue4")).thenReturn(false);
         when(ruleBindingPort.findByObject(OBJECT_TYPE, CAMPAIGN_ID)).thenReturn(Collections.emptyList());
-        when(settingHandler.backfillRuleAndBinding(any(RuleBinding.class), isNull(), any(), any(), any()))
-                .thenReturn(RuleBinding.builder().id("b").ruleId("r").objectId(CAMPAIGN_ID).build());
+        when(settingHandler.backfillRuleAndBinding(any(RuleBinding.class), isNull()))
+                .thenReturn(RuleBinding.builder().id("b").objectId(CAMPAIGN_ID).build());
 
         assertThatCode(() -> handler.handleCommand(command)).doesNotThrowAnyException();
     }

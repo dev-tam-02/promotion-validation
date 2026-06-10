@@ -33,7 +33,9 @@ import java.time.Instant;
 public class RuleBindingEntity extends BaseEntity {
 
     // ========== Rule Reference ==========
-    @Column(name = "rule_id", length = 36, nullable = false)
+    // Nullable: a timeframe-only campaign binds WITHOUT a rule (Path B no longer
+    // auto-generates a skeleton rule) — the binding alone carries the timeframe.
+    @Column(name = "rule_id", length = 36)
     private String ruleId;
 
     @Column(name = "rule_version_pinned")

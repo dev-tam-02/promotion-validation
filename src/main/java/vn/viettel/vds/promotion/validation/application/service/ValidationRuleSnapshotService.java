@@ -125,12 +125,74 @@ public class ValidationRuleSnapshotService {
     }
 
     /**
+     * Create a snapshot for a RULE-LESS binding (timeframe-only campaign, no
+     * validation rule attached). The snapshot row is keyed by the BINDING id in the
+     * {@code validation_rule_id} column and by the binding's optimistic-lock version;
+     * its data carries only the {@code binding} section (no rule fields).
+     * {@link #restoreFromSnapshot} detects this shape and restores the binding alone.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ValidationRuleSnapshotEntity createBindingOnlySnapshot(
+            String bindingId,
+            String sagaId,
+            String correlationId,
+            ValidationRuleSnapshotEntity.SnapshotReason reason) {
+
+        log.info("Creating binding-only snapshot: bindingId={}, sagaId={}, reason={}",
+                bindingId, sagaId, reason);
+
+        RuleBindingEntity binding = ruleBindingRepository.findById(bindingId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Rule binding not found: " + bindingId));
+
+        Long currentVersion = binding.getVersion();
+
+        Optional<ValidationRuleSnapshotEntity> existingSnapshot =
+                snapshotRepository.findByValidationRuleIdAndVersion(bindingId, currentVersion);
+        if (existingSnapshot.isPresent()) {
+            log.info("Binding-only snapshot already exists for binding: {} version: {}, returning existing: {}",
+                    bindingId, currentVersion, existingSnapshot.get().getId());
+            return existingSnapshot.get();
+        }
+
+        ValidationRuleSnapshotData snapshotData = new ValidationRuleSnapshotData();
+        snapshotData.setBinding(toBindingSnapshot(binding));
+
+        String snapshotJson;
+        try {
+            snapshotJson = objectMapper.writeValueAsString(snapshotData);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize binding-only snapshot data for binding: {}", bindingId, e);
+            throw new SnapshotSerializationException("Failed to serialize snapshot data", e);
+        }
+
+        ValidationRuleSnapshotEntity snapshot = ValidationRuleSnapshotEntity.builder()
+                .id(IdGenerator.generateId())
+                .validationRuleId(bindingId)
+                .version(currentVersion)
+                .snapshotData(snapshotJson)
+                .sagaId(sagaId)
+                .correlationId(correlationId)
+                .snapshotReason(reason)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plus(DEFAULT_SNAPSHOT_RETENTION_DAYS, ChronoUnit.DAYS))
+                .build();
+
+        ValidationRuleSnapshotEntity saved = snapshotRepository.save(snapshot);
+        log.info("Created binding-only snapshot: {} for binding: {} version: {}",
+                saved.getId(), bindingId, currentVersion);
+        return saved;
+    }
+
+    /**
      * Restore a validation rule from a snapshot.
      * This is used during saga compensation to revert to a previous version.
      *
-     * @param validationRuleId the rule ID to restore
+     * @param validationRuleId the rule ID to restore — or the BINDING id for a
+     *                         binding-only snapshot (rule-less timeframe binding)
      * @param targetVersion    the version to restore to
-     * @return the restored rule entity
+     * @return the restored rule entity, or {@code null} for a binding-only snapshot
+     *         (only the binding row is restored, no rule exists)
      */
     @Transactional
     public ValidationRuleEntity restoreFromSnapshot(String validationRuleId, Long targetVersion) {
@@ -151,6 +213,20 @@ public class ValidationRuleSnapshotService {
         } catch (JsonProcessingException e) {
             log.error("Failed to deserialize snapshot data for rule: {}", validationRuleId, e);
             throw new SnapshotSerializationException("Failed to deserialize snapshot data", e);
+        }
+
+        // Binding-only snapshot (rule-less timeframe binding): no rule fields were
+        // captured — restore the binding row and return null, there is no rule entity.
+        if (snapshotData.getId() == null) {
+            if (snapshotData.getBinding() != null && snapshotData.getBinding().getId() != null) {
+                restoreBindingFromSnapshotData(snapshotData.getBinding());
+                log.info("Restored binding-only snapshot: bindingId={}, version={}",
+                        validationRuleId, targetVersion);
+            } else {
+                log.warn("Binding-only snapshot has no binding data — nothing to restore: subjectId={}, version={}",
+                        validationRuleId, targetVersion);
+            }
+            return null;
         }
 
         // Load current entity

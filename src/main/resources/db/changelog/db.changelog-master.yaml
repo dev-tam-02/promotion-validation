@@ -190,3 +190,9 @@ databaseChangeLog:
   # FE only displays "is" now.
   - include:
       file: db/changelog/changes/062-remove-from-comparator-from-product-rules.yaml
+
+  # Path B no longer auto-generates skeleton "Campaign Rule - {id}" rules —
+  # unlink legacy bindings and delete the inert rules (timeframe lives on the
+  # binding; engine deploys rule-less bindings via publishAssignmentBundle).
+  - include:
+      file: db/changelog/changes/063-remove-skeleton-campaign-rules.yaml
