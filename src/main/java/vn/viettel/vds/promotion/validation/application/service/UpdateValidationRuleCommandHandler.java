@@ -338,40 +338,55 @@ public class UpdateValidationRuleCommandHandler {
             builder.validTo(null);
         }
 
-        // Build rrule using interval (FREQ/INTERVAL derived from ISO 8601 period
-        // when present) alongside daysOfWeek (BYDAY) — same shape as the create
-        // path so edits preserve "lặp lại sau N ngày/tuần/tháng" semantics.
-        // No recurrence data at all → clear (no FREQ=DAILY default on update).
-        List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
-        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || (interval != null && !interval.isBlank())) {
-            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
-        } else {
-            builder.rrule(null);
-        }
-
-        // Persist duration in dedicated column AND in scope_time_windows JSON
-        // alongside the timezone — mirrors create path so subsequent reads of
-        // scope_time_windows see consistent (duration, timezone) metadata.
-        if (duration != null && !duration.isBlank()) {
-            builder.duration(duration);
-            Map<String, Object> stw = new HashMap<>();
-            stw.put("duration", duration);
-            if (timeframe.getTimezone() != null) {
-                stw.put("timezone", timeframe.getTimezone());
-            }
-            builder.scopeTimeWindows(stw);
-        } else {
-            builder.duration(null);
-            builder.scopeTimeWindows(null);
-        }
+        applyRRule(builder, timeframe.getValidityDaysOfWeek(), interval);
+        applyDurationMetadata(builder, duration, timeframe.getTimezone());
 
         builder.activityDurationAfterPublishing(
                 activityDurationAfterPublishing != null && !activityDurationAfterPublishing.isBlank()
                         ? activityDurationAfterPublishing
                         : null);
 
-        if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
-            builder.timeWindows(buildTimeWindowsGroupedByRange(timeframe.getValidityHoursPerDay()));
+        applyTimeWindows(builder, timeframe.getValidityHoursPerDay());
+    }
+
+    /**
+     * Build rrule using interval (FREQ/INTERVAL derived from ISO 8601 period
+     * when present) alongside daysOfWeek (BYDAY) — same shape as the create
+     * path so edits preserve "lặp lại sau N ngày/tuần/tháng" semantics.
+     * No recurrence data at all → clear (no FREQ=DAILY default on update).
+     */
+    private void applyRRule(RuleBinding.RuleBindingBuilder builder, List<Integer> daysOfWeek, String interval) {
+        if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || (interval != null && !interval.isBlank())) {
+            builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
+        } else {
+            builder.rrule(null);
+        }
+    }
+
+    /**
+     * Persist duration in dedicated column AND in scope_time_windows JSON
+     * alongside the timezone — mirrors create path so subsequent reads of
+     * scope_time_windows see consistent (duration, timezone) metadata.
+     */
+    private void applyDurationMetadata(RuleBinding.RuleBindingBuilder builder, String duration, String timezone) {
+        if (duration != null && !duration.isBlank()) {
+            builder.duration(duration);
+            Map<String, Object> stw = new HashMap<>();
+            stw.put("duration", duration);
+            if (timezone != null) {
+                stw.put("timezone", timezone);
+            }
+            builder.scopeTimeWindows(stw);
+        } else {
+            builder.duration(null);
+            builder.scopeTimeWindows(null);
+        }
+    }
+
+    private void applyTimeWindows(RuleBinding.RuleBindingBuilder builder,
+            List<UpdateValidationRuleCommand.ValidityHoursPerDay> hours) {
+        if (hours != null && !hours.isEmpty()) {
+            builder.timeWindows(buildTimeWindowsGroupedByRange(hours));
         } else {
             builder.timeWindows(null);
         }
