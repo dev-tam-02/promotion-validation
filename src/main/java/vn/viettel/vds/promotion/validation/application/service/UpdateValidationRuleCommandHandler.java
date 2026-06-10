@@ -237,7 +237,8 @@ public class UpdateValidationRuleCommandHandler {
      * issue #4 — handle an UpdateValidationRuleCommand for a campaign that has no
      * RuleBinding yet (created without validation criteria). Builds a fresh binding
      * from the update payload using the same field-mapping as a normal update, then
-     * delegates rule creation + deployment to
+     * delegates binding deployment (rule-less when no ruleId is given — no skeleton
+     * rule is auto-generated anymore) to
      * {@link SettingValidationRuleCommandHandler#backfillRuleAndBinding} so create and
      * backfill stay single-sourced. Publishes the same
      * {@link ValidationSettingUpdateResultEvent} success shape as a normal update but
@@ -262,20 +263,8 @@ public class UpdateValidationRuleCommandHandler {
         applyApplicabilityUpdate(builder, payload.getApplicableTo());
         applyTimeframeUpdate(builder, payload.getTimeframe());
 
-        Instant startDate = null;
-        Instant endDate = null;
-        String timezone = null;
-        TimeFrame tf = payload.getTimeframe();
-        if (tf != null) {
-            timezone = tf.getTimezone();
-            if (tf.getValidityTimeframe() != null) {
-                startDate = tf.getValidityTimeframe().getStartDate();
-                endDate = tf.getValidityTimeframe().getExpirationDate();
-            }
-        }
-
         RuleBinding created = settingHandler.backfillRuleAndBinding(
-                builder.build(), payload.getRuleId(), startDate, endDate, timezone);
+                builder.build(), payload.getRuleId());
 
         idempotencyService.markAsProcessed(commandId, "First-time update created binding");
 
@@ -543,15 +532,22 @@ public class UpdateValidationRuleCommandHandler {
     private Long captureBeforeUpdateSnapshot(String ruleId, String bindingId,
                                               java.util.Map<String, String> commandMetadata,
                                               String commandId) {
-        if (ruleId == null || ruleId.isBlank()) {
-            logger.warn("Skipping BEFORE_UPDATE snapshot — binding has no ruleId (commandId={})", commandId);
-            return null;
-        }
         String sagaId = commandMetadata != null ? commandMetadata.get("sagaId") : null;
         if (sagaId == null || sagaId.isBlank()) {
             sagaId = commandMetadata != null ? commandMetadata.get("correlationId") : null;
         }
         try {
+            if (ruleId == null || ruleId.isBlank()) {
+                // Rule-less binding (timeframe-only campaign): snapshot the binding row
+                // alone, keyed by bindingId. The saga reverts it by sending
+                // RevertValidationRuleCommand with validationRuleId = bindingId.
+                var bindingSnapshot = snapshotService.createBindingOnlySnapshot(
+                        bindingId, sagaId, commandId,
+                        ValidationRuleSnapshotEntity.SnapshotReason.BEFORE_UPDATE);
+                logger.info("Created BEFORE_UPDATE binding-only snapshot: bindingId={}, version={}, sagaId={}",
+                        bindingId, bindingSnapshot.getVersion(), sagaId);
+                return bindingSnapshot.getVersion();
+            }
             var snapshot = snapshotService.createSnapshot(
                     ruleId, bindingId, sagaId, commandId,
                     ValidationRuleSnapshotEntity.SnapshotReason.BEFORE_UPDATE);

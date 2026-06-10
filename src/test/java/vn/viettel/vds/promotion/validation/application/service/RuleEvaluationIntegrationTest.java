@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -113,80 +112,26 @@ class RuleEvaluationIntegrationTest {
     }
 
     // =========================================================================
-    // Path B — auto-generated timeframe-gate rules (4 cases)
+    // Path B — rule-less binding (skeleton rules removed)
     // =========================================================================
 
     @Test
-    @DisplayName("PB-1: timeframe Apr 26 – Dec 31 → DRL has both isBefore + isAfter checks")
-    void pb1_validTimeframe_drlHasBothTemporalGuards() {
+    @DisplayName("PB-1: ruleId null + timeframe → resolveExistingRule returns null (no skeleton rule)")
+    void pb1_nullRuleId_withTimeframe_noRuleCreated() {
         SettingValidationRuleCommandPayload payload =
                 payloadWithTimeframe("2026-04-26T00:00:00Z", "2026-12-31T23:59:59Z");
 
-        Rule rule = handler.resolveOrCreateRule(payload);
-
-        // Structural assertions: one root GROUP with one COND child
-        assertThat(rule.getNodes()).hasSize(1);
-        RuleNode root = rule.getNodes().get(0);
-        assertThat(root.getType()).isEqualTo(RuleNode.NodeType.GROUP);
-        assertThat(root.getGroupLogic()).isEqualTo(Rule.LogicType.ALL);
-        assertThat(root.getChildren()).hasSize(1);
-
-        RuleNode cond = root.getChildren().get(0);
-        assertThat(cond.getType()).isEqualTo(RuleNode.NodeType.COND);
-        assertThat(cond.getOperatorName()).isEqualTo("binding.validity_window");
-        assertThat(cond.getReasonCode()).isEqualTo("OUTSIDE_VALIDITY_WINDOW");
-
-        // DRL content assertions: both temporal guards
-        String drl = compileDrl(rule);
-        assertThat(drl)
-                .contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))")
-                .contains("&&")
-                .contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
+        // Path B no longer auto-generates a "Campaign Rule - {id}" skeleton — the
+        // binding alone carries the timeframe and deploys as an assignment bundle.
+        assertThat(handler.resolveExistingRule(payload)).isNull();
     }
 
     @Test
-    @DisplayName("PB-2: before startDate → DRL isBefore guard denies Apr 25 evaluation")
-    void pb2_beforeStart_drlIsBeforesGuardPresent() {
-        // Same timeframe as PB-1 — the DRL encodes the same gate
-        SettingValidationRuleCommandPayload payload =
-                payloadWithTimeframe("2026-04-26T00:00:00Z", "2026-12-31T23:59:59Z");
-
-        Rule rule = handler.resolveOrCreateRule(payload);
-        String drl = compileDrl(rule);
-
-        // The DRL correctly encodes: pass iff now >= startDate
-        // When now = Apr 25, the engine would evaluate !now.isBefore(Apr26) → false → DENY
-        assertThat(drl)
-                .contains("!$now.isBefore(java.time.Instant.parse(\"2026-04-26T00:00:00Z\"))")
-                // The rule name contains the campaign id (auto-gen)
-                .contains("rule \"");
-    }
-
-    @Test
-    @DisplayName("PB-3: after endDate → DRL isAfter guard denies Jan 1 next year")
-    void pb3_afterEnd_drlIsAfterGuardPresent() {
-        SettingValidationRuleCommandPayload payload =
-                payloadWithTimeframe("2026-04-26T00:00:00Z", "2026-12-31T23:59:59Z");
-
-        Rule rule = handler.resolveOrCreateRule(payload);
-        String drl = compileDrl(rule);
-
-        // The DRL correctly encodes: pass iff now <= endDate
-        // When now = Jan 1, 2027, the engine evaluates !now.isAfter(Dec31) → false → DENY
-        assertThat(drl).contains("!$now.isAfter(java.time.Instant.parse(\"2026-12-31T23:59:59Z\"))");
-    }
-
-    @Test
-    @DisplayName("PB-4: null timeframe → rule has no nodes (unconditional ALLOW skeleton)")
-    void pb4_nullTimeframe_ruleHasNoNodes() {
+    @DisplayName("PB-2: ruleId null + null timeframe → resolveExistingRule returns null")
+    void pb2_nullRuleId_nullTimeframe_noRuleCreated() {
         SettingValidationRuleCommandPayload payload = payloadWithTimeframe(null, null);
 
-        Rule rule = handler.resolveOrCreateRule(payload);
-
-        // No timeframe → no binding.validity_window node → unconditional
-        assertThat(rule.getNodes()).isEmpty();
-        assertThat(rule.getState()).isEqualTo(Rule.RuleState.PUBLISHED);
-        assertThat(rule.isActive()).isTrue();
+        assertThat(handler.resolveExistingRule(payload)).isNull();
     }
 
     // =========================================================================
@@ -314,37 +259,8 @@ class RuleEvaluationIntegrationTest {
                 .contains("sku-blacklist-001");
     }
 
-    // =========================================================================
-    // compileDrlAndRegisterInEngine integration — verifies RuleEngineClient.register()
-    // is called after Path B creation with non-empty nodes
-    // =========================================================================
-
     @Test
-    @DisplayName("T4 integration: Path B rule with nodes → ruleEngineClient.register() called")
-    void compileDrlAndRegister_pathB_callsRuleEngineClient() {
-        SettingValidationRuleCommandPayload payload =
-                payloadWithTimeframe("2026-04-26T00:00:00Z", "2026-12-31T23:59:59Z");
-        Rule rule = handler.resolveOrCreateRule(payload);
-
-        // Simulate what processCommand does: compile + register
-        List<Operator> operators = operatorPort.findGlobalOperatorsByStatus(Operator.OperatorStatus.ACTIVE);
-        Map<String, Operator> operatorMap = operators.stream()
-                .collect(Collectors.toMap(Operator::getName, op -> op, (a, b) -> a));
-        String drl = drlCompiler.compile(rule, rule.getNodes(), operatorMap);
-
-        ruleEngineClient.register(rule.getId(), drl);
-
-        // Verify the registered DRL contains the validity window template output
-        verify(ruleEngineClient).register(
-                org.mockito.ArgumentMatchers.eq(rule.getId()),
-                org.mockito.ArgumentMatchers.argThat(registeredDrl ->
-                        registeredDrl.contains("isBefore") && registeredDrl.contains("isAfter")
-                )
-        );
-    }
-
-    @Test
-    @DisplayName("Path A: resolveOrCreateRule(ruleId != null) → loads from DB (Path A)")
+    @DisplayName("Path A: resolveExistingRule(ruleId != null) → loads from DB (Path A)")
     void pathA_existingRuleId_loadsFromDb() {
         Rule existingRule = adminBuiltRule(
                 condNode("c1", "order.total.gte", "tpl_order_total_gte_v1",
@@ -359,7 +275,7 @@ class RuleEvaluationIntegrationTest {
                 .objectId("camp-existing-001")
                 .build();
 
-        Rule resolved = handler.resolveOrCreateRule(payload);
+        Rule resolved = handler.resolveExistingRule(payload);
 
         // Returns the rule from DB (same instance)
         assertThat(resolved.getId()).isEqualTo(existingRule.getId());
@@ -376,7 +292,7 @@ class RuleEvaluationIntegrationTest {
                 .objectId("camp-001")
                 .build();
 
-        assertThatThrownBy(() -> handler.resolveOrCreateRule(payload))
+        assertThatThrownBy(() -> handler.resolveExistingRule(payload))
                 .isInstanceOf(RuleNotFoundException.class);
     }
 

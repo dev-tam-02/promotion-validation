@@ -1,0 +1,56 @@
+databaseChangeLog:
+  # ============================================================================
+  # Remove Path B skeleton rules ("Campaign Rule - {campaignId}").
+  #
+  # Path B (saga create / first-time-update backfill) used to auto-generate a
+  # PUBLISHED rule per timeframe-only campaign so rule_bindings.rule_id was
+  # never null. Those rules are inert: no rule_nodes when the campaign has no
+  # explicit start/end dates (all 64 rows in practice), never registered in the
+  # rule engine, and the timeframe itself lives on the rule_bindings row. They
+  # leaked into the CMS as user-visible rules (FE edit Step 3 reads
+  # binding.rule_id). Path B no longer creates them — this changeset unlinks and
+  # deletes the legacy ones. Engine deploy is unaffected: a binding without
+  # rule_id deploys via publishAssignmentBundle, same bundle the no-node
+  # skeleton produced. validation_rules_history rows are kept for audit.
+  # ============================================================================
+
+  - changeSet:
+      id: 063-unlink-skeleton-campaign-rules-from-bindings
+      author: harley hoang
+      comment: Null out rule_bindings.rule_id where it points at an inert auto-generated campaign skeleton rule
+      changes:
+        - sql:
+            sql: |
+              UPDATE rule_bindings b
+              JOIN validation_rules r ON r.id = b.rule_id
+              SET b.rule_id = NULL
+              WHERE r.created_by = 'system'
+                AND r.code LIKE 'CAMPAIGN\_%'
+                AND r.name LIKE 'Campaign Rule - %'
+                AND NOT EXISTS (
+                  SELECT 1 FROM rule_nodes n WHERE n.validation_rule_id = r.id
+                );
+      rollback:
+        - sql:
+            sql: SELECT 1;
+
+  - changeSet:
+      id: 063-delete-skeleton-campaign-rules
+      author: harley hoang
+      comment: Delete inert auto-generated campaign skeleton rules no longer referenced by any binding
+      changes:
+        - sql:
+            sql: |
+              DELETE r FROM validation_rules r
+              WHERE r.created_by = 'system'
+                AND r.code LIKE 'CAMPAIGN\_%'
+                AND r.name LIKE 'Campaign Rule - %'
+                AND NOT EXISTS (
+                  SELECT 1 FROM rule_nodes n WHERE n.validation_rule_id = r.id
+                )
+                AND NOT EXISTS (
+                  SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id
+                );
+      rollback:
+        - sql:
+            sql: SELECT 1;

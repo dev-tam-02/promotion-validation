@@ -86,40 +86,34 @@ public class RevertValidationRuleCommandHandler {
             log.info("Reverting validation rule: ruleId={}, from version {} to version {}, sagaId={}",
                     validationRuleId, currentVersion, targetVersion, sagaId);
 
-            // Validate rule exists
-            Rule rule = validationRulePort.findById(validationRuleId)
-                    .orElseThrow(() -> {
-                        log.error("Validation rule not found: ruleId={}", validationRuleId);
-                        return new RuleNotFoundException(validationRuleId);
-                    });
+            // Binding-only revert (rule-less timeframe binding): the saga sends the
+            // BINDING id in validationRuleId because the campaign has no rule attached.
+            // The BEFORE_UPDATE snapshot was keyed by that binding id — restore the
+            // binding row alone and finish; there is no rule entity to version-check.
+            Rule rule = validationRulePort.findById(validationRuleId).orElse(null);
+            if (rule == null) {
+                if (targetVersion != null && snapshotService.snapshotExists(validationRuleId, targetVersion)) {
+                    log.info("No rule found for id {} — treating as binding-only revert (targetVersion={})",
+                            validationRuleId, targetVersion);
+                    snapshotService.restoreFromSnapshot(validationRuleId, targetVersion);
+                    idempotencyService.markAsProcessed(commandId, Map.of(
+                            "bindingId", validationRuleId,
+                            "restoredToVersion", targetVersion.toString(),
+                            "mode", "BINDING_ONLY"
+                    ));
+                    publishRevertedEvent(command, validationRuleId, targetVersion, currentVersion);
+                    log.info("Successfully processed binding-only RevertValidationRuleCommand: commandId={}, bindingId={}",
+                            commandId, validationRuleId);
+                    return true;
+                }
+                log.error("Validation rule not found: ruleId={}", validationRuleId);
+                throw new RuleNotFoundException(validationRuleId);
+            }
 
             // Validate current version matches (optimistic lock check)
             // This prevents reverting if the rule was modified after the compensation was triggered
-            if (currentVersion != null && !currentVersion.equals(rule.getRuleVersion())) {
-                Long actualVersion = rule.getRuleVersion();
-                log.warn("Version mismatch detected: expected={}, actual={}, ruleId={}",
-                        currentVersion, actualVersion, validationRuleId);
-
-                // If actual version is LESS than expected, rule may have already been reverted
-                if (actualVersion != null && actualVersion < currentVersion) {
-                    log.info("Rule appears to already be reverted or at earlier version. " +
-                                    "actualVersion={} < expectedVersion={}. Skipping revert.",
-                            actualVersion, currentVersion);
-                    // Mark as processed to prevent retry loops
-                    idempotencyService.markAsProcessed(commandId, Map.of(
-                            "validationRuleId", validationRuleId,
-                            "status", "SKIPPED_ALREADY_REVERTED",
-                            "actualVersion", actualVersion.toString(),
-                            "expectedVersion", currentVersion.toString()
-                    ));
-                    return true;
-                }
-
-                // If actual version is GREATER than expected, rule was modified after compensation triggered
-                // This is a conflict - log warning but proceed with revert as saga compensation takes priority
-                log.warn("Rule was modified after compensation triggered. " +
-                                "actualVersion={} > expectedVersion={}. Proceeding with revert as saga compensation takes priority.",
-                        actualVersion, currentVersion);
+            if (isRevertAlreadyApplied(commandId, validationRuleId, currentVersion, rule.getRuleVersion())) {
+                return true;
             }
 
             // Check if snapshot exists for target version
@@ -133,7 +127,7 @@ public class RevertValidationRuleCommandHandler {
             // Restore from snapshot
             ValidationRuleEntity restoredRule = snapshotService.restoreFromSnapshot(validationRuleId, targetVersion);
             log.info("Successfully restored validation rule from snapshot: ruleId={}, restoredVersion={}",
-                    validationRuleId, restoredRule.getRuleVersion());
+                    validationRuleId, restoredRule != null ? restoredRule.getRuleVersion() : null);
 
             // Mark as processed
             idempotencyService.markAsProcessed(commandId, Map.of(
@@ -143,7 +137,7 @@ public class RevertValidationRuleCommandHandler {
             ));
 
             // Publish success event
-            publishRevertedEvent(command, restoredRule, targetVersion, currentVersion);
+            publishRevertedEvent(command, validationRuleId, targetVersion, currentVersion);
 
             log.info("Successfully processed RevertValidationRuleCommand: commandId={}, ruleId={}",
                     commandId, validationRuleId);
@@ -160,10 +154,50 @@ public class RevertValidationRuleCommandHandler {
     }
 
     /**
+     * Optimistic lock check between the version the saga expects and the actual rule version.
+     * <p>
+     * Returns true when the rule is already at an earlier version (revert already applied);
+     * the command is marked processed so the saga does not retry. A version greater than
+     * expected only logs a warning — saga compensation takes priority and the revert proceeds.
+     */
+    private boolean isRevertAlreadyApplied(String commandId, String validationRuleId,
+                                           Long currentVersion, Long actualVersion) {
+        if (currentVersion == null || currentVersion.equals(actualVersion)) {
+            return false;
+        }
+        log.warn("Version mismatch detected: expected={}, actual={}, ruleId={}",
+                currentVersion, actualVersion, validationRuleId);
+
+        // If actual version is LESS than expected, rule may have already been reverted
+        if (actualVersion != null && actualVersion < currentVersion) {
+            log.info("Rule appears to already be reverted or at earlier version. " +
+                            "actualVersion={} < expectedVersion={}. Skipping revert.",
+                    actualVersion, currentVersion);
+            // Mark as processed to prevent retry loops
+            idempotencyService.markAsProcessed(commandId, Map.of(
+                    "validationRuleId", validationRuleId,
+                    "status", "SKIPPED_ALREADY_REVERTED",
+                    "actualVersion", actualVersion.toString(),
+                    "expectedVersion", currentVersion.toString()
+            ));
+            return true;
+        }
+
+        // If actual version is GREATER than expected, rule was modified after compensation triggered
+        // This is a conflict - log warning but proceed with revert as saga compensation takes priority
+        log.warn("Rule was modified after compensation triggered. " +
+                        "actualVersion={} > expectedVersion={}. Proceeding with revert as saga compensation takes priority.",
+                actualVersion, currentVersion);
+        return false;
+    }
+
+    /**
      * Publish ValidationRuleRevertedEvent on successful revert.
+     *
+     * @param subjectId the restored rule id — or the binding id for a binding-only revert
      */
     private void publishRevertedEvent(RevertValidationRuleCommand command,
-                                      ValidationRuleEntity restoredRule,
+                                      String subjectId,
                                       Long restoredToVersion,
                                       Long rolledBackFromVersion) {
         try {
@@ -178,7 +212,7 @@ public class RevertValidationRuleCommandHandler {
 
             ValidationRuleRevertedEvent.ValidationRuleRevertedEventPayload payload =
                     ValidationRuleRevertedEvent.ValidationRuleRevertedEventPayload.builder()
-                            .validationRuleId(restoredRule.getId())
+                            .validationRuleId(subjectId)
                             .campaignId(command.getPayload().getCampaignId())
                             .correlationId(command.getPayload().getCorrelationId())
                             .sagaId(command.getPayload().getSagaId())
@@ -191,26 +225,26 @@ public class RevertValidationRuleCommandHandler {
                     .id(eventId)
                     .type("ValidationRuleRevertedEvent")
                     .source(SOURCE)
-                    .subject(restoredRule.getId())
+                    .subject(subjectId)
                     .occurredAt(Instant.now())
                     .version(1)
                     .payload(payload)
                     .metadata(metadata)
                     .build();
 
-            kafkaTemplate.send(validationEventTopic, restoredRule.getId(), event)
+            kafkaTemplate.send(validationEventTopic, subjectId, event)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
-                            log.error("Failed to publish ValidationRuleRevertedEvent: ruleId={}",
-                                    restoredRule.getId(), ex);
+                            log.error("Failed to publish ValidationRuleRevertedEvent: subjectId={}",
+                                    subjectId, ex);
                         } else {
-                            log.info("Published ValidationRuleRevertedEvent: eventId={}, ruleId={}, topic={}",
-                                    eventId, restoredRule.getId(), validationEventTopic);
+                            log.info("Published ValidationRuleRevertedEvent: eventId={}, subjectId={}, topic={}",
+                                    eventId, subjectId, validationEventTopic);
                         }
                     });
 
         } catch (Exception e) {
-            log.error("Error publishing ValidationRuleRevertedEvent: ruleId={}", restoredRule.getId(), e);
+            log.error("Error publishing ValidationRuleRevertedEvent: subjectId={}", subjectId, e);
         }
     }
 
