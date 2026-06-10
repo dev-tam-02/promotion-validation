@@ -214,8 +214,19 @@ public class UpdateValidationRuleCommandHandler {
                 .updatedAt(Instant.now())
                 .updatedBy(payload.getUpdatedBy() != null ? payload.getUpdatedBy() : DEFAULT_USER);
 
-        if (payload.getRuleId() != null && !payload.getRuleId().isBlank()) {
-            builder.ruleId(payload.getRuleId());
+        // Three-state ruleId semantics:
+        //   null   → "no change" (legacy callers omit the field) — keep current rule
+        //   blank  → "remove" — detach the rule, binding becomes rule-less
+        //            (timeframe keeps living on the binding)
+        //   value  → attach/replace with that rule
+        if (payload.getRuleId() != null) {
+            if (payload.getRuleId().isBlank()) {
+                logger.info("Removing rule from binding (blank ruleId = explicit detach): bindingId={}, oldRuleId={}",
+                        existing.getId(), existing.getRuleId());
+                builder.ruleId(null);
+            } else {
+                builder.ruleId(payload.getRuleId());
+            }
         }
         if (payload.getActive() != null) {
             builder.active(payload.getActive());
