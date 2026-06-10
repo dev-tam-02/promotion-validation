@@ -67,7 +67,9 @@ public class UpdateValidationRuleCommandDTO {
     @Id(errorCode = "ASSIGNMENT_ID_INVALID", groups = FormatCheck.class)
     private String assignmentId;
 
-    @Size(min = 1, message = "RULE_ID_EMPTY", groups = EmptyCheck.class)
+    // Three-state on UPDATE: null = keep current rule, blank = REMOVE (detach the
+    // rule, binding becomes rule-less), value = attach/replace. Blank is therefore
+    // a legal payload here — unlike the create DTO which keeps min=1.
     @Size(max = 36, message = "RULE_ID_LENGTH_EXCEEDED", groups = LengthCheck.class)
     @Id(errorCode = "RULE_ID_INVALID", groups = FormatCheck.class)
     private String ruleId;

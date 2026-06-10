@@ -142,4 +142,78 @@ class UpdateValidationRuleCommandHandlerBackfillTest {
                         .build())
                 .build();
     }
+
+    // =========================================================================
+    // Three-state ruleId semantics on update:
+    //   null = keep current rule, "" = remove (detach), value = attach/replace
+    // =========================================================================
+
+    @Test
+    @DisplayName("ruleId blank → rule detached, binding becomes rule-less")
+    void blankRuleId_removesRuleFromBinding() {
+        RuleBinding saved = runUpdateAgainstExistingBoundBinding("");
+
+        assertThat(saved.getRuleId()).isNull();
+    }
+
+    @Test
+    @DisplayName("ruleId null → existing rule kept (no-change semantics preserved)")
+    void nullRuleId_keepsExistingRule() {
+        RuleBinding saved = runUpdateAgainstExistingBoundBinding(null);
+
+        assertThat(saved.getRuleId()).isEqualTo("rule-old");
+    }
+
+    @Test
+    @DisplayName("ruleId value → rule replaced on binding")
+    void newRuleId_replacesRule() {
+        RuleBinding saved = runUpdateAgainstExistingBoundBinding("rule-new");
+
+        assertThat(saved.getRuleId()).isEqualTo("rule-new");
+    }
+
+    /**
+     * Drives handleCommand against an existing binding bound to "rule-old" with the
+     * given payload ruleId, and returns the binding passed to ruleBindingPort.save.
+     */
+    private RuleBinding runUpdateAgainstExistingBoundBinding(String payloadRuleId) {
+        UpdateValidationRuleCommand command = UpdateValidationRuleCommand.builder()
+                .id("cmd-rule-semantics")
+                .type("UpdateValidationRuleCommand")
+                .subject(CAMPAIGN_ID)
+                .occurredAt(Instant.now())
+                .payload(UpdateValidationRuleCommandPayload.builder()
+                        .objectType(OBJECT_TYPE)
+                        .objectId(CAMPAIGN_ID)
+                        .ruleId(payloadRuleId)
+                        .updatedBy("system")
+                        .build())
+                .build();
+
+        UpdateValidationRuleCommandDTO dto = new UpdateValidationRuleCommandDTO();
+        when(dtoMapper.toDTO(command)).thenReturn(dto);
+        when(validator.validate(dto)).thenReturn(Collections.emptySet());
+        when(idempotencyService.isProcessed("cmd-rule-semantics")).thenReturn(false);
+
+        RuleBinding existing = RuleBinding.builder()
+                .id("binding-1")
+                .ruleId("rule-old")
+                .objectType(OBJECT_TYPE)
+                .objectId(CAMPAIGN_ID)
+                .active(true)
+                .version(3L)
+                .build();
+        when(ruleBindingPort.findByObject(OBJECT_TYPE, CAMPAIGN_ID))
+                .thenReturn(java.util.List.of(existing));
+        when(ruleBindingPort.save(any(RuleBinding.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        boolean result = handler.handleCommand(command);
+        assertThat(result).isTrue();
+
+        org.mockito.ArgumentCaptor<RuleBinding> captor =
+                org.mockito.ArgumentCaptor.forClass(RuleBinding.class);
+        verify(ruleBindingPort).save(captor.capture());
+        return captor.getValue();
+    }
 }
