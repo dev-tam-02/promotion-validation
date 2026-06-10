@@ -96,10 +96,10 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
     }
 
     /**
-     * Merge products + collections from pp-product into a single grouped page.
-     * Each item carries {@code metadata.type = "PRODUCT" | "COLLECTION"} so the
-     * FE can render a grouped autocomplete. SKU group is omitted until
-     * pp-product exposes a SKU search endpoint.
+     * Merge products + collections + SKUs from pp-product into a single grouped
+     * page. Each item carries {@code metadata.type = "PRODUCT" | "COLLECTION" |
+     * "SKU"} so the FE can render a grouped autocomplete. The {@code search}
+     * term is forwarded to all three downstream lookups for server-side filtering.
      */
     private RuleOptionsPage fetchProducts(String search, int page, int size) {
         List<RuleOptionsPage.ValueOption> merged = new ArrayList<>();
@@ -117,7 +117,7 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
 
         // Collections group — id from id, label from name
         try {
-            Map<String, Object> raw = productFeignClient.listCollections("ACTIVE", page, size);
+            Map<String, Object> raw = productFeignClient.listCollections("ACTIVE", search, page, size);
             ProductSourcePage collections = extractPage(raw, "id", "name", "COLLECTION");
             merged.addAll(collections.items);
             total += collections.total;
