@@ -306,6 +306,15 @@ public class UpdateValidationRuleCommandHandler {
         }
     }
 
+    /**
+     * Timeframe section is authoritative (replace, not merge): both campaign update
+     * sagas always send the full temporal state, so a field absent from the payload
+     * means the user removed it on the FE and the old binding value must be cleared.
+     * Set-if-present semantics on top of {@code existing.toBuilder()} could never
+     * unset duration/activityDurationAfterPublishing/rrule/timeWindows — unticking
+     * "Giữ hiệu lực sau phát hành" or deleting khung giờ kept resurrecting the old
+     * values on the edit screen (which reads them from the live binding).
+     */
     private void applyTimeframeUpdate(RuleBinding.RuleBindingBuilder builder, TimeFrame timeframe) {
         if (timeframe == null) {
             return;
@@ -324,14 +333,20 @@ public class UpdateValidationRuleCommandHandler {
             interval = validity.getInterval();
             duration = validity.getDuration();
             activityDurationAfterPublishing = validity.getActivityDurationAfterPublishing();
+        } else {
+            builder.validFrom(null);
+            builder.validTo(null);
         }
 
         // Build rrule using interval (FREQ/INTERVAL derived from ISO 8601 period
         // when present) alongside daysOfWeek (BYDAY) — same shape as the create
         // path so edits preserve "lặp lại sau N ngày/tuần/tháng" semantics.
+        // No recurrence data at all → clear (no FREQ=DAILY default on update).
         List<Integer> daysOfWeek = timeframe.getValidityDaysOfWeek();
         if ((daysOfWeek != null && !daysOfWeek.isEmpty()) || (interval != null && !interval.isBlank())) {
             builder.rrule(buildRRuleFromTimeframe(daysOfWeek, interval));
+        } else {
+            builder.rrule(null);
         }
 
         // Persist duration in dedicated column AND in scope_time_windows JSON
@@ -345,14 +360,20 @@ public class UpdateValidationRuleCommandHandler {
                 stw.put("timezone", timeframe.getTimezone());
             }
             builder.scopeTimeWindows(stw);
+        } else {
+            builder.duration(null);
+            builder.scopeTimeWindows(null);
         }
 
-        if (activityDurationAfterPublishing != null && !activityDurationAfterPublishing.isBlank()) {
-            builder.activityDurationAfterPublishing(activityDurationAfterPublishing);
-        }
+        builder.activityDurationAfterPublishing(
+                activityDurationAfterPublishing != null && !activityDurationAfterPublishing.isBlank()
+                        ? activityDurationAfterPublishing
+                        : null);
 
         if (timeframe.getValidityHoursPerDay() != null && !timeframe.getValidityHoursPerDay().isEmpty()) {
             builder.timeWindows(buildTimeWindowsGroupedByRange(timeframe.getValidityHoursPerDay()));
+        } else {
+            builder.timeWindows(null);
         }
     }
 
