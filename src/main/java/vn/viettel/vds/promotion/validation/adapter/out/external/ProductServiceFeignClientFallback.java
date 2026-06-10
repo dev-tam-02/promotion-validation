@@ -26,8 +26,9 @@ public class ProductServiceFeignClientFallback implements ProductServiceFeignCli
     }
 
     @Override
-    public Map<String, Object> listCollections(String status, Integer page, Integer size) {
-        logger.warn("Product service unavailable (listCollections status={}); returning empty page", status);
+    public Map<String, Object> listCollections(String status, String search, Integer page, Integer size) {
+        logger.warn("Product service unavailable (listCollections status={}, search={}); returning empty page",
+                status, search);
         return emptyPage();
     }
 

@@ -52,6 +52,7 @@ public interface ProductServiceFeignClient {
     )
     Map<String, Object> listCollections(
             @RequestParam(value = "status", required = false, defaultValue = "ACTIVE") String status,
+            @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
             @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     );
