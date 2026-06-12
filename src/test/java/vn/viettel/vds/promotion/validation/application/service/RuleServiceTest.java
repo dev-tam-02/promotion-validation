@@ -314,7 +314,7 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(page);
 
             // When
-            Page<RuleListRow> result = sut.findRules(null, null, null, null, null, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null, null), pageable);
 
             // Then
             assertThat(result.getContent()).hasSize(2);
@@ -333,7 +333,8 @@ class RuleServiceTest {
                     .thenReturn(page);
 
             // When
-            Page<RuleListRow> result = sut.findRules(Rule.RuleState.PUBLISHED, null, null, null, null, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(
+                    new RuleListFilter(Rule.RuleState.PUBLISHED, null, null, null, null, null, null), pageable);
 
             // Then
             assertThat(result.getContent()).hasSize(1);
@@ -350,7 +351,7 @@ class RuleServiceTest {
                     .thenReturn(page);
 
             // When / Then
-            sut.findRules(null, null, "weekend", null, null, null, null, pageable);
+            sut.findRules(new RuleListFilter(null, null, "weekend", null, null, null, null), pageable);
             verify(rulePersistencePort).findWithFilters(argThat(f -> "weekend".equals(f.namePattern())), eq(pageable));
         }
 
@@ -363,7 +364,7 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(emptyPage);
 
             // When
-            Page<RuleListRow> result = sut.findRules(null, null, null, null, null, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null, null), pageable);
 
             // Then
             assertThat(result.getContent()).isEmpty();

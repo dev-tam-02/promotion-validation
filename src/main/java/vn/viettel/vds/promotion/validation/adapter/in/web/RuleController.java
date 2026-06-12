@@ -177,10 +177,12 @@ public class RuleController {
         Instant createdToTs = parseInstant(createdTo, "createdTo");
         RuleListFilter.UsageStatus usageStatusEnum = parseUsageStatus(usageStatus);
 
+        RuleListFilter filter = new RuleListFilter(stateEnum, code, name, context,
+                createdFromTs, createdToTs, usageStatusEnum);
+
         // Filtering, sorting, pagination AND the display counts (node + active
         // binding) are all resolved in a single database query per page.
-        Page<RuleListItemResponse> responses = ruleService.findRules(stateEnum, code, name, context,
-                        createdFromTs, createdToTs, usageStatusEnum, pageable)
+        Page<RuleListItemResponse> responses = ruleService.findRules(filter, pageable)
                 .map(row -> ruleMapper.toListItemResponse(row.rule(), row.assignmentCount(), row.nodeCount()));
 
         return PageResponse.from(responses);
