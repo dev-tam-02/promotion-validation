@@ -17,11 +17,15 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.Ru
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.RuleNodeEntityMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleJpaRepository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.RuleNodeRepository;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -256,17 +260,135 @@ public class RuleJpaAdapter implements RulePersistencePort {
         return convertToPage(all, pageable);
     }
 
+    /**
+     * Whitelist mapping sort property → SQL ORDER BY expression. The computed
+     * counts (ruleCount/assignmentCount) are correlated subqueries so the DB sorts
+     * by them directly. Keys come from the controller's ALLOWED_SORT_FIELDS, never
+     * from raw client input — safe to inline into the ORDER BY clause.
+     */
+    private static final String NODE_COUNT_SUBQUERY =
+            "(SELECT COUNT(*) FROM rule_nodes n WHERE n.validation_rule_id = r.id)";
+    private static final String ASSIGNMENT_COUNT_SUBQUERY =
+            "(SELECT COUNT(*) FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)";
+
+    private static final Map<String, String> SORT_COLUMNS = Map.ofEntries(
+            Map.entry("id", "r.id"),
+            Map.entry("code", "r.code"),
+            Map.entry("name", "r.name"),
+            Map.entry("state", "r.state"),
+            Map.entry("ruleVersion", "r.rule_version"),
+            Map.entry("logic", "r.logic"),
+            Map.entry("context", "r.context"),
+            Map.entry("publishedAt", "r.published_at"),
+            Map.entry("publishedBy", "r.published_by"),
+            Map.entry("createdAt", "r.created_at"),
+            Map.entry("updatedAt", "r.updated_at"),
+            Map.entry("createdBy", "r.created_by"),
+            Map.entry("updatedBy", "r.updated_by"),
+            Map.entry("ruleCount", NODE_COUNT_SUBQUERY),
+            Map.entry("assignmentCount", ASSIGNMENT_COUNT_SUBQUERY));
+
     @Override
-    public Page<Rule> findWithFilters(Rule.RuleState state,
-                                      String codePattern, String namePattern, Pageable pageable) {
-        List<RuleJpaEntity> all = repository.findAll().stream()
-                .filter(e -> state == null || state.name().equals(e.getState()))
-                .filter(e -> codePattern == null ||
-                        (e.getCode() != null && e.getCode().toLowerCase().contains(codePattern.toLowerCase())))
-                .filter(e -> namePattern == null ||
-                        (e.getName() != null && e.getName().toLowerCase().contains(namePattern.toLowerCase())))
-                .toList();
-        return convertToPage(all, pageable);
+    public Page<RuleListRow> findWithFilters(RuleListFilter filter, Pageable pageable) {
+        StringBuilder where = new StringBuilder(" WHERE 1 = 1");
+        Map<String, Object> params = new HashMap<>();
+        appendFilters(filter, where, params);
+
+        String fromWhere = " FROM validation_rules r" + where;
+
+        Number total = (Number) bindParams(
+                entityManager.createNativeQuery("SELECT COUNT(*)" + fromWhere), params).getSingleResult();
+        if (total.longValue() == 0) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        // Single query resolves the page's ids and both display counts (node +
+        // active-binding) as aggregate columns — no per-row count lookups.
+        String select = "SELECT r.id, " + NODE_COUNT_SUBQUERY + " AS node_count, "
+                + ASSIGNMENT_COUNT_SUBQUERY + " AS assignment_count";
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = bindParams(
+                entityManager.createNativeQuery(select + fromWhere + buildOrderBy(pageable.getSort())), params)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        List<String> ids = rows.stream().map(row -> (String) row[0]).toList();
+
+        // Load full entities for the page; findAllById is unordered, so restore the
+        // DB ordering from the id list.
+        Map<String, RuleJpaEntity> byId = repository.findAllById(ids).stream()
+                .collect(Collectors.toMap(RuleJpaEntity::getId, e -> e));
+
+        List<RuleListRow> content = new ArrayList<>(rows.size());
+        for (Object[] row : rows) {
+            RuleJpaEntity entity = byId.get((String) row[0]);
+            if (entity == null) {
+                continue;
+            }
+            content.add(new RuleListRow(
+                    mapper.toDomain(entity),
+                    ((Number) row[1]).intValue(),
+                    ((Number) row[2]).longValue()));
+        }
+
+        return new PageImpl<>(content, pageable, total.longValue());
+    }
+
+    private void appendFilters(RuleListFilter filter, StringBuilder where, Map<String, Object> params) {
+        if (filter.state() != null) {
+            where.append(" AND r.state = :state");
+            params.put("state", filter.state().name());
+        }
+        // Case-sensitive substring match for code/name (TC VRUL001_133) — LIKE BINARY.
+        if (filter.codePattern() != null) {
+            where.append(" AND r.code LIKE BINARY CONCAT('%', :code, '%')");
+            params.put("code", filter.codePattern());
+        }
+        if (filter.namePattern() != null) {
+            where.append(" AND r.name LIKE BINARY CONCAT('%', :name, '%')");
+            params.put("name", filter.namePattern());
+        }
+        if (filter.context() != null) {
+            where.append(" AND r.context = :context");
+            params.put("context", filter.context());
+        }
+        // created_at is stored as a UTC LocalDateTime (UtcInstantConverter); bind the
+        // bounds in the same representation so the comparison is timezone-correct.
+        if (filter.createdFrom() != null) {
+            where.append(" AND r.created_at >= :createdFrom");
+            params.put("createdFrom", LocalDateTime.ofInstant(filter.createdFrom(), ZoneOffset.UTC));
+        }
+        if (filter.createdTo() != null) {
+            where.append(" AND r.created_at <= :createdTo");
+            params.put("createdTo", LocalDateTime.ofInstant(filter.createdTo(), ZoneOffset.UTC));
+        }
+        if (filter.usageStatus() == RuleListFilter.UsageStatus.ASSIGNED) {
+            where.append(" AND EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)");
+        } else if (filter.usageStatus() == RuleListFilter.UsageStatus.UNASSIGNED) {
+            where.append(" AND NOT EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)");
+        }
+    }
+
+    private String buildOrderBy(org.springframework.data.domain.Sort sort) {
+        StringBuilder orderBy = new StringBuilder();
+        for (org.springframework.data.domain.Sort.Order order : sort) {
+            String column = SORT_COLUMNS.get(order.getProperty());
+            if (column == null) {
+                logger.warn("Unknown sort field: {}, skipping", order.getProperty());
+                continue;
+            }
+            orderBy.append(orderBy.isEmpty() ? " ORDER BY " : ", ");
+            orderBy.append(column).append(order.isDescending() ? " DESC" : " ASC");
+        }
+        // Deterministic tiebreaker keeps pagination stable across pages.
+        orderBy.append(orderBy.isEmpty() ? " ORDER BY r.id ASC" : ", r.id ASC");
+        return orderBy.toString();
+    }
+
+    private jakarta.persistence.Query bindParams(jakarta.persistence.Query query, Map<String, Object> params) {
+        params.forEach(query::setParameter);
+        return query;
     }
 
     @Override
@@ -412,9 +534,9 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     /**
-     * Apply sorting from Pageable to the entity list.
-     * Supports sorting by entity fields: id, code, name, state, ruleVersion,
-     * logic, publishedAt, publishedBy, createdAt, updatedAt, createdBy, updatedBy.
+     * Apply sorting from Pageable to the entity list (entity columns only).
+     * Used by the in-memory finders findByState/findAll; the filtered list
+     * endpoint sorts in the database via {@link #findWithFilters}.
      */
     private List<RuleJpaEntity> applySorting(List<RuleJpaEntity> entities, Pageable pageable) {
         if (pageable.getSort().isUnsorted() || entities.isEmpty()) {
@@ -468,6 +590,8 @@ public class RuleJpaAdapter implements RulePersistencePort {
             case "ruleVersion" -> java.util.Comparator.comparing(RuleJpaEntity::getRuleVersion,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "logic" -> java.util.Comparator.comparing(RuleJpaEntity::getLogic,
+                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
+            case "context" -> java.util.Comparator.comparing(RuleJpaEntity::getContext,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "publishedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedAt,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));

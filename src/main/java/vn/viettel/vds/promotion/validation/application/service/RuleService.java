@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
@@ -334,16 +336,17 @@ public class RuleService {
     }
 
     /**
-     * Find rules with filters and pagination
+     * Find rules with filters and pagination. Filtering, sorting (including the
+     * computed counts ruleCount/assignmentCount) and pagination are all performed
+     * in the database by the persistence adapter.
      */
     @Transactional(readOnly = true)
-    public Page<Rule> findRules(Rule.RuleState state, String codePattern,
-                                String namePattern, Pageable pageable) {
-        if (state != null || codePattern != null || namePattern != null) {
-            return rulePersistencePort.findWithFilters(state, codePattern, namePattern, pageable);
-        } else {
-            return rulePersistencePort.findAll(pageable);
-        }
+    public Page<RuleListRow> findRules(Rule.RuleState state, String codePattern, String namePattern,
+                                       String context, Instant createdFrom, Instant createdTo,
+                                       RuleListFilter.UsageStatus usageStatus, Pageable pageable) {
+        RuleListFilter filter = new RuleListFilter(state, codePattern, namePattern, context,
+                createdFrom, createdTo, usageStatus);
+        return rulePersistencePort.findWithFilters(filter, pageable);
     }
 
     /**
