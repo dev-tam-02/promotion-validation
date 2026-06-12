@@ -1,0 +1,143 @@
+databaseChangeLog:
+  # Lookup table for validation rule contexts. Keyed by `code` (no surrogate id) —
+  # validation_rules.context stores the code string directly, no foreign key.
+  - changeSet:
+      id: 064-create-rule-contexts-table
+      author: dev-be
+      changes:
+        - createTable:
+            tableName: rule_contexts
+            remarks: Lookup of valid validation-rule contexts; primary key is the context code (no id reference)
+            columns:
+              - column:
+                  name: code
+                  type: varchar(100)
+                  remarks: Context code identifier (e.g. GENERAL_USAGE) — primary key
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  remarks: Lifecycle status (ACTIVE / INACTIVE)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  # Generic, service-wide i18n table. ONE table localizes every entity in
+  # pp-validation (rule_contexts, operator_categories, reason_codes, ...) — not a
+  # per-entity *_translations table. A new translatable field or locale needs no
+  # schema change, just new rows. Polymorphic by (entity_type, entity_key) so it
+  # holds no foreign key.
+  - changeSet:
+      id: 064-create-translations-table
+      author: dev-be
+      changes:
+        - createTable:
+            tableName: translations
+            remarks: Service-wide localized text keyed by (entity_type, entity_key, field, locale)
+            columns:
+              - column:
+                  name: entity_type
+                  type: varchar(50)
+                  remarks: Logical entity type (e.g. RULE_CONTEXT, OPERATOR_CATEGORY, REASON_CODE)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_key
+                  type: varchar(100)
+                  remarks: Business key of the entity instance (its code, e.g. GENERAL_USAGE)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: field
+                  type: varchar(50)
+                  remarks: Translatable field name (e.g. name, description)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locale
+                  type: varchar(10)
+                  remarks: BCP-47 locale tag (vi, en, ...)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value
+                  type: text
+                  remarks: Localized text
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: translations
+            columnNames: entity_type, entity_key, field, locale
+            constraintName: pk_translations
+        - createIndex:
+            tableName: translations
+            indexName: idx_translations_entity
+            columns:
+              - column:
+                  name: entity_type
+              - column:
+                  name: entity_key
+
+  - changeSet:
+      id: 064-seed-rule-contexts
+      author: dev-be
+      changes:
+        - insert:
+            tableName: rule_contexts
+            columns:
+              - column:
+                  name: code
+                  value: GENERAL_USAGE
+              - column:
+                  name: status
+                  value: ACTIVE
+        - insert:
+            tableName: translations
+            columns:
+              - column:
+                  name: entity_type
+                  value: RULE_CONTEXT
+              - column:
+                  name: entity_key
+                  value: GENERAL_USAGE
+              - column:
+                  name: field
+                  value: name
+              - column:
+                  name: locale
+                  value: vi
+              - column:
+                  name: value
+                  value: "Sử dụng chung"
+        - insert:
+            tableName: translations
+            columns:
+              - column:
+                  name: entity_type
+                  value: RULE_CONTEXT
+              - column:
+                  name: entity_key
+                  value: GENERAL_USAGE
+              - column:
+                  name: field
+                  value: name
+              - column:
+                  name: locale
+                  value: en
+              - column:
+                  name: value
+                  value: "General usage"

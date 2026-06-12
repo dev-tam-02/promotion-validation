@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
-import vn.viettel.vds.promotion.validation.config.validator.ValidEnum;
-import vn.viettel.vds.promotion.validation.domain.enums.RuleContext;
+import vn.viettel.vds.promotion.validation.config.validator.ValidRuleContext;
 
 import java.util.List;
 import java.util.Map;
@@ -31,10 +30,9 @@ public class UpdateRuleRequest {
     @JsonProperty("nodes")
     private List<RuleNodeDto> nodes;
 
-    @Schema(description = "Rule context — scenario in which the rule applies",
-            example = "GENERAL_USAGE",
-            allowableValues = {"GENERAL_USAGE"})
-    @ValidEnum(value = RuleContext.class, message = "VALIDATION_RULE_CONTEXT_INVALID")
+    @Schema(description = "Rule context — code of an active row in rule_contexts (loaded dynamically)",
+            example = "GENERAL_USAGE")
+    @ValidRuleContext(message = "VALIDATION_RULE_CONTEXT_INVALID")
     @JsonProperty("context")
     private String context;
 

@@ -5,8 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import vn.viettel.vds.promotion.validation.config.validator.ValidEnum;
-import vn.viettel.vds.promotion.validation.domain.enums.RuleContext;
+import vn.viettel.vds.promotion.validation.config.validator.ValidRuleContext;
 
 import java.util.List;
 import java.util.Map;
@@ -29,11 +28,10 @@ public class CreateRuleRequest {
     @JsonProperty("logic")
     private String logic;
 
-    @Schema(description = "Rule context — scenario in which the rule applies",
-            example = "GENERAL_USAGE",
-            allowableValues = {"GENERAL_USAGE"})
+    @Schema(description = "Rule context — code of an active row in rule_contexts (loaded dynamically)",
+            example = "GENERAL_USAGE")
     @NotBlank(message = "VALIDATION_RULE_CONTEXT_REQUIRED")
-    @ValidEnum(value = RuleContext.class, message = "VALIDATION_RULE_CONTEXT_INVALID")
+    @ValidRuleContext(message = "VALIDATION_RULE_CONTEXT_INVALID")
     @JsonProperty("context")
     private String context;
 

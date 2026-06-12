@@ -196,3 +196,12 @@ databaseChangeLog:
   # binding; engine deploys rule-less bindings via publishAssignmentBundle).
   - include:
       file: db/changelog/changes/063-remove-skeleton-campaign-rules.yaml
+
+  # Lookup table rule_contexts (code as PK, no surrogate id). validation_rules.context
+  # already stores the code string directly — no foreign key added.
+  - include:
+      file: db/changelog/changes/064-create-rule-contexts-table.yaml
+
+  # Correct GENERAL_USAGE Vietnamese label: "Sử dụng chung" -> "Chung"
+  - include:
+      file: db/changelog/changes/065-fix-general-usage-vi-label.yaml

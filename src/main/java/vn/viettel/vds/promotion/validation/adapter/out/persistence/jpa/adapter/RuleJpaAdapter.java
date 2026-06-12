@@ -283,6 +283,20 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
+    public boolean existsByName(String name) {
+        if (name == null || name.isBlank()) {
+            return false;
+        }
+        String target = name.trim();
+        // The column collation may be case-/accent-insensitive, so findByName can
+        // return a superset. Narrow it with a code-point exact comparison (cs_as),
+        // mirroring the PP search-collation convention. Trim stored names so
+        // trailing whitespace from storage doesn't break the match.
+        return repository.findByName(target).stream()
+                .anyMatch(e -> e.getName() != null && target.equals(e.getName().trim()));
+    }
+
+    @Override
     public long countByState(Rule.RuleState state) {
         return repository.findByState(state.name()).size();
     }

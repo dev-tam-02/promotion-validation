@@ -29,6 +29,12 @@ public interface RulePersistencePort {
 
     boolean existsByCode(String code);
 
+    /**
+     * Check whether a rule with the exact given name already exists (case- and
+     * accent-sensitive, cs_as). Used by the create-screen duplicate-name guard.
+     */
+    boolean existsByName(String name);
+
     long countByState(Rule.RuleState state);
 
     List<Rule> findByStateNot(Rule.RuleState state);
