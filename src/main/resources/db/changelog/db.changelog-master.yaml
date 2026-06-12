@@ -205,3 +205,8 @@ databaseChangeLog:
   # Correct GENERAL_USAGE Vietnamese label: "Sử dụng chung" -> "Chung"
   - include:
       file: db/changelog/changes/065-fix-general-usage-vi-label.yaml
+
+  # Rule Builder prune: disable PRODUCTS + REDEMPTIONS categories, rename
+  # PRICES_QUANTITIES -> "Giá" and keep only its 3 amount conditions.
+  - include:
+      file: db/changelog/changes/066-rulebuilder-prune-categories-conditions.yaml

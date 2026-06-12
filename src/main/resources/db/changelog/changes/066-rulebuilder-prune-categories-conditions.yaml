@@ -1,0 +1,79 @@
+databaseChangeLog:
+  # ============================================================================
+  # Rule Builder data adjustments (request 2026-06-12):
+  #   1. Disable category "Sản phẩm" (PRODUCTS).
+  #   2. Rename category "Giá & Số lượng" (PRICES_QUANTITIES) -> "Giá" (name_vi).
+  #   3. Keep ONLY 3 conditions under "Giá": Giá trị ban đầu, Tổng giá trị sau
+  #      giảm giá, Tổng giá trị trước giảm giá. Disable the other 3.
+  #   4. Disable category "Quy tắc sử dụng" (REDEMPTIONS).
+  #
+  # All changes are is_active toggles (+ one label update). The Rule Builder
+  # query hides inactive categories (OperatorCategoryJpaRepository.findAllWithOptions
+  # filters c.active=true) and inactive options (OperatorCategoryMapper.mapOptions
+  # filters OperatorOptionEntity::getActive), so disabled rows are removed from
+  # the FE without deleting data. Stable PKs (cat-*/opt-*) used in WHERE clauses.
+  # ============================================================================
+
+  # --- 1. Disable category PRODUCTS ---------------------------------------------
+  - changeSet:
+      id: 066-disable-category-products
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='cat-products'
+
+  # --- 2. Rename PRICES_QUANTITIES vi label "Giá & Số lượng" -> "Giá" ------------
+  - changeSet:
+      id: 066-rename-category-prices-quantities-vi
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: name_vi, value: "Giá" }
+            where: id='cat-prices-quantities'
+
+  # --- 3. Keep only 3 conditions under PRICES_QUANTITIES; disable the rest ------
+  - changeSet:
+      id: 066-disable-option-items-quantity
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='opt-items-quantity'
+
+  - changeSet:
+      id: 066-disable-option-price-of-each-item
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='opt-price-of-each-item'
+
+  - changeSet:
+      id: 066-disable-option-price-of-any-item
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='opt-price-of-any-item'
+
+  # --- 4. Disable category REDEMPTIONS ------------------------------------------
+  - changeSet:
+      id: 066-disable-category-redemptions
+      author: harley hoang
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: is_active, valueBoolean: false }
+            where: id='cat-redemptions'
