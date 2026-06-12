@@ -12,6 +12,8 @@ import vn.viettel.vds.promotion.validation.application.port.in.RuleManagementUse
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleEngineClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleHistoryPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.exception.RuleValidationFailedException;
@@ -222,7 +224,8 @@ public class RuleManagementService implements RuleManagementUseCase {
     @Transactional(readOnly = true)
     public Page<Rule> listRules(Rule.RuleState state, String name, Pageable pageable) {
         log.debug("listRules: state={} name={}", state, name);
-        return rulePort.findWithFilters(state, null, name, pageable);
+        RuleListFilter filter = new RuleListFilter(state, null, name, null, null, null, null);
+        return rulePort.findWithFilters(filter, pageable).map(RuleListRow::rule);
     }
 
     // ---------- bootstrap ----------

@@ -27,7 +27,12 @@ import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
+import com.promix.platform.core.exception.BadRequestException;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
+
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 
 import java.util.*;
@@ -47,8 +52,9 @@ public class RuleController {
      */
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
             "id", "code", "name", "state", "ruleVersion",
-            "logic", "publishedAt", "publishedBy",
-            "createdAt", "updatedAt", "createdBy", "updatedBy"
+            "logic", "publishedAt", "publishedBy", "context",
+            "createdAt", "updatedAt", "createdBy", "updatedBy",
+            "ruleCount", "assignmentCount"
     );
 
     private final RuleService ruleService;
@@ -147,6 +153,10 @@ public class RuleController {
             @Parameter(description = "Filter by state") @RequestParam(required = false) String state,
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
+            @Parameter(description = "Filter by context") @RequestParam(required = false) String context,
+            @Parameter(description = "Filter by created-at lower bound (ISO-8601)") @RequestParam(required = false) String createdFrom,
+            @Parameter(description = "Filter by created-at upper bound (ISO-8601)") @RequestParam(required = false) String createdTo,
+            @Parameter(description = "Filter by usage status: ASSIGNED or UNASSIGNED") @RequestParam(required = false) String usageStatus,
             @Parameter(description = "Search query") @RequestParam(required = false) String q,
             @ParameterObject PageableRequest pageableRequest) {
 
@@ -163,21 +173,41 @@ public class RuleController {
         Pageable pageable = pageableRequest.toPageable();
 
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
+        Instant createdFromTs = parseInstant(createdFrom, "createdFrom");
+        Instant createdToTs = parseInstant(createdTo, "createdTo");
+        RuleListFilter.UsageStatus usageStatusEnum = parseUsageStatus(usageStatus);
 
-        Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
-
-        // Bulk-fetch node counts in one query — paged finders skip rule_nodes,
-        // so rule.getNodes() is null and the per-row count would fall back to 0.
-        List<String> ruleIds = rules.getContent().stream().map(Rule::getId).toList();
-        Map<String, Integer> nodeCounts = ruleService.countNodesByRuleIds(ruleIds);
-
-        Page<RuleListItemResponse> responses = rules.map(rule -> {
-            long assignmentCount = ruleService.countBindingsForRule(rule.getId());
-            int nodeCount = nodeCounts.getOrDefault(rule.getId(), 0);
-            return ruleMapper.toListItemResponse(rule, assignmentCount, nodeCount);
-        });
+        // Filtering, sorting, pagination AND the display counts (node + active
+        // binding) are all resolved in a single database query per page.
+        Page<RuleListItemResponse> responses = ruleService.findRules(stateEnum, code, name, context,
+                        createdFromTs, createdToTs, usageStatusEnum, pageable)
+                .map(row -> ruleMapper.toListItemResponse(row.rule(), row.assignmentCount(), row.nodeCount()));
 
         return PageResponse.from(responses);
+    }
+
+    private Instant parseInstant(String value, String field) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeParseException ex) {
+            throw new BadRequestException("TIMESTAMP_INVALID", field,
+                    "Invalid ISO-8601 timestamp", value);
+        }
+    }
+
+    private RuleListFilter.UsageStatus parseUsageStatus(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return RuleListFilter.UsageStatus.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("USAGE_STATUS_INVALID", "usageStatus",
+                    "Invalid usageStatus (expected ASSIGNED or UNASSIGNED)", value);
+        }
     }
 
     @Operation(summary = "Update rule", description = "Update an existing rule (only draft rules can be updated)")

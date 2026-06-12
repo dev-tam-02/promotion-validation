@@ -15,6 +15,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
@@ -304,20 +306,20 @@ class RuleServiceTest {
         void shouldReturnAllRules_whenNoFilters() {
             // Given
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Rule> page = new PageImpl<>(
-                    List.of(draftRule("r1", "C1", "Rule 1"), draftRule("r2", "C2", "Rule 2")),
+            Page<RuleListRow> page = new PageImpl<>(
+                    List.of(new RuleListRow(draftRule("r1", "C1", "Rule 1"), 0, 0L),
+                            new RuleListRow(draftRule("r2", "C2", "Rule 2"), 0, 0L)),
                     pageable, 2
             );
-            when(rulePersistencePort.findAll(pageable)).thenReturn(page);
+            when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(page);
 
             // When
-            Page<Rule> result = sut.findRules(null, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(null, null, null, null, null, null, null, pageable);
 
             // Then
             assertThat(result.getContent()).hasSize(2);
             assertThat(result.getTotalElements()).isEqualTo(2);
-            verify(rulePersistencePort).findAll(pageable);
-            verify(rulePersistencePort, never()).findWithFilters(any(), any(), any(), any());
+            verify(rulePersistencePort).findWithFilters(any(), eq(pageable));
         }
 
         @Test
@@ -325,16 +327,17 @@ class RuleServiceTest {
         void shouldFilterByState_whenStateProvided() {
             // Given
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Rule> page = new PageImpl<>(List.of(publishedRule("r1", "C1", "Rule 1")), pageable, 1);
-            when(rulePersistencePort.findWithFilters(eq(Rule.RuleState.PUBLISHED), any(), any(), eq(pageable)))
+            Page<RuleListRow> page = new PageImpl<>(
+                    List.of(new RuleListRow(publishedRule("r1", "C1", "Rule 1"), 0, 0L)), pageable, 1);
+            when(rulePersistencePort.findWithFilters(argThat(f -> f.state() == Rule.RuleState.PUBLISHED), eq(pageable)))
                     .thenReturn(page);
 
             // When
-            Page<Rule> result = sut.findRules(Rule.RuleState.PUBLISHED, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(Rule.RuleState.PUBLISHED, null, null, null, null, null, null, pageable);
 
             // Then
             assertThat(result.getContent()).hasSize(1);
-            verify(rulePersistencePort).findWithFilters(eq(Rule.RuleState.PUBLISHED), any(), any(), eq(pageable));
+            verify(rulePersistencePort).findWithFilters(argThat(f -> f.state() == Rule.RuleState.PUBLISHED), eq(pageable));
         }
 
         @Test
@@ -342,13 +345,13 @@ class RuleServiceTest {
         void shouldFilterByNamePattern_whenNameProvided() {
             // Given
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Rule> page = new PageImpl<>(List.of(), pageable, 0);
-            when(rulePersistencePort.findWithFilters(any(), any(), eq("weekend"), eq(pageable)))
+            Page<RuleListRow> page = new PageImpl<>(List.of(), pageable, 0);
+            when(rulePersistencePort.findWithFilters(argThat(f -> "weekend".equals(f.namePattern())), eq(pageable)))
                     .thenReturn(page);
 
             // When / Then
-            sut.findRules(null, null, "weekend", pageable);
-            verify(rulePersistencePort).findWithFilters(any(), any(), eq("weekend"), eq(pageable));
+            sut.findRules(null, null, "weekend", null, null, null, null, pageable);
+            verify(rulePersistencePort).findWithFilters(argThat(f -> "weekend".equals(f.namePattern())), eq(pageable));
         }
 
         @Test
@@ -356,11 +359,11 @@ class RuleServiceTest {
         void shouldReturnEmptyPage_whenNoRulesMatch() {
             // Given
             Pageable pageable = PageRequest.of(0, 10);
-            Page<Rule> emptyPage = new PageImpl<>(List.of(), pageable, 0);
-            when(rulePersistencePort.findAll(pageable)).thenReturn(emptyPage);
+            Page<RuleListRow> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+            when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(emptyPage);
 
             // When
-            Page<Rule> result = sut.findRules(null, null, null, pageable);
+            Page<RuleListRow> result = sut.findRules(null, null, null, null, null, null, null, pageable);
 
             // Then
             assertThat(result.getContent()).isEmpty();
