@@ -1,0 +1,14 @@
+databaseChangeLog:
+  # Correct the Vietnamese label of GENERAL_USAGE: "Sử dụng chung" -> "Chung".
+  # 064 already ran, so its seed is immutable; fix the value with an UPDATE.
+  - changeSet:
+      id: 065-fix-general-usage-vi-label
+      author: dev-be
+      changes:
+        - update:
+            tableName: translations
+            columns:
+              - column:
+                  name: value
+                  value: "Chung"
+            where: "entity_type='RULE_CONTEXT' AND entity_key='GENERAL_USAGE' AND field='name' AND locale='vi'"

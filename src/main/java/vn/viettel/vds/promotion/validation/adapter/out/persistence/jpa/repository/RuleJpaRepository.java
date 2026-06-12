@@ -64,6 +64,13 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
     boolean existsByCode(String code);
 
     /**
+     * Find rules whose name matches under the column collation. Used by the
+     * duplicate-name check; the candidate set is narrowed to a code-point exact
+     * match (cs_as) in the adapter, since the column collation may be ci/ai.
+     */
+    List<RuleJpaEntity> findByName(String name);
+
+    /**
      * Find latest version for a given code
      */
     @Query("SELECT r FROM RuleJpaEntity r WHERE r.code = :code ORDER BY r.ruleVersion DESC")

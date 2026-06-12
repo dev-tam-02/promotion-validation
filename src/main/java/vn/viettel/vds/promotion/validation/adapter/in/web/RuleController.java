@@ -21,12 +21,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.mapper.RuleResponseMapper;
+import vn.viettel.vds.promotion.validation.application.port.in.GetRuleContextsUseCase;
 import vn.viettel.vds.promotion.validation.application.port.in.RuleBindingUseCase;
 import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
-import vn.viettel.vds.promotion.validation.domain.enums.RuleContextType;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 
@@ -57,18 +57,21 @@ public class RuleController {
     private final RuleSimulationService ruleSimulationService;
     private final RuleBindingUseCase ruleBindingUseCase;
     private final RuleLinter ruleLinter;
+    private final GetRuleContextsUseCase getRuleContextsUseCase;
 
     public RuleController(RuleService ruleService, RuleResponseMapper ruleMapper,
                           RuleValidationService ruleValidationService,
                           RuleSimulationService ruleSimulationService,
                           RuleBindingUseCase ruleBindingUseCase,
-                          RuleLinter ruleLinter) {
+                          RuleLinter ruleLinter,
+                          GetRuleContextsUseCase getRuleContextsUseCase) {
         this.ruleService = ruleService;
         this.ruleMapper = ruleMapper;
         this.ruleValidationService = ruleValidationService;
         this.ruleSimulationService = ruleSimulationService;
         this.ruleBindingUseCase = ruleBindingUseCase;
         this.ruleLinter = ruleLinter;
+        this.getRuleContextsUseCase = getRuleContextsUseCase;
     }
 
     @Operation(summary = "Create a new rule", description = "Create a new validation rule in draft state")
@@ -259,9 +262,25 @@ public class RuleController {
     @GetMapping("/contexts")
     public List<ContextOptionResponse> getContexts() {
         logger.info("Getting rule context options");
-        return Arrays.stream(RuleContextType.values())
-                .map(ctx -> new ContextOptionResponse(ctx.name(), ctx.getLabel(), ctx.getLabelVi()))
+        return getRuleContextsUseCase.listContexts().stream()
+                .map(this::toContextOption)
                 .toList();
+    }
+
+    private ContextOptionResponse toContextOption(RuleContextOption ctx) {
+        return new ContextOptionResponse(ctx.getCode(), ctx.getNames());
+    }
+
+    @Operation(summary = "Check rule name duplication",
+            description = "Check whether a rule with the exact given name already exists (case- and accent-sensitive)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Check completed")
+    })
+    @GetMapping("/check-name")
+    public RuleNameCheckResponse checkRuleName(
+            @Parameter(description = "Rule name to check") @RequestParam("name") String name) {
+        boolean duplicated = ruleService.isNameDuplicated(name);
+        return new RuleNameCheckResponse(duplicated);
     }
 
     @Operation(summary = "Delete rule", description = "Permanently delete a rule (hard delete). Rule must not be assigned to any campaigns.")

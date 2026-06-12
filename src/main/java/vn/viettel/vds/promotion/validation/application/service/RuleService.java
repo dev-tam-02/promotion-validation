@@ -132,11 +132,23 @@ public class RuleService {
     }
 
     /**
-     * Count binding assignments for a rule
+     * Check whether a rule with the exact given name already exists (cs_as).
+     * Backs the create-screen proactive duplicate-name guard so the user can
+     * rename before saving.
+     */
+    @Transactional(readOnly = true)
+    public boolean isNameDuplicated(String name) {
+        return rulePersistencePort.existsByName(name);
+    }
+
+    /**
+     * Count binding assignments for a rule.
+     * Only active bindings count — a binding deactivated when its campaign goes
+     * inactive (active = false) must not inflate the assignment count.
      */
     @Transactional(readOnly = true)
     public long countBindingsForRule(String ruleId) {
-        return ruleBindingPort.findByRuleId(ruleId).size();
+        return ruleBindingPort.countActiveByRuleId(ruleId);
     }
 
     /**
