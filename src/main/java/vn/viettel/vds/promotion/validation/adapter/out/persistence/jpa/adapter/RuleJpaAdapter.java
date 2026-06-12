@@ -271,14 +271,17 @@ public class RuleJpaAdapter implements RulePersistencePort {
     private static final String ASSIGNMENT_COUNT_SUBQUERY =
             "(SELECT COUNT(*) FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)";
 
+    private static final String FIELD_STATE = "state";
+    private static final String FIELD_CONTEXT = "context";
+
     private static final Map<String, String> SORT_COLUMNS = Map.ofEntries(
             Map.entry("id", "r.id"),
             Map.entry("code", "r.code"),
             Map.entry("name", "r.name"),
-            Map.entry("state", "r.state"),
+            Map.entry(FIELD_STATE, "r.state"),
             Map.entry("ruleVersion", "r.rule_version"),
             Map.entry("logic", "r.logic"),
-            Map.entry("context", "r.context"),
+            Map.entry(FIELD_CONTEXT, "r.context"),
             Map.entry("publishedAt", "r.published_at"),
             Map.entry("publishedBy", "r.published_by"),
             Map.entry("createdAt", "r.created_at"),
@@ -322,7 +325,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
         List<RuleListRow> content = new ArrayList<>(rows.size());
         for (Object[] row : rows) {
-            RuleJpaEntity entity = byId.get((String) row[0]);
+            RuleJpaEntity entity = byId.get(row[0]);
             if (entity == null) {
                 continue;
             }
@@ -338,7 +341,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
     private void appendFilters(RuleListFilter filter, StringBuilder where, Map<String, Object> params) {
         if (filter.state() != null) {
             where.append(" AND r.state = :state");
-            params.put("state", filter.state().name());
+            params.put(FIELD_STATE, filter.state().name());
         }
         // Case-sensitive substring match for code/name (TC VRUL001_133) — LIKE BINARY.
         if (filter.codePattern() != null) {
@@ -351,7 +354,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
         }
         if (filter.context() != null) {
             where.append(" AND r.context = :context");
-            params.put("context", filter.context());
+            params.put(FIELD_CONTEXT, filter.context());
         }
         // created_at is stored as a UTC LocalDateTime (UtcInstantConverter); bind the
         // bounds in the same representation so the comparison is timezone-correct.
@@ -585,13 +588,13 @@ public class RuleJpaAdapter implements RulePersistencePort {
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "name" -> java.util.Comparator.comparing(RuleJpaEntity::getName,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "state" -> java.util.Comparator.comparing(RuleJpaEntity::getState,
+            case FIELD_STATE -> java.util.Comparator.comparing(RuleJpaEntity::getState,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "ruleVersion" -> java.util.Comparator.comparing(RuleJpaEntity::getRuleVersion,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "logic" -> java.util.Comparator.comparing(RuleJpaEntity::getLogic,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "context" -> java.util.Comparator.comparing(RuleJpaEntity::getContext,
+            case FIELD_CONTEXT -> java.util.Comparator.comparing(RuleJpaEntity::getContext,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "publishedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedAt,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));

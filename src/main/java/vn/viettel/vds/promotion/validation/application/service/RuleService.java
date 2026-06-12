@@ -341,11 +341,7 @@ public class RuleService {
      * in the database by the persistence adapter.
      */
     @Transactional(readOnly = true)
-    public Page<RuleListRow> findRules(Rule.RuleState state, String codePattern, String namePattern,
-                                       String context, Instant createdFrom, Instant createdTo,
-                                       RuleListFilter.UsageStatus usageStatus, Pageable pageable) {
-        RuleListFilter filter = new RuleListFilter(state, codePattern, namePattern, context,
-                createdFrom, createdTo, usageStatus);
+    public Page<RuleListRow> findRules(RuleListFilter filter, Pageable pageable) {
         return rulePersistencePort.findWithFilters(filter, pageable);
     }
 
