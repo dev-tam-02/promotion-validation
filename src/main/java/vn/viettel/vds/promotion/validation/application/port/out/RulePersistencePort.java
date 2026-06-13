@@ -34,6 +34,14 @@ public interface RulePersistencePort {
      */
     boolean existsByName(String name);
 
+    /**
+     * Same as {@link #existsByName(String)} but ignores the rule identified by
+     * {@code excludeRuleId} — used by the edit screen so a rule keeping its own
+     * name is not reported as a duplicate. A null/blank exclude id behaves like
+     * {@link #existsByName(String)}.
+     */
+    boolean existsByName(String name, String excludeRuleId);
+
     long countByState(Rule.RuleState state);
 
     List<Rule> findByStateNot(Rule.RuleState state);

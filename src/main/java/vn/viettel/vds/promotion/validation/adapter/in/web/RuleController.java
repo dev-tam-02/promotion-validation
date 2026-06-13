@@ -237,6 +237,7 @@ public class RuleController {
                 request.getContext(),
                 request.getDescription(),
                 request.getFallbackErrorMessage(),
+                request.getVersion(),
                 userId
         );
 
@@ -310,8 +311,10 @@ public class RuleController {
     })
     @GetMapping("/check-name")
     public RuleNameCheckResponse checkRuleName(
-            @Parameter(description = "Rule name to check") @RequestParam("name") String name) {
-        boolean duplicated = ruleService.isNameDuplicated(name);
+            @Parameter(description = "Rule name to check") @RequestParam("name") String name,
+            @Parameter(description = "Rule id to exclude (edit screen — ignore the rule keeping its own name)")
+            @RequestParam(value = "excludeRuleId", required = false) String excludeRuleId) {
+        boolean duplicated = ruleService.isNameDuplicated(name, excludeRuleId);
         return new RuleNameCheckResponse(duplicated);
     }
 

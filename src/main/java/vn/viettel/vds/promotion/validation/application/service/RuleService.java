@@ -144,6 +144,15 @@ public class RuleService {
     }
 
     /**
+     * Edit-screen variant of {@link #isNameDuplicated(String)} that ignores the
+     * rule being edited so it is not flagged as a duplicate of itself.
+     */
+    @Transactional(readOnly = true)
+    public boolean isNameDuplicated(String name, String excludeRuleId) {
+        return rulePersistencePort.existsByName(name, excludeRuleId);
+    }
+
+    /**
      * Count binding assignments for a rule.
      * Only active bindings count — a binding deactivated when its campaign goes
      * inactive (active = false) must not inflate the assignment count.
@@ -179,6 +188,22 @@ public class RuleService {
     public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
                            List<RuleNode> nodes, String context, String description,
                            String fallbackErrorMessage, String updatedBy) {
+        return updateRule(ruleId, name, logic, nodes, context, description,
+                fallbackErrorMessage, null, updatedBy);
+    }
+
+    /**
+     * Update an existing rule with optimistic locking.
+     * {@code expectedVersion} is the version the client loaded; when non-null and
+     * it no longer matches the current persisted version, the update is rejected
+     * with {@link RuleVersionConflictException} (409 CONFLICTED) so a concurrent
+     * edit cannot silently overwrite a newer one. A null expectedVersion skips
+     * the check (internal callers that carry no client view).
+     */
+    @SuppressWarnings("java:S107")
+    public Rule updateRule(String ruleId, String name, Rule.LogicType logic,
+                           List<RuleNode> nodes, String context, String description,
+                           String fallbackErrorMessage, Long expectedVersion, String updatedBy) {
         logger.info("Updating rule: id={}", ruleId);
 
         Rule rule = self.getRuleById(ruleId);
@@ -191,6 +216,16 @@ public class RuleService {
         // Only allow updates to draft rules
         if (rule.getState() != Rule.RuleState.DRAFT) {
             throw new RuleStateNotEditableException(ruleId, rule.getState().name());
+        }
+
+        // Optimistic locking — reject a stale client version so a concurrent edit
+        // cannot silently overwrite a newer save (mirrors deleteRule's guard).
+        Long currentVersion = rule.getVersion();
+        if (expectedVersion != null && currentVersion != null
+                && !currentVersion.equals(expectedVersion)) {
+            logger.warn("Version conflict on update: id={}, expected={}, actual={}",
+                    ruleId, expectedVersion, currentVersion);
+            throw new RuleVersionConflictException(ruleId);
         }
 
         // Validate rule nodes if provided

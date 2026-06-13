@@ -409,6 +409,11 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public boolean existsByName(String name) {
+        return existsByName(name, null);
+    }
+
+    @Override
+    public boolean existsByName(String name, String excludeRuleId) {
         if (name == null || name.isBlank()) {
             return false;
         }
@@ -416,8 +421,10 @@ public class RuleJpaAdapter implements RulePersistencePort {
         // The column collation may be case-/accent-insensitive, so findByName can
         // return a superset. Narrow it with a code-point exact comparison (cs_as),
         // mirroring the PP search-collation convention. Trim stored names so
-        // trailing whitespace from storage doesn't break the match.
+        // trailing whitespace from storage doesn't break the match. When editing,
+        // skip the rule keeping its own name (excludeRuleId).
         return repository.findByName(target).stream()
+                .filter(e -> excludeRuleId == null || !excludeRuleId.equals(e.getId()))
                 .anyMatch(e -> e.getName() != null && target.equals(e.getName().trim()));
     }
 
