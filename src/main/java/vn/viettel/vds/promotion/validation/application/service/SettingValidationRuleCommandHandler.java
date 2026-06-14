@@ -60,7 +60,6 @@ public class SettingValidationRuleCommandHandler {
     private final RuleEngineClient ruleEngineClient;
     private final DrlCompiler drlCompiler;
     private final OperatorPersistencePort operatorPort;
-    private final RuleHistoryPersistencePort historyPort;
 
     public SettingValidationRuleCommandHandler(
             RuleBindingPersistencePort ruleBindingPort,
@@ -73,8 +72,7 @@ public class SettingValidationRuleCommandHandler {
             PlatformTransactionManager transactionManager,
             RuleEngineClient ruleEngineClient,
             DrlCompiler drlCompiler,
-            OperatorPersistencePort operatorPort,
-            RuleHistoryPersistencePort historyPort) {
+            OperatorPersistencePort operatorPort) {
         this.ruleBindingPort = ruleBindingPort;
         this.validationRulePort = validationRulePort;
         this.eventPublisher = eventPublisher;
@@ -86,7 +84,6 @@ public class SettingValidationRuleCommandHandler {
         this.ruleEngineClient = ruleEngineClient;
         this.drlCompiler = drlCompiler;
         this.operatorPort = operatorPort;
-        this.historyPort = historyPort;
     }
 
     /**
@@ -440,68 +437,6 @@ public class SettingValidationRuleCommandHandler {
         logger.info("[Backfill] Created rule binding for first-time update: objectId={}, ruleId={}, bindingId={}",
                 binding.getObjectId(), toDeploy.getRuleId(), toDeploy.getId());
         return toDeploy;
-    }
-
-    /**
-     * Build a CREATE history entry capturing the full rule snapshot at the moment of auto-generation (Path B).
-     *
-     * <p>The {@code dslSnapshot} stores essential fields so the rule can be reconstructed
-     * from history. The snapshot is serialised to JSON by {@link RuleHistoryJpaAdapter}.
-     */
-    private RuleHistoryEntry buildHistorySnapshot(Rule rule, String changeReason) {
-        Map<String, Object> snapshot = buildRuleSnapshot(rule);
-        return new RuleHistoryEntry(
-                IdGenerator.generateId(),
-                rule.getId(),
-                rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L,
-                RuleHistoryEntry.ChangeType.CREATE,
-                SYSTEM_USER,
-                Instant.now(),
-                snapshot,
-                rule.getBundleHash(),
-                null, // VRUL001: rules no longer carry a state
-                changeReason
-        );
-    }
-
-    /**
-     * Compose a Map snapshot of the rule — id, name, objectId, ruleVersion, state, nodes.
-     * Children of each node are included recursively.
-     */
-    private Map<String, Object> buildRuleSnapshot(Rule rule) {
-        Map<String, Object> snapshot = new HashMap<>();
-        snapshot.put("id", rule.getId());
-        snapshot.put("code", rule.getCode());
-        snapshot.put("name", rule.getName());
-        snapshot.put("campaignId", rule.getCampaignId());
-        snapshot.put("ruleVersion", rule.getRuleVersion());
-        snapshot.put("logic", rule.getLogic() != null ? rule.getLogic().name() : null);
-        List<RuleNode> nodes = rule.getNodes();
-        if (nodes != null) {
-            snapshot.put("nodes", nodes.stream()
-                    .map(this::nodeToSnapshot)
-                    .toList());
-        } else {
-            snapshot.put("nodes", List.of());
-        }
-        return snapshot;
-    }
-
-    private Map<String, Object> nodeToSnapshot(RuleNode node) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("nodeId", node.getNodeId());
-        m.put("type", node.getType() != null ? node.getType().name() : null);
-        m.put("operatorName", node.getOperatorName());
-        m.put("reasonCode", node.getReasonCode());
-        m.put("groupLogic", node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
-        m.put("params", node.getParams());
-        List<RuleNode> children = node.getChildren();
-        if (children != null && !children.isEmpty()) {
-            m.put("children", children.stream()
-                    .map(this::nodeToSnapshot)
-                    .toList());
-        }
-        return m;
     }
 
     private void applyApplicabilityData(RuleBinding.RuleBindingBuilder builder, ApplicabilityScope scope) {
