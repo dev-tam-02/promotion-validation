@@ -93,24 +93,6 @@ public interface RuleEntityMapper {
                 ));
     }
 
-    @Named("stringToRuleState")
-    static Rule.RuleState stringToRuleState(String state) {
-        if (state == null) {
-            return null;
-        }
-        try {
-            // Handle both lowercase and uppercase states from database
-            return Rule.RuleState.valueOf(state.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return Rule.RuleState.DRAFT;
-        }
-    }
-
-    @Named("ruleStateToString")
-    static String ruleStateToString(Rule.RuleState state) {
-        return state != null ? state.name() : null;
-    }
-
     @Named("stringToLogicType")
     static Rule.LogicType stringToLogicType(String logic) {
         if (logic == null) {
@@ -129,7 +111,6 @@ public interface RuleEntityMapper {
         return logic != null ? logic.name() : null;
     }
 
-    @Mapping(target = "state", source = "state", qualifiedByName = "stringToRuleState")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "stringToLogicType")
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "stringToObjectMap")
     @Mapping(target = "bundleHash", source = "bundleHash")
@@ -154,7 +135,6 @@ public interface RuleEntityMapper {
     @Mapping(target = "ruleSetId", ignore = true)
     Rule toDomain(RuleJpaEntity entity);
 
-    @Mapping(target = "state", source = "state", qualifiedByName = "ruleStateToString")
     @Mapping(target = "logic", source = "logic", qualifiedByName = "logicTypeToString")
     @Mapping(target = "dsl", source = "dsl", qualifiedByName = "objectMapToString")
     @Mapping(target = "bundleHash", source = "bundleHash")

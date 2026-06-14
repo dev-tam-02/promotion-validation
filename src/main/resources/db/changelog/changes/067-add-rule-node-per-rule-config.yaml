@@ -1,0 +1,20 @@
+databaseChangeLog:
+  # VRUL002_B02 control 6: per-rule (per-node) configuration must be persisted.
+  # - violation_display_mode: how a single rule's violation surfaces (HIDDEN default / DISABLED)
+  # - error_message: per-rule message that overrides validation_rules.fallback_error_message
+  # The create path (CreateRuleRequest -> rule_nodes) had no column to store either.
+  - changeSet:
+      id: 067-add-rule-node-per-rule-config
+      author: claude
+      changes:
+        - addColumn:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: violation_display_mode
+                  type: varchar(20)
+                  remarks: Per-rule violation display mode (HIDDEN | DISABLED)
+              - column:
+                  name: error_message
+                  type: varchar(1000)
+                  remarks: Per-rule error message overriding the rule-level fallback

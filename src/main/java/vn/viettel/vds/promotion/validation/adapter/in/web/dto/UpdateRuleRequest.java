@@ -13,7 +13,7 @@ import java.util.Map;
 public class UpdateRuleRequest {
 
     @Schema(description = "Rule name")
-    @Size(max = 255, message = "Rule name must not exceed 255 characters")
+    @Size(max = 200, message = "Rule name must not exceed 200 characters")
     @JsonProperty("name")
     private String name;
 

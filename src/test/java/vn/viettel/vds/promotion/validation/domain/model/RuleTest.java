@@ -44,13 +44,14 @@ class RuleTest {
     @DisplayName("isEffective(Instant)")
     class IsEffectiveTests {
 
+        // VRUL001: isEffective() no longer gates on state/active — only the time window.
+
         @Test
-        @DisplayName("Should return true when active, published, and within time range")
+        @DisplayName("Should return true when within time range")
         void shouldReturnTrue_whenEffective() {
             var rule = Rule.builder()
                     .id("r-1")
                     .active(true)
-                    .state(Rule.RuleState.PUBLISHED)
                     .effectiveFrom(Instant.parse("2020-01-01T00:00:00Z"))
                     .effectiveTo(Instant.parse("2030-12-31T23:59:59Z"))
                     .build();
@@ -59,36 +60,11 @@ class RuleTest {
         }
 
         @Test
-        @DisplayName("Should return false when not active")
-        void shouldReturnFalse_whenNotActive() {
-            var rule = Rule.builder()
-                    .id("r-1")
-                    .active(false)
-                    .state(Rule.RuleState.PUBLISHED)
-                    .build();
-
-            assertThat(rule.isEffective(Instant.now())).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should return false when not PUBLISHED state")
-        void shouldReturnFalse_whenNotPublished() {
-            var rule = Rule.builder()
-                    .id("r-1")
-                    .active(true)
-                    .state(Rule.RuleState.DRAFT)
-                    .build();
-
-            assertThat(rule.isEffective(Instant.now())).isFalse();
-        }
-
-        @Test
         @DisplayName("Should return false when before effectiveFrom")
         void shouldReturnFalse_whenBeforeEffectiveFrom() {
             var rule = Rule.builder()
                     .id("r-1")
                     .active(true)
-                    .state(Rule.RuleState.PUBLISHED)
                     .effectiveFrom(Instant.parse("2030-01-01T00:00:00Z"))
                     .build();
 
@@ -101,7 +77,6 @@ class RuleTest {
             var rule = Rule.builder()
                     .id("r-1")
                     .active(true)
-                    .state(Rule.RuleState.PUBLISHED)
                     .effectiveTo(Instant.parse("2020-01-01T00:00:00Z"))
                     .build();
 
@@ -114,7 +89,6 @@ class RuleTest {
             var rule = Rule.builder()
                     .id("r-1")
                     .active(true)
-                    .state(Rule.RuleState.PUBLISHED)
                     .build();
 
             assertThat(rule.isEffective(Instant.now())).isTrue();
@@ -126,7 +100,6 @@ class RuleTest {
             var rule = Rule.builder()
                     .id("r-1")
                     .active(true)
-                    .state(Rule.RuleState.PUBLISHED)
                     .build();
 
             assertThat(rule.isEffective(null)).isTrue();
@@ -168,13 +141,11 @@ class RuleTest {
         void shouldPublish() {
             var rule = Rule.builder()
                     .id("r-1")
-                    .state(Rule.RuleState.DRAFT)
                     .active(false)
                     .build();
 
             rule.publish("publisher");
 
-            assertThat(rule.getState()).isEqualTo(Rule.RuleState.PUBLISHED);
             assertThat(rule.isActive()).isTrue();
             assertThat(rule.getPublishedBy()).isEqualTo("publisher");
             assertThat(rule.getPublishedAt()).isNotNull();
@@ -194,7 +165,6 @@ class RuleTest {
 
             rule.archive("admin");
 
-            assertThat(rule.getState()).isEqualTo(Rule.RuleState.ARCHIVED);
             assertThat(rule.isActive()).isFalse();
             assertThat(rule.getUpdatedBy()).isEqualTo("admin");
         }
@@ -211,7 +181,6 @@ class RuleTest {
 
             rule.deprecate("admin");
 
-            assertThat(rule.getState()).isEqualTo(Rule.RuleState.DEPRECATED);
             assertThat(rule.isActive()).isFalse();
             assertThat(rule.getUpdatedBy()).isEqualTo("admin");
         }
@@ -222,16 +191,9 @@ class RuleTest {
     class GetStatusTests {
 
         @Test
-        @DisplayName("Should return state name")
-        void shouldReturnStateName() {
+        @DisplayName("VRUL001: getStatus() always null (lifecycle state removed)")
+        void shouldReturnNull() {
             var rule = TestFixtures.activeRule("r-1", "RULE_1");
-            assertThat(rule.getStatus()).isEqualTo("PUBLISHED");
-        }
-
-        @Test
-        @DisplayName("Should return null when state is null")
-        void shouldReturnNull_whenStateNull() {
-            var rule = Rule.builder().id("r-1").build();
             assertThat(rule.getStatus()).isNull();
         }
     }

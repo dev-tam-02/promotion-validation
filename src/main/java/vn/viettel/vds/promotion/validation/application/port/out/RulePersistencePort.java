@@ -20,8 +20,6 @@ public interface RulePersistencePort {
 
     Optional<Rule> findByCode(String code);
 
-    Page<Rule> findByState(Rule.RuleState state, Pageable pageable);
-
     Page<RuleListRow> findWithFilters(RuleListFilter filter, Pageable pageable);
 
     List<Rule> findAllOrderByUpdatedAtDesc();
@@ -41,10 +39,6 @@ public interface RulePersistencePort {
      * {@link #existsByName(String)}.
      */
     boolean existsByName(String name, String excludeRuleId);
-
-    long countByState(Rule.RuleState state);
-
-    List<Rule> findByStateNot(Rule.RuleState state);
 
     List<Rule> findByType(String type);
 

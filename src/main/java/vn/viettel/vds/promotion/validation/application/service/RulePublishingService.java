@@ -246,7 +246,7 @@ public class RulePublishingService {
     }
 
     private void updateRuleToPublishedState(Rule rule, CompileResponse compileResponse) {
-        rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setActive(true); // VRUL001: no PUBLISHED state — publishing flags the rule usable
         rule.setPublishedAt(Instant.now());
         rule.setPublishedBy("rule-publishing-service");
         rule.setUpdatedAt(Instant.now());
@@ -293,12 +293,12 @@ public class RulePublishingService {
             Rule rule = rulePersistencePort.findById(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
-            if (Rule.RuleState.PUBLISHED != rule.getState()) {
+            if (!rule.isActive()) {
                 return RulePublishResult.failed(ruleId, "Rule is not published, cannot unpublish");
             }
 
-            // Update rule status
-            rule.setState(Rule.RuleState.DRAFT);
+            // Update rule status — VRUL001: unpublish = flag inactive (no DRAFT state)
+            rule.setActive(false);
             rule.setUpdatedAt(Instant.now());
 
             rulePersistencePort.save(rule);
@@ -317,7 +317,7 @@ public class RulePublishingService {
             Rule rule = rulePersistencePort.findById(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
-            if (Rule.RuleState.PUBLISHED != rule.getState()) {
+            if (!rule.isActive()) {
                 return new RuleDeploymentStatus(ruleId, "NOT_DEPLOYED", false, null);
             }
 
@@ -337,10 +337,7 @@ public class RulePublishingService {
     }
 
     private void validateRuleForPublishing(Rule rule) {
-        // Check rule state - cannot publish DRAFT rules
-        if (rule.getState() == Rule.RuleState.DRAFT) {
-            throw new IllegalArgumentException("Cannot publish rule in DRAFT state. Rule must be activated first.");
-        }
+        // VRUL001: rules have no DRAFT state — any existing rule is publishable.
 
         if (rule.getNodes() == null || rule.getNodes().isEmpty()) {
             throw new IllegalArgumentException("Rule has no nodes defined");

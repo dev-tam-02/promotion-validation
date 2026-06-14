@@ -29,21 +29,6 @@ public interface ValidationRuleEntityPersistencePort {
     Optional<Rule> findByCode(String code);
 
     /**
-     * Find rules by state
-     */
-    List<Rule> findByState(String state);
-
-    /**
-     * Find rules by state with pagination
-     */
-    Page<Rule> findByState(String state, Pageable pageable);
-
-    /**
-     * Find published rules by version
-     */
-    List<Rule> findByStateAndVersionGreaterThan(String state, Integer version);
-
-    /**
      * Check if rule exists by code
      */
     boolean existsByCode(String code);
@@ -52,11 +37,6 @@ public interface ValidationRuleEntityPersistencePort {
      * Find latest version by code
      */
     Optional<Rule> findTopByCodeOrderByVersionDesc(String code);
-
-    /**
-     * Find rules by state ordered by version
-     */
-    List<Rule> findByStateOrderByVersionDesc(String state);
 
     /**
      * Delete rule by ID

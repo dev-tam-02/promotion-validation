@@ -27,7 +27,6 @@ public interface ValidationRuleMapper {
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
     @Mapping(source = "targetSegments", target = "targetSegments")
-    @Mapping(source = "state", target = "state")
     @Mapping(target = "description", ignore = true)
     @Mapping(target = "type", ignore = true)
     @Mapping(target = "priority", ignore = true)

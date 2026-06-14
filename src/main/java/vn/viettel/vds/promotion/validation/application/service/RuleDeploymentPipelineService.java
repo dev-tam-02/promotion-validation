@@ -131,7 +131,8 @@ public class RuleDeploymentPipelineService {
         logger.debug("Checking environment health: tenantId={}", tenantId);
 
         try {
-            List<Rule> activeRules = rulePersistencePort.findByState(Rule.RuleState.PUBLISHED, Pageable.unpaged()).getContent();
+            // VRUL001: no PUBLISHED state — all rules are deployable; gate by active flag.
+            List<Rule> activeRules = rulePersistencePort.findAll(Pageable.unpaged()).getContent();
 
             int totalRules = activeRules.size();
             int deployedRules = 0;
@@ -139,7 +140,7 @@ public class RuleDeploymentPipelineService {
             List<String> unhealthyRules = new ArrayList<>();
 
             for (Rule rule : activeRules) {
-                if (rule.getState() == Rule.RuleState.PUBLISHED) {
+                if (rule.isActive()) {
                     deployedRules++;
                     healthyRules += checkRuleHealth(rule, unhealthyRules);
                 }
@@ -272,7 +273,7 @@ public class RuleDeploymentPipelineService {
             Rule rule = rulePersistencePort.findByCode(ruleId)
                     .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
 
-            if (rule.getState() == Rule.RuleState.PUBLISHED) {
+            if (rule.isActive()) {
                 return DeploymentStage.success(STAGE_HEALTH_CHECK, "Rule is published (health check skipped)");
             } else {
                 return DeploymentStage.failed(STAGE_HEALTH_CHECK, "Rule is not published");

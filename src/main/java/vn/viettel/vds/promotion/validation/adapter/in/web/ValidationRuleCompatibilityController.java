@@ -66,17 +66,8 @@ public class ValidationRuleCompatibilityController {
 
             ValidationRuleEntity rule = ruleOpt.get();
 
-            // 2. Check if rule is published (not draft or archived)
-            if (!"published".equalsIgnoreCase(rule.getState())) {
-                if (logger.isWarnEnabled()) {
-                    logger.warn("Rule is not published: ruleId={}, state={}", request.ruleId(), rule.getState());
-                }
-                return ResponseEntity.ok(ValidateCompatibilityResponse.failure(
-                        request.ruleId(),
-                        "RULE_NOT_PUBLISHED",
-                        "Validation rule is not published. State: " + rule.getState()
-                ));
-            }
+            // 2. VRUL001: rules no longer carry a lifecycle state — any existing rule
+            //    is considered usable, so the former "must be published" gate is removed.
 
             // 3. Validate rule compatibility with campaign type
             // Check if rule contains required nodes based on campaign type
@@ -99,7 +90,7 @@ public class ValidationRuleCompatibilityController {
             return ResponseEntity.ok(ValidateCompatibilityResponse.success(
                     rule.getId(),
                     rule.getName(),
-                    rule.getState()
+                    "ACTIVE"
             ));
 
         } catch (Exception e) {

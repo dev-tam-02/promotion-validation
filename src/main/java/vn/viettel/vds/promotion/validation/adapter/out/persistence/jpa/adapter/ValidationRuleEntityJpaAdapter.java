@@ -47,38 +47,6 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     }
 
     @Override
-    public List<Rule> findByState(String state) {
-        return repository.findByState(state).stream()
-                .map(this::toDomainModel)
-                .toList();
-    }
-
-    @Override
-    public Page<Rule> findByState(String state, Pageable pageable) {
-        List<ValidationRuleEntity> entities = repository.findByState(state);
-        int start = (int) pageable.getOffset();
-        // Handle case when start is beyond the list size (return empty page)
-        if (start >= entities.size()) {
-            return new PageImpl<>(List.of(), pageable, entities.size());
-        }
-        int end = Math.min((start + pageable.getPageSize()), entities.size());
-
-        List<Rule> pageContent = entities.subList(start, end).stream()
-                .map(this::toDomainModel)
-                .toList();
-
-        return new PageImpl<>(pageContent, pageable, entities.size());
-    }
-
-    @Override
-    public List<Rule> findByStateAndVersionGreaterThan(String state, Integer version) {
-        return repository.findByState(state).stream()
-                .filter(e -> e.getRuleVersion() > version)
-                .map(this::toDomainModel)
-                .toList();
-    }
-
-    @Override
     public boolean existsByCode(String code) {
         return repository.existsByCode(code);
     }
@@ -87,13 +55,6 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
     public Optional<Rule> findTopByCodeOrderByVersionDesc(String code) {
         return repository.findLatestVersionByCode(code)
                 .map(this::toDomainModel);
-    }
-
-    @Override
-    public List<Rule> findByStateOrderByVersionDesc(String state) {
-        return repository.findByStateOrderByVersionDesc(state).stream()
-                .map(this::toDomainModel)
-                .toList();
     }
 
     @Override
@@ -114,7 +75,6 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
         jpaEntity.setId(domainModel.getId());
         jpaEntity.setCode(domainModel.getCode());
         jpaEntity.setName(domainModel.getName());
-        jpaEntity.setState(domainModel.getState() != null ? domainModel.getState().name() : "DRAFT");
         jpaEntity.setRuleVersion(domainModel.getRuleVersion() != null ? domainModel.getRuleVersion() : 1L);
         jpaEntity.setLogic(domainModel.getLogic() != null ? domainModel.getLogic().name() : null);
         jpaEntity.setDsl(domainModel.getDsl());
@@ -134,7 +94,7 @@ public class ValidationRuleEntityJpaAdapter implements ValidationRuleEntityPersi
                 .id(jpaEntity.getId())
                 .code(jpaEntity.getCode())
                 .name(jpaEntity.getName())
-                .state(jpaEntity.getState() != null ? Rule.RuleState.valueOf(jpaEntity.getState()) : Rule.RuleState.DRAFT)
+                .active(true) // VRUL001: no persisted state — existing rules are usable
                 .ruleVersion(jpaEntity.getRuleVersion())
                 .logic(jpaEntity.getLogic() != null ? Rule.LogicType.valueOf(jpaEntity.getLogic()) : null)
                 .dsl(jpaEntity.getDsl())

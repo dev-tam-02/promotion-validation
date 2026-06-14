@@ -36,11 +36,6 @@ public record RuleListItemResponse(
         @JsonProperty("name")
         String name,
 
-        @Schema(description = "Rule state", example = "draft",
-                allowableValues = {"draft", "published", "archived"})
-        @JsonProperty("state")
-        String state,
-
         @Schema(description = "Rule context", example = "GENERAL_USAGE",
                 allowableValues = {"GENERAL_USAGE"})
         @JsonProperty("context")

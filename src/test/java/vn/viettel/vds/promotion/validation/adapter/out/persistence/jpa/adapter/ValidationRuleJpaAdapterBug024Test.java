@@ -61,7 +61,6 @@ class ValidationRuleJpaAdapterBug024Test {
             RuleJpaEntity entity = RuleJpaEntity.builder()
                     .id("rule-1")
                     .name("Test")
-                    .state("DRAFT")
                     .ruleVersion(1L)
                     .version(null)
                     .build();
@@ -75,7 +74,6 @@ class ValidationRuleJpaAdapterBug024Test {
             RuleJpaEntity entity = RuleJpaEntity.builder()
                     .id("rule-1")
                     .name("Test")
-                    .state("PUBLISHED")
                     .ruleVersion(1L)
                     .version(0L)
                     .build();
@@ -168,7 +166,6 @@ class ValidationRuleJpaAdapterBug024Test {
                     .id(ruleId)
                     .code("CAMPAIGN_TEST")
                     .name("Auto-generated rule")
-                    .state(Rule.RuleState.PUBLISHED)
                     .active(true)
                     .ruleVersion(1L)
                     .logic(Rule.LogicType.ALL)

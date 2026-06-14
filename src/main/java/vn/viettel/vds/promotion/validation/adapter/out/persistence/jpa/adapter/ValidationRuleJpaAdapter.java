@@ -66,10 +66,9 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
 
     @Override
     public List<Rule> findActiveRules() {
-        log.debug("Finding all active rules (published state)");
-        // Get published rules from JPA (PUBLISHED state means active)
-        // Note: priority field no longer exists, so no sorting by priority
-        return jpaRepository.findByState("PUBLISHED").stream()
+        log.debug("Finding all rules");
+        // VRUL001: rules have no lifecycle state — every rule is active/usable.
+        return jpaRepository.findAll().stream()
                 .map(mapper::jpaEntityToDomain)
                 .toList();
     }
@@ -123,7 +122,6 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
                 .id(rule.getId())
                 .code(rule.getCode())
                 .name(rule.getName())
-                .state(rule.getState() != null ? rule.getState().name() : "PUBLISHED")
                 .ruleVersion(rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L)
                 .logic(rule.getLogic() != null ? rule.getLogic().name() : null)
                 .description(rule.getDescription())

@@ -35,6 +35,7 @@ public enum ErrorCode {
     RULE_COMPILATION_ERROR("VAL-2105", "Rule compilation failed", 400),
     RULE_INVALID_EXPRESSION("VAL-2106", "Rule expression is invalid", 400),
     RULE_DUPLICATE_CODE("VAL-2107", "Rule code already exists", 409),
+    RULE_DUPLICATE_NAME("VAL-2108", "Rule name already exists", 409),
 
     // Assignment errors (22xx)
     DUPLICATE_ASSIGNMENT_VALIDATION_RULE("VAL-2200", "Assignment already exists", 409),

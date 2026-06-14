@@ -30,31 +30,10 @@ public interface ValidationRuleJpaRepository extends JpaRepository<ValidationRul
     Optional<ValidationRuleEntity> findByCode(String code);
 
     /**
-     * Find validation rules by state.
-     */
-    List<ValidationRuleEntity> findByState(String state);
-
-    /**
-     * Find validation rules by state ordered by version desc.
-     */
-    List<ValidationRuleEntity> findByStateOrderByVersionDesc(String state);
-
-    /**
      * Find latest version of validation rule by code.
      */
     @Query("SELECT v FROM ValidationRuleEntity v WHERE v.code = :code ORDER BY v.version DESC")
     Optional<ValidationRuleEntity> findLatestVersionByCode(@Param("code") String code);
-
-    /**
-     * Find published validation rules.
-     */
-    @Query("SELECT v FROM ValidationRuleEntity v WHERE v.state = 'published' ORDER BY v.publishedAt DESC")
-    List<ValidationRuleEntity> findPublishedRules();
-
-    /**
-     * Find validation rules by code and state.
-     */
-    List<ValidationRuleEntity> findByCodeAndState(String code, String state);
 
     /**
      * Check if code exists.

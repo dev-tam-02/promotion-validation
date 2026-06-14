@@ -210,3 +210,13 @@ databaseChangeLog:
   # PRICES_QUANTITIES -> "Giá" and keep only its 3 amount conditions.
   - include:
       file: db/changelog/changes/066-rulebuilder-prune-categories-conditions.yaml
+
+  # VRUL002_B02 control 6: per-rule (per-node) config columns on rule_nodes —
+  # violation_display_mode + error_message (create path had no place to store them).
+  - include:
+      file: db/changelog/changes/067-add-rule-node-per-rule-config.yaml
+
+  # VRUL001: validation rules no longer carry a lifecycle state — drop the orphaned
+  # validation_rules.state column and its index (enum/field/gating removed in code).
+  - include:
+      file: db/changelog/changes/068-drop-validation-rule-state.yaml

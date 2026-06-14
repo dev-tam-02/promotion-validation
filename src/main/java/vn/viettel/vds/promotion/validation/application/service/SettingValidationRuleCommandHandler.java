@@ -260,17 +260,10 @@ public class SettingValidationRuleCommandHandler {
             //   the engine) that leaked into FE Step 3 as a user-visible rule.
             Rule resolvedRule = resolveExistingRule(payload);
             if (resolvedRule != null) {
-                if (resolvedRule.getState() == Rule.RuleState.DRAFT) {
-                    // Path A (issue #5): the CMS wizard creates rules in DRAFT
-                    // (RuleService.createRule) and no caller activates them, so the rule would
-                    // reach RulePublishingService.publishRule() in DRAFT and be rejected by the
-                    // pre-publish guard — surfacing as a misleading COMPILE_DEPLOY_ERROR.
-                    // Idempotent: a saga retry finds the rule already PUBLISHED and skips this branch.
-                    logger.info("[Path A] Activating DRAFT rule {} before deploy (issue #5)", resolvedRule.getId());
-                    resolvedRule.publish(SYSTEM_USER);
-                    resolvedRule = validationRulePort.save(resolvedRule);
-                    historyPort.save(buildHistorySnapshot(resolvedRule, "Activated by saga before deploy (Path A, issue #5)"));
-                }
+                // VRUL001: rules have no DRAFT state and the pre-publish DRAFT guard
+                // is gone — the former Path A auto-activate (issue #5) is no longer
+                // needed; a resolved rule is always publishable.
+                logger.debug("[Path A] Resolved rule {} ready for deploy", resolvedRule.getId());
             } else {
                 logger.info("[Path B] No ruleId in payload — creating rule-less binding for campaign {} " +
                         "(timeframe lives on the binding)", payload.getObjectId());
@@ -466,7 +459,7 @@ public class SettingValidationRuleCommandHandler {
                 Instant.now(),
                 snapshot,
                 rule.getBundleHash(),
-                rule.getState() != null ? rule.getState().name() : null,
+                null, // VRUL001: rules no longer carry a state
                 changeReason
         );
     }
@@ -482,7 +475,6 @@ public class SettingValidationRuleCommandHandler {
         snapshot.put("name", rule.getName());
         snapshot.put("campaignId", rule.getCampaignId());
         snapshot.put("ruleVersion", rule.getRuleVersion());
-        snapshot.put("state", rule.getState() != null ? rule.getState().name() : null);
         snapshot.put("logic", rule.getLogic() != null ? rule.getLogic().name() : null);
         List<RuleNode> nodes = rule.getNodes();
         if (nodes != null) {

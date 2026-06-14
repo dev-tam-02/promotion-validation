@@ -52,7 +52,6 @@ public class RuleResponseMapper {
         response.setRuleId(rule.getId());
         response.setCode(rule.getCode());
         response.setName(rule.getName());
-        response.setState(ruleStateToString(rule.getState()));
         response.setLatestVersion(rule.getLatestVersion());
         response.setLogic(logicTypeToString(rule.getLogic()));
         response.setLimits(usageLimitsToMap(rule.getLimits()));
@@ -110,7 +109,6 @@ public class RuleResponseMapper {
                 rule.getId(),                                                     // id
                 rule.getCode(),                                                   // code
                 rule.getName(),                                                   // name
-                ruleStateToString(rule.getState()),                               // state
                 rule.getContext(),                                                 // context
                 rule.getRuleVersion(),                                            // ruleVersion
                 rule.getVersion(),                                                // version
@@ -148,7 +146,9 @@ public class RuleResponseMapper {
                 ruleNode.getReasonCode(),
                 ruleNodesToIds(ruleNode.getChildren()),
                 null, // order - not available in RuleNode
-                ComparatorSuffix.comparatorFromOperatorName(ruleNode.getOperatorName()).orElse(null)
+                ComparatorSuffix.comparatorFromOperatorName(ruleNode.getOperatorName()).orElse(null),
+                ruleNode.getViolationDisplayMode(),
+                ruleNode.getErrorMessage()
         );
     }
 
@@ -172,6 +172,8 @@ public class RuleResponseMapper {
                 .operatorName(resolveEffectiveOperatorName(dto.operatorName(), dto.comparator()))
                 .params(dto.params())
                 .reasonCode(dto.reasonCode())
+                .violationDisplayMode(dto.violationDisplayMode())
+                .errorMessage(dto.errorMessage())
                 .children(idsToRuleNodes(dto.children()))
                 .build();
     }
@@ -247,13 +249,6 @@ public class RuleResponseMapper {
         return map;
     }
 
-    /**
-     * Converts RuleState enum to lowercase string representation.
-     */
-    @Nullable
-    private String ruleStateToString(@Nullable Rule.RuleState state) {
-        return state != null ? state.name().toLowerCase() : null;
-    }
 
     /**
      * Converts LogicType enum to string representation.

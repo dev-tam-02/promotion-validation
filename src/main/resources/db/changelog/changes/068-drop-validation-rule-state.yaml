@@ -1,0 +1,21 @@
+databaseChangeLog:
+  # VRUL001: validation rules no longer carry a lifecycle state (DRAFT/PUBLISHED/
+  # ARCHIVED/DEPRECATED). The enum, domain field, entity mapping, list filter/sort
+  # and the state-based publish/deploy gating have all been removed in code — a
+  # rule is usable simply by existing. Drop the now-orphaned column and its index.
+  # The index must go first because it is defined over the state column.
+  - changeSet:
+      id: 068-drop-validation-rules-state-index
+      author: claude
+      changes:
+        - dropIndex:
+            tableName: validation_rules
+            indexName: idx_validation_rules_state_version
+
+  - changeSet:
+      id: 068-drop-validation-rules-state-column
+      author: claude
+      changes:
+        - dropColumn:
+            tableName: validation_rules
+            columnName: state

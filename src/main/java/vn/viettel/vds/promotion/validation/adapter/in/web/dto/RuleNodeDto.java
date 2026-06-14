@@ -14,7 +14,9 @@ public record RuleNodeDto(
         String reasonCode,
         java.util.List<String> children,
         Integer order,
-        String comparator
+        String comparator,
+        String violationDisplayMode,
+        String errorMessage
 ) {
     // Create from request format
     public static RuleNodeDto fromRequest(RuleNodeRequest request) {
@@ -22,12 +24,12 @@ public record RuleNodeDto(
                 request.id(), request.type(), request.groupLogic(),
                 request.operatorName(), request.operatorVersion(), request.params(),
                 request.reasonCode(), request.children(), request.order(),
-                request.comparator()
+                request.comparator(), request.violationDisplayMode(), request.errorMessage()
         );
     }
 
     // Convert to response format
     public RuleNodeResponse toResponse() {
-        return new RuleNodeResponse(id, type, groupLogic, operatorName, operatorVersion, params, reasonCode, children, order, comparator);
+        return new RuleNodeResponse(id, type, groupLogic, operatorName, operatorVersion, params, reasonCode, children, order, comparator, violationDisplayMode, errorMessage);
     }
 }

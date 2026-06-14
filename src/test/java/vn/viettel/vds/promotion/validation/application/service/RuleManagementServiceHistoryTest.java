@@ -155,7 +155,7 @@ class RuleManagementServiceHistoryTest {
                     .id("rule-001")
                     .name("Original Name")
                     .logic(Rule.LogicType.ALL)
-                    .state(Rule.RuleState.PUBLISHED)
+                    .active(true)
                     .ruleVersion(1L)
                     .bundleHash("hash-v1")
                     .nodes(List.of())   // empty so compile path is skipped
@@ -214,7 +214,7 @@ class RuleManagementServiceHistoryTest {
                     .id("rule-archive-01")
                     .name("Rule to Archive")
                     .logic(Rule.LogicType.ALL)
-                    .state(Rule.RuleState.PUBLISHED)
+                    .active(true)
                     .ruleVersion(2L)
                     .bundleHash("bundle-abc")
                     .nodes(List.of())
@@ -246,7 +246,7 @@ class RuleManagementServiceHistoryTest {
                     .id("rule-archive-02")
                     .name("Rule 2")
                     .logic(Rule.LogicType.ALL)
-                    .state(Rule.RuleState.PUBLISHED)
+                    .active(true)
                     .ruleVersion(1L)
                     .nodes(List.of())
                     .active(true)
@@ -258,7 +258,7 @@ class RuleManagementServiceHistoryTest {
             // Archive should still succeed despite history save failure
             Rule result = service.archiveRule("rule-archive-02", "admin");
 
-            assertThat(result.getState()).isEqualTo(Rule.RuleState.ARCHIVED);
+            assertThat(result.isActive()).isFalse();
             verify(rulePort, atLeastOnce()).save(any(Rule.class));
         }
     }

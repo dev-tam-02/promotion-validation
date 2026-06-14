@@ -16,7 +16,7 @@ public class CloneRuleRequest {
 
     @Schema(description = "New rule name", example = "Weekend VIP ≥500k promotion V2", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "New rule name is required")
-    @Size(max = 255, message = "Rule name must not exceed 255 characters")
+    @Size(max = 200, message = "Rule name must not exceed 200 characters")
     @JsonProperty("newName")
     private String newName;
 

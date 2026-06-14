@@ -33,17 +33,6 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
     Optional<RuleJpaEntity> findByCode(String code);
 
     /**
-     * Find rules by state (draft, published, archived)
-     */
-    List<RuleJpaEntity> findByState(String state);
-
-    /**
-     * Find rules by state ordered by rule version descending
-     */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = :state ORDER BY r.ruleVersion DESC")
-    List<RuleJpaEntity> findByStateOrderByRuleVersionDesc(@Param("state") String state);
-
-    /**
      * Find rules by logic type
      */
     List<RuleJpaEntity> findByLogic(String logic);
@@ -77,14 +66,9 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
     List<RuleJpaEntity> findByCodeOrderByRuleVersionDesc(@Param("code") String code);
 
     /**
-     * Find published rules
+     * Find rules with no bundleHash — used by bootstrap runner to compile seeded
+     * system rules. VRUL001: no state filter (rules have no lifecycle state).
      */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' ORDER BY r.ruleVersion DESC")
-    List<RuleJpaEntity> findPublishedRules();
-
-    /**
-     * Find PUBLISHED rules with no bundleHash — used by bootstrap runner to compile seeded system rules.
-     */
-    @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' AND r.bundleHash IS NULL")
+    @Query("SELECT r FROM RuleJpaEntity r WHERE r.bundleHash IS NULL")
     List<RuleJpaEntity> findPublishedWithNullBundleHash();
 }

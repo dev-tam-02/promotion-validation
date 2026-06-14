@@ -310,7 +310,7 @@ public class ValidationRuleSnapshotService {
         data.setId(rule.getId());
         data.setCode(rule.getCode());
         data.setName(rule.getName());
-        data.setState(rule.getState());
+        // VRUL001: rules no longer carry a state — nothing to snapshot
         data.setRuleVersion(rule.getRuleVersion());
         data.setLogic(rule.getLogic());
         data.setDsl(rule.getDsl());
@@ -415,7 +415,7 @@ public class ValidationRuleSnapshotService {
         // Restore basic info
         rule.setCode(snapshotData.getCode());
         rule.setName(snapshotData.getName());
-        rule.setState(snapshotData.getState());
+        // VRUL001: rules no longer carry a state
         rule.setRuleVersion(snapshotData.getRuleVersion());
         rule.setLogic(snapshotData.getLogic());
         rule.setDsl(snapshotData.getDsl());

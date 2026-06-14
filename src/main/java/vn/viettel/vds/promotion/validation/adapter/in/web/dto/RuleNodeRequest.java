@@ -49,6 +49,16 @@ public record RuleNodeRequest(
                 example = "is_more_than",
                 allowableValues = {"is_more_than", "is_more_than_or_equal_to", "is_exactly", "is_less_than", "is_less_than_or_equal_to"})
         @JsonProperty("comparator")
-        String comparator
+        String comparator,
+
+        @Schema(description = "Per-rule violation display mode (control 6 VRUL002_B02): how a violation of this single rule surfaces.",
+                example = "HIDDEN", allowableValues = {"HIDDEN", "DISABLED"})
+        @JsonProperty("violationDisplayMode")
+        String violationDisplayMode,
+
+        @Schema(description = "Per-rule error message (control 6 VRUL002_B02): overrides the rule-level fallback when this rule is violated.",
+                example = "Đơn hàng chưa đạt giá trị tối thiểu")
+        @JsonProperty("errorMessage")
+        String errorMessage
 ) {
 }

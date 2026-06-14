@@ -96,6 +96,16 @@ public class RuleService {
             throw new RuleAlreadyExistsException(effectiveCode);
         }
 
+        // Check if rule with same name already exists (system-wide, trimmed).
+        // SRS VRUL002_B03 Bước 5: the create command must reject a duplicate name
+        // — the proactive check-name endpoint only guards the happy path; this
+        // closes the race / direct-API gap. There is no UNIQUE DB constraint, so
+        // the guard lives here.
+        String trimmedName = (name != null) ? name.trim() : null;
+        if (trimmedName != null && rulePersistencePort.existsByName(trimmedName)) {
+            throw new RuleNameAlreadyExistsException(trimmedName);
+        }
+
         validateRuleNodes(nodes);
 
         // Default logic to ALL if not provided
@@ -115,7 +125,7 @@ public class RuleService {
         rule.setId(generateRuleId());
         rule.setCode(effectiveCode);
         rule.setName(name);
-        rule.setState(Rule.RuleState.DRAFT);
+        rule.setActive(true); // VRUL001: rules are usable on creation (no DRAFT state)
         rule.setLatestVersion(0);
         rule.setLogic(effectiveLogic);
         rule.setNodes(nodes);
@@ -128,6 +138,26 @@ public class RuleService {
         rule.setUpdatedBy(createdBy);
 
         Rule saved = rulePersistencePort.save(rule);
+
+        // SRS VRUL002_B03 Bước 7 ③: emit a creation event to the outbox so the
+        // change is propagated asynchronously to downstream services — mirrors the
+        // outbox write already done on delete (VALIDATION_RULE_DELETED).
+        OutboxEvent createdEvent = OutboxEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregateType("ValidationRule")
+                .aggregateId(saved.getId())
+                .eventType("VALIDATION_RULE_CREATED")
+                .payload(Map.of(
+                        "ruleId", saved.getId(),
+                        "code", saved.getCode() != null ? saved.getCode() : "",
+                        "name", saved.getName() != null ? saved.getName() : "",
+                        "createdAt", Instant.now().toString()))
+                .status(OutboxEventStatus.PENDING)
+                .attempts(0)
+                .maxAttempts(3)
+                .createdAt(Instant.now())
+                .build();
+        outboxEventPort.save(createdEvent);
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
@@ -213,10 +243,8 @@ public class RuleService {
             throw new SystemRuleProtectedException(ruleId);
         }
 
-        // Only allow updates to draft rules
-        if (rule.getState() != Rule.RuleState.DRAFT) {
-            throw new RuleStateNotEditableException(ruleId, rule.getState().name());
-        }
+        // VRUL001/VRUL003: editability is no longer gated by a lifecycle state —
+        // it is governed by binding assignment (assignmentCount) at the API layer.
 
         // Optimistic locking — reject a stale client version so a concurrent edit
         // cannot silently overwrite a newer save (mirrors deleteRule's guard).
@@ -297,15 +325,10 @@ public class RuleService {
 
         Rule rule = self.getRuleById(ruleId);
 
-        // Only allow activating draft rules
-        if (rule.getState() != Rule.RuleState.DRAFT) {
-            throw new InvalidRuleStateTransitionException("activate", rule.getState().name(), Rule.RuleState.DRAFT.name());
-        }
-
         // Validate rule is complete before activation
         validateRuleNodes(rule.getNodes());
 
-        rule.setState(Rule.RuleState.PUBLISHED);
+        // VRUL001: no lifecycle state — activation simply flags the rule usable.
         rule.setActive(true);
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(activatedBy);
@@ -324,7 +347,7 @@ public class RuleService {
 
         Rule rule = self.getRuleById(ruleId);
 
-        rule.setState(Rule.RuleState.ARCHIVED);
+        // VRUL001: no lifecycle state — archiving simply flags the rule unusable.
         rule.setActive(false);
         rule.setUpdatedAt(Instant.now());
         rule.setUpdatedBy(archivedBy);
@@ -346,8 +369,8 @@ public class RuleService {
                     logger.warn("[RULE_SERVICE] Rule not found: ruleId={}", ruleId);
                     return new RuleNotFoundException(ruleId);
                 });
-        logger.debug("[RULE_SERVICE] Rule retrieved: id={}, code={}, state={}, nodeCount={}",
-                rule.getId(), rule.getCode(), rule.getState(),
+        logger.debug("[RULE_SERVICE] Rule retrieved: id={}, code={}, nodeCount={}",
+                rule.getId(), rule.getCode(),
                 rule.getNodes() != null ? rule.getNodes().size() : 0);
         return rule;
     }
@@ -361,8 +384,8 @@ public class RuleService {
         Optional<Rule> ruleOpt = rulePersistencePort.findByCode(code);
         if (ruleOpt.isPresent()) {
             Rule rule = ruleOpt.get();
-            logger.debug("[RULE_SERVICE] Rule found by code: id={}, code={}, state={}, nodeCount={}",
-                    rule.getId(), rule.getCode(), rule.getState(),
+            logger.debug("[RULE_SERVICE] Rule found by code: id={}, code={}, nodeCount={}",
+                    rule.getId(), rule.getCode(),
                     rule.getNodes() != null ? rule.getNodes().size() : 0);
         } else {
             logger.debug("[RULE_SERVICE] Rule not found by code: {}", code);
@@ -378,14 +401,6 @@ public class RuleService {
     @Transactional(readOnly = true)
     public Page<RuleListRow> findRules(RuleListFilter filter, Pageable pageable) {
         return rulePersistencePort.findWithFilters(filter, pageable);
-    }
-
-    /**
-     * Get rules by state
-     */
-    @Transactional(readOnly = true)
-    public Page<Rule> getRulesByState(Rule.RuleState state, Pageable pageable) {
-        return rulePersistencePort.findByState(state, pageable);
     }
 
     /**
@@ -460,7 +475,7 @@ public class RuleService {
         logger.info("Marking rule as published: id={}, version={}", ruleId, newVersion);
 
         Rule rule = self.getRuleById(ruleId);
-        rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setActive(true); // VRUL001: no PUBLISHED state — publishing just flags usable
         rule.setLatestVersion(newVersion);
         rule.setUpdatedAt(Instant.now());
 
@@ -532,8 +547,9 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public boolean isRuleActive(String ruleId) {
+        // VRUL001: no PUBLISHED state — a rule that exists and is flagged active is usable.
         Optional<Rule> rule = rulePersistencePort.findById(ruleId);
-        return rule.map(r -> r.getState() == Rule.RuleState.PUBLISHED).orElse(false);
+        return rule.map(Rule::isActive).orElse(false);
     }
 
     /**
