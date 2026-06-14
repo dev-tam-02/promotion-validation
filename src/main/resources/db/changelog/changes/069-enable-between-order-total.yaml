@@ -1,0 +1,31 @@
+databaseChangeLog:
+  # VRUL002_B02 / campaign-cms#25: enable the "trong khoảng" (numeric range)
+  # comparator for the order.total condition ("Tổng giá trị đơn").
+  #
+  # The pp-rule-engine already evaluates order.total.between (min <= total <= max)
+  # via the generic numeric range translator. Here we expose the comparator to the
+  # rule builder by:
+  #   1. adding "is_between" to available_comparators, and
+  #   2. extending params_schema to accept the range shape {min,max} in ADDITION
+  #      to the existing scalar {amount} (anyOf), so a single condition offers both
+  #      scalar comparators and "trong khoảng" — as the SRS describes.
+  - changeSet:
+      id: 069-enable-between-order-total
+      author: pp-validation
+      comment: "Enable is_between (numeric range) for order.total"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than","is_between"]' }
+              - column: { name: comparison_type, value: "range" }
+              - column: { name: params_schema, value: '{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","anyOf":[{"required":["amount"],"properties":{"amount":{"type":"number","minimum":0}}},{"required":["min","max"],"properties":{"min":{"type":"number","minimum":0},"max":{"type":"number","minimum":0}}}],"properties":{"currency":{"type":"string","minLength":1}},"additionalProperties":true}' }
+            where: "id='opt-total-amount-after-discounts'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than"]' }
+              - column: { name: comparison_type, value: "single" }
+              - column: { name: params_schema, value: '{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","required":["amount"],"properties":{"amount":{"type":"number","minimum":0},"currency":{"type":"string","minLength":1}},"additionalProperties":true}' }
+            where: "id='opt-total-amount-after-discounts'"

@@ -101,6 +101,7 @@ public class RuleBuilderService {
         m.put(OP_IS_MORE_THAN, OperatorResponse.of(OP_IS_MORE_THAN, "is more than", "Lớn hơn"));
         m.put(OP_IS_LESS_THAN, OperatorResponse.of(OP_IS_LESS_THAN, "is less than", "Nhỏ hơn"));
         m.put(OP_IS_EXACTLY, OperatorResponse.of(OP_IS_EXACTLY, "is exactly", "Đúng bằng"));
+        m.put("is_between", OperatorResponse.of("is_between", "is between", "Trong khoảng"));
         m.put(OP_IS_MORE_THAN_OR_EQUAL_TO,
                 OperatorResponse.of(OP_IS_MORE_THAN_OR_EQUAL_TO, "is more than or equal to", OP_LABEL_VI_GTE));
         m.put(OP_IS_LESS_THAN_OR_EQUAL_TO,

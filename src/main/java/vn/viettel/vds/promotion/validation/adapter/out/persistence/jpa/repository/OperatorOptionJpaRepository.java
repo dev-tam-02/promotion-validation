@@ -37,6 +37,13 @@ public interface OperatorOptionJpaRepository extends JpaRepository<OperatorOptio
     Optional<OperatorOptionEntity> findFirstByOperatorNameOrderByDisplayOrderAsc(String operatorName);
 
     /**
+     * First option whose operator_name starts with the given prefix, ordered by displayOrder.
+     * Resolves a comparator-suffixed effective name (e.g. "order.total.between") to the field's
+     * row when that row stores a different suffixed canonical (e.g. "order.total.gte").
+     */
+    Optional<OperatorOptionEntity> findFirstByOperatorNameStartingWithOrderByDisplayOrderAsc(String operatorNamePrefix);
+
+    /**
      * Find active options by operator name.
      */
     List<OperatorOptionEntity> findByOperatorNameAndActiveTrueOrderByDisplayOrderAsc(String operatorName);
