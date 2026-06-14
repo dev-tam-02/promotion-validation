@@ -52,6 +52,12 @@ public class RuleNodeEntity extends BaseEntity {
     @Column(name = "reason_code", length = 100)
     private String reasonCode; // (for COND type)
 
+    @Column(name = "violation_display_mode", length = 20)
+    private String violationDisplayMode; // HIDDEN | DISABLED — per-rule (control 6 VRUL002_B02)
+
+    @Column(name = "error_message", length = 1000)
+    private String errorMessage; // per-rule error message overriding rule-level fallback
+
     // Many-to-one relationship with validation rule
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "validation_rule_id", nullable = false)

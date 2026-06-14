@@ -50,7 +50,7 @@ public class RuleVersioningService {
             // Create new version
             Rule newVersion = createRuleCopy(currentRule);
             newVersion.setLatestVersion(getNextVersion(ruleId));
-            newVersion.setState(Rule.RuleState.DRAFT);
+            newVersion.setActive(true); // VRUL001: no DRAFT state — new version is usable
             // Note: bundleHash and publishedAt not available in current entity
             newVersion.setCreatedAt(Instant.now());
             newVersion.setUpdatedAt(Instant.now());
@@ -88,7 +88,7 @@ public class RuleVersioningService {
             validateRollback(currentRule, targetRuleVersion);
 
             // Unpublish current rule if it's active
-            if (currentRule.getState() == Rule.RuleState.PUBLISHED) {
+            if (currentRule.isActive()) {
                 logger.info("Unpublishing current rule before rollback: ruleId={}", ruleId);
                 rulePublishingService.unpublishRule(ruleId);
             }
@@ -96,7 +96,7 @@ public class RuleVersioningService {
             // Create new version from target
             Rule rolledBackRule = createRuleFromVersion(targetRuleVersion);
             rolledBackRule.setLatestVersion(getNextVersion(ruleId));
-            rolledBackRule.setState(Rule.RuleState.DRAFT);
+            rolledBackRule.setActive(true); // VRUL001: no DRAFT state — rolled-back version is usable
             // Note: bundleHash and publishedAt not available in current entity
             rolledBackRule.setCreatedAt(Instant.now());
             rolledBackRule.setUpdatedAt(Instant.now());
@@ -277,7 +277,7 @@ public class RuleVersioningService {
         return RuleVersionInfo.builder()
                 .ruleId(ruleVersion.getId())
                 .version(ruleVersion.getVersion()) // Use ruleVersion (Integer) not version (Long)
-                .status(ruleVersion.getPublishedAt() != null ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT)
+                .status(ruleVersion.getPublishedAt() != null ? "PUBLISHED" : "DRAFT")
                 .name(ruleVersion.getCode()) // Using code as name
                 .description(null) // description not available in RuleVersion
                 .bundleHash(ruleVersion.getCompile() != null ? ruleVersion.getCompile().getBundleHash() : null)
@@ -385,7 +385,7 @@ public class RuleVersioningService {
     public static class RuleVersionInfo {
         private final String ruleId;
         private final Integer version;
-        private final Rule.RuleState status;
+        private final String status;
         private final String name;
         private final String description;
         private final String bundleHash;
@@ -395,7 +395,7 @@ public class RuleVersioningService {
 
         // Private constructor used exclusively by Builder pattern to ensure immutability
         @SuppressWarnings("java:S107") // Constructor parameters are managed via Builder pattern
-        private RuleVersionInfo(String ruleId, Integer version, Rule.RuleState status, String name,
+        private RuleVersionInfo(String ruleId, Integer version, String status, String name,
                                 String description, String bundleHash, Instant createdAt,
                                 Instant publishedAt, java.util.Map<String, Object> metadata) {
             this.ruleId = ruleId;
@@ -422,7 +422,7 @@ public class RuleVersioningService {
             return version;
         }
 
-        public Rule.RuleState getStatus() {
+        public String getStatus() {
             return status;
         }
 
@@ -453,7 +453,7 @@ public class RuleVersioningService {
         public static class Builder {
             private String ruleId;
             private Integer version;
-            private Rule.RuleState status;
+            private String status;
             private String name;
             private String description;
             private String bundleHash;
@@ -471,7 +471,7 @@ public class RuleVersioningService {
                 return this;
             }
 
-            public Builder status(Rule.RuleState status) {
+            public Builder status(String status) {
                 this.status = status;
                 return this;
             }

@@ -1,7 +1,5 @@
 package vn.viettel.vds.promotion.validation.application.port.out;
 
-import vn.viettel.vds.promotion.validation.domain.model.Rule;
-
 import java.time.Instant;
 
 /**
@@ -13,7 +11,6 @@ import java.time.Instant;
  * adapter via an EXISTS subquery).
  */
 public record RuleListFilter(
-        Rule.RuleState state,
         String codePattern,
         String namePattern,
         String context,

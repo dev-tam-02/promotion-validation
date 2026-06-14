@@ -120,9 +120,8 @@ public class RuleManagementService implements RuleManagementUseCase {
                 .name(name)
                 .description(description)
                 .logic(logic != null ? logic : Rule.LogicType.ALL)
-                .state(Rule.RuleState.DRAFT)
                 .nodes(nodes)
-                .active(false)
+                .active(true) // VRUL001: usable on creation (no DRAFT state)
                 .ruleVersion(1L)
                 .version(0L)
                 .createdAt(Instant.now())
@@ -153,10 +152,7 @@ public class RuleManagementService implements RuleManagementUseCase {
         Rule existing = rulePort.findById(ruleId)
                 .orElseThrow(() -> new RuleNotFoundException(ruleId));
 
-        if (existing.getState() == Rule.RuleState.ARCHIVED) {
-            throw new vn.viettel.vds.promotion.validation.domain.exception.RuleStateNotEditableException(
-                    ruleId, existing.getState().name());
-        }
+        // VRUL001/VRUL003: editability governed by binding assignment, not a state.
 
         // Validate tree if provided
         List<RuleNode> newNodes = nodes != null ? nodes : existing.getNodes();
@@ -222,9 +218,9 @@ public class RuleManagementService implements RuleManagementUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Rule> listRules(Rule.RuleState state, String name, Pageable pageable) {
-        log.debug("listRules: state={} name={}", state, name);
-        RuleListFilter filter = new RuleListFilter(state, null, name, null, null, null, null);
+    public Page<Rule> listRules(String name, Pageable pageable) {
+        log.debug("listRules: name={}", name);
+        RuleListFilter filter = new RuleListFilter(null, name, null, null, null, null);
         return rulePort.findWithFilters(filter, pageable).map(RuleListRow::rule);
     }
 
@@ -279,7 +275,7 @@ public class RuleManagementService implements RuleManagementUseCase {
                         Instant.now(),
                         rule.getDsl(),
                         rule.getBundleHash(),
-                        rule.getState() != null ? rule.getState().name() : null,
+                        null, // VRUL001: rules no longer carry a state
                         changeReason
                 );
                 port.save(entry);
@@ -340,7 +336,6 @@ public class RuleManagementService implements RuleManagementUseCase {
 
             Rule active = withDsl.toBuilder()
                     .bundleHash(bundleHash)
-                    .state(Rule.RuleState.PUBLISHED)
                     .active(true)
                     .updatedAt(Instant.now())
                     .updatedBy(userId)

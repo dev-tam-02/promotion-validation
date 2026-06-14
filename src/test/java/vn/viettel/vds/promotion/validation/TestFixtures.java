@@ -69,7 +69,6 @@ public final class TestFixtures {
                 .ruleCode(ruleCode)
                 .name("Test Rule")
                 .description("Test rule description")
-                .state(Rule.RuleState.PUBLISHED)
                 .active(true)
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .updatedAt(Instant.parse("2026-01-02T00:00:00Z"))
@@ -85,7 +84,6 @@ public final class TestFixtures {
                 .ruleCode(ruleCode)
                 .name("Inactive Rule")
                 .active(false)
-                .state(Rule.RuleState.DRAFT)
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .build();
     }
@@ -97,7 +95,6 @@ public final class TestFixtures {
                 .ruleCode(ruleCode)
                 .name("Segment Rule")
                 .active(true)
-                .state(Rule.RuleState.PUBLISHED)
                 .targetSegments(segments)
                 .createdAt(Instant.parse("2026-01-01T00:00:00Z"))
                 .build();

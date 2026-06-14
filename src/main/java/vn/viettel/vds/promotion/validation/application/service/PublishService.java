@@ -116,8 +116,8 @@ public class PublishService {
     }
 
     private void validateRuleForPublishing(Rule rule) {
-        // Validate rule state
-        if (rule.getState() == Rule.RuleState.ARCHIVED) {
+        // VRUL001: no lifecycle state — an inactive (archived) rule cannot publish.
+        if (!rule.isActive()) {
             throw new ArchivedRulePublishException(rule.getId());
         }
 

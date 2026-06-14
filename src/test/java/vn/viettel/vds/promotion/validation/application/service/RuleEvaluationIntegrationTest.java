@@ -335,7 +335,6 @@ class RuleEvaluationIntegrationTest {
                 .code("PA_TEST")
                 .name("Path A Test Rule")
                 .logic(Rule.LogicType.ALL)
-                .state(Rule.RuleState.PUBLISHED)
                 .active(true)
                 .ruleVersion(1L)
                 .nodes(List.of(rootGroup))

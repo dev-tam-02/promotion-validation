@@ -61,7 +61,6 @@ class RuleServiceTest {
                 .id(id)
                 .code(code)
                 .name(name)
-                .state(Rule.RuleState.DRAFT)
                 .active(false)
                 .latestVersion(0)
                 .version(1L)
@@ -81,7 +80,6 @@ class RuleServiceTest {
                 .id(id)
                 .code(code)
                 .name(name)
-                .state(Rule.RuleState.PUBLISHED)
                 .active(true)
                 .latestVersion(1)
                 .version(2L)
@@ -149,7 +147,7 @@ class RuleServiceTest {
             assertThat(result.getId()).isNotBlank();
             assertThat(result.getCode()).isEqualTo(code);
             assertThat(result.getName()).isEqualTo(name);
-            assertThat(result.getState()).isEqualTo(Rule.RuleState.DRAFT);
+            assertThat(result.isActive()).isTrue(); // VRUL001: rules usable on creation
             assertThat(result.getLogic()).isEqualTo(Rule.LogicType.ALL);
             assertThat(result.getNodes()).hasSize(1);
             assertThat(result.getCreatedBy()).isEqualTo("admin");
@@ -314,31 +312,12 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(page);
 
             // When
-            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null, null), pageable);
+            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null), pageable);
 
             // Then
             assertThat(result.getContent()).hasSize(2);
             assertThat(result.getTotalElements()).isEqualTo(2);
             verify(rulePersistencePort).findWithFilters(any(), eq(pageable));
-        }
-
-        @Test
-        @DisplayName("Should filter by state when state is provided")
-        void shouldFilterByState_whenStateProvided() {
-            // Given
-            Pageable pageable = PageRequest.of(0, 10);
-            Page<RuleListRow> page = new PageImpl<>(
-                    List.of(new RuleListRow(publishedRule("r1", "C1", "Rule 1"), 0, 0L)), pageable, 1);
-            when(rulePersistencePort.findWithFilters(argThat(f -> f.state() == Rule.RuleState.PUBLISHED), eq(pageable)))
-                    .thenReturn(page);
-
-            // When
-            Page<RuleListRow> result = sut.findRules(
-                    new RuleListFilter(Rule.RuleState.PUBLISHED, null, null, null, null, null, null), pageable);
-
-            // Then
-            assertThat(result.getContent()).hasSize(1);
-            verify(rulePersistencePort).findWithFilters(argThat(f -> f.state() == Rule.RuleState.PUBLISHED), eq(pageable));
         }
 
         @Test
@@ -351,7 +330,7 @@ class RuleServiceTest {
                     .thenReturn(page);
 
             // When / Then
-            sut.findRules(new RuleListFilter(null, null, "weekend", null, null, null, null), pageable);
+            sut.findRules(new RuleListFilter(null, "weekend", null, null, null, null), pageable);
             verify(rulePersistencePort).findWithFilters(argThat(f -> "weekend".equals(f.namePattern())), eq(pageable));
         }
 
@@ -364,7 +343,7 @@ class RuleServiceTest {
             when(rulePersistencePort.findWithFilters(any(), eq(pageable))).thenReturn(emptyPage);
 
             // When
-            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null, null), pageable);
+            Page<RuleListRow> result = sut.findRules(new RuleListFilter(null, null, null, null, null, null), pageable);
 
             // Then
             assertThat(result.getContent()).isEmpty();
@@ -433,19 +412,8 @@ class RuleServiceTest {
             assertThat(result.getNodes()).hasSize(2);
         }
 
-        @Test
-        @DisplayName("Should throw RuleStateNotEditableException when rule is PUBLISHED")
-        void shouldThrowStateNotEditable_whenPublished() {
-            // Given
-            Rule existing = publishedRule("r1", "CODE_1", "Published Rule");
-            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(existing));
-
-            // When & Then
-            assertThatThrownBy(() -> sut.updateRule("r1", "New Name", null, null, "editor"))
-                    .isInstanceOf(RuleStateNotEditableException.class);
-
-            verify(rulePersistencePort, never()).save(any());
-        }
+        // VRUL001/VRUL003: updateRule no longer gates on lifecycle state — the former
+        // "RuleStateNotEditableException when PUBLISHED" test is obsolete and removed.
 
         @Test
         @DisplayName("Should throw RuleNotFoundException when rule does not exist")
@@ -805,7 +773,7 @@ class RuleServiceTest {
             // Then
             assertThat(result.getCode()).isEqualTo("CLONE_CODE");
             assertThat(result.getName()).isEqualTo("Cloned Rule");
-            assertThat(result.getState()).isEqualTo(Rule.RuleState.DRAFT);
+            assertThat(result.isActive()).isTrue(); // VRUL001: usable on creation
             assertThat(result.getCreatedBy()).isEqualTo("cloner");
         }
 
@@ -854,22 +822,12 @@ class RuleServiceTest {
             Rule result = sut.activateRule("r1", "activator");
 
             // Then
-            assertThat(result.getState()).isEqualTo(Rule.RuleState.PUBLISHED);
             assertThat(result.isActive()).isTrue();
             assertThat(result.getUpdatedBy()).isEqualTo("activator");
         }
 
-        @Test
-        @DisplayName("Should throw exception when rule is not in DRAFT state")
-        void shouldThrow_whenNotDraft() {
-            // Given
-            Rule published = publishedRule("r1", "CODE_1", "Published Rule");
-            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(published));
-
-            // When & Then
-            assertThatThrownBy(() -> sut.activateRule("r1", "user"))
-                    .isInstanceOf(RuntimeException.class);
-        }
+        // VRUL001: activateRule no longer gates on DRAFT state — the former
+        // "throw when not DRAFT" test is obsolete and removed.
     }
 
     // ========================================================================
@@ -892,7 +850,6 @@ class RuleServiceTest {
             Rule result = sut.archiveRule("r1", "archiver");
 
             // Then
-            assertThat(result.getState()).isEqualTo(Rule.RuleState.ARCHIVED);
             assertThat(result.isActive()).isFalse();
             assertThat(result.getUpdatedBy()).isEqualTo("archiver");
         }
@@ -1128,7 +1085,6 @@ class RuleServiceTest {
                     .id("rule-sys-owner-only")
                     .code("rule-sys-owner-only")
                     .name("System — Owner Only")
-                    .state(Rule.RuleState.PUBLISHED)
                     .isSystem(true)
                     .version(0L)
                     .logic(Rule.LogicType.ALL)
@@ -1153,7 +1109,6 @@ class RuleServiceTest {
                     .id("rule-sys-owner-only")
                     .code("rule-sys-owner-only")
                     .name("System — Owner Only")
-                    .state(Rule.RuleState.DRAFT)  // draft state, but isSystem blocks update
                     .isSystem(true)
                     .version(0L)
                     .logic(Rule.LogicType.ALL)
@@ -1178,7 +1133,6 @@ class RuleServiceTest {
                     .id("rule-regular-001")
                     .code("rule-regular")
                     .name("Regular Rule")
-                    .state(Rule.RuleState.DRAFT)
                     .isSystem(false)
                     .version(1L)
                     .logic(Rule.LogicType.ALL)

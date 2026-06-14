@@ -41,8 +41,9 @@ public class Rule {
     private String fallbackErrorMessage;
     private String notes;
 
-    // State Management
-    private RuleState state;
+    // VRUL001: validation rules have NO lifecycle state and NO active gate —
+    // a rule is usable simply by existing. {@code active} kept only as a dormant
+    // always-true flag so legacy callers compile; it never gates behaviour.
     private Boolean active;
     private Long ruleVersion;
     private Integer latestVersion;
@@ -100,9 +101,8 @@ public class Rule {
     public boolean isEffective(Instant checkTime) {
         Instant now = checkTime != null ? checkTime : Instant.now();
 
-        return isActive() &&
-                state == RuleState.PUBLISHED &&
-                (effectiveFrom == null || !now.isBefore(effectiveFrom)) &&
+        // VRUL001: no state/active gate — a rule is effective within its time window.
+        return (effectiveFrom == null || !now.isBefore(effectiveFrom)) &&
                 (effectiveTo == null || !now.isAfter(effectiveTo));
     }
 
@@ -129,7 +129,6 @@ public class Rule {
      * Publish this rule
      */
     public void publish(String publishedByUser) {
-        this.state = RuleState.PUBLISHED;
         this.publishedAt = Instant.now();
         this.publishedBy = publishedByUser;
         this.active = true;
@@ -141,7 +140,6 @@ public class Rule {
      * Archive this rule
      */
     public void archive(String archivedByUser) {
-        this.state = RuleState.ARCHIVED;
         this.active = false;
         this.updatedAt = Instant.now();
         this.updatedBy = archivedByUser;
@@ -151,17 +149,17 @@ public class Rule {
      * Deprecate this rule
      */
     public void deprecate(String deprecatedByUser) {
-        this.state = RuleState.DEPRECATED;
         this.active = false;
         this.updatedAt = Instant.now();
         this.updatedBy = deprecatedByUser;
     }
 
     /**
-     * Get the status based on the state
+     * VRUL001: lifecycle state removed. Retained returning null for response
+     * back-compat; callers must not branch on a rule "status" anymore.
      */
     public String getStatus() {
-        return state != null ? state.name() : null;
+        return null;
     }
 
     /**
@@ -198,16 +196,6 @@ public class Rule {
     public Object evaluate(Object context) {
         // This is a placeholder - actual evaluation should be done by RuleEvaluationService
         throw new UnsupportedOperationException("Use RuleEvaluationService for rule evaluation");
-    }
-
-    /**
-     * Rule state lifecycle enum
-     */
-    public enum RuleState {
-        DRAFT,       // Being created/edited
-        PUBLISHED,   // Active and in use
-        ARCHIVED,    // Inactive but retained
-        DEPRECATED   // Superseded by newer version
     }
 
     /**

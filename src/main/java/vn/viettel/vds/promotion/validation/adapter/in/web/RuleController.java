@@ -51,7 +51,7 @@ public class RuleController {
      * These fields map to columns in the validation_rules table.
      */
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
-            "id", "code", "name", "state", "ruleVersion",
+            "id", "code", "name", "ruleVersion",
             "logic", "publishedAt", "publishedBy", "context",
             "createdAt", "updatedAt", "createdBy", "updatedBy",
             "ruleCount", "assignmentCount"
@@ -150,7 +150,6 @@ public class RuleController {
     })
     @GetMapping
     public PageResponse<RuleListItemResponse> listRules(
-            @Parameter(description = "Filter by state") @RequestParam(required = false) String state,
             @Parameter(description = "Filter by code pattern") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by name pattern") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by context") @RequestParam(required = false) String context,
@@ -172,12 +171,11 @@ public class RuleController {
 
         Pageable pageable = pageableRequest.toPageable();
 
-        Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
         Instant createdFromTs = parseInstant(createdFrom, "createdFrom");
         Instant createdToTs = parseInstant(createdTo, "createdTo");
         RuleListFilter.UsageStatus usageStatusEnum = parseUsageStatus(usageStatus);
 
-        RuleListFilter filter = new RuleListFilter(stateEnum, code, name, context,
+        RuleListFilter filter = new RuleListFilter(code, name, context,
                 createdFromTs, createdToTs, usageStatusEnum);
 
         // Filtering, sorting, pagination AND the display counts (node + active
@@ -237,6 +235,7 @@ public class RuleController {
                 request.getContext(),
                 request.getDescription(),
                 request.getFallbackErrorMessage(),
+                request.getVersion(),
                 userId
         );
 
@@ -310,8 +309,10 @@ public class RuleController {
     })
     @GetMapping("/check-name")
     public RuleNameCheckResponse checkRuleName(
-            @Parameter(description = "Rule name to check") @RequestParam("name") String name) {
-        boolean duplicated = ruleService.isNameDuplicated(name);
+            @Parameter(description = "Rule name to check") @RequestParam("name") String name,
+            @Parameter(description = "Rule id to exclude (edit screen — ignore the rule keeping its own name)")
+            @RequestParam(value = "excludeRuleId", required = false) String excludeRuleId) {
+        boolean duplicated = ruleService.isNameDuplicated(name, excludeRuleId);
         return new RuleNameCheckResponse(duplicated);
     }
 

@@ -117,7 +117,7 @@ class SystemRuleBootstrapRunnerTest {
                 .id("rule-sys-owner-only")
                 .code("rule-sys-owner-only")
                 .name("System — Owner Only")
-                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
                 .logic(Rule.LogicType.ALL)
                 .nodes(List.of(condNode))
                 .bundleHash(null)         // null — the condition for bootstrap
@@ -149,7 +149,7 @@ class SystemRuleBootstrapRunnerTest {
         // Assert: rule was saved with bundleHash populated and state PUBLISHED
         assertThat(savedRule[0]).isNotNull();
         assertThat(savedRule[0].getBundleHash()).isEqualTo("sha256-bootstrap-01");
-        assertThat(savedRule[0].getState()).isEqualTo(Rule.RuleState.PUBLISHED);
+        assertThat(savedRule[0].isActive()).isTrue();
         assertThat(savedRule[0].getDsl()).isNotNull();
     }
 
@@ -187,7 +187,7 @@ class SystemRuleBootstrapRunnerTest {
                 .id("rule-sys-owner-only")
                 .code("rule-sys-owner-only")
                 .name("System — Owner Only")
-                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
                 .logic(Rule.LogicType.ALL)
                 .nodes(List.of(condNode))
                 .bundleHash(null)

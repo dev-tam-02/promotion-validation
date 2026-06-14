@@ -58,10 +58,9 @@ public interface RuleManagementUseCase {
     /**
      * List rules with optional filters.
      *
-     * @param state    filter by state (null = all)
      * @param name     filter by name pattern (null = all)
      * @param pageable pagination
      * @return page of rules
      */
-    Page<Rule> listRules(Rule.RuleState state, String name, Pageable pageable);
+    Page<Rule> listRules(String name, Pageable pageable);
 }

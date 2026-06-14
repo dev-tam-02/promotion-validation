@@ -54,7 +54,7 @@ public class RuleResponse {
                 .nodes(rule.getNodes() != null ? rule.getNodes().stream()
                         .map(RuleNodeResponse::from)
                         .toList() : List.of())
-                .status(rule.getState() != null ? RuleStatus.valueOf(rule.getState().name()) : null)
+                .status(null) // VRUL001: rules no longer carry a state
                 .version(rule.getVersion() != null ? rule.getVersion().toString() : null)
                 .createdAt(rule.getCreatedAt())
                 .updatedAt(rule.getUpdatedAt())

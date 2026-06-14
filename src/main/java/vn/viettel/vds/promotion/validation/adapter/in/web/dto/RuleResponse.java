@@ -30,10 +30,6 @@ public class RuleResponse {
     @JsonProperty("name")
     private String name;
 
-    @Schema(description = "Rule state", example = "draft", allowableValues = {"draft", "published", "archived"})
-    @JsonProperty("state")
-    private String state;
-
     @Schema(description = "Rule context", example = "ORDER")
     @JsonProperty("context")
     private String context;
@@ -197,13 +193,6 @@ public class RuleResponse {
         this.name = name;
     }
 
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
 
     public Integer getLatestVersion() {
         return latestVersion;

@@ -52,7 +52,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .description(command.getDescription())
                 .expression(command.getExpression())
                 .type(command.getType().name())
-                .state(command.isActive() ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT)
+                .active(command.isActive())
                 .priority(command.getPriority())
                 .configuration(convertConfiguration(command.getConfiguration()))
                 .targetSegments(command.getTargetSegments())
@@ -98,7 +98,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
             updatedRule.type(command.getType().name());
         }
         if (command.getActive() != null) {
-            updatedRule.state(Boolean.TRUE.equals(command.getActive()) ? Rule.RuleState.PUBLISHED : Rule.RuleState.DRAFT);
+            updatedRule.active(Boolean.TRUE.equals(command.getActive()));
         }
         if (command.getPriority() != null) {
             updatedRule.priority(command.getPriority());
@@ -163,7 +163,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         Rule activated = rule.toBuilder()
-                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -178,7 +178,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .orElseThrow(() -> new NoSuchElementException(RULE_NOT_FOUND_MESSAGE + ruleId));
 
         Rule deactivated = rule.toBuilder()
-                .state(Rule.RuleState.ARCHIVED)
+                .active(false)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -251,7 +251,7 @@ public class ManageValidationRulesUseCaseImpl implements ManageValidationRulesUs
                 .id(UUID.randomUUID().toString())
                 .ruleCode(newRuleCode)
                 .name(originalRule.getName() + " (Copy)")
-                .state(Rule.RuleState.DRAFT) // Start as draft
+                .active(true) // VRUL001: usable on creation (no DRAFT state)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

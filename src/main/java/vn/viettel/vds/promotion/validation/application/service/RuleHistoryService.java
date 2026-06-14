@@ -100,7 +100,7 @@ public class RuleHistoryService {
                 Instant.now(),
                 current.getDsl(),
                 current.getBundleHash(),
-                current.getState() != null ? current.getState().name() : null,
+                null, // VRUL001: rules no longer carry a state
                 "pre-restore snapshot before restoring to version " + targetVersion
         );
         historyPort.save(preRestoreEntry);

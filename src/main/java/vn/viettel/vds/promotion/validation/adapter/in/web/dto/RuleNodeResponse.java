@@ -52,6 +52,16 @@ public record RuleNodeResponse(
         @Schema(description = "UI comparator derived from operatorName suffix (is_more_than/.gt, etc.). Null for non-numeric operators.",
                 example = "is_more_than")
         @JsonProperty("comparator")
-        String comparator
+        String comparator,
+
+        @Schema(description = "Per-rule violation display mode (control 6 VRUL002_B02)",
+                example = "HIDDEN", allowableValues = {"HIDDEN", "DISABLED"})
+        @JsonProperty("violationDisplayMode")
+        String violationDisplayMode,
+
+        @Schema(description = "Per-rule error message overriding the rule-level fallback (control 6 VRUL002_B02)",
+                example = "Đơn hàng chưa đạt giá trị tối thiểu")
+        @JsonProperty("errorMessage")
+        String errorMessage
 ) {
 }

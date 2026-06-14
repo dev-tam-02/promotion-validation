@@ -56,9 +56,6 @@ public class RuleJpaEntity implements Persistable<String> {
     @Column(name = "name", length = 200, nullable = false)
     private String name;
 
-    @Column(name = "state", length = 20, nullable = false)
-    private String state;
-
     @Column(name = "rule_version", nullable = false)
     private Long ruleVersion;
 
@@ -136,9 +133,6 @@ public class RuleJpaEntity implements Persistable<String> {
         }
         if (version == null) {
             version = 0L;
-        }
-        if (state == null) {
-            state = "DRAFT";
         }
     }
 

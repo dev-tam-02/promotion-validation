@@ -147,7 +147,7 @@ class RuleEngineWireMockTest {
         Rule finalSaved = savedRuleHolder[0];
         assertThat(finalSaved).isNotNull();
         assertThat(finalSaved.getBundleHash()).isEqualTo("abc123");
-        assertThat(finalSaved.getState()).isEqualTo(Rule.RuleState.PUBLISHED);
+        assertThat(finalSaved.isActive()).isTrue();
 
         // Assert: DSL snapshot was populated
         assertThat(finalSaved.getDsl()).isNotNull();
@@ -189,10 +189,9 @@ class RuleEngineWireMockTest {
 
         // Assert: rule was saved in DRAFT state (no bundleHash)
         Rule finalSaved = savedRuleHolder[0];
-        // The last save is either the DRAFT save after engine failure
-        // bundleHash should be null and state should not be PUBLISHED
+        // The last save is the rule save after engine failure.
+        // VRUL001: no state — failure is observable via the null bundleHash.
         if (finalSaved != null) {
-            assertThat(finalSaved.getState()).isNotEqualTo(Rule.RuleState.PUBLISHED);
             assertThat(finalSaved.getBundleHash()).isNull();
         }
     }

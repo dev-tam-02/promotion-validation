@@ -97,7 +97,6 @@ class RuleManagementIntegrationTest {
                 .name("Min order 500k")
                 .description("Minimum order total 500,000 VND")
                 .logic(Rule.LogicType.ALL)
-                .state(Rule.RuleState.DRAFT)
                 .nodes(List.of(groupNode))
                 .active(false)
                 .ruleVersion(1L)
@@ -118,7 +117,6 @@ class RuleManagementIntegrationTest {
                 "admin");
 
         assertThat(created.getId()).isEqualTo("rule-001");
-        assertThat(created.getState()).isEqualTo(Rule.RuleState.DRAFT);
         assertThat(created.getNodes()).hasSize(1);
 
         // ─── Step 2: GET /rules/{id} ───────────────────────────────────────
@@ -189,7 +187,6 @@ class RuleManagementIntegrationTest {
                 .id("rule-001")
                 .name("Old name")
                 .logic(Rule.LogicType.ALL)
-                .state(Rule.RuleState.DRAFT)
                 .nodes(List.of(oldGroup))
                 .active(false)
                 .ruleVersion(1L)

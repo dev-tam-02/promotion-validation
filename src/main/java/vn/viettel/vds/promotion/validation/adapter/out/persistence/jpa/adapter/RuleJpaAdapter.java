@@ -53,7 +53,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
     public Rule save(Rule rule) {
         logger.debug("[RULE_SAVE] Starting save rule: id={}, code={}", rule.getId(), rule.getCode());
         RuleJpaEntity entity = mapper.toEntity(rule);
-        logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, state={}", entity.getId(), entity.getState());
+        logger.trace("[RULE_SAVE] Mapped rule to entity: id={}, code={}", entity.getId(), entity.getCode());
         RuleJpaEntity saved;
         try {
             saved = repository.save(entity);
@@ -181,8 +181,8 @@ public class RuleJpaAdapter implements RulePersistencePort {
         }
 
         return entityOpt.map(entity -> {
-            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}, state={}",
-                    entity.getId(), entity.getCode(), entity.getState());
+            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}",
+                    entity.getId(), entity.getCode());
 
             Rule rule = mapper.toDomain(entity);
             logger.trace("[RULE_LOAD] Mapped entity to domain: id={}, code={}", rule.getId(), rule.getCode());
@@ -223,8 +223,8 @@ public class RuleJpaAdapter implements RulePersistencePort {
         }
 
         return entityOpt.map(entity -> {
-            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}, state={}",
-                    entity.getId(), entity.getCode(), entity.getState());
+            logger.debug("[RULE_LOAD] Found rule entity: id={}, code={}",
+                    entity.getId(), entity.getCode());
 
             Rule rule = mapper.toDomain(entity);
             logger.trace("[RULE_LOAD] Mapped entity to domain: id={}, code={}", rule.getId(), rule.getCode());
@@ -254,12 +254,6 @@ public class RuleJpaAdapter implements RulePersistencePort {
         });
     }
 
-    @Override
-    public Page<Rule> findByState(Rule.RuleState state, Pageable pageable) {
-        List<RuleJpaEntity> all = repository.findByState(state.name());
-        return convertToPage(all, pageable);
-    }
-
     /**
      * Whitelist mapping sort property → SQL ORDER BY expression. The computed
      * counts (ruleCount/assignmentCount) are correlated subqueries so the DB sorts
@@ -271,14 +265,12 @@ public class RuleJpaAdapter implements RulePersistencePort {
     private static final String ASSIGNMENT_COUNT_SUBQUERY =
             "(SELECT COUNT(*) FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)";
 
-    private static final String FIELD_STATE = "state";
     private static final String FIELD_CONTEXT = "context";
 
     private static final Map<String, String> SORT_COLUMNS = Map.ofEntries(
             Map.entry("id", "r.id"),
             Map.entry("code", "r.code"),
             Map.entry("name", "r.name"),
-            Map.entry(FIELD_STATE, "r.state"),
             Map.entry("ruleVersion", "r.rule_version"),
             Map.entry("logic", "r.logic"),
             Map.entry(FIELD_CONTEXT, "r.context"),
@@ -339,10 +331,6 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     private void appendFilters(RuleListFilter filter, StringBuilder where, Map<String, Object> params) {
-        if (filter.state() != null) {
-            where.append(" AND r.state = :state");
-            params.put(FIELD_STATE, filter.state().name());
-        }
         // Case-sensitive substring match for code/name (TC VRUL001_133) — LIKE BINARY.
         if (filter.codePattern() != null) {
             where.append(" AND r.code LIKE BINARY CONCAT('%', :code, '%')");
@@ -409,6 +397,11 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public boolean existsByName(String name) {
+        return existsByName(name, null);
+    }
+
+    @Override
+    public boolean existsByName(String name, String excludeRuleId) {
         if (name == null || name.isBlank()) {
             return false;
         }
@@ -416,22 +409,11 @@ public class RuleJpaAdapter implements RulePersistencePort {
         // The column collation may be case-/accent-insensitive, so findByName can
         // return a superset. Narrow it with a code-point exact comparison (cs_as),
         // mirroring the PP search-collation convention. Trim stored names so
-        // trailing whitespace from storage doesn't break the match.
+        // trailing whitespace from storage doesn't break the match. When editing,
+        // skip the rule keeping its own name (excludeRuleId).
         return repository.findByName(target).stream()
+                .filter(e -> excludeRuleId == null || !excludeRuleId.equals(e.getId()))
                 .anyMatch(e -> e.getName() != null && target.equals(e.getName().trim()));
-    }
-
-    @Override
-    public long countByState(Rule.RuleState state) {
-        return repository.findByState(state.name()).size();
-    }
-
-    @Override
-    public List<Rule> findByStateNot(Rule.RuleState state) {
-        return repository.findAll().stream()
-                .filter(e -> !state.name().equals(e.getState()))
-                .map(mapper::toDomain)
-                .toList();
     }
 
     @Override
@@ -587,8 +569,6 @@ public class RuleJpaAdapter implements RulePersistencePort {
             case "code" -> java.util.Comparator.comparing(RuleJpaEntity::getCode,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "name" -> java.util.Comparator.comparing(RuleJpaEntity::getName,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case FIELD_STATE -> java.util.Comparator.comparing(RuleJpaEntity::getState,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
             case "ruleVersion" -> java.util.Comparator.comparing(RuleJpaEntity::getRuleVersion,
                     java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));

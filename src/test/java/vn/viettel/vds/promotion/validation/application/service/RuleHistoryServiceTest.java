@@ -134,7 +134,7 @@ class RuleHistoryServiceTest {
                 .id("rule-restore-01")
                 .name("My Rule")
                 .logic(Rule.LogicType.ALL)
-                .state(Rule.RuleState.PUBLISHED)
+                .active(true)
                 .ruleVersion(3L)
                 .bundleHash("old-stale-bundle-hash")
                 .nodes(List.of(group))
@@ -166,8 +166,8 @@ class RuleHistoryServiceTest {
         assertThat(result.getBundleHash()).isEqualTo("new-bundle-hash-after-restore");
         assertThat(result.getBundleHash()).isNotEqualTo("old-stale-bundle-hash");
 
-        // Assert: rule is still PUBLISHED after recompile
-        assertThat(result.getState()).isEqualTo(Rule.RuleState.PUBLISHED);
+        // Assert: rule is still active after recompile
+        assertThat(result.isActive()).isTrue();
 
         // Assert: WireMock received the PUT call (engine update, since rule had existing bundleHash)
         wireMock.verify(putRequestedFor(urlPathMatching("/v1/rules/.*")));
@@ -206,7 +206,7 @@ class RuleHistoryServiceTest {
 
         Rule current = Rule.builder()
                 .id("r2").name("Rule 2").logic(Rule.LogicType.ALL)
-                .state(Rule.RuleState.PUBLISHED).ruleVersion(5L)
+                .ruleVersion(5L)
                 .bundleHash("old-hash").nodes(List.of(group)).active(true).build();
 
         RuleHistoryEntry snapshot = new RuleHistoryEntry(

@@ -26,6 +26,11 @@ public class RuleNode {
     private final String reasonCode;
     private final Rule.LogicType groupLogic;
     private final java.util.Map<String, Object> params;
+    // Per-node (per-rule, control 6/7 of VRUL002_B02) configuration:
+    // violationDisplayMode = how a violation surfaces (HIDDEN default / DISABLED),
+    // errorMessage = node-specific message that overrides the rule-level fallback.
+    private final String violationDisplayMode;
+    private final String errorMessage;
 
     private RuleNode(Builder builder) {
         this.nodeId = builder.nodeId;
@@ -40,6 +45,8 @@ public class RuleNode {
         this.reasonCode = builder.reasonCode;
         this.groupLogic = builder.groupLogic;
         this.params = builder.params;
+        this.violationDisplayMode = builder.violationDisplayMode;
+        this.errorMessage = builder.errorMessage;
         validate();
     }
 
@@ -197,6 +204,14 @@ public class RuleNode {
         return params;
     }
 
+    public String getViolationDisplayMode() {
+        return violationDisplayMode;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
     public enum NodeType {
         GROUP,
         COND
@@ -215,6 +230,8 @@ public class RuleNode {
         private String reasonCode;
         private Rule.LogicType groupLogic;
         private java.util.Map<String, Object> params;
+        private String violationDisplayMode;
+        private String errorMessage;
 
         public Builder nodeId(String nodeId) {
             this.nodeId = nodeId;
@@ -278,6 +295,16 @@ public class RuleNode {
 
         public Builder params(java.util.Map<String, Object> params) {
             this.params = params;
+            return this;
+        }
+
+        public Builder violationDisplayMode(String violationDisplayMode) {
+            this.violationDisplayMode = violationDisplayMode;
+            return this;
+        }
+
+        public Builder errorMessage(String errorMessage) {
+            this.errorMessage = errorMessage;
             return this;
         }
 

@@ -13,7 +13,7 @@ import java.util.Map;
 public class UpdateRuleRequest {
 
     @Schema(description = "Rule name")
-    @Size(max = 255, message = "Rule name must not exceed 255 characters")
+    @Size(max = 200, message = "Rule name must not exceed 200 characters")
     @JsonProperty("name")
     private String name;
 
@@ -52,9 +52,23 @@ public class UpdateRuleRequest {
     @JsonProperty("notes")
     private String notes;
 
+    @Schema(description = "Expected current version loaded by the client, for optimistic "
+            + "locking. When it no longer matches the persisted version the update is "
+            + "rejected with 409 CONFLICTED. Optional — omitted means no concurrency check.")
+    @JsonProperty("version")
+    private Long version;
+
     // Getters and setters
     public String getName() {
         return name;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public void setName(String name) {

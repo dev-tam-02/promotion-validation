@@ -103,7 +103,7 @@ class EngineSimulationServiceTest {
         rule.setId(id);
         rule.setName("Test Rule");
         rule.setBundleHash("hash-abc");
-        rule.setState(Rule.RuleState.PUBLISHED);
+        rule.setActive(true);
         return rule;
     }
 
