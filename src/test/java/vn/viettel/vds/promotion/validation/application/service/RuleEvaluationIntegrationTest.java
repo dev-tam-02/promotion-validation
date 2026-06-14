@@ -68,8 +68,6 @@ class RuleEvaluationIntegrationTest {
     @Mock
     private RuleEngineClient ruleEngineClient;
     @Mock
-    private RuleHistoryPersistencePort historyPort;
-    @Mock
     private RulePublishingService rulePublishingService;
     @Mock
     private SettingValidationRuleEventPublisher eventPublisher;
@@ -101,8 +99,7 @@ class RuleEvaluationIntegrationTest {
                 transactionManager,
                 ruleEngineClient,
                 drlCompiler,
-                operatorPort,
-                historyPort
+                operatorPort
         );
 
         // Default stubs

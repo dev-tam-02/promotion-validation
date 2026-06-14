@@ -43,8 +43,6 @@ class ParseFreqAndIntervalTest {
     private DrlCompiler drlCompiler;
     @Mock
     private OperatorPersistencePort operatorPort;
-    @Mock
-    private RuleHistoryPersistencePort historyPort;
 
     private SettingValidationRuleCommandHandler handler;
 
@@ -54,7 +52,7 @@ class ParseFreqAndIntervalTest {
         handler = new SettingValidationRuleCommandHandler(
                 ruleBindingPort, validationRulePort, eventPublisher, idempotencyService,
                 rulePublishingService, validator, dtoMapper, transactionManager,
-                ruleEngineClient, drlCompiler, operatorPort, historyPort);
+                ruleEngineClient, drlCompiler, operatorPort);
     }
 
     // ====== Happy-path: period strings ======
