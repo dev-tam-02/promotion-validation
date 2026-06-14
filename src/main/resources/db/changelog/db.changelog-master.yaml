@@ -220,3 +220,8 @@ databaseChangeLog:
   # validation_rules.state column and its index (enum/field/gating removed in code).
   - include:
       file: db/changelog/changes/068-drop-validation-rule-state.yaml
+
+  # VRUL002_B02 / campaign-cms#25: enable "is_between" (numeric range) comparator
+  # for order.total — add to available_comparators + extend params_schema {min,max}.
+  - include:
+      file: db/changelog/changes/069-enable-between-order-total.yaml

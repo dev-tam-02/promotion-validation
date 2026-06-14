@@ -93,6 +93,8 @@ public class RuleNodeSchemaValidator {
             throw new InvalidRuleStructureException(cond.getId(), "Operator name is required for COND nodes");
         }
 
+        enforceRangeOrder(cond);
+
         String canonical = stripComparatorSuffix(operatorName);
 
         // PROM-985: thử khớp CHÍNH XÁC operatorName trước. Một số operator có hậu
@@ -105,6 +107,14 @@ public class RuleNodeSchemaValidator {
                 operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(operatorName);
         if (optionOpt.isEmpty()) {
             optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
+        }
+        if (optionOpt.isEmpty()) {
+            // A row may store a suffixed canonical (e.g. operator_name="order.total.gte").
+            // A different comparator on the same field (e.g. "order.total.between") shares
+            // the canonical base, so resolve by canonical prefix to reuse that row's
+            // params_schema instead of failing as "unknown operator".
+            optionOpt = operatorOptionRepo
+                    .findFirstByOperatorNameStartingWithOrderByDisplayOrderAsc(canonical + ".");
         }
         if (optionOpt.isEmpty()) {
             throw new InvalidRuleStructureException(
@@ -140,6 +150,26 @@ public class RuleNodeSchemaValidator {
             throw new InvalidRuleStructureException(
                     cond.getId(),
                     "params do not match schema for operator '" + operatorName + "': " + msg);
+        }
+    }
+
+    /**
+     * Cross-field guard for range ("between") conditions: when both {@code min} and
+     * {@code max} numeric params are present, require {@code min <= max}. JSON Schema
+     * cannot express this relationship, so it is enforced here for every COND node
+     * (a no-op for non-range operators that carry neither key).
+     */
+    private void enforceRangeOrder(RuleNode cond) {
+        var params = cond.getParams();
+        if (params == null) {
+            return;
+        }
+        Object min = params.get("min");
+        Object max = params.get("max");
+        if (min instanceof Number minNum && max instanceof Number maxNum
+                && minNum.doubleValue() > maxNum.doubleValue()) {
+            throw new InvalidRuleStructureException(
+                    cond.getId(), "Range invalid: 'min' must be less than or equal to 'max'");
         }
     }
 

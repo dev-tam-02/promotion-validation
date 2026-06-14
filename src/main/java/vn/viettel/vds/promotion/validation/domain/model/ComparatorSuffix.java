@@ -17,7 +17,8 @@ public final class ComparatorSuffix {
             "is_more_than_or_equal_to", "gte",
             "is_exactly", "equals",
             "is_less_than", "lt",
-            "is_less_than_or_equal_to", "lte"
+            "is_less_than_or_equal_to", "lte",
+            "is_between", "between"
     );
 
     private ComparatorSuffix() {
@@ -38,7 +39,7 @@ public final class ComparatorSuffix {
                 .map(suffix -> canonical + "." + suffix)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Unknown comparator: " + comparator
-                                + " (supported: is_more_than, is_more_than_or_equal_to, is_exactly, is_less_than, is_less_than_or_equal_to)"));
+                                + " (supported: is_more_than, is_more_than_or_equal_to, is_exactly, is_less_than, is_less_than_or_equal_to, is_between)"));
     }
 
     public static boolean isSupported(String comparator) {
@@ -50,7 +51,8 @@ public final class ComparatorSuffix {
             "gte", "is_more_than_or_equal_to",
             "equals", "is_exactly",
             "lt", "is_less_than",
-            "lte", "is_less_than_or_equal_to"
+            "lte", "is_less_than_or_equal_to",
+            "between", "is_between"
     );
 
     public static Optional<String> comparatorFromOperatorName(String operatorName) {

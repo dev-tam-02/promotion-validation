@@ -15,7 +15,8 @@ class ComparatorSuffixTest {
             "is_more_than_or_equal_to, gte",
             "is_exactly, equals",
             "is_less_than, lt",
-            "is_less_than_or_equal_to, lte"
+            "is_less_than_or_equal_to, lte",
+            "is_between, between"
     })
     void of_returnsExpectedSuffix(String comparator, String suffix) {
         assertThat(ComparatorSuffix.of(comparator)).contains(suffix);
@@ -38,6 +39,8 @@ class ComparatorSuffixTest {
                 .isEqualTo("order.total.gt");
         assertThat(ComparatorSuffix.resolve("order.initial.amount", "is_exactly"))
                 .isEqualTo("order.initial.amount.equals");
+        assertThat(ComparatorSuffix.resolve("order.total", "is_between"))
+                .isEqualTo("order.total.between");
     }
 
     @Test
