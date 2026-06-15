@@ -27,11 +27,13 @@ import vn.viettel.vds.promotion.validation.application.service.RuleLinter;
 import vn.viettel.vds.promotion.validation.application.service.RuleService;
 import vn.viettel.vds.promotion.validation.application.service.RuleSimulationService;
 import vn.viettel.vds.promotion.validation.application.service.RuleValidationService;
+import com.promix.platform.core.common.Range;
 import com.promix.platform.core.exception.BadRequestException;
+import com.promix.platform.mapper.TimeMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 
@@ -171,12 +173,17 @@ public class RuleController {
 
         Pageable pageable = pageableRequest.toPageable();
 
-        Instant createdFromTs = parseInstant(createdFrom, "createdFrom");
-        Instant createdToTs = parseInstant(createdTo, "createdTo");
+        // FE date picker has minute precision (seconds=00). Normalize the range via
+        // promix-starter so the upper bound covers the whole selected minute; otherwise
+        // a rule created at HH:mm:SS (SS>0) is excluded by an exact `<= HH:mm:00` bound.
+        Range<OffsetDateTime> createdRange = Range.ofDateNormalized(
+                parseOffsetDateTime(createdFrom, "createdFrom"),
+                parseOffsetDateTime(createdTo, "createdTo"));
         RuleListFilter.UsageStatus usageStatusEnum = parseUsageStatus(usageStatus);
 
         RuleListFilter filter = new RuleListFilter(code, name, context,
-                createdFromTs, createdToTs, usageStatusEnum);
+                TimeMapper.convert(createdRange.from()), TimeMapper.convert(createdRange.to()),
+                usageStatusEnum);
 
         // Filtering, sorting, pagination AND the display counts (node + active
         // binding) are all resolved in a single database query per page.
@@ -186,12 +193,12 @@ public class RuleController {
         return PageResponse.from(responses);
     }
 
-    private Instant parseInstant(String value, String field) {
+    private OffsetDateTime parseOffsetDateTime(String value, String field) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            return Instant.parse(value);
+            return OffsetDateTime.parse(value);
         } catch (DateTimeParseException ex) {
             throw new BadRequestException("TIMESTAMP_INVALID", field,
                     "Invalid ISO-8601 timestamp", value);
