@@ -26,6 +26,7 @@ public class OperatorCategory {
 
     boolean metadataCategory;
     String metadataSchemaType;
+    String metadataSchemaId;
     boolean active;
 
     // Nested options (loaded when needed)

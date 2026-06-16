@@ -225,3 +225,8 @@ databaseChangeLog:
   # for order.total — add to available_comparators + extend params_schema {min,max}.
   - include:
       file: db/changelog/changes/069-enable-between-order-total.yaml
+
+  # Rule-builder /categories: look up metadata schemas by immutable id instead of
+  # the fragile name LIKE-match — adds operator_categories.metadata_schema_id.
+  - include:
+      file: db/changelog/changes/070-add-metadata-schema-id.yaml
