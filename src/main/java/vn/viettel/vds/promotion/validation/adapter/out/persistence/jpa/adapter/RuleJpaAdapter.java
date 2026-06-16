@@ -261,7 +261,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
      * from raw client input — safe to inline into the ORDER BY clause.
      */
     private static final String NODE_COUNT_SUBQUERY =
-            "(SELECT COUNT(*) FROM rule_nodes n WHERE n.validation_rule_id = r.id)";
+            "(SELECT COUNT(*) FROM rule_nodes n WHERE n.validation_rule_id = r.id AND n.type = 'COND')";
     private static final String ASSIGNMENT_COUNT_SUBQUERY =
             "(SELECT COUNT(*) FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)";
 

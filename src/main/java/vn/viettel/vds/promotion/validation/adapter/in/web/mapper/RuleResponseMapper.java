@@ -300,12 +300,19 @@ public class RuleResponseMapper {
     }
 
     /**
-     * Counts total nodes (including nested children) in a node list.
+     * Counts condition (COND) nodes in a tree, traversing into GROUP children.
+     *
+     * <p>Surfaced as "Số lượng điều kiện" on the list/detail screens — GROUP nodes
+     * are logical containers, not conditions, so they are walked through but not
+     * counted. Mirrors the {@code type = 'COND'} filter in
+     * {@code RuleJpaAdapter.NODE_COUNT_SUBQUERY}.</p>
      */
     private int countAllNodes(List<RuleNode> nodes) {
         int count = 0;
         for (RuleNode node : nodes) {
-            count++;
+            if (node.getType() == RuleNode.NodeType.COND) {
+                count++;
+            }
             if (node.getChildren() != null) {
                 count += countAllNodes(node.getChildren());
             }
