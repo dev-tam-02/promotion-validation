@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.reposito
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -71,4 +72,19 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
      */
     @Query("SELECT r FROM RuleJpaEntity r WHERE r.bundleHash IS NULL")
     List<RuleJpaEntity> findPublishedWithNullBundleHash();
+
+    /**
+     * SRS VRUL005 Bước 9: atomic optimistic-locked delete. Removes the rule only
+     * if the held version still matches at the database, then reports the number
+     * of affected rows. The caller treats {@code 0} as a version conflict — this
+     * closes the read-then-delete race window (no row is deleted under a stale
+     * version even if two requests pass the in-memory version check concurrently).
+     */
+    // clearAutomatically: a bulk DELETE bypasses the persistence context, so the
+    // Rule entity loaded earlier in the same transaction would stay managed and
+    // trigger a spurious OptimisticLockException at commit. Clearing the context
+    // after the delete evicts that now-removed entity.
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM RuleJpaEntity r WHERE r.id = :id AND r.version = :version")
+    int deleteByIdAndVersion(@Param("id") String id, @Param("version") long version);
 }

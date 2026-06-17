@@ -10,7 +10,9 @@ import com.promix.platform.core.exception.ConflictException;
  */
 public class RuleVersionConflictException extends ConflictException {
 
-    private static final String ERROR_CODE = "RULE_VERSION_CONFLICT";
+    // SRS VRUL003/VRUL005 (chốt với BA): mọi xung đột phiên bản (sửa/xóa) trả về
+    // một mã lỗi chung duy nhất CONFLICTED (HTTP 409).
+    private static final String ERROR_CODE = "CONFLICTED";
 
     public RuleVersionConflictException(String ruleId) {
         super(ERROR_CODE,
