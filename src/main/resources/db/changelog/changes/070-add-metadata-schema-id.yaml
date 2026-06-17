@@ -1,0 +1,58 @@
+databaseChangeLog:
+  # Rule-builder /categories resolves the 3 metadata categories (customer/order/
+  # redemption) by calling pp-metadata. The previous lookup used the schema *name*
+  # via a LIKE '%name%' substring match (listSchemas), which is fragile:
+  #   1. collision — name="order" matches BOTH "Order" and "Order line item";
+  #      code picks content[0] with no stable ORDER BY, so it can grab the wrong
+  #      schema and return the wrong attribute set.
+  #   2. rename — a schema renamed in pp-metadata CMS stops matching the hard-coded
+  #      name string, silently degrading the category to empty.
+  #
+  # Fix: look up by the immutable schema *id* (standard-customer/standard-order/
+  # standard-redemption) and call getSchemaById directly (1 call, no listSchemas).
+  #
+  # metadata_schema_type is intentionally LEFT UNCHANGED — it is also pushed to the
+  # rule-engine as the "schema_type" operator param (RuleBuilderService:429) and must
+  # keep its lowercase value. The new metadata_schema_id column is purely for lookup.
+  - changeSet:
+      id: 070-add-metadata-schema-id-column
+      author: pp-validation
+      comment: "Add metadata_schema_id to operator_categories for stable-id schema lookup"
+      changes:
+        - addColumn:
+            tableName: operator_categories
+            columns:
+              - column:
+                  name: metadata_schema_id
+                  type: VARCHAR(64)
+      rollback:
+        - dropColumn:
+            tableName: operator_categories
+            columnName: metadata_schema_id
+
+  - changeSet:
+      id: 070-seed-metadata-schema-id
+      author: pp-validation
+      comment: "Map metadata categories to immutable pp-metadata schema ids"
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: metadata_schema_id, value: "standard-customer" }
+            where: "id='cat-customer-metadata'"
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: metadata_schema_id, value: "standard-order" }
+            where: "id='cat-order-metadata'"
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: metadata_schema_id, value: "standard-redemption" }
+            where: "id='cat-redemption-metadata'"
+      rollback:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: metadata_schema_id, value: null }
+            where: "id in ('cat-customer-metadata','cat-order-metadata','cat-redemption-metadata')"

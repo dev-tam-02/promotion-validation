@@ -55,6 +55,9 @@ public class OperatorCategoryEntity {
     @Column(name = "metadata_schema_type", length = 50)
     private String metadataSchemaType;
 
+    @Column(name = "metadata_schema_id", length = 64)
+    private String metadataSchemaId;
+
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 

@@ -356,21 +356,15 @@ public class RuleBuilderService {
      */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> fetchMetadataFields(OperatorCategory category) {
-        String schemaType = "STANDARD";
-        String schemaName = category.getMetadataSchemaType();
+        // Look up the schema by its immutable id (e.g. "standard-order"), NOT by name.
+        // A name-based LIKE match collides ("order" hits both "Order" and "Order line
+        // item") and breaks when a schema is renamed in pp-metadata; the id is stable.
+        String schemaId = category.getMetadataSchemaId();
+        if (schemaId == null) {
+            logger.debug("Category {} has no metadata_schema_id; rendering empty", category.getCode());
+            return Collections.emptyList();
+        }
         try {
-            Map<String, Object> listResp = metadataServiceFeignClient.listSchemas(
-                    schemaType, schemaName, 0, 20);
-            Map<String, Object> listData = (Map<String, Object>) listResp.get("data");
-            if (listData == null) return Collections.emptyList();
-            List<Map<String, Object>> schemas = (List<Map<String, Object>>) listData.get("content");
-            if (schemas == null || schemas.isEmpty()) {
-                logger.debug("No metadata schema found for type={}, name={}", schemaType, schemaName);
-                return Collections.emptyList();
-            }
-            String schemaId = (String) schemas.get(0).get("id");
-            if (schemaId == null) return Collections.emptyList();
-
             Map<String, Object> schemaResp = metadataServiceFeignClient.getSchemaById(schemaId, 0, 100);
             Map<String, Object> schemaData = (Map<String, Object>) schemaResp.get("data");
             if (schemaData == null) return Collections.emptyList();
