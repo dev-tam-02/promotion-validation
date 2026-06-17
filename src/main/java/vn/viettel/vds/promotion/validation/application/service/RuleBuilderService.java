@@ -363,6 +363,31 @@ public class RuleBuilderService {
         return RuleOptionsResponse.paginated(ruleId, mapped, mapped.size(), 0, ids.size());
     }
 
+    /**
+     * Resolve operator display names (localized) for the given operatorNames,
+     * INCLUDING operators whose category/option was disabled (changelog 066). The
+     * builder catalog ({@code /categories}) is active-only, so a detail/edit view
+     * showing a rule that references a pruned operator can't get its name there;
+     * this fills that gap so the field title shows the configured name instead of
+     * a title-cased English fallback.
+     */
+    public Map<String, I18nLabel> getOperatorDisplayNames(List<String> operatorNames) {
+        Map<String, I18nLabel> result = new LinkedHashMap<>();
+        if (operatorNames == null) {
+            return result;
+        }
+        for (String operatorName : operatorNames) {
+            if (operatorName == null || operatorName.isBlank() || result.containsKey(operatorName)) {
+                continue;
+            }
+            operatorConfigService.findOptionForResolution(operatorName).ifPresent(option -> {
+                String vi = option.getNameVi() != null ? option.getNameVi() : option.getName();
+                result.put(operatorName, I18nLabel.of(option.getName(), vi));
+            });
+        }
+        return result;
+    }
+
     /** In-memory id filter for STATIC value-option lists (boolean / enum). */
     private RuleOptionsResponse filterStaticOptionsByIds(String ruleId, OperatorOption option, List<String> ids) {
         Set<String> want = new HashSet<>(ids);

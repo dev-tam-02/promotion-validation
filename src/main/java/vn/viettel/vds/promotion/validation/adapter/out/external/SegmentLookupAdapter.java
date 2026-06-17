@@ -134,7 +134,7 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
 
         // Products — single lookup per remaining id.
         for (String id : new ArrayList<>(remaining)) {
-            singleEntity(safeLookup(() -> productFeignClient.lookupProductById(id)), "PRODUCT")
+            singleEntity(safeLookup(() -> productFeignClient.lookupProductById(id)), DATA_SOURCE_PRODUCT)
                     .ifPresent(vo -> { resolved.put(id, vo); remaining.remove(id); });
         }
 
@@ -158,7 +158,7 @@ public class SegmentLookupAdapter implements RuleOptionsLookupPort {
         } catch (FeignException | ExternalServiceFeignErrorDecoder.ExternalServiceException e) {
             // 404 / not-found for a single by-id lookup just means this id is not
             // this entity type — skip it and let the next source try.
-            return null;
+            return Collections.emptyMap();
         }
     }
 

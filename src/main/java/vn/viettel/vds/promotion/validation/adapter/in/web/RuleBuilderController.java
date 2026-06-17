@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.OperatorResponse;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.I18nLabel;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleCategoriesResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleOptionsResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.RuleCatalogUseCase;
@@ -17,6 +18,7 @@ import vn.viettel.vds.promotion.validation.application.service.RuleBuilderServic
 import vn.viettel.vds.promotion.validation.domain.model.Operator;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller for Rule Builder API.
@@ -97,6 +99,31 @@ public class RuleBuilderController {
         logger.debug("Getting options for rule: {} (search: {}, ids: {}, page: {}, size: {}, tenant: {})",
                 ruleId, search, ids != null ? ids.size() : 0, page, size, tenantId);
         return ruleBuilderService.getRuleOptions(ruleId, search, ids, page, size, tenantId);
+    }
+
+    /**
+     * Resolve localized display names for a set of operatorNames, including
+     * operators whose category/option is disabled (so detail/edit views can show
+     * the configured name for rules that reference a pruned operator).
+     *
+     * @param operatorNames operatorName values to resolve
+     * @param tenantId      optional tenant ID
+     * @return map operatorName → localized label ({en, vi})
+     */
+    @Operation(summary = "Resolve operator display names",
+            description = "Returns the localized display name for each requested operatorName, INCLUDING inactive operators whose category/option was disabled. Used by the rule detail/edit view to title conditions that reference a pruned operator.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Display names returned successfully"),
+    })
+    @GetMapping("/operator-display-names")
+    public Map<String, I18nLabel> getOperatorDisplayNames(
+            @Parameter(description = "operatorName values to resolve")
+            @RequestParam(required = false) List<String> operatorNames,
+            @Parameter(description = "Tenant identifier", example = "default")
+            @RequestHeader(value = "X-Tenant-ID", required = false, defaultValue = DEFAULT_TENANT) String tenantId) {
+        logger.debug("Resolving operator display names: {} (tenant: {})",
+                operatorNames != null ? operatorNames.size() : 0, tenantId);
+        return ruleBuilderService.getOperatorDisplayNames(operatorNames);
     }
 
     /**
