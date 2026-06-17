@@ -58,6 +58,13 @@ public interface RulePersistencePort {
 
     void deleteById(String id);
 
+    /**
+     * Atomic optimistic-locked delete (SRS VRUL005 Bước 9): delete the rule only
+     * if {@code version} still matches in the database; returns affected rows
+     * ({@code 0} = version conflict). Closes the read-then-delete race window.
+     */
+    int deleteByIdAndVersion(String id, long version);
+
     void deleteNodesByRuleId(String ruleId);
 
     /**

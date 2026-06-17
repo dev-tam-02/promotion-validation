@@ -471,9 +471,23 @@ public class RuleService {
             throw new RuleHasBindingsException(ruleId, bindingCount);
         }
 
-        // Step 5: Transaction - delete nodes, delete rule, emit outbox event
+        // Step 5: Transaction - delete nodes, then delete the rule. When the rule
+        // carries a version, use an atomic conditional DELETE ... WHERE id=? AND
+        // version=? as the authoritative guard: if no row is affected the version
+        // changed since Step 3 (read-then-delete race), so we raise a version
+        // conflict and let the surrounding @Transactional roll back the node
+        // deletion too. A null version means optimistic locking is not in effect
+        // (legacy rows) → unconditional delete preserves prior behavior.
         rulePersistencePort.deleteNodesByRuleId(ruleId);
-        rulePersistencePort.deleteById(ruleId);
+        if (currentVersion != null) {
+            int affected = rulePersistencePort.deleteByIdAndVersion(ruleId, version);
+            if (affected == 0) {
+                logger.warn("Version conflict on atomic delete: id={}, expected={}", ruleId, version);
+                throw new RuleVersionConflictException(ruleId);
+            }
+        } else {
+            rulePersistencePort.deleteById(ruleId);
+        }
 
         outboxService.createEvent(
                 RULE_AGGREGATE_TYPE,

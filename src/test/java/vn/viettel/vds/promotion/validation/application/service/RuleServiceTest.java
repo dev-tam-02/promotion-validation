@@ -642,13 +642,14 @@ class RuleServiceTest {
             rule.setVersion(1L);
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
+            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(1);
 
             // When
             sut.deleteRule("r1", 1L);
 
-            // Then - SRS VRUL005 Step 7: delete nodes → delete rule → outbox event
+            // Then - SRS VRUL005 Step 7: delete nodes → atomic versioned delete → outbox event
             verify(rulePersistencePort).deleteNodesByRuleId("r1");
-            verify(rulePersistencePort).deleteById("r1");
+            verify(rulePersistencePort).deleteByIdAndVersion("r1", 1L);
 
             // Verify outbox event VALIDATION_RULE_DELETED is emitted via promix outbox
             verify(outboxService).createEvent(
@@ -720,6 +721,24 @@ class RuleServiceTest {
         }
 
         @Test
+        @DisplayName("Should throw CONFLICTED when atomic delete affects 0 rows (concurrent change race)")
+        void shouldThrowVersionConflict_whenAtomicDeleteAffectsZeroRows() {
+            // Given — Java pre-check passes (read version == held version), but the
+            // row changed between read and delete so the conditional DELETE removes 0 rows
+            Rule rule = draftRule("r1", "CODE_1", "Rule");
+            rule.setVersion(1L);
+            when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
+            when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
+            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(0);
+
+            // When & Then — affected==0 → CONFLICTED, no outbox event emitted
+            assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
+                    .isInstanceOf(RuleVersionConflictException.class);
+
+            verify(outboxService, never()).createEvent(any(), any(), any(), any(), any());
+        }
+
+        @Test
         @DisplayName("Should create outbox event with correct payload on delete")
         void shouldCreateOutboxEvent_withCorrectPayload() {
             // Given
@@ -727,6 +746,7 @@ class RuleServiceTest {
             rule.setVersion(1L);
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
+            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(1);
 
             // When
             sut.deleteRule("r1", 1L);
@@ -1137,11 +1157,12 @@ class RuleServiceTest {
 
             when(rulePersistencePort.findById("rule-regular-001")).thenReturn(Optional.of(regularRule));
             when(ruleBindingPort.countByRuleId("rule-regular-001")).thenReturn(0L);
+            when(rulePersistencePort.deleteByIdAndVersion("rule-regular-001", 1L)).thenReturn(1);
 
             sut.deleteRule("rule-regular-001", 1L);
 
             verify(rulePersistencePort).deleteNodesByRuleId("rule-regular-001");
-            verify(rulePersistencePort).deleteById("rule-regular-001");
+            verify(rulePersistencePort).deleteByIdAndVersion("rule-regular-001", 1L);
         }
     }
 }

@@ -475,6 +475,11 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     @Override
+    public int deleteByIdAndVersion(String id, long version) {
+        return repository.deleteByIdAndVersion(id, version);
+    }
+
+    @Override
     public void deleteNodesByRuleId(String ruleId) {
         logger.debug("[RULE_DELETE] Deleting nodes for rule: {}", ruleId);
         nodeRepository.deleteByValidationRuleId(ruleId);
