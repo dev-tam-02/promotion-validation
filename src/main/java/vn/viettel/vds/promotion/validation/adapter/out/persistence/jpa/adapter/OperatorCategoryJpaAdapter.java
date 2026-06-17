@@ -1,12 +1,15 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.adapter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorCategoryEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.mapper.OperatorCategoryMapper;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorCategoryJpaRepository;
+import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorOptionJpaRepository;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorCategoryPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
+import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +22,14 @@ import java.util.Optional;
 public class OperatorCategoryJpaAdapter implements OperatorCategoryPersistencePort {
 
     private final OperatorCategoryJpaRepository repository;
+    private final OperatorOptionJpaRepository optionRepository;
     private final OperatorCategoryMapper mapper;
 
-    public OperatorCategoryJpaAdapter(OperatorCategoryJpaRepository repository, OperatorCategoryMapper mapper) {
+    public OperatorCategoryJpaAdapter(OperatorCategoryJpaRepository repository,
+                                      OperatorOptionJpaRepository optionRepository,
+                                      OperatorCategoryMapper mapper) {
         this.repository = repository;
+        this.optionRepository = optionRepository;
         this.mapper = mapper;
     }
 
@@ -32,6 +39,17 @@ public class OperatorCategoryJpaAdapter implements OperatorCategoryPersistencePo
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<OperatorOption> findOptionForResolution(String ruleId) {
+        // id (PK) → code → operatorName, all active-agnostic so disabled rules
+        // referenced by older persisted conditions still resolve their values.
+        ObjectMapper objectMapper = new ObjectMapper();
+        return optionRepository.findById(ruleId)
+                .or(() -> optionRepository.findFirstByCodeOrderByDisplayOrderAsc(ruleId))
+                .or(() -> optionRepository.findFirstByOperatorNameOrderByDisplayOrderAsc(ruleId))
+                .map(entity -> mapper.mapOption(entity, objectMapper));
     }
 
     @Override

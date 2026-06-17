@@ -1,20 +1,20 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
 import com.promix.platform.core.util.IdGenerator;
+import com.promix.platform.outbox.spi.OutboxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
-import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 
@@ -34,22 +34,27 @@ public class RuleService {
 
     private final RulePersistencePort rulePersistencePort;
     private final RuleBindingPersistencePort ruleBindingPort;
-    private final OutboxEventPersistencePort outboxEventPort;
+    private final OutboxService outboxService;
     private final RuleService self;
     private final RuleLinter ruleLinter;
     private final RuleNodeSchemaValidator schemaValidator;
+    private final String validationEventTopic;
+
+    private static final String RULE_AGGREGATE_TYPE = "ValidationRule";
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
-                       OutboxEventPersistencePort outboxEventPort,
+                       OutboxService outboxService,
                        @Lazy RuleService self,
-                       RuleNodeSchemaValidator schemaValidator) {
+                       RuleNodeSchemaValidator schemaValidator,
+                       @Value("${kafka.topics.validation-event}") String validationEventTopic) {
         this.rulePersistencePort = rulePersistencePort;
         this.ruleBindingPort = ruleBindingPort;
-        this.outboxEventPort = outboxEventPort;
+        this.outboxService = outboxService;
         this.self = self;
         this.ruleLinter = new RuleLinter();
         this.schemaValidator = schemaValidator;
+        this.validationEventTopic = validationEventTopic;
     }
 
     /**
@@ -139,25 +144,15 @@ public class RuleService {
 
         Rule saved = rulePersistencePort.save(rule);
 
-        // SRS VRUL002_B03 Bước 7 ③: emit a creation event to the outbox so the
-        // change is propagated asynchronously to downstream services — mirrors the
-        // outbox write already done on delete (VALIDATION_RULE_DELETED).
-        OutboxEvent createdEvent = OutboxEvent.builder()
-                .id(IdGenerator.generateId())
-                .aggregateType("ValidationRule")
-                .aggregateId(saved.getId())
-                .eventType("VALIDATION_RULE_CREATED")
-                .payload(Map.of(
-                        "ruleId", saved.getId(),
-                        "code", saved.getCode() != null ? saved.getCode() : "",
-                        "name", saved.getName() != null ? saved.getName() : "",
-                        "createdAt", Instant.now().toString()))
-                .status(OutboxEventStatus.PENDING)
-                .attempts(0)
-                .maxAttempts(3)
-                .createdAt(Instant.now())
-                .build();
-        outboxEventPort.save(createdEvent);
+        // SRS VRUL002_B03 Bước 7 ③: emit a creation event to the promix outbox so the
+        // change is propagated asynchronously to downstream services — the promix
+        // outbox scheduler publishes it to Kafka (topic = destination).
+        outboxService.createEvent(
+                RULE_AGGREGATE_TYPE,
+                saved.getId(),
+                "VALIDATION_RULE_CREATED",
+                ruleEventPayload(saved, "createdAt"),
+                validationEventTopic);
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
@@ -238,23 +233,7 @@ public class RuleService {
 
         Rule rule = self.getRuleById(ruleId);
 
-        // System rules are immutable
-        if (rule.isSystem()) {
-            throw new SystemRuleProtectedException(ruleId);
-        }
-
-        // VRUL001/VRUL003: editability is no longer gated by a lifecycle state —
-        // it is governed by binding assignment (assignmentCount) at the API layer.
-
-        // Optimistic locking — reject a stale client version so a concurrent edit
-        // cannot silently overwrite a newer save (mirrors deleteRule's guard).
-        Long currentVersion = rule.getVersion();
-        if (expectedVersion != null && currentVersion != null
-                && !currentVersion.equals(expectedVersion)) {
-            logger.warn("Version conflict on update: id={}, expected={}, actual={}",
-                    ruleId, expectedVersion, currentVersion);
-            throw new RuleVersionConflictException(ruleId);
-        }
+        assertRuleEditable(rule, ruleId, expectedVersion);
 
         // Validate rule nodes if provided
         if (nodes != null) {
@@ -272,6 +251,12 @@ public class RuleService {
         }
 
         if (name != null) {
+            // VRUL003 B03_14: guard duplicate name at the BE on the confirm step
+            // (the FE Step-1 check is not authoritative). Exclude the rule itself.
+            String trimmedName = name.trim();
+            if (rulePersistencePort.existsByName(trimmedName, ruleId)) {
+                throw new RuleNameAlreadyExistsException(trimmedName);
+            }
             rule.setName(name);
         }
 
@@ -296,8 +281,47 @@ public class RuleService {
 
         Rule saved = rulePersistencePort.save(rule);
 
+        // VRUL003 B03: emit an update event to the promix outbox so downstream
+        // services (rule-engine, search index) sync the change — mirrors create/delete.
+        outboxService.createEvent(
+                RULE_AGGREGATE_TYPE,
+                saved.getId(),
+                "VALIDATION_RULE_UPDATED",
+                ruleEventPayload(saved, "updatedAt"),
+                validationEventTopic);
+
         logger.info("Rule updated successfully: id={}", saved.getId());
         return saved;
+    }
+
+    /**
+     * Assert that {@code rule} may be edited, throwing the appropriate domain
+     * exception otherwise: system rules are immutable, rules with an active
+     * campaign binding are locked (VRUL003), and a stale {@code expectedVersion}
+     * is rejected via optimistic locking (mirrors deleteRule's guard).
+     */
+    private void assertRuleEditable(Rule rule, String ruleId, Long expectedVersion) {
+        // System rules are immutable
+        if (rule.isSystem()) {
+            throw new SystemRuleProtectedException(ruleId);
+        }
+
+        // VRUL003: a rule assigned to a campaign (active binding) is locked from
+        // editing — reject with VALIDATION_RULE_NOT_EDITABLE.
+        if (ruleBindingPort.countActiveByRuleId(ruleId) > 0) {
+            logger.warn("Rejected edit of assigned rule: id={}", ruleId);
+            throw new RuleNotEditableException(ruleId);
+        }
+
+        // Optimistic locking — reject a stale client version so a concurrent edit
+        // cannot silently overwrite a newer save.
+        Long currentVersion = rule.getVersion();
+        if (expectedVersion != null && currentVersion != null
+                && !currentVersion.equals(expectedVersion)) {
+            logger.warn("Version conflict on update: id={}, expected={}, actual={}",
+                    ruleId, expectedVersion, currentVersion);
+            throw new RuleVersionConflictException(ruleId);
+        }
     }
 
     /**
@@ -432,13 +456,12 @@ public class RuleService {
             throw new SystemRuleProtectedException(ruleId);
         }
 
-        // Step 3: Check version (optimistic locking)
+        // Step 3: Check version (optimistic locking) — a stale client version is a
+        // concurrency conflict (409 CONFLICTED), not a malformed-version 400.
         Long currentVersion = rule.getVersion();
         if (currentVersion != null && currentVersion != version) {
             logger.warn("Version conflict on delete: id={}, expected={}, actual={}", ruleId, version, currentVersion);
-            throw new InvalidVersionFormatException(
-                    String.format("Version conflict: expected %d but found %d", version, currentVersion)
-            );
+            throw new RuleVersionConflictException(ruleId);
         }
 
         // Step 4: Check no bindings exist
@@ -448,22 +471,16 @@ public class RuleService {
             throw new RuleHasBindingsException(ruleId, bindingCount);
         }
 
-        // Step 5: Transaction - delete nodes, delete rule, insert outbox event
+        // Step 5: Transaction - delete nodes, delete rule, emit outbox event
         rulePersistencePort.deleteNodesByRuleId(ruleId);
         rulePersistencePort.deleteById(ruleId);
 
-        OutboxEvent deletedEvent = OutboxEvent.builder()
-                .id(IdGenerator.generateId())
-                .aggregateType("ValidationRule")
-                .aggregateId(ruleId)
-                .eventType("VALIDATION_RULE_DELETED")
-                .payload(Map.of("ruleId", ruleId, "deletedAt", Instant.now().toString()))
-                .status(OutboxEventStatus.PENDING)
-                .attempts(0)
-                .maxAttempts(3)
-                .createdAt(Instant.now())
-                .build();
-        outboxEventPort.save(deletedEvent);
+        outboxService.createEvent(
+                RULE_AGGREGATE_TYPE,
+                ruleId,
+                "VALIDATION_RULE_DELETED",
+                Map.of("ruleId", ruleId, "deletedAt", Instant.now().toString()),
+                validationEventTopic);
 
         logger.info("Rule deleted successfully: id={}", ruleId);
     }
@@ -532,6 +549,18 @@ public class RuleService {
 
     private String generateRuleId() {
         return IdGenerator.generateId();
+    }
+
+    /**
+     * Build the outbox payload for a rule lifecycle event. {@code timestampField}
+     * is the key for the event time (e.g. "createdAt" / "updatedAt").
+     */
+    private Map<String, Object> ruleEventPayload(Rule rule, String timestampField) {
+        return Map.of(
+                "ruleId", rule.getId(),
+                "code", rule.getCode() != null ? rule.getCode() : "",
+                "name", rule.getName() != null ? rule.getName() : "",
+                timestampField, Instant.now().toString());
     }
 
     /**

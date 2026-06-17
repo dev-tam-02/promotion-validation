@@ -1,7 +1,9 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
+import com.promix.platform.outbox.spi.OutboxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
@@ -27,7 +29,8 @@ public class PublishService {
     private final PublishJobPersistencePort publishJobPersistencePort;
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
-    private final OutboxEventService outboxEventService;
+    private final OutboxService outboxService;
+    private final String validationEventTopic;
     private final PublishService self;
 
     public PublishService(RuleService ruleService,
@@ -35,14 +38,16 @@ public class PublishService {
                           PublishJobPersistencePort publishJobPersistencePort,
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
-                          OutboxEventService outboxEventService,
+                          OutboxService outboxService,
+                          @Value("${kafka.topics.validation-event}") String validationEventTopic,
                           @org.springframework.context.annotation.Lazy PublishService self) {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.publishJobPersistencePort = publishJobPersistencePort;
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
-        this.outboxEventService = outboxEventService;
+        this.outboxService = outboxService;
+        this.validationEventTopic = validationEventTopic;
         this.self = self;
     }
 
@@ -219,14 +224,12 @@ public class PublishService {
                     eventPayload.put("fallbackErrorMessage", rule.getFallbackErrorMessage());
                 }
 
-                outboxEventService.createEvent(
+                outboxService.createEvent(
                         "Rule",                          // aggregateType
                         rule.getId(),                    // aggregateId
                         "rule.published",                // eventType
                         eventPayload,                    // payload
-                        "http://validation-events",      // destination
-                        Map.of("tenantId", "default"), // metadata
-                        3                                // maxAttempts
+                        validationEventTopic             // destination (Kafka topic)
                 );
 
                 logger.info("Publish job completed successfully: id={}, version={}", jobId, job.getTargetVersion());

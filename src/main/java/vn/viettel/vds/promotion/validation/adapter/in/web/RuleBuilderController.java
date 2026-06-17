@@ -80,19 +80,23 @@ public class RuleBuilderController {
     })
     @GetMapping("/options/{ruleId}")
     public RuleOptionsResponse getRuleOptions(
-            @Parameter(description = "Rule item identifier (operator_options.code)", required = true)
+            @Parameter(description = "Rule item identifier (operator_options.code, id, or operator_name)", required = true)
             @PathVariable String ruleId,
             @Parameter(description = "Optional search filter applied to option labels")
             @RequestParam(required = false) String search,
+            @Parameter(description = "Optional set of value ids to resolve to names + type (display/edit "
+                    + "path); when present, returns exactly these ids resolved by direct lookup instead of "
+                    + "a paged browse list")
+            @RequestParam(required = false) List<String> ids,
             @Parameter(description = "Zero-based page number", example = "0")
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @Parameter(description = "Page size", example = "20")
             @RequestParam(required = false, defaultValue = "20") Integer size,
             @Parameter(description = "Tenant identifier", example = "default")
             @RequestHeader(value = "X-Tenant-ID", required = false, defaultValue = DEFAULT_TENANT) String tenantId) {
-        logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
-                ruleId, search, page, size, tenantId);
-        return ruleBuilderService.getRuleOptions(ruleId, search, page, size, tenantId);
+        logger.debug("Getting options for rule: {} (search: {}, ids: {}, page: {}, size: {}, tenant: {})",
+                ruleId, search, ids != null ? ids.size() : 0, page, size, tenantId);
+        return ruleBuilderService.getRuleOptions(ruleId, search, ids, page, size, tenantId);
     }
 
     /**

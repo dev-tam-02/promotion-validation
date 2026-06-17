@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation;
 
-import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.model.*;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleCode;
 import vn.viettel.vds.promotion.validation.domain.valueobject.RuleId;
@@ -177,35 +176,6 @@ public final class TestFixtures {
                 .timestamp(Instant.now())
                 .orderValue(BigDecimal.valueOf(2000000))
                 .validationContext(validContext())
-                .build();
-    }
-
-    // --- OutboxEvent ---
-
-    public static OutboxEvent pendingEvent(String id) {
-        return OutboxEvent.builder()
-                .id(id)
-                .aggregateType("Rule")
-                .aggregateId("rule-1")
-                .eventType("rule.published")
-                .status(OutboxEventStatus.PENDING)
-                .attempts(0)
-                .maxAttempts(3)
-                .createdAt(Instant.now())
-                .build();
-    }
-
-    public static OutboxEvent failedEvent(String id, int attempts, int maxAttempts) {
-        return OutboxEvent.builder()
-                .id(id)
-                .aggregateType("Rule")
-                .aggregateId("rule-1")
-                .eventType("rule.published")
-                .status(OutboxEventStatus.FAILED)
-                .attempts(attempts)
-                .maxAttempts(maxAttempts)
-                .lastError("Connection timeout")
-                .createdAt(Instant.now())
                 .build();
     }
 }

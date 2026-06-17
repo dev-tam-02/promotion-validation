@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -13,16 +12,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import vn.viettel.vds.promotion.validation.application.port.out.OutboxEventPersistencePort;
+import com.promix.platform.outbox.spi.OutboxService;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
-import vn.viettel.vds.promotion.validation.domain.enums.OutboxEventStatus;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
-import vn.viettel.vds.promotion.validation.domain.model.OutboxEvent;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+
+import java.util.Map;
 
 import java.time.Instant;
 import java.util.List;
@@ -52,7 +51,9 @@ class RuleServiceTest {
     private RuleBindingPersistencePort ruleBindingPort;
 
     @Mock
-    private OutboxEventPersistencePort outboxEventPort;
+    private OutboxService outboxService;
+
+    private static final String EVENT_TOPIC = "promotion_validation_event";
 
     private RuleService sut;
 
@@ -115,9 +116,9 @@ class RuleServiceTest {
         // RuleService uses @Lazy self-injection for transactional proxying.
         // In unit tests without Spring context, we pass 'sut' itself as the self reference.
         // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, null, null);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, EVENT_TOPIC);
         // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxEventPort, sut, null);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, sut, null, EVENT_TOPIC);
     }
 
     // ========================================================================
@@ -649,14 +650,9 @@ class RuleServiceTest {
             verify(rulePersistencePort).deleteNodesByRuleId("r1");
             verify(rulePersistencePort).deleteById("r1");
 
-            // Verify outbox event VALIDATION_RULE_DELETED is created
-            ArgumentCaptor<OutboxEvent> eventCaptor = ArgumentCaptor.forClass(OutboxEvent.class);
-            verify(outboxEventPort).save(eventCaptor.capture());
-            OutboxEvent event = eventCaptor.getValue();
-            assertThat(event.getEventType()).isEqualTo("VALIDATION_RULE_DELETED");
-            assertThat(event.getAggregateType()).isEqualTo("ValidationRule");
-            assertThat(event.getAggregateId()).isEqualTo("r1");
-            assertThat(event.getStatus()).isEqualTo(OutboxEventStatus.PENDING);
+            // Verify outbox event VALIDATION_RULE_DELETED is emitted via promix outbox
+            verify(outboxService).createEvent(
+                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC));
         }
 
         @Test
@@ -699,8 +695,7 @@ class RuleServiceTest {
 
             // When & Then — requesting delete with version 1 (stale)
             assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
-                    .isInstanceOf(RuntimeException.class) // Should be ConflictException per SRS, but code uses InvalidVersionFormatException
-                    .hasMessageContaining("conflict");
+                    .isInstanceOf(RuleVersionConflictException.class);
 
             verify(rulePersistencePort, never()).deleteById(any());
         }
@@ -720,7 +715,8 @@ class RuleServiceTest {
             // Then — should proceed with delete
             verify(rulePersistencePort).deleteNodesByRuleId("r1");
             verify(rulePersistencePort).deleteById("r1");
-            verify(outboxEventPort).save(any(OutboxEvent.class));
+            verify(outboxService).createEvent(
+                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC));
         }
 
         @Test
@@ -735,17 +731,15 @@ class RuleServiceTest {
             // When
             sut.deleteRule("r1", 1L);
 
-            // Then
-            ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
-            verify(outboxEventPort).save(captor.capture());
-            OutboxEvent event = captor.getValue();
-
-            assertThat(event.getId()).isNotBlank();
-            assertThat(event.getEventType()).isEqualTo("VALIDATION_RULE_DELETED");
-            assertThat(event.getStatus()).isEqualTo(OutboxEventStatus.PENDING);
-            assertThat(event.getAttempts()).isZero();
-            assertThat(event.getMaxAttempts()).isEqualTo(3);
-            assertThat(event.getCreatedAt()).isNotNull();
+            // Then — the delete event payload carries the ruleId + deletedAt
+            verify(outboxService).createEvent(
+                    eq("ValidationRule"),
+                    eq("r1"),
+                    eq("VALIDATION_RULE_DELETED"),
+                    argThat(p -> p instanceof Map
+                            && "r1".equals(((Map<?, ?>) p).get("ruleId"))
+                            && ((Map<?, ?>) p).containsKey("deletedAt")),
+                    eq(EVENT_TOPIC));
         }
     }
 
@@ -1143,7 +1137,6 @@ class RuleServiceTest {
 
             when(rulePersistencePort.findById("rule-regular-001")).thenReturn(Optional.of(regularRule));
             when(ruleBindingPort.countByRuleId("rule-regular-001")).thenReturn(0L);
-            when(outboxEventPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             sut.deleteRule("rule-regular-001", 1L);
 

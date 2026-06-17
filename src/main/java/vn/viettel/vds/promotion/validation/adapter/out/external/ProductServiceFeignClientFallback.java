@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,9 +34,22 @@ public class ProductServiceFeignClientFallback implements ProductServiceFeignCli
     }
 
     @Override
-    public Map<String, Object> listSkus(String name, Integer page, Integer size) {
-        logger.warn("Product service unavailable (listSkus name={}); returning empty page", name);
+    public Map<String, Object> listSkus(String name, List<String> ids, Integer page, Integer size) {
+        logger.warn("Product service unavailable (listSkus name={}, ids={}); returning empty page",
+                name, ids != null ? ids.size() : 0);
         return emptyPage();
+    }
+
+    @Override
+    public Map<String, Object> lookupProductById(String id) {
+        logger.warn("Product service unavailable (lookupProductById id={}); returning empty data", id);
+        return Map.of("data", Collections.emptyMap());
+    }
+
+    @Override
+    public Map<String, Object> getCollectionById(String id) {
+        logger.warn("Product service unavailable (getCollectionById id={}); returning empty data", id);
+        return Map.of("data", Collections.emptyMap());
     }
 
     private Map<String, Object> emptyPage() {
