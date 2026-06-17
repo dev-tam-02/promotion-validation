@@ -233,27 +233,7 @@ public class RuleService {
 
         Rule rule = self.getRuleById(ruleId);
 
-        // System rules are immutable
-        if (rule.isSystem()) {
-            throw new SystemRuleProtectedException(ruleId);
-        }
-
-        // VRUL003: a rule assigned to a campaign (active binding) is locked from
-        // editing — reject with VALIDATION_RULE_NOT_EDITABLE.
-        if (ruleBindingPort.countActiveByRuleId(ruleId) > 0) {
-            logger.warn("Rejected edit of assigned rule: id={}", ruleId);
-            throw new RuleNotEditableException(ruleId);
-        }
-
-        // Optimistic locking — reject a stale client version so a concurrent edit
-        // cannot silently overwrite a newer save (mirrors deleteRule's guard).
-        Long currentVersion = rule.getVersion();
-        if (expectedVersion != null && currentVersion != null
-                && !currentVersion.equals(expectedVersion)) {
-            logger.warn("Version conflict on update: id={}, expected={}, actual={}",
-                    ruleId, expectedVersion, currentVersion);
-            throw new RuleVersionConflictException(ruleId);
-        }
+        assertRuleEditable(rule, ruleId, expectedVersion);
 
         // Validate rule nodes if provided
         if (nodes != null) {
@@ -312,6 +292,36 @@ public class RuleService {
 
         logger.info("Rule updated successfully: id={}", saved.getId());
         return saved;
+    }
+
+    /**
+     * Assert that {@code rule} may be edited, throwing the appropriate domain
+     * exception otherwise: system rules are immutable, rules with an active
+     * campaign binding are locked (VRUL003), and a stale {@code expectedVersion}
+     * is rejected via optimistic locking (mirrors deleteRule's guard).
+     */
+    private void assertRuleEditable(Rule rule, String ruleId, Long expectedVersion) {
+        // System rules are immutable
+        if (rule.isSystem()) {
+            throw new SystemRuleProtectedException(ruleId);
+        }
+
+        // VRUL003: a rule assigned to a campaign (active binding) is locked from
+        // editing — reject with VALIDATION_RULE_NOT_EDITABLE.
+        if (ruleBindingPort.countActiveByRuleId(ruleId) > 0) {
+            logger.warn("Rejected edit of assigned rule: id={}", ruleId);
+            throw new RuleNotEditableException(ruleId);
+        }
+
+        // Optimistic locking — reject a stale client version so a concurrent edit
+        // cannot silently overwrite a newer save.
+        Long currentVersion = rule.getVersion();
+        if (expectedVersion != null && currentVersion != null
+                && !currentVersion.equals(expectedVersion)) {
+            logger.warn("Version conflict on update: id={}, expected={}, actual={}",
+                    ruleId, expectedVersion, currentVersion);
+            throw new RuleVersionConflictException(ruleId);
+        }
     }
 
     /**
