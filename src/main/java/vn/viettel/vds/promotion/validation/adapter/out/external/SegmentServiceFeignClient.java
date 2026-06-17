@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.out.external;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
@@ -38,4 +39,15 @@ public interface SegmentServiceFeignClient {
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "code", required = false) String code
     );
+
+    /**
+     * GET /promotion/promotion-segment/api/segments/{segmentId}
+     * Resolve a single segment by id. Response {@code data} carries
+     * {@code segmentId} + {@code name}. Used by the by-id value-resolution path.
+     */
+    @GetMapping(
+            value = "/promotion/promotion-segment/api/segments/{segmentId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    Map<String, Object> getSegmentById(@PathVariable("segmentId") String segmentId);
 }

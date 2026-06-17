@@ -37,6 +37,15 @@ public interface OperatorOptionJpaRepository extends JpaRepository<OperatorOptio
     Optional<OperatorOptionEntity> findFirstByOperatorNameOrderByDisplayOrderAsc(String operatorName);
 
     /**
+     * First option matching the given code, INCLUDING inactive rows. Used by the
+     * display/resolve path so persisted conditions referencing a pruned operator
+     * (e.g. category PRODUCTS disabled by changelog 066) can still resolve their
+     * entity-id values to names. The builder catalog ({@code /categories}) keeps
+     * filtering active rows, so disabled rules remain hidden from creation.
+     */
+    Optional<OperatorOptionEntity> findFirstByCodeOrderByDisplayOrderAsc(String code);
+
+    /**
      * First option whose operator_name starts with the given prefix, ordered by displayOrder.
      * Resolves a comparator-suffixed effective name (e.g. "order.total.between") to the field's
      * row when that row stores a different suffixed canonical (e.g. "order.total.gte").

@@ -144,7 +144,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOption(ruleId))));
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, 0, 10, TENANT_ID);
 
             assertThat(response.ruleId()).isEqualTo(ruleId);
             assertThat(response.options()).hasSize(5);
@@ -161,7 +161,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOption(ruleId))));
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "orga", 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "orga", null, 0, 10, TENANT_ID);
 
             assertThat(response.options()).hasSize(1);
             assertThat(response.options().get(0).value()).isEqualTo("organic");
@@ -176,7 +176,7 @@ class RuleBuilderServiceTest {
                     .thenReturn(List.of(categoryWith(staticOption(ruleId))));
 
             // Page 0, size 2 of 5 options
-            RuleOptionsResponse page0 = sut.getRuleOptions(ruleId, null, 0, 2, TENANT_ID);
+            RuleOptionsResponse page0 = sut.getRuleOptions(ruleId, null, null, 0, 2, TENANT_ID);
             assertThat(page0.options()).hasSize(2);
             assertThat(page0.totalElements()).isEqualTo(5L);
             assertThat(page0.options().get(0).value()).isEqualTo("paid");
@@ -191,7 +191,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOption(ruleId))));
 
-            sut.getRuleOptions(ruleId, null, 0, 20, TENANT_ID);
+            sut.getRuleOptions(ruleId, null, null, 0, 20, TENANT_ID);
 
             verifyNoInteractions(ruleOptionsLookupPort);
         }
@@ -216,7 +216,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(i18nOption)));
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, 0, 10, TENANT_ID);
 
             assertThat(response.options()).hasSize(3);
             // First option: i18n labels differ
@@ -249,7 +249,7 @@ class RuleBuilderServiceTest {
                     .thenReturn(List.of(categoryWith(i18nOption)));
 
             // Search by English label "orga" → matches "Organic"
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "orga", 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "orga", null, 0, 10, TENANT_ID);
 
             assertThat(response.options()).hasSize(1);
             assertThat(response.options().get(0).value()).isEqualTo("organic");
@@ -268,7 +268,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOptionWithType(ruleId))));
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, 0, 10, TENANT_ID);
 
             assertThat(response.options()).hasSize(2);
             assertThat(response.options().get(0).value()).isEqualTo("paid");
@@ -302,7 +302,7 @@ class RuleBuilderServiceTest {
             when(ruleOptionsLookupPort.lookup("SEGMENT", endpoint, "vip", 0, 10, TENANT_ID))
                     .thenReturn(portPage);
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "vip", 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, "vip", null, 0, 10, TENANT_ID);
 
             assertThat(response.ruleId()).isEqualTo(ruleId);
             assertThat(response.options()).hasSize(3);
@@ -332,7 +332,7 @@ class RuleBuilderServiceTest {
             when(ruleOptionsLookupPort.lookup(anyString(), anyString(), any(), anyInt(), anyInt(), anyString()))
                     .thenReturn(RuleOptionsPage.empty());
 
-            sut.getRuleOptions(ruleId, null, 2, 5, TENANT_ID);
+            sut.getRuleOptions(ruleId, null, null, 2, 5, TENANT_ID);
 
             verify(ruleOptionsLookupPort).lookup("SEGMENT", endpoint, null, 2, 5, TENANT_ID);
         }
@@ -346,7 +346,7 @@ class RuleBuilderServiceTest {
             when(ruleOptionsLookupPort.lookup(anyString(), anyString(), any(), anyInt(), anyInt(), anyString()))
                     .thenReturn(RuleOptionsPage.empty());
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, null, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, null, null, TENANT_ID);
 
             verify(ruleOptionsLookupPort).lookup(eq("SEGMENT"), anyString(), eq(null), eq(0), eq(20), eq(TENANT_ID));
             assertThat(response.page()).isZero();
@@ -373,7 +373,7 @@ class RuleBuilderServiceTest {
             when(ruleOptionsLookupPort.lookup("LOYALTY_TIER", endpoint, null, 0, 20, TENANT_ID))
                     .thenReturn(RuleOptionsPage.empty());
 
-            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, null, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions(ruleId, null, null, null, null, TENANT_ID);
 
             assertThat(response.ruleId()).isEqualTo(ruleId);
             assertThat(response.options()).isEmpty();
@@ -390,7 +390,7 @@ class RuleBuilderServiceTest {
             when(ruleOptionsLookupPort.lookup(anyString(), anyString(), any(), anyInt(), anyInt(), anyString()))
                     .thenReturn(RuleOptionsPage.empty());
 
-            sut.getRuleOptions(ruleId, null, null, null, TENANT_ID);
+            sut.getRuleOptions(ruleId, null, null, null, null, TENANT_ID);
 
             verify(ruleOptionsLookupPort, times(1)).lookup(
                     eq("LOYALTY_TIER"), anyString(), any(), anyInt(), anyInt(), eq(TENANT_ID));
@@ -411,7 +411,7 @@ class RuleBuilderServiceTest {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOption("other_rule"))));
 
-            RuleOptionsResponse response = sut.getRuleOptions("nonexistent_rule", null, 0, 10, TENANT_ID);
+            RuleOptionsResponse response = sut.getRuleOptions("nonexistent_rule", null, null, 0, 10, TENANT_ID);
 
             assertThat(response.ruleId()).isEqualTo("nonexistent_rule");
             assertThat(response.options()).isEmpty();

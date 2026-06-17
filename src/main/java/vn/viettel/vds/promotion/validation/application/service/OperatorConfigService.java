@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorCategoryPersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
+import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service for managing operator configuration for UI rule builder.
@@ -38,5 +40,15 @@ public class OperatorConfigService {
     public List<OperatorCategory> getAllCategoriesWithOptions(String tenantId) {
         logger.debug("Getting all categories with options for tenant: {}", tenantId);
         return categoryPort.findAllActiveWithOptions();
+    }
+
+    /**
+     * Resolve a single operator option for the display/value-resolution path,
+     * matched by id / code / operatorName and INCLUDING inactive rows. Lets the
+     * options endpoint resolve entity-id values for rules whose category/option
+     * was disabled (changelog 066) yet is still referenced by older saved rules.
+     */
+    public Optional<OperatorOption> findOptionForResolution(String ruleId) {
+        return categoryPort.findOptionForResolution(ruleId);
     }
 }

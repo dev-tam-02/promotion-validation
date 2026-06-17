@@ -13,9 +13,11 @@ import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -150,14 +152,23 @@ public class RuleBuilderService {
      * Routes by dataSourceType: null/"STATIC" uses in-memory predefined options;
      * any other value (e.g. "SEGMENT") delegates to the external lookup port.
      */
-    public RuleOptionsResponse getRuleOptions(String ruleId, String search, Integer page, Integer size, String tenantId) {
-        logger.debug("Getting options for rule: {} (search: {}, page: {}, size: {}, tenant: {})",
-                ruleId, search, page, size, tenantId);
+    public RuleOptionsResponse getRuleOptions(String ruleId, String search, List<String> ids,
+                                              Integer page, Integer size, String tenantId) {
+        logger.debug("Getting options for rule: {} (search: {}, ids: {}, page: {}, size: {}, tenant: {})",
+                ruleId, search, ids != null ? ids.size() : 0, page, size, tenantId);
 
         int pageNumber = page != null ? page : 0;
         int pageSize = size != null ? size : 20;
 
         List<OperatorCategory> categories = operatorConfigService.getAllCategoriesWithOptions(tenantId);
+
+        // By-id resolution path (display / edit / preview): resolve EXACTLY the
+        // requested ids to name + entity type via direct downstream lookups, never
+        // by paging the whole catalog and matching client-side. Works regardless of
+        // whether the operator's category is still active (pruned rules included).
+        if (ids != null && !ids.isEmpty()) {
+            return resolveOptionsByIds(ruleId, ids, categories, tenantId);
+        }
 
         // Metadata enum rules ("<categoryCode>.<fieldName>") are not seeded in
         // operator_options; their allowed values come from the pp-schema
@@ -173,11 +184,20 @@ public class RuleBuilderService {
                 .filter(opt -> opt.getCode().equals(ruleId) || opt.getId().equals(ruleId))
                 .toList();
 
-        if (allOptions.isEmpty()) {
+        // Active catalog miss: the rule may belong to a disabled category/option
+        // (e.g. PRODUCTS pruned by changelog 066) yet still be referenced by older
+        // saved rules whose values need resolving. Fall back to an active-agnostic
+        // lookup by id / code / operatorName so the detail/edit/preview surfaces can
+        // turn persisted entity ids back into names. The builder catalog stays
+        // active-only, so this does NOT re-expose the rule for creation.
+        OperatorOption option = allOptions.isEmpty()
+                ? operatorConfigService.findOptionForResolution(ruleId).orElse(null)
+                : allOptions.get(0);
+
+        if (option == null) {
             return RuleOptionsResponse.paginated(ruleId, Collections.emptyList(), 0, 0, 20);
         }
 
-        OperatorOption option = allOptions.get(0);
         String dataSourceType = option.getDataSourceType();
 
         if (dataSourceType == null || DATA_SOURCE_STATIC.equalsIgnoreCase(dataSourceType)) {
@@ -301,6 +321,58 @@ public class RuleBuilderService {
                 .toList();
 
         return RuleOptionsResponse.paginated(ruleId, mapped, resultPage.totalElements(), pageNumber, pageSize);
+    }
+
+    /**
+     * Resolve a specific set of value ids to names + entity type. Finds the
+     * operator option (active OR pruned/inactive, by id / code / operatorName), then
+     * delegates: external sources (PRODUCT / SEGMENT) to {@link RuleOptionsLookupPort#lookupByIds},
+     * static value-lists to an in-memory filter. Returns empty when the operator
+     * isn't catalog-backed (metadata-enum rules, whose values are their own labels).
+     */
+    private RuleOptionsResponse resolveOptionsByIds(String ruleId, List<String> ids,
+                                                    List<OperatorCategory> categories, String tenantId) {
+        OperatorOption option = categories.stream()
+                .flatMap(cat -> cat.getOptions().stream())
+                .filter(opt -> opt.getCode().equals(ruleId) || opt.getId().equals(ruleId))
+                .findFirst()
+                .or(() -> operatorConfigService.findOptionForResolution(ruleId))
+                .orElse(null);
+
+        if (option == null) {
+            return RuleOptionsResponse.paginated(ruleId, Collections.emptyList(), 0, 0, ids.size());
+        }
+
+        String dataSourceType = option.getDataSourceType();
+        if (dataSourceType == null || DATA_SOURCE_STATIC.equalsIgnoreCase(dataSourceType)) {
+            return filterStaticOptionsByIds(ruleId, option, ids);
+        }
+
+        RuleOptionsPage resultPage = ruleOptionsLookupPort.lookupByIds(
+                dataSourceType, option.getDataSourceEndpoint(), ids, tenantId);
+
+        List<RuleOptionResponse> mapped = resultPage.items().stream()
+                .map(item -> {
+                    Map<String, Object> meta = item.metadata();
+                    return (meta == null || meta.isEmpty())
+                            ? RuleOptionResponse.of(item.value(), item.labelEn(), item.labelVi())
+                            : RuleOptionResponse.of(item.value(), item.labelEn(), item.labelVi(), meta);
+                })
+                .toList();
+
+        return RuleOptionsResponse.paginated(ruleId, mapped, mapped.size(), 0, ids.size());
+    }
+
+    /** In-memory id filter for STATIC value-option lists (boolean / enum). */
+    private RuleOptionsResponse filterStaticOptionsByIds(String ruleId, OperatorOption option, List<String> ids) {
+        Set<String> want = new HashSet<>(ids);
+        List<RuleOptionResponse> options = option.getValueOptions() == null
+                ? Collections.emptyList()
+                : option.getValueOptions().stream()
+                        .filter(vo -> want.contains(vo.getValue()))
+                        .map(RuleBuilderService::toRuleOptionResponse)
+                        .toList();
+        return RuleOptionsResponse.paginated(ruleId, options, options.size(), 0, ids.size());
     }
 
     /**

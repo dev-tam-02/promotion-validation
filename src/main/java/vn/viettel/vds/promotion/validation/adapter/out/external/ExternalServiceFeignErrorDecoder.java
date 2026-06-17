@@ -34,7 +34,12 @@ public class ExternalServiceFeignErrorDecoder implements ErrorDecoder {
         }
     }
 
-    public static class ExternalServiceException extends Exception {
+    /**
+     * Unchecked so callers can catch it selectively (e.g. treat a 404 from a
+     * by-id lookup as "not this type, try the next source") without Feign's
+     * sneaky-throw making the compiler reject a specific {@code catch}.
+     */
+    public static class ExternalServiceException extends RuntimeException {
         public ExternalServiceException(String message) {
             super(message);
         }

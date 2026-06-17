@@ -29,4 +29,10 @@ public class SegmentServiceFeignClientFallback implements SegmentServiceFeignCli
                 )
         );
     }
+
+    @Override
+    public Map<String, Object> getSegmentById(String segmentId) {
+        logger.warn("Segment service unavailable (getSegmentById id={}); returning empty data", segmentId);
+        return Map.of("data", Collections.emptyMap());
+    }
 }

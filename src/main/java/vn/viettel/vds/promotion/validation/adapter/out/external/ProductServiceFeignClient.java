@@ -3,8 +3,10 @@ package vn.viettel.vds.promotion.validation.adapter.out.external;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -67,7 +69,29 @@ public interface ProductServiceFeignClient {
     )
     Map<String, Object> listSkus(
             @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "ids", required = false) List<String> ids,
             @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
             @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     );
+
+    /**
+     * GET /promotion/promotion-product/api/v1/products/lookup?id={id}
+     * Resolve a single product by id. Response {@code data} carries {@code id} + {@code name}.
+     * Used by the by-id value-resolution path (display/edit), not the browse dropdown.
+     */
+    @GetMapping(
+            value = "/promotion/promotion-product/api/v1/products/lookup",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    Map<String, Object> lookupProductById(@RequestParam(value = "id") String id);
+
+    /**
+     * GET /promotion/promotion-product/api/v1/collections/{id}
+     * Resolve a single collection by id. Response {@code data} carries {@code id} + {@code name}.
+     */
+    @GetMapping(
+            value = "/promotion/promotion-product/api/v1/collections/{id}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    Map<String, Object> getCollectionById(@PathVariable("id") String id);
 }
