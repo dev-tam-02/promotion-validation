@@ -1,6 +1,5 @@
 package vn.viettel.vds.promotion.validation;
 
-import com.promix.platform.outbox.jpa.autoconfigure.PromixOutboxJpaAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
@@ -12,12 +11,14 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import vn.viettel.vds.promotion.validation.config.ValidationModuleProperties;
 
+// Promix outbox (JPA) is now the single outbox: RuleService/PublishService write
+// via OutboxService and the promix scheduler publishes to Kafka. The previous
+// exclude of PromixOutboxJpaAutoConfiguration (custom HTTP outbox) was removed.
 @SpringBootApplication(exclude = {
         MongoAutoConfiguration.class,
         MongoDataAutoConfiguration.class,
         MongoReactiveAutoConfiguration.class,
-        MongoReactiveDataAutoConfiguration.class,
-        PromixOutboxJpaAutoConfiguration.class
+        MongoReactiveDataAutoConfiguration.class
 })
 @EnableFeignClients
 @EnableJpaRepositories(basePackages = "vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository")

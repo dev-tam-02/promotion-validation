@@ -1,0 +1,102 @@
+databaseChangeLog:
+  # Switch the outbox_events table from the (retired) custom Spring-Batch outbox
+  # to the promix-outbox-jpa OutboxEventJpaEntity schema. The custom columns
+  # (tenant_id, attempts, last_attempt_at, published_at) stay in place (nullable /
+  # defaulted) so they don't block promix INSERTs; promix uses the columns added here.
+  - changeSet:
+      id: 071-add-promix-outbox-columns
+      author: claude
+      comment: Add payload_type, attempt_count, updated_at, processed_at, next_retry_at required by promix OutboxEventJpaEntity
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: outbox_events
+                columnName: payload_type
+      changes:
+        - addColumn:
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: payload_type
+                  type: varchar(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: attempt_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: processed_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: next_retry_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropColumn:
+            tableName: outbox_events
+            columnName: payload_type
+        - dropColumn:
+            tableName: outbox_events
+            columnName: attempt_count
+        - dropColumn:
+            tableName: outbox_events
+            columnName: updated_at
+        - dropColumn:
+            tableName: outbox_events
+            columnName: processed_at
+        - dropColumn:
+            tableName: outbox_events
+            columnName: next_retry_at
+
+  # Index the promix scheduler poll (status + next_retry_at).
+  - changeSet:
+      id: 071-index-outbox-status-next-retry
+      author: claude
+      comment: Index for promix outbox scheduler poll (status, next_retry_at)
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                tableName: outbox_events
+                indexName: idx_outbox_status_next_retry
+      changes:
+        - createIndex:
+            indexName: idx_outbox_status_next_retry
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_retry_at
+      rollback:
+        - dropIndex:
+            tableName: outbox_events
+            indexName: idx_outbox_status_next_retry
+
+  # Retire legacy rows the custom HTTP outbox left unpublishable (destination=null):
+  # mark them DEAD_LETTER so the promix scheduler does not keep retrying them.
+  - changeSet:
+      id: 071-deadletter-legacy-null-destination
+      author: claude
+      comment: Dead-letter legacy outbox rows with null destination (custom HTTP outbox leftovers)
+      changes:
+        - update:
+            tableName: outbox_events
+            columns:
+              - column:
+                  name: status
+                  value: DEAD_LETTER
+            where: destination IS NULL AND status NOT IN ('PUBLISHED', 'DEAD_LETTER')
+      rollback: []

@@ -5,8 +5,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.promix.platform.outbox.spi.OutboxService;
 import vn.viettel.vds.promotion.validation.application.service.ConnectivityService;
-import vn.viettel.vds.promotion.validation.application.service.OutboxEventService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -25,12 +25,12 @@ public class AdminController {
     private static final String REACHABLE_KEY = "reachable";
     private static final String STATUS_KEY = "status";
 
-    private final OutboxEventService outboxEventService;
+    private final OutboxService outboxService;
     private final ConnectivityService connectivityService;
 
-    public AdminController(OutboxEventService outboxEventService,
+    public AdminController(OutboxService outboxService,
                            ConnectivityService connectivityService) {
-        this.outboxEventService = outboxEventService;
+        this.outboxService = outboxService;
         this.connectivityService = connectivityService;
     }
 
@@ -56,14 +56,14 @@ public class AdminController {
         );
 
         // Outbox metrics
-        OutboxEventService.OutboxStatistics stats = outboxEventService.getStatistics();
+        OutboxService.OutboxStatistics stats = outboxService.getStatistics();
         Map<String, Object> outboxMetrics = Map.of(
-                "pendingEvents", stats.getPendingCount(),
-                "processingEvents", stats.getProcessingCount(),
-                "publishedEvents", stats.getPublishedCount(),
-                "failedEvents", stats.getFailedCount(),
-                "deadLetterEvents", stats.getDeadLetterCount(),
-                "totalEvents", stats.getTotalCount()
+                "pendingEvents", stats.pendingCount(),
+                "processingEvents", stats.processingCount(),
+                "publishedEvents", stats.publishedCount(),
+                "failedEvents", stats.failedCount(),
+                "deadLetterEvents", stats.deadLetterCount(),
+                "totalEvents", stats.totalCount()
         );
 
         // External services status
@@ -93,27 +93,28 @@ public class AdminController {
      */
     @GetMapping("/outbox/stats")
     public Map<String, Object> getOutboxStats() {
-        OutboxEventService.OutboxStatistics stats = outboxEventService.getStatistics();
+        OutboxService.OutboxStatistics stats = outboxService.getStatistics();
         return Map.of(
-                "pendingEvents", stats.getPendingCount(),
-                "processingEvents", stats.getProcessingCount(),
-                "publishedEvents", stats.getPublishedCount(),
-                "failedEvents", stats.getFailedCount(),
-                "deadLetterEvents", stats.getDeadLetterCount(),
-                "totalEvents", stats.getTotalCount(),
+                "pendingEvents", stats.pendingCount(),
+                "processingEvents", stats.processingCount(),
+                "publishedEvents", stats.publishedCount(),
+                "failedEvents", stats.failedCount(),
+                "deadLetterEvents", stats.deadLetterCount(),
+                "totalEvents", stats.totalCount(),
                 TIMESTAMP_KEY, Instant.now()
         );
     }
 
     /**
-     * Manually trigger outbox event processing
-     * Note: With Spring Batch, processing is automatic and scheduled
+     * Manually trigger outbox event processing.
+     * The promix outbox scheduler also polls automatically; this forces a pass.
      */
     @PostMapping("/outbox/process")
     public Map<String, Object> triggerOutboxProcessing() {
+        int processed = outboxService.processPendingEvents(100);
         return Map.of(
-                "message", "Outbox processing is handled automatically by Spring Batch",
-                "note", "Events are processed in batches based on configuration at regular intervals",
+                "message", "Triggered promix outbox processing",
+                "processed", processed,
                 TIMESTAMP_KEY, Instant.now()
         );
     }
