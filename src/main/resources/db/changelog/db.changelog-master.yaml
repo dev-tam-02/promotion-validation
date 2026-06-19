@@ -240,3 +240,8 @@ databaseChangeLog:
   # lucide icon names the FE MUI registry can't resolve. Restore MUI PascalCase names.
   - include:
       file: db/changelog/changes/072-fix-category-icons-mui.yaml
+
+  # Step 2 (BE-driven serialize): persist the UI comparator per COND node so the
+  # comparator is BE-owned instead of smuggled through the FE reason_code.
+  - include:
+      file: db/changelog/changes/073-add-rule-node-comparator.yaml

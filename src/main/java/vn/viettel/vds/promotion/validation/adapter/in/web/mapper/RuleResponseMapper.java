@@ -10,6 +10,8 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Manual mapper for converting between Rule domain model and RuleResponse DTOs.
@@ -146,10 +148,68 @@ public class RuleResponseMapper {
                 ruleNode.getReasonCode(),
                 ruleNodesToIds(ruleNode.getChildren()),
                 null, // order - not available in RuleNode
-                ComparatorSuffix.comparatorFromOperatorName(ruleNode.getOperatorName()).orElse(null),
+                resolveNodeComparator(ruleNode),
                 ruleNode.getViolationDisplayMode(),
                 ruleNode.getErrorMessage()
         );
+    }
+
+    /**
+     * Resolve the UI comparator for a node so the FE can pre-fill on edit and
+     * render the operator label without re-deriving it client-side.
+     *
+     * <p>Numeric operators carry the comparator as an operator_name suffix
+     * (e.g. {@code "order.total.gte"} → {@code "is_more_than_or_equal_to"}).
+     * Virtual operators like {@code metadata.access} have no suffix and store the
+     * comparator in {@code params.comparator} (e.g. {@code "in"}/{@code "equals"}).
+     * Returns null only when neither is present (suffix-less operators whose
+     * comparator currently lives in the reason code — handled FE-side until the
+     * reason-code ownership moves to BE).</p>
+     */
+    @Nullable
+    private String resolveNodeComparator(RuleNode node) {
+        // 1. Persisted comparator (rows created after the comparator column exists —
+        //    covers every operator, including segment is/is_not).
+        if (node.getComparator() != null && !node.getComparator().isBlank()) {
+            return node.getComparator();
+        }
+        // 2. Numeric operators encode the comparator as the operator_name suffix.
+        Optional<String> fromSuffix =
+                ComparatorSuffix.comparatorFromOperatorName(node.getOperatorName());
+        if (fromSuffix.isPresent()) {
+            return fromSuffix.get();
+        }
+        // 3. metadata.access stores it in params.comparator.
+        Map<String, Object> params = node.getParams();
+        if (params != null && params.get("comparator") instanceof String comparator
+                && !comparator.isBlank()) {
+            return comparator;
+        }
+        // 4. Legacy rows (segment is/is_not) created before the comparator column —
+        //    recover it from the reason_code suffix.
+        return comparatorFromReasonCode(node.getOperatorName(), node.getReasonCode());
+    }
+
+    /**
+     * Recover the comparator from a legacy reason_code that encodes it as a suffix
+     * after the operator-name-derived prefix (e.g. operatorName
+     * {@code "customer.in_segment"} + reasonCode {@code "CUSTOMER_IN_SEGMENT_IS"}
+     * → {@code "is"}). Only used as a backward-compat fallback for rows persisted
+     * before the {@code comparator} column existed.
+     */
+    @Nullable
+    private String comparatorFromReasonCode(String operatorName, String reasonCode) {
+        if (operatorName == null || reasonCode == null) {
+            return null;
+        }
+        String prefix = operatorName.replaceAll("[^a-zA-Z0-9]", "_")
+                .toUpperCase()
+                .replaceAll("^_+|_+$", "");
+        if (!prefix.isEmpty() && reasonCode.startsWith(prefix + "_")) {
+            String suffix = reasonCode.substring(prefix.length() + 1).toLowerCase();
+            return suffix.isEmpty() ? null : suffix;
+        }
+        return null;
     }
 
     /**
@@ -172,6 +232,7 @@ public class RuleResponseMapper {
                 .operatorName(resolveEffectiveOperatorName(dto.operatorName(), dto.comparator()))
                 .params(dto.params())
                 .reasonCode(dto.reasonCode())
+                .comparator(dto.comparator())
                 .violationDisplayMode(dto.violationDisplayMode())
                 .errorMessage(dto.errorMessage())
                 .children(idsToRuleNodes(dto.children()))

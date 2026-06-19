@@ -52,6 +52,9 @@ public class RuleNodeEntity extends BaseEntity {
     @Column(name = "reason_code", length = 100)
     private String reasonCode; // (for COND type)
 
+    @Column(name = "comparator", length = 50)
+    private String comparator; // UI comparator (in/equals/is_more_than_or_equal_to/is_not...) — BE-owned
+
     @Column(name = "violation_display_mode", length = 20)
     private String violationDisplayMode; // HIDDEN | DISABLED — per-rule (control 6 VRUL002_B02)
 

@@ -2,6 +2,9 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 /**
  * Input configuration for a rule.
  * Defines how the UI should render the input field.
@@ -19,7 +22,12 @@ public record RuleInputConfigResponse(
         String inputType,
         String minValue,
         String maxValue,
-        String step
+        String step,
+        Integer minLength,
+        Integer maxLength,
+        Integer exactLength,
+        List<BigDecimal> allowedNumbers,
+        List<BigDecimal> excludedNumbers
 ) {
     public static Builder builder() {
         return new Builder();
@@ -38,6 +46,11 @@ public record RuleInputConfigResponse(
         private String minValue;
         private String maxValue;
         private String step;
+        private Integer minLength;
+        private Integer maxLength;
+        private Integer exactLength;
+        private List<BigDecimal> allowedNumbers;
+        private List<BigDecimal> excludedNumbers;
 
         public Builder dataSourceType(String dataSourceType) {
             this.dataSourceType = dataSourceType;
@@ -109,6 +122,31 @@ public record RuleInputConfigResponse(
             return this;
         }
 
+        public Builder minLength(Integer minLength) {
+            this.minLength = minLength;
+            return this;
+        }
+
+        public Builder maxLength(Integer maxLength) {
+            this.maxLength = maxLength;
+            return this;
+        }
+
+        public Builder exactLength(Integer exactLength) {
+            this.exactLength = exactLength;
+            return this;
+        }
+
+        public Builder allowedNumbers(List<BigDecimal> allowedNumbers) {
+            this.allowedNumbers = allowedNumbers;
+            return this;
+        }
+
+        public Builder excludedNumbers(List<BigDecimal> excludedNumbers) {
+            this.excludedNumbers = excludedNumbers;
+            return this;
+        }
+
         public RuleInputConfigResponse build() {
             return new RuleInputConfigResponse(
                     dataSourceType,
@@ -122,7 +160,12 @@ public record RuleInputConfigResponse(
                     inputType,
                     minValue,
                     maxValue,
-                    step
+                    step,
+                    minLength,
+                    maxLength,
+                    exactLength,
+                    allowedNumbers,
+                    excludedNumbers
             );
         }
     }

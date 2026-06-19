@@ -1,0 +1,28 @@
+databaseChangeLog:
+  # Step 2 (BE-driven serialize): persist the UI comparator per COND node.
+  #
+  # Until now the comparator was NOT stored — it was smuggled through:
+  #   - the operator_name suffix (numeric: order.total.gte), or
+  #   - params.comparator (metadata.access), or
+  #   - the FE-generated reason_code suffix (segment is/is_not: CUSTOMER_IN_SEGMENT_IS).
+  # The last one forced the FE to invent + parse the reason_code convention. Storing
+  # the comparator directly makes it BE-owned for EVERY operator, so the read-back
+  # returns it without the FE re-deriving anything.
+  #
+  # Additive + nullable → existing rows keep NULL and fall back to suffix / params /
+  # reason_code recovery on read; new rows store the comparator explicitly.
+  - changeSet:
+      id: 073-add-rule-node-comparator
+      author: claude
+      changes:
+        - addColumn:
+            tableName: rule_nodes
+            columns:
+              - column:
+                  name: comparator
+                  type: varchar(50)
+                  remarks: UI comparator chosen for a COND node (in/equals/is_more_than_or_equal_to/is_not...)
+      rollback:
+        - dropColumn:
+            tableName: rule_nodes
+            columnName: comparator

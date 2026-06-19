@@ -8,11 +8,19 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.*;
 import vn.viettel.vds.promotion.validation.adapter.out.external.MetadataServiceFeignClient;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsLookupPort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsPage;
+import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -480,6 +488,289 @@ public class RuleBuilderService {
         }
     }
 
+    /**
+     * Verify every {@code metadata.access} COND references a field that actually
+     * exists in its pp-metadata schema, with a matching engine data_type.
+     *
+     * <p>Checks are done against the live pp-metadata schema (the same source the
+     * rule builder synthesizes options from). When the metadata service is
+     * unreachable — {@link #fetchMetadataFields} returns empty — the check degrades
+     * to a no-op so a transient outage never blocks a save; the structural
+     * non-blank guard in {@code RuleNodeSchemaValidator} still applies.
+     *
+     * @throws InvalidRuleStructureException when a referenced schema_type or
+     *         field_key does not exist, or the data_type contradicts the schema
+     */
+    public void validateMetadataConditions(List<RuleNode> rootNodes) {
+        List<RuleNode> conds = new ArrayList<>();
+        collectMetadataConds(rootNodes, conds);
+        if (conds.isEmpty()) {
+            return;
+        }
+
+        Map<String, OperatorCategory> categoryByType = new HashMap<>();
+        try {
+            // Metadata categories are global (tenant-agnostic); pass null tenant.
+            for (OperatorCategory c : operatorConfigService.getAllCategoriesWithOptions(null)) {
+                if (c.isMetadataCategory() && c.getMetadataSchemaType() != null) {
+                    categoryByType.putIfAbsent(c.getMetadataSchemaType(), c);
+                }
+            }
+        } catch (RuntimeException e) {
+            logger.warn("Cannot load metadata categories; skipping metadata field validation", e);
+            return;
+        }
+
+        // Resolve fields once per schema_type within this call.
+        Map<String, Map<String, Map<String, Object>>> fieldsByType = new HashMap<>();
+
+        for (RuleNode cond : conds) {
+            Map<String, Object> params = cond.getParams();
+            String schemaType = params != null ? stringOrEmpty(params.get("schema_type")) : "";
+            String fieldKey = params != null ? stringOrEmpty(params.get("field_key")) : "";
+            String dataType = params != null ? stringOrEmpty(params.get("data_type")) : "";
+
+            OperatorCategory category = categoryByType.get(schemaType);
+            if (category == null) {
+                throw new InvalidRuleStructureException(
+                        cond.getId(),
+                        "Loại schema metadata '" + schemaType + "' không tồn tại");
+            }
+
+            Map<String, Map<String, Object>> fields =
+                    fieldsByType.computeIfAbsent(schemaType, t -> indexFieldsByName(fetchMetadataFields(category)));
+
+            if (fields.isEmpty()) {
+                // pp-metadata unreachable or schema carries no fields — degrade to a
+                // no-op rather than reject a legitimate save on a transient outage.
+                logger.warn("No metadata fields resolved for schema_type={}; skipping field check for cond={}",
+                        schemaType, cond.getId());
+                continue;
+            }
+
+            Map<String, Object> field = fields.get(fieldKey);
+            if (field == null) {
+                throw new InvalidRuleStructureException(
+                        cond.getId(),
+                        "Trường metadata '" + fieldKey + "' không tồn tại trong schema '" + schemaType + "'");
+            }
+
+            String expectedType = mapMetadataDataType(stringOrFallback(field.get("type"), TYPE_STRING).toUpperCase());
+            if (!dataType.isBlank() && !expectedType.equalsIgnoreCase(dataType)) {
+                throw new InvalidRuleStructureException(
+                        cond.getId(),
+                        "Kiểu dữ liệu '" + dataType + "' không khớp định nghĩa trường '" + fieldKey
+                                + "' (mong đợi '" + expectedType + "') trong schema '" + schemaType + "'");
+            }
+
+            // The comparison value must satisfy the field's own validation rules
+            // (type + string length/enum + number range/enum), comparator-aware.
+            validateMetadataValue(cond.getId(), field, expectedType, params, fieldKey);
+        }
+    }
+
+    // Comparators whose value represents a FULL field value — enum membership and
+    // length/range constraints apply. Partial (contains/starts_with), negative
+    // (not_equals/not_in) and ordinal (gte/lte/before/after) comparators only get
+    // a type check, because constraining a substring/exclusion/threshold against
+    // the field's own bounds would false-reject legitimate rules.
+    private static final Set<String> FULL_MATCH_COMPARATORS = Set.of("equals", "in");
+    // Comparators that carry no value at all.
+    private static final Set<String> NO_VALUE_COMPARATORS = Set.of("is_true", "is_false");
+
+    /**
+     * Validate a metadata.access COND's comparison {@code value} against the field
+     * definition. Type is always enforced; length/enum/range constraints apply only
+     * for full-match comparators (equals/in). A {@code null}/absent value is allowed
+     * (e.g. boolean is_true/is_false carry none).
+     */
+    private void validateMetadataValue(String condId, Map<String, Object> field,
+                                       String dataType, Map<String, Object> params, String fieldKey) {
+        String comparator = params != null ? stringOrEmpty(params.get("comparator")) : "";
+        if (NO_VALUE_COMPARATORS.contains(comparator)) {
+            return;
+        }
+        Object rawValue = params != null ? params.get("value") : null;
+        if (rawValue == null) {
+            return;
+        }
+
+        List<Object> values = (rawValue instanceof List<?> list) ? new ArrayList<>(list) : List.of(rawValue);
+        boolean fullMatch = FULL_MATCH_COMPARATORS.contains(comparator);
+        Map<?, ?> validation = (field.get("validation") instanceof Map<?, ?> m) ? m : null;
+
+        for (Object v : values) {
+            if (v == null) {
+                continue;
+            }
+            checkValueType(condId, dataType, v, fieldKey);
+            if (fullMatch && validation != null) {
+                if (TYPE_NUMBER.equals(dataType)) {
+                    checkNumberConstraints(condId, validation, v, fieldKey);
+                } else if (TYPE_STRING.equals(dataType) || "LIST".equals(dataType)) {
+                    checkStringConstraints(condId, validation, v, fieldKey);
+                }
+            }
+        }
+    }
+
+    private void checkValueType(String condId, String dataType, Object v, String fieldKey) {
+        boolean ok = switch (dataType) {
+            case "NUMBER" -> v instanceof Number || (v instanceof String s && isNumeric(s));
+            case "BOOLEAN" -> v instanceof Boolean
+                    || (v instanceof String s && ("true".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s)));
+            case "DATE" -> v instanceof String s && isIsoDate(s);
+            default -> v instanceof String; // STRING / LIST element
+        };
+        if (!ok) {
+            throw new InvalidRuleStructureException(
+                    condId,
+                    "Giá trị '" + v + "' không hợp lệ với kiểu '" + dataType + "' của trường '" + fieldKey + "'");
+        }
+    }
+
+    private void checkStringConstraints(String condId, Map<?, ?> validation, Object v, String fieldKey) {
+        if (!(validation.get("stringValidation") instanceof Map<?, ?> sv)) {
+            return;
+        }
+        String s = v.toString();
+        Integer minLength = toInteger(sv.get("minLength"));
+        Integer maxLength = toInteger(sv.get("maxLength"));
+        Integer exactLength = toInteger(sv.get("exactLength"));
+        if (minLength != null && s.length() < minLength) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị '" + s + "' ngắn hơn độ dài tối thiểu " + minLength + " của trường '" + fieldKey + "'");
+        }
+        if (maxLength != null && s.length() > maxLength) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị '" + s + "' vượt độ dài tối đa " + maxLength + " của trường '" + fieldKey + "'");
+        }
+        if (exactLength != null && s.length() != exactLength) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị '" + s + "' phải có đúng " + exactLength + " ký tự của trường '" + fieldKey + "'");
+        }
+        if (sv.get("equalToAnyOf") instanceof List<?> allowed && !allowed.isEmpty()) {
+            boolean member = allowed.stream().anyMatch(a -> a != null && a.toString().equals(s));
+            if (!member) {
+                throw new InvalidRuleStructureException(condId,
+                        "Giá trị '" + s + "' không thuộc tập cho phép " + allowed + " của trường '" + fieldKey + "'");
+            }
+        }
+    }
+
+    private void checkNumberConstraints(String condId, Map<?, ?> validation, Object v, String fieldKey) {
+        if (!(validation.get("numberValidation") instanceof Map<?, ?> nv)) {
+            return;
+        }
+        BigDecimal bd;
+        try {
+            bd = new BigDecimal(v.toString());
+        } catch (NumberFormatException e) {
+            return; // type check already covers non-numeric
+        }
+        BigDecimal lt = toBigDecimal(nv.get("lessThan"));
+        BigDecimal lte = toBigDecimal(nv.get("lessThanOrEqual"));
+        BigDecimal gt = toBigDecimal(nv.get("greaterThan"));
+        BigDecimal gte = toBigDecimal(nv.get("greaterThanOrEqual"));
+        if (lt != null && bd.compareTo(lt) >= 0) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị " + bd + " phải nhỏ hơn " + lt + " (trường '" + fieldKey + "')");
+        }
+        if (lte != null && bd.compareTo(lte) > 0) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị " + bd + " phải nhỏ hơn hoặc bằng " + lte + " (trường '" + fieldKey + "')");
+        }
+        if (gt != null && bd.compareTo(gt) <= 0) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị " + bd + " phải lớn hơn " + gt + " (trường '" + fieldKey + "')");
+        }
+        if (gte != null && bd.compareTo(gte) < 0) {
+            throw new InvalidRuleStructureException(condId,
+                    "Giá trị " + bd + " phải lớn hơn hoặc bằng " + gte + " (trường '" + fieldKey + "')");
+        }
+        if (nv.get("equalToAnyOf") instanceof List<?> allowed && !allowed.isEmpty()) {
+            boolean member = allowed.stream().anyMatch(a -> toBigDecimal(a) != null && bd.compareTo(toBigDecimal(a)) == 0);
+            if (!member) {
+                throw new InvalidRuleStructureException(condId,
+                        "Giá trị " + bd + " không thuộc tập cho phép " + allowed + " (trường '" + fieldKey + "')");
+            }
+        }
+        if (nv.get("notEqualToAnyOf") instanceof List<?> excluded && !excluded.isEmpty()) {
+            boolean hit = excluded.stream().anyMatch(a -> toBigDecimal(a) != null && bd.compareTo(toBigDecimal(a)) == 0);
+            if (hit) {
+                throw new InvalidRuleStructureException(condId,
+                        "Giá trị " + bd + " thuộc tập bị loại trừ " + excluded + " (trường '" + fieldKey + "')");
+            }
+        }
+    }
+
+    private boolean isNumeric(String s) {
+        try {
+            new BigDecimal(s.trim());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean isIsoDate(String s) {
+        try {
+            LocalDate.parse(s);
+            return true;
+        } catch (DateTimeParseException e) {
+            try {
+                LocalDateTime.parse(s, DateTimeFormatter.ISO_DATE_TIME);
+                return true;
+            } catch (DateTimeParseException ex) {
+                return false;
+            }
+        }
+    }
+
+    private Integer toInteger(Object o) {
+        if (o instanceof Number n) {
+            return n.intValue();
+        }
+        if (o instanceof String s && isNumeric(s)) {
+            return new BigDecimal(s.trim()).intValue();
+        }
+        return null;
+    }
+
+    private BigDecimal toBigDecimal(Object o) {
+        if (o instanceof Number n) {
+            return new BigDecimal(n.toString());
+        }
+        if (o instanceof String s && isNumeric(s)) {
+            return new BigDecimal(s.trim());
+        }
+        return null;
+    }
+
+    private Map<String, Map<String, Object>> indexFieldsByName(List<Map<String, Object>> fields) {
+        Map<String, Map<String, Object>> byName = new HashMap<>();
+        for (Map<String, Object> f : fields) {
+            byName.putIfAbsent(stringOrEmpty(f.get("name")), f);
+        }
+        return byName;
+    }
+
+    private void collectMetadataConds(List<RuleNode> nodes, List<RuleNode> out) {
+        if (nodes == null) {
+            return;
+        }
+        for (RuleNode n : nodes) {
+            if (n == null) {
+                continue;
+            }
+            if (n.getType() == RuleNode.NodeType.COND
+                    && METADATA_ACCESS_OPERATOR.equals(n.getOperatorName())) {
+                out.add(n);
+            }
+            collectMetadataConds(n.getChildren(), out);
+        }
+    }
+
     private Map<String, Object> findMetadataField(OperatorCategory category, String fieldName) {
         return fetchMetadataFields(category).stream()
                 .filter(f -> fieldName.equals(stringOrEmpty(f.get("name"))))
@@ -590,6 +881,12 @@ public class RuleBuilderService {
             applyMetadataNumberConstraints(builder, field);
         }
 
+        // String length constraints from StringValidation so the FE can enforce the
+        // same bounds the BE checks at save time (enum is rendered as a select).
+        if (TYPE_STRING.equals(dataType)) {
+            applyMetadataStringConstraints(builder, field);
+        }
+
         return builder.build();
     }
 
@@ -627,6 +924,19 @@ public class RuleBuilderService {
      * to the exclusive one when only that is configured.
      */
     @SuppressWarnings("unchecked")
+    private void applyMetadataStringConstraints(RuleInputConfigResponse.Builder builder,
+                                                Map<String, Object> field) {
+        if (!(field.get("validation") instanceof Map<?, ?> validation)) {
+            return;
+        }
+        if (!(validation.get("stringValidation") instanceof Map<?, ?> sv)) {
+            return;
+        }
+        builder.minLength(toInteger(sv.get("minLength")));
+        builder.maxLength(toInteger(sv.get("maxLength")));
+        builder.exactLength(toInteger(sv.get("exactLength")));
+    }
+
     private void applyMetadataNumberConstraints(RuleInputConfigResponse.Builder builder,
                                                  Map<String, Object> field) {
         if (!(field.get("validation") instanceof Map<?, ?> validation)) {
@@ -643,6 +953,28 @@ public class RuleBuilderService {
         if (max != null) {
             builder.maxValue(max.toString());
         }
+        List<BigDecimal> allowed = toBigDecimalList(number.get("equalToAnyOf"));
+        if (!allowed.isEmpty()) {
+            builder.allowedNumbers(allowed);
+        }
+        List<BigDecimal> excluded = toBigDecimalList(number.get("notEqualToAnyOf"));
+        if (!excluded.isEmpty()) {
+            builder.excludedNumbers(excluded);
+        }
+    }
+
+    private List<BigDecimal> toBigDecimalList(Object raw) {
+        if (!(raw instanceof List<?> list)) {
+            return List.of();
+        }
+        List<BigDecimal> out = new ArrayList<>();
+        for (Object o : list) {
+            BigDecimal bd = toBigDecimal(o);
+            if (bd != null) {
+                out.add(bd);
+            }
+        }
+        return out;
     }
 
     private Object firstNonNull(Object a, Object b) {
