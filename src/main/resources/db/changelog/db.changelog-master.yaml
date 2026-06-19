@@ -235,3 +235,8 @@ databaseChangeLog:
   # updated_at, processed_at, next_retry_at) — custom HTTP outbox retired, promix owns it.
   - include:
       file: db/changelog/changes/071-migrate-outbox-events-to-promix-schema.yaml
+
+  # PROM-1116: rule-builder categories all showed the same icon — seed v2 (054) used
+  # lucide icon names the FE MUI registry can't resolve. Restore MUI PascalCase names.
+  - include:
+      file: db/changelog/changes/072-fix-category-icons-mui.yaml

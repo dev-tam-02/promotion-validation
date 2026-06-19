@@ -1,0 +1,61 @@
+databaseChangeLog:
+  # ============================================================================
+  # Fix PROM-1116: rule-builder categories (Bước 2) all render the SAME icon.
+  #
+  # Root cause: seed v2 (054-seed-categories-v2) stored icon names using the
+  # lucide-react convention (users, package, calculator, wallet, ticket,
+  # user-cog, shopping-cart, receipt). The FE RulePicker (RuleBuilder/RulePicker.tsx)
+  # resolves icons from a MUI registry keyed by PascalCase @mui/icons-material
+  # names (ICONS[name] || CategoryOutlined). None of the lucide names match, so
+  # every category fell back to CategoryOutlined -> one shared icon.
+  #
+  # Fix: restore MUI icon names that exist in the FE registry (the contract that
+  # seed v1 / 022 originally aligned with), keeping each category distinct.
+  # Stable PKs (cat-*) used in WHERE clauses. is_active is untouched.
+  # ============================================================================
+
+  - changeSet:
+      id: 072-fix-category-icons-mui
+      author: harley hoang
+      comment: "PROM-1116: replace lucide icon names with MUI registry names so each category shows its own icon"
+      changes:
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "PeopleOutlined" }
+            where: id='cat-audience'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "Inventory2Outlined" }
+            where: id='cat-products'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "CalculateOutlined" }
+            where: id='cat-prices-quantities'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "AccountBalanceWalletOutlined" }
+            where: id='cat-budget-constraints'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "ConfirmationNumberOutlined" }
+            where: id='cat-redemptions'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "ManageAccountsOutlined" }
+            where: id='cat-customer-metadata'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "ReceiptOutlined" }
+            where: id='cat-order-metadata'
+        - update:
+            tableName: operator_categories
+            columns:
+              - column: { name: icon, value: "ReceiptLongOutlined" }
+            where: id='cat-redemption-metadata'
