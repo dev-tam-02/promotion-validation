@@ -204,7 +204,8 @@ public class RuleResponseMapper {
         }
         String prefix = operatorName.replaceAll("[^a-zA-Z0-9]", "_")
                 .toUpperCase()
-                .replaceAll("^_+|_+$", "");
+                .replaceAll("^_+", "")
+                .replaceAll("_+$", "");
         if (!prefix.isEmpty() && reasonCode.startsWith(prefix + "_")) {
             String suffix = reasonCode.substring(prefix.length() + 1).toLowerCase();
             return suffix.isEmpty() ? null : suffix;

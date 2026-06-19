@@ -82,21 +82,24 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("unknown field_key -> rejected")
     void unknownField() {
-        assertThatThrownBy(() -> validate(cond("customer", "no_such_field", "STRING", "equals", "x")))
+        RuleNode node = cond("customer", "no_such_field", "STRING", "equals", "x");
+        assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
     @Test
     @DisplayName("unknown schema_type -> rejected")
     void unknownSchema() {
-        assertThatThrownBy(() -> validate(cond("ghost", "tier", "STRING", "equals", "GOLD")))
+        RuleNode node = cond("ghost", "tier", "STRING", "equals", "GOLD");
+        assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
     @Test
     @DisplayName("data_type mismatch -> rejected")
     void typeMismatch() {
-        assertThatThrownBy(() -> validate(cond("customer", "is_merchant", "STRING", "equals", "x")))
+        RuleNode node = cond("customer", "is_merchant", "STRING", "equals", "x");
+        assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
@@ -109,7 +112,8 @@ class MetadataConditionValidationTest {
     void stringEnum() {
         assertThatCode(() -> validate(cond("customer", "tier", "STRING", "equals", "GOLD")))
                 .doesNotThrowAnyException();
-        assertThatThrownBy(() -> validate(cond("customer", "tier", "STRING", "equals", "PURPLE")))
+        RuleNode rejected = cond("customer", "tier", "STRING", "equals", "PURPLE");
+        assertThatThrownBy(() -> validate(rejected))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
@@ -125,9 +129,11 @@ class MetadataConditionValidationTest {
     void stringLength() {
         assertThatCode(() -> validate(cond("customer", "code", "STRING", "equals", "AB")))
                 .doesNotThrowAnyException();
-        assertThatThrownBy(() -> validate(cond("customer", "code", "STRING", "equals", "TOOLONG")))
+        RuleNode tooLong = cond("customer", "code", "STRING", "equals", "TOOLONG");
+        assertThatThrownBy(() -> validate(tooLong))
                 .isInstanceOf(InvalidRuleStructureException.class);
-        assertThatThrownBy(() -> validate(cond("customer", "code", "STRING", "equals", "A")))
+        RuleNode tooShort = cond("customer", "code", "STRING", "equals", "A");
+        assertThatThrownBy(() -> validate(tooShort))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
@@ -147,14 +153,16 @@ class MetadataConditionValidationTest {
     void numberRange() {
         assertThatCode(() -> validate(cond("customer", "age", "NUMBER", "equals", 50)))
                 .doesNotThrowAnyException();
-        assertThatThrownBy(() -> validate(cond("customer", "age", "NUMBER", "equals", 200)))
+        RuleNode outOfRange = cond("customer", "age", "NUMBER", "equals", 200);
+        assertThatThrownBy(() -> validate(outOfRange))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
     @Test
     @DisplayName("number: non-numeric value rejected")
     void numberType() {
-        assertThatThrownBy(() -> validate(cond("customer", "age", "NUMBER", "equals", "abc")))
+        RuleNode node = cond("customer", "age", "NUMBER", "equals", "abc");
+        assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
@@ -170,14 +178,16 @@ class MetadataConditionValidationTest {
     void numberEnumAllowed() {
         assertThatCode(() -> validate(cond("customer", "score", "NUMBER", "equals", 20)))
                 .doesNotThrowAnyException();
-        assertThatThrownBy(() -> validate(cond("customer", "score", "NUMBER", "equals", 25)))
+        RuleNode notAllowed = cond("customer", "score", "NUMBER", "equals", 25);
+        assertThatThrownBy(() -> validate(notAllowed))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
 
     @Test
     @DisplayName("number enum: excluded value rejected; other value passes")
     void numberEnumExcluded() {
-        assertThatThrownBy(() -> validate(cond("customer", "level", "NUMBER", "equals", 0)))
+        RuleNode excluded = cond("customer", "level", "NUMBER", "equals", 0);
+        assertThatThrownBy(() -> validate(excluded))
                 .isInstanceOf(InvalidRuleStructureException.class);
         assertThatCode(() -> validate(cond("customer", "level", "NUMBER", "equals", 5)))
                 .doesNotThrowAnyException();
@@ -208,7 +218,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("metadata service unreachable (empty fields) -> degrades to no-op")
     void gracefulDegrade() {
-        when(metadataServiceFeignClient.getSchemaById(eq(SCHEMA_ID), eq(0), eq(100)))
+        when(metadataServiceFeignClient.getSchemaById(SCHEMA_ID, 0, 100))
                 .thenReturn(schemaResponse(List.of()));
         assertThatCode(() -> validate(cond("customer", "anything", "STRING", "equals", "x")))
                 .doesNotThrowAnyException();
