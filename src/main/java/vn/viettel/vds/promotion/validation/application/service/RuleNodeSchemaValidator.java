@@ -30,14 +30,33 @@ public class RuleNodeSchemaValidator {
 
     private static final Logger log = LoggerFactory.getLogger(RuleNodeSchemaValidator.class);
 
+    /**
+     * Virtual engine operator backing every metadata-category condition. Rows for
+     * it are never persisted in operator_options — the FE rule builder synthesizes
+     * one rule per pp-metadata schema field at request time (see
+     * {@code RuleBuilderService.synthesizeMetadataRule}). So it must bypass the
+     * operator_options lookup and be validated by its params contract instead.
+     */
+    private static final String METADATA_ACCESS_OPERATOR = "metadata.access";
+
+    /**
+     * Params required by {@code MetadataAccessOperatorTranslator} (pp-rule-engine)
+     * to render a metadata.access condition into DRL.
+     */
+    private static final Set<String> METADATA_ACCESS_REQUIRED_PARAMS =
+            Set.of("schema_type", "field_key", "data_type");
+
     private final OperatorOptionJpaRepository operatorOptionRepo;
     private final ObjectMapper objectMapper;
     private final JsonSchemaFactory schemaFactory;
+    private final RuleBuilderService ruleBuilderService;
 
     public RuleNodeSchemaValidator(OperatorOptionJpaRepository operatorOptionRepo,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   RuleBuilderService ruleBuilderService) {
         this.operatorOptionRepo = operatorOptionRepo;
         this.objectMapper = objectMapper;
+        this.ruleBuilderService = ruleBuilderService;
         this.schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
     }
 
@@ -61,6 +80,11 @@ public class RuleNodeSchemaValidator {
         for (RuleNode root : rootNodes) {
             validateNode(root);
         }
+
+        // Semantic check for virtual metadata.access conditions: every referenced
+        // field must exist in the live pp-metadata schema with a matching data_type.
+        // Degrades to a no-op when pp-metadata is unreachable (never blocks a save).
+        ruleBuilderService.validateMetadataConditions(rootNodes);
     }
 
     private long countConds(List<RuleNode> nodes) {
@@ -91,6 +115,14 @@ public class RuleNodeSchemaValidator {
         String operatorName = cond.getOperatorName();
         if (operatorName == null || operatorName.isBlank()) {
             throw new InvalidRuleStructureException(cond.getId(), "Operator name is required for COND nodes");
+        }
+
+        // metadata.access is a virtual operator: no operator_options row exists for
+        // it, so the lookup below would always fail as "Unknown operator". Validate
+        // its params contract directly and stop.
+        if (METADATA_ACCESS_OPERATOR.equals(operatorName)) {
+            validateMetadataAccessParams(cond);
+            return;
         }
 
         enforceRangeOrder(cond);
@@ -150,6 +182,29 @@ public class RuleNodeSchemaValidator {
             throw new InvalidRuleStructureException(
                     cond.getId(),
                     "params do not match schema for operator '" + operatorName + "': " + msg);
+        }
+    }
+
+    /**
+     * Validate a {@code metadata.access} COND node by its params contract instead of
+     * a persisted params_schema. The engine translator needs {@code schema_type},
+     * {@code field_key} and {@code data_type} to render the condition; reject the
+     * node when any is missing or blank.
+     */
+    private void validateMetadataAccessParams(RuleNode cond) {
+        var params = cond.getParams();
+        if (params == null || params.isEmpty()) {
+            throw new InvalidRuleStructureException(
+                    cond.getId(),
+                    "Operator 'metadata.access' requires params: schema_type, field_key, data_type");
+        }
+        for (String key : METADATA_ACCESS_REQUIRED_PARAMS) {
+            Object value = params.get(key);
+            if (value == null || (value instanceof String s && s.isBlank())) {
+                throw new InvalidRuleStructureException(
+                        cond.getId(),
+                        "Operator 'metadata.access' requires non-blank param '" + key + "'");
+            }
         }
     }
 

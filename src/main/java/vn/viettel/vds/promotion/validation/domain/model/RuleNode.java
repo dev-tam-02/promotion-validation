@@ -24,6 +24,10 @@ public class RuleNode {
     private final NodeType type;
     private final String operatorName;
     private final String reasonCode;
+    // UI comparator chosen for this COND node (in/equals/is_more_than_or_equal_to/
+    // is_not...). Persisted so the comparator is BE-owned for every operator instead
+    // of being smuggled through the operatorName suffix / params / reason_code.
+    private final String comparator;
     private final Rule.LogicType groupLogic;
     private final java.util.Map<String, Object> params;
     // Per-node (per-rule, control 6/7 of VRUL002_B02) configuration:
@@ -43,6 +47,7 @@ public class RuleNode {
         this.type = builder.type;
         this.operatorName = builder.operatorName;
         this.reasonCode = builder.reasonCode;
+        this.comparator = builder.comparator;
         this.groupLogic = builder.groupLogic;
         this.params = builder.params;
         this.violationDisplayMode = builder.violationDisplayMode;
@@ -196,6 +201,10 @@ public class RuleNode {
         return reasonCode;
     }
 
+    public String getComparator() {
+        return comparator;
+    }
+
     public Rule.LogicType getGroupLogic() {
         return groupLogic;
     }
@@ -228,6 +237,7 @@ public class RuleNode {
         private NodeType type;
         private String operatorName;
         private String reasonCode;
+        private String comparator;
         private Rule.LogicType groupLogic;
         private java.util.Map<String, Object> params;
         private String violationDisplayMode;
@@ -285,6 +295,11 @@ public class RuleNode {
 
         public Builder reasonCode(String reasonCode) {
             this.reasonCode = reasonCode;
+            return this;
+        }
+
+        public Builder comparator(String comparator) {
+            this.comparator = comparator;
             return this;
         }
 

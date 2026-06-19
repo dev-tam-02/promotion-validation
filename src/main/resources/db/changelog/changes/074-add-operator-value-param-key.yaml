@@ -1,0 +1,45 @@
+databaseChangeLog:
+  # Step 3 (BE-driven serialize): expose the engine param-key per numeric operator
+  # so the FE stops hard-coding SCALAR_PARAM_KEY_BY_CODE (which also defaulted to
+  # "amount" for any operator it didn't know — and was lost on edit once rule.id
+  # became the node id).
+  #
+  # Only single-key operators are seeded (amount / count). The price operators use
+  # a comparator-dependent key (minPrice / maxPrice / price) that a single column
+  # can't capture, so they keep NULL and the FE resolves them by comparator.
+  - changeSet:
+      id: 074-add-operator-value-param-key
+      author: claude
+      changes:
+        - addColumn:
+            tableName: operator_options
+            columns:
+              - column:
+                  name: value_param_key
+                  type: varchar(50)
+                  remarks: Engine param key for a scalar numeric value (amount/count); null = FE resolves by comparator
+      rollback:
+        - dropColumn:
+            tableName: operator_options
+            columnName: value_param_key
+
+  - changeSet:
+      id: 074-seed-value-param-key
+      author: claude
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: value_param_key, value: "amount" }
+            where: "code in ('total_amount_after_discounts','total_amount_before_discounts','initial_amount')"
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: value_param_key, value: "count" }
+            where: "code = 'items_quantity'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: value_param_key, value: null }
+            where: "code in ('total_amount_after_discounts','total_amount_before_discounts','initial_amount','items_quantity')"

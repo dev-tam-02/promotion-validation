@@ -71,6 +71,7 @@ public interface OperatorCategoryMapper {
                 .inputMultiple(entity.getInputMultiple())
                 .inputSearchable(entity.getInputSearchable())
                 .inputStep(entity.getInputStep())
+                .valueParamKey(entity.getValueParamKey())
                 .labelEn(entity.getLabelEn())
                 .labelVi(entity.getLabelVi())
                 .placeholderEn(entity.getPlaceholderEn())

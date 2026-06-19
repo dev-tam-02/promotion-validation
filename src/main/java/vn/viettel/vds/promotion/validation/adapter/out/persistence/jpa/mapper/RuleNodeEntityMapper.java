@@ -52,6 +52,7 @@ public class RuleNodeEntityMapper {
                     entity.getNodeId(), entity.getOperatorName(), entity.getReasonCode());
             builder.operatorName(entity.getOperatorName())
                     .reasonCode(entity.getReasonCode())
+                    .comparator(entity.getComparator())
                     .violationDisplayMode(entity.getViolationDisplayMode())
                     .errorMessage(entity.getErrorMessage());
         }
@@ -295,6 +296,7 @@ public class RuleNodeEntityMapper {
         } else if ("COND".equalsIgnoreCase(entity.getType())) {
             builder.operatorName(entity.getOperatorName())
                     .reasonCode(entity.getReasonCode())
+                    .comparator(entity.getComparator())
                     .violationDisplayMode(entity.getViolationDisplayMode())
                     .errorMessage(entity.getErrorMessage());
             logger.trace("[NODE_MAP_TREE] COND builder created: nodeId={}, operator={}, reasonCode={}",
@@ -366,6 +368,7 @@ public class RuleNodeEntityMapper {
         } else if (node.getType() == RuleNode.NodeType.COND) {
             entity.setOperatorName(node.getOperatorName());
             entity.setReasonCode(node.getReasonCode());
+            entity.setComparator(node.getComparator());
             entity.setViolationDisplayMode(node.getViolationDisplayMode());
             entity.setErrorMessage(node.getErrorMessage());
         }
