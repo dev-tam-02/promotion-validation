@@ -27,7 +27,8 @@ public record RuleInputConfigResponse(
         Integer maxLength,
         Integer exactLength,
         List<BigDecimal> allowedNumbers,
-        List<BigDecimal> excludedNumbers
+        List<BigDecimal> excludedNumbers,
+        String valueParamKey
 ) {
     public static Builder builder() {
         return new Builder();
@@ -51,6 +52,7 @@ public record RuleInputConfigResponse(
         private Integer exactLength;
         private List<BigDecimal> allowedNumbers;
         private List<BigDecimal> excludedNumbers;
+        private String valueParamKey;
 
         public Builder dataSourceType(String dataSourceType) {
             this.dataSourceType = dataSourceType;
@@ -147,6 +149,11 @@ public record RuleInputConfigResponse(
             return this;
         }
 
+        public Builder valueParamKey(String valueParamKey) {
+            this.valueParamKey = valueParamKey;
+            return this;
+        }
+
         public RuleInputConfigResponse build() {
             return new RuleInputConfigResponse(
                     dataSourceType,
@@ -165,7 +172,8 @@ public record RuleInputConfigResponse(
                     maxLength,
                     exactLength,
                     allowedNumbers,
-                    excludedNumbers
+                    excludedNumbers,
+                    valueParamKey
             );
         }
     }

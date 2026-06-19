@@ -245,3 +245,8 @@ databaseChangeLog:
   # comparator is BE-owned instead of smuggled through the FE reason_code.
   - include:
       file: db/changelog/changes/073-add-rule-node-comparator.yaml
+
+  # Step 3 (BE-driven serialize): expose the numeric scalar param-key per operator
+  # so the FE stops hard-coding it.
+  - include:
+      file: db/changelog/changes/074-add-operator-value-param-key.yaml

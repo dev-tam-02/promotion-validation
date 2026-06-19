@@ -1079,6 +1079,7 @@ public class RuleBuilderService {
         configureInputType(builder, option);
         configureLabels(builder, option);
         configureNumberConstraints(builder, option);
+        builder.valueParamKey(option.getValueParamKey());
         return builder.build();
     }
 

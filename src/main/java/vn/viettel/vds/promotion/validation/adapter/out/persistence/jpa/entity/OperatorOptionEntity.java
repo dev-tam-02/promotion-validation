@@ -79,6 +79,9 @@ public class OperatorOptionEntity {
     @Column(name = "pattern", length = 255)
     private String pattern;
 
+    @Column(name = "value_param_key", length = 50)
+    private String valueParamKey; // engine param key for a scalar numeric value (amount/count); null = FE resolves by comparator
+
     // I18n fields
     @Column(name = "name_vi", length = 100)
     private String nameVi;

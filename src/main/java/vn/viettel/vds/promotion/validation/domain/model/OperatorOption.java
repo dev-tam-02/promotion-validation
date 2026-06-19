@@ -50,6 +50,7 @@ public class OperatorOption {
     Boolean inputMultiple;
     Boolean inputSearchable;
     String inputStep;
+    String valueParamKey; // engine param key for a scalar numeric value (amount/count); null = FE resolves by comparator
     String labelEn;
     String labelVi;
     String placeholderEn;
