@@ -83,27 +83,39 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     private void saveRuleNodes(String ruleId, List<RuleNode> nodes) {
         logger.debug("[RULE_SAVE] Saving nodes for rule: {}", ruleId);
-        deleteExistingNodes(ruleId);
+
+        // Upsert by stable nodeId: a node still present in the tree is updated in place
+        // (keeps created_at, lets @Version increment); a new node is inserted; a node no
+        // longer in the tree is deleted. The old delete-all + reinsert strategy minted a
+        // new PK each save, so created_at reset to now and version stuck at 0 (PROM-1120).
+        List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(ruleId);
+        Map<String, RuleNodeEntity> existingByNodeId = existing.stream()
+                .collect(Collectors.toMap(RuleNodeEntity::getNodeId, e -> e, (a, b) -> a));
 
         Map<String, RuleNode> nodeMap = buildNodeMap(nodes);
         Set<String> childNodeIds = findChildNodeIds(nodeMap);
+        // Preserve encounter order of roots (LinkedHashSet) so node_order is deterministic.
         Set<String> rootNodeIds = nodeMap.keySet().stream()
                 .filter(id -> !childNodeIds.contains(id))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, ruleId);
         List<RuleNodeEntity> savedNodes = new ArrayList<>();
+        Set<String> keptNodeIds = new HashSet<>();
+        int rootOrder = 0;
         for (String rootId : rootNodeIds) {
-            saveNodeDfs(rootId, nodeMap, ruleRef, null, savedNodes);
+            saveNodeDfs(rootId, nodeMap, ruleRef, null, rootOrder++, existingByNodeId, keptNodeIds, savedNodes);
+        }
+
+        // Remove rows for nodes dropped from the tree (kept the rest in place above).
+        List<RuleNodeEntity> staleNodes = existing.stream()
+                .filter(e -> !keptNodeIds.contains(e.getNodeId()))
+                .toList();
+        if (!staleNodes.isEmpty()) {
+            nodeRepository.deleteAll(staleNodes);
+            logger.debug("[RULE_SAVE] Removed {} stale node(s) for rule: {}", staleNodes.size(), ruleId);
         }
         logger.info("[RULE_SAVE] Saved {} node entities for rule: {}", savedNodes.size(), ruleId);
-    }
-
-    private void deleteExistingNodes(String ruleId) {
-        List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(ruleId);
-        if (!existing.isEmpty()) {
-            nodeRepository.deleteAll(existing);
-        }
     }
 
     private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
@@ -150,23 +162,62 @@ public class RuleJpaAdapter implements RulePersistencePort {
      */
     private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
                              ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
-                             List<RuleNodeEntity> savedEntities) {
+                             int order, Map<String, RuleNodeEntity> existingByNodeId,
+                             Set<String> keptNodeIds, List<RuleNodeEntity> savedEntities) {
         RuleNode node = nodeMap.get(nodeId);
         if (node == null) return;
-        RuleNodeEntity entity = nodeMapper.toEntity(node, parentEntity);
-        entity.setId(UUID.randomUUID().toString());
-        entity.setValidationRule(ruleRef);
-        RuleNodeEntity persistedEntity = nodeRepository.save(entity);
+        RuleNodeEntity mapped = nodeMapper.toEntity(node, parentEntity);
+
+        RuleNodeEntity existing = existingByNodeId.get(node.getNodeId());
+        RuleNodeEntity toPersist;
+        if (existing != null) {
+            // Update in place — preserves id + created_at, @Version increments on flush.
+            copyNodeFields(existing, mapped);
+            existing.setParent(parentEntity);
+            existing.setValidationRule(ruleRef);
+            existing.setOrder(order);
+            toPersist = existing;
+        } else {
+            mapped.setId(UUID.randomUUID().toString());
+            mapped.setValidationRule(ruleRef);
+            // Persist sibling position so node_order reflects the order nodes were laid out
+            // (roots by encounter order, children by their position within the GROUP).
+            mapped.setOrder(order);
+            toPersist = mapped;
+        }
+
+        RuleNodeEntity persistedEntity = nodeRepository.save(toPersist);
+        keptNodeIds.add(node.getNodeId());
         savedEntities.add(persistedEntity);
         // Recursively save children of GROUP nodes
         if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+            int childOrder = 0;
             for (RuleNode childPlaceholder : node.getChildren()) {
                 String childId = childPlaceholder.getNodeId();
                 if (childId != null && nodeMap.containsKey(childId)) {
-                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, savedEntities);
+                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, childOrder++,
+                            existingByNodeId, keptNodeIds, savedEntities);
                 }
             }
         }
+    }
+
+    /**
+     * Copy the mutable node fields from a freshly-mapped entity onto a managed one so an
+     * in-place update keeps the row's identity (id, created_at) while refreshing content.
+     * All type-specific fields are copied — including nulls — so a node that switched
+     * type (COND&lt;-&gt;GROUP) does not retain stale columns from its previous shape.
+     */
+    private void copyNodeFields(RuleNodeEntity target, RuleNodeEntity source) {
+        target.setType(source.getType());
+        target.setGroupLogic(source.getGroupLogic());
+        target.setChildrenIds(source.getChildrenIds());
+        target.setOperatorName(source.getOperatorName());
+        target.setParams(source.getParams());
+        target.setReasonCode(source.getReasonCode());
+        target.setComparator(source.getComparator());
+        target.setViolationDisplayMode(source.getViolationDisplayMode());
+        target.setErrorMessage(source.getErrorMessage());
     }
 
     @Override
