@@ -24,6 +24,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictE
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -83,27 +84,39 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     private void saveRuleNodes(String ruleId, List<RuleNode> nodes) {
         logger.debug("[RULE_SAVE] Saving nodes for rule: {}", ruleId);
-        deleteExistingNodes(ruleId);
+
+        // Upsert by stable nodeId: a node still present in the tree is updated in place
+        // (keeps created_at, lets @Version increment); a new node is inserted; a node no
+        // longer in the tree is deleted. The old delete-all + reinsert strategy minted a
+        // new PK each save, so created_at reset to now and version stuck at 0 (PROM-1120).
+        List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(ruleId);
+        Map<String, RuleNodeEntity> existingByNodeId = existing.stream()
+                .collect(Collectors.toMap(RuleNodeEntity::getNodeId, e -> e, (a, b) -> a));
 
         Map<String, RuleNode> nodeMap = buildNodeMap(nodes);
         Set<String> childNodeIds = findChildNodeIds(nodeMap);
+        // Preserve encounter order of roots (LinkedHashSet) so node_order is deterministic.
         Set<String> rootNodeIds = nodeMap.keySet().stream()
                 .filter(id -> !childNodeIds.contains(id))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, ruleId);
         List<RuleNodeEntity> savedNodes = new ArrayList<>();
+        Set<String> keptNodeIds = new HashSet<>();
+        int rootOrder = 0;
         for (String rootId : rootNodeIds) {
-            saveNodeDfs(rootId, nodeMap, ruleRef, null, savedNodes);
+            saveNodeDfs(rootId, nodeMap, ruleRef, null, rootOrder++, existingByNodeId, keptNodeIds, savedNodes);
+        }
+
+        // Remove rows for nodes dropped from the tree (kept the rest in place above).
+        List<RuleNodeEntity> staleNodes = existing.stream()
+                .filter(e -> !keptNodeIds.contains(e.getNodeId()))
+                .toList();
+        if (!staleNodes.isEmpty()) {
+            nodeRepository.deleteAll(staleNodes);
+            logger.debug("[RULE_SAVE] Removed {} stale node(s) for rule: {}", staleNodes.size(), ruleId);
         }
         logger.info("[RULE_SAVE] Saved {} node entities for rule: {}", savedNodes.size(), ruleId);
-    }
-
-    private void deleteExistingNodes(String ruleId) {
-        List<RuleNodeEntity> existing = nodeRepository.findByValidationRuleIdOrderByOrder(ruleId);
-        if (!existing.isEmpty()) {
-            nodeRepository.deleteAll(existing);
-        }
     }
 
     private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
@@ -150,23 +163,62 @@ public class RuleJpaAdapter implements RulePersistencePort {
      */
     private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
                              ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
-                             List<RuleNodeEntity> savedEntities) {
+                             int order, Map<String, RuleNodeEntity> existingByNodeId,
+                             Set<String> keptNodeIds, List<RuleNodeEntity> savedEntities) {
         RuleNode node = nodeMap.get(nodeId);
         if (node == null) return;
-        RuleNodeEntity entity = nodeMapper.toEntity(node, parentEntity);
-        entity.setId(UUID.randomUUID().toString());
-        entity.setValidationRule(ruleRef);
-        RuleNodeEntity persistedEntity = nodeRepository.save(entity);
+        RuleNodeEntity mapped = nodeMapper.toEntity(node, parentEntity);
+
+        RuleNodeEntity existing = existingByNodeId.get(node.getNodeId());
+        RuleNodeEntity toPersist;
+        if (existing != null) {
+            // Update in place — preserves id + created_at, @Version increments on flush.
+            copyNodeFields(existing, mapped);
+            existing.setParent(parentEntity);
+            existing.setValidationRule(ruleRef);
+            existing.setOrder(order);
+            toPersist = existing;
+        } else {
+            mapped.setId(UUID.randomUUID().toString());
+            mapped.setValidationRule(ruleRef);
+            // Persist sibling position so node_order reflects the order nodes were laid out
+            // (roots by encounter order, children by their position within the GROUP).
+            mapped.setOrder(order);
+            toPersist = mapped;
+        }
+
+        RuleNodeEntity persistedEntity = nodeRepository.save(toPersist);
+        keptNodeIds.add(node.getNodeId());
         savedEntities.add(persistedEntity);
         // Recursively save children of GROUP nodes
         if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
+            int childOrder = 0;
             for (RuleNode childPlaceholder : node.getChildren()) {
                 String childId = childPlaceholder.getNodeId();
                 if (childId != null && nodeMap.containsKey(childId)) {
-                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, savedEntities);
+                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, childOrder++,
+                            existingByNodeId, keptNodeIds, savedEntities);
                 }
             }
         }
+    }
+
+    /**
+     * Copy the mutable node fields from a freshly-mapped entity onto a managed one so an
+     * in-place update keeps the row's identity (id, created_at) while refreshing content.
+     * All type-specific fields are copied — including nulls — so a node that switched
+     * type (COND&lt;-&gt;GROUP) does not retain stale columns from its previous shape.
+     */
+    private void copyNodeFields(RuleNodeEntity target, RuleNodeEntity source) {
+        target.setType(source.getType());
+        target.setGroupLogic(source.getGroupLogic());
+        target.setChildrenIds(source.getChildrenIds());
+        target.setOperatorName(source.getOperatorName());
+        target.setParams(source.getParams());
+        target.setReasonCode(source.getReasonCode());
+        target.setComparator(source.getComparator());
+        target.setViolationDisplayMode(source.getViolationDisplayMode());
+        target.setErrorMessage(source.getErrorMessage());
     }
 
     @Override
@@ -484,6 +536,90 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.debug("[RULE_DELETE] Deleting nodes for rule: {}", ruleId);
         nodeRepository.deleteByValidationRuleId(ruleId);
         logger.info("[RULE_DELETE] Deleted nodes for rule: {}", ruleId);
+    }
+
+    @Override
+    public void softDelete(String ruleId, long version) {
+        logger.info("[RULE_SOFT_DELETE] Archiving rule + dependents to shadow tables: id={}, version={}",
+                ruleId, version);
+
+        // Detach anything currently managed (the rule + its lazy collections were just read
+        // by the caller) so the native archive/delete below operates purely at the SQL level
+        // and Hibernate's commit-time flush can't resurrect a stale managed row.
+        entityManager.flush();
+        entityManager.clear();
+
+        String deletedBy = resolveDeletedBy();
+        Instant now = Instant.now();
+
+        // 1. Dependent rows first (FK children of validation_rules): archive then delete.
+        archiveChildTable("rule_nodes", "rule_nodes_deleted", "validation_rule_id", ruleId, now, deletedBy);
+        archiveChildTable("rule_configuration", "rule_configuration_deleted", "rule_id", ruleId, now, deletedBy);
+        archiveChildTable("rule_target_segments", "rule_target_segments_deleted", "rule_id", ruleId, now, deletedBy);
+
+        // 2. The rule row: archive a copy, then version-checked physical delete. Column order
+        //    of *_deleted mirrors validation_rules so "SELECT vr.*, deleted_at, deleted_by" lines up.
+        entityManager.createNativeQuery(
+                        "INSERT INTO validation_rules_deleted "
+                                + "SELECT vr.*, ?1, ?2 FROM validation_rules vr WHERE vr.id = ?3")
+                .setParameter(1, now)
+                .setParameter(2, deletedBy)
+                .setParameter(3, ruleId)
+                .executeUpdate();
+
+        int deleted = entityManager.createNativeQuery(
+                        "DELETE FROM validation_rules WHERE id = ?1 AND version = ?2")
+                .setParameter(1, ruleId)
+                .setParameter(2, version)
+                .executeUpdate();
+
+        if (deleted == 0) {
+            // Version changed between the caller's read and this delete → concurrency conflict.
+            // @Transactional rolls back the shadow inserts above.
+            logger.warn("[RULE_SOFT_DELETE] Version conflict on soft delete: id={}, expected={}", ruleId, version);
+            throw new RuleVersionConflictException(ruleId);
+        }
+
+        logger.info("[RULE_SOFT_DELETE] Rule archived to shadow tables: id={}, deletedBy={}", ruleId, deletedBy);
+    }
+
+    /**
+     * Archive every row of {@code srcTable} whose {@code fkColumn} matches {@code ruleId}
+     * into {@code shadowTable} (same column order + deleted_at/deleted_by), then physically
+     * delete those rows from {@code srcTable}.
+     */
+    private void archiveChildTable(String srcTable, String shadowTable, String fkColumn,
+                                   String ruleId, Instant now, String deletedBy) {
+        entityManager.createNativeQuery(
+                        "INSERT INTO " + shadowTable + " SELECT t.*, ?1, ?2 FROM " + srcTable
+                                + " t WHERE t." + fkColumn + " = ?3")
+                .setParameter(1, now)
+                .setParameter(2, deletedBy)
+                .setParameter(3, ruleId)
+                .executeUpdate();
+        entityManager.createNativeQuery(
+                        "DELETE FROM " + srcTable + " WHERE " + fkColumn + " = ?1")
+                .setParameter(1, ruleId)
+                .executeUpdate();
+    }
+
+    /**
+     * Resolve the principal performing the delete from the security context, mirroring
+     * promix-starter's auditor resolution; falls back to {@code "system"} for unauthenticated
+     * / background flows.
+     */
+    private String resolveDeletedBy() {
+        try {
+            var authentication = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication();
+            if (authentication != null && authentication.getName() != null
+                    && !"anonymousUser".equals(authentication.getName())) {
+                return authentication.getName();
+            }
+        } catch (RuntimeException ignored) {
+            // No security context available — fall through to the system default.
+        }
+        return "system";
     }
 
     @Override

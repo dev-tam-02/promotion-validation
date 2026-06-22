@@ -246,7 +246,10 @@ public class RuleManagementService implements RuleManagementUseCase {
                     continue;
                 }
                 List<RuleNode> nodes = ruleWithNodes.getNodes() != null ? ruleWithNodes.getNodes() : List.of();
-                compilePipelineAndSave(ruleWithNodes, nodes, "system-bootstrap");
+                // Use "system" (not "system-bootstrap") so the audit actor matches the
+                // seed owner and the FE user lookup (id "system" -> "System"); otherwise
+                // the detail screen shows an inconsistent "Người cập nhật" raw id.
+                compilePipelineAndSave(ruleWithNodes, nodes, "system");
                 log.info("republishSystemRules: rule {} compiled successfully", staleRule.getId());
             } catch (Exception ex) {
                 log.error("republishSystemRules: failed for rule {}: {}", staleRule.getId(), ex.getMessage());

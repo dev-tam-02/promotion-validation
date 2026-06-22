@@ -471,23 +471,15 @@ public class RuleService {
             throw new RuleHasBindingsException(ruleId, bindingCount);
         }
 
-        // Step 5: Transaction - delete nodes, then delete the rule. When the rule
-        // carries a version, use an atomic conditional DELETE ... WHERE id=? AND
-        // version=? as the authoritative guard: if no row is affected the version
-        // changed since Step 3 (read-then-delete race), so we raise a version
-        // conflict and let the surrounding @Transactional roll back the node
-        // deletion too. A null version means optimistic locking is not in effect
-        // (legacy rows) → unconditional delete preserves prior behavior.
-        rulePersistencePort.deleteNodesByRuleId(ruleId);
-        if (currentVersion != null) {
-            int affected = rulePersistencePort.deleteByIdAndVersion(ruleId, version);
-            if (affected == 0) {
-                logger.warn("Version conflict on atomic delete: id={}, expected={}", ruleId, version);
-                throw new RuleVersionConflictException(ruleId);
-            }
-        } else {
-            rulePersistencePort.deleteById(ruleId);
-        }
+        // Step 5: Soft delete (promix-starter SoftDeleteEntity convention). The rule and
+        // its dependent rows (nodes, configuration, target segments) are archived to the
+        // *_deleted shadow tables and then physically removed from the live tables. The
+        // main-table delete is guarded by an atomic version check (DELETE ... WHERE id=?
+        // AND version=?): if the version changed since Step 3 (read-then-delete race),
+        // softDelete raises RuleVersionConflictException and the surrounding @Transactional
+        // rolls back the shadow inserts too. validation_rules.version is NOT NULL, so the
+        // version is always known here.
+        rulePersistencePort.softDelete(ruleId, version);
 
         outboxService.createEvent(
                 RULE_AGGREGATE_TYPE,

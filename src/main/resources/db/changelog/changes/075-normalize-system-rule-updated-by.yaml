@@ -1,0 +1,21 @@
+databaseChangeLog:
+  # PROM-1150: republishSystemRules previously stamped updated_by="system-bootstrap"
+  # while the seed owner / FE user lookup uses "system" (id "system" -> "System").
+  # The detail screen therefore showed Người tạo="System" but Người cập nhật raw
+  # "system-bootstrap". The code now writes "system"; normalize the rows already
+  # persisted with the old actor so existing system rules are consistent.
+  - changeSet:
+      id: 075-normalize-system-rule-updated-by
+      author: harley hoang
+      changes:
+        - update:
+            tableName: validation_rules
+            columns:
+              - column: { name: updated_by, value: "system" }
+            where: "updated_by = 'system-bootstrap'"
+      rollback:
+        - update:
+            tableName: validation_rules
+            columns:
+              - column: { name: updated_by, value: "system-bootstrap" }
+            where: "updated_by = 'system'"

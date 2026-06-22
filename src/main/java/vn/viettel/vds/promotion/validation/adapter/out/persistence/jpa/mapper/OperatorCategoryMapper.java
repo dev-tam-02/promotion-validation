@@ -13,6 +13,7 @@ import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -33,8 +34,13 @@ public interface OperatorCategoryMapper {
             return Collections.emptyList();
         }
         ObjectMapper objectMapper = new ObjectMapper();
+        // The JOIN FETCH that loads this collection does not order it (findAllWithOptions
+        // orders only the category root), so sort by displayOrder here to honour the
+        // configured operator ordering per category. Null displayOrder sinks to the end.
         return entities.stream()
                 .filter(OperatorOptionEntity::getActive)
+                .sorted(Comparator.comparing(OperatorOptionEntity::getDisplayOrder,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(entity -> mapOption(entity, objectMapper))
                 .toList();
     }

@@ -250,3 +250,14 @@ databaseChangeLog:
   # so the FE stops hard-coding it.
   - include:
       file: db/changelog/changes/074-add-operator-value-param-key.yaml
+
+  # PROM-1150: normalize system-rule updated_by "system-bootstrap" -> "system" so the
+  # detail screen shows a consistent owner/updater (FE maps "system" -> "System").
+  - include:
+      file: db/changelog/changes/075-normalize-system-rule-updated-by.yaml
+
+  # VRUL005 soft delete: shadow tables (_deleted) so deleting a rule archives it
+  # instead of hard-deleting. RuleJpaAdapter.softDelete() moves the rule + nodes +
+  # configuration + target_segments into these tables with deleted_at/deleted_by.
+  - include:
+      file: db/changelog/changes/076-add-rule-soft-delete-shadow-tables.yaml
