@@ -65,6 +65,17 @@ public interface RulePersistencePort {
      */
     int deleteByIdAndVersion(String id, long version);
 
+    /**
+     * Soft delete (VRUL005) per the promix-starter SoftDeleteEntity convention: archive
+     * the rule together with its dependent rows (nodes, configuration, target segments)
+     * into the {@code *_deleted} shadow tables, then physically remove them from the live
+     * tables. The main-table delete is guarded by optimistic locking ({@code id + version}).
+     *
+     * @throws vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictException
+     *         if {@code version} no longer matches the row in the database
+     */
+    void softDelete(String id, long version);
+
     void deleteNodesByRuleId(String ruleId);
 
     /**

@@ -118,22 +118,23 @@ public class ValidationRuleJpaAdapter implements ValidationRuleRepositoryPort {
         boolean alreadyPersisted = rule.getId() != null && jpaRepository.existsById(rule.getId());
         Long versionForSave = alreadyPersisted ? rule.getVersion() : null;
 
-        RuleJpaEntity entity = RuleJpaEntity.builder()
-                .id(rule.getId())
-                .code(rule.getCode())
-                .name(rule.getName())
-                .ruleVersion(rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L)
-                .logic(rule.getLogic() != null ? rule.getLogic().name() : null)
-                .description(rule.getDescription())
-                .publishedAt(rule.getPublishedAt())
-                .publishedBy(rule.getPublishedBy())
-                .bundleHash(rule.getBundleHash())
-                .createdAt(rule.getCreatedAt())
-                .updatedAt(rule.getUpdatedAt())
-                .createdBy(rule.getCreatedBy())
-                .updatedBy(rule.getUpdatedBy())
-                .version(versionForSave)
-                .build();
+        // id/version/audit columns are inherited from BaseEntity (no Lombok builder for
+        // them since BaseEntity isn't @SuperBuilder) — set via inherited setters.
+        RuleJpaEntity entity = new RuleJpaEntity();
+        entity.setId(rule.getId());
+        entity.setCode(rule.getCode());
+        entity.setName(rule.getName());
+        entity.setRuleVersion(rule.getRuleVersion() != null ? rule.getRuleVersion() : 1L);
+        entity.setLogic(rule.getLogic() != null ? rule.getLogic().name() : null);
+        entity.setDescription(rule.getDescription());
+        entity.setPublishedAt(rule.getPublishedAt());
+        entity.setPublishedBy(rule.getPublishedBy());
+        entity.setBundleHash(rule.getBundleHash());
+        entity.setCreatedAt(rule.getCreatedAt());
+        entity.setUpdatedAt(rule.getUpdatedAt());
+        entity.setCreatedBy(rule.getCreatedBy());
+        entity.setUpdatedBy(rule.getUpdatedBy());
+        entity.setVersion(versionForSave);
 
         RuleJpaEntity saved = jpaRepository.save(entity);
         return mapper.jpaEntityToDomain(saved);

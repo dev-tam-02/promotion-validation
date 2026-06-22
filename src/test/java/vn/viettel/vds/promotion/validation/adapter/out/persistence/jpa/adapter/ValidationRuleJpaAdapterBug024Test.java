@@ -58,12 +58,11 @@ class ValidationRuleJpaAdapterBug024Test {
         @Test
         @DisplayName("isNew() returns true when @Version is null (fresh entity → persist())")
         void isNew_returnsTrue_whenVersionNull() {
-            RuleJpaEntity entity = RuleJpaEntity.builder()
-                    .id("rule-1")
-                    .name("Test")
-                    .ruleVersion(1L)
-                    .version(null)
-                    .build();
+            RuleJpaEntity entity = new RuleJpaEntity();
+            entity.setId("rule-1");
+            entity.setName("Test");
+            entity.setRuleVersion(1L);
+            entity.setVersion(null);
 
             assertThat(entity.isNew()).isTrue();
         }
@@ -71,12 +70,11 @@ class ValidationRuleJpaAdapterBug024Test {
         @Test
         @DisplayName("isNew() returns false when @Version is non-null (loaded entity → merge())")
         void isNew_returnsFalse_whenVersionNonNull() {
-            RuleJpaEntity entity = RuleJpaEntity.builder()
-                    .id("rule-1")
-                    .name("Test")
-                    .ruleVersion(1L)
-                    .version(0L)
-                    .build();
+            RuleJpaEntity entity = new RuleJpaEntity();
+            entity.setId("rule-1");
+            entity.setName("Test");
+            entity.setRuleVersion(1L);
+            entity.setVersion(0L);
 
             assertThat(entity.isNew()).isFalse();
         }

@@ -642,14 +642,12 @@ class RuleServiceTest {
             rule.setVersion(1L);
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
-            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(1);
 
             // When
             sut.deleteRule("r1", 1L);
 
-            // Then - SRS VRUL005 Step 7: delete nodes → atomic versioned delete → outbox event
-            verify(rulePersistencePort).deleteNodesByRuleId("r1");
-            verify(rulePersistencePort).deleteByIdAndVersion("r1", 1L);
+            // Then - SRS VRUL005 Step 7: soft-delete (archive to shadow + versioned delete) → outbox event
+            verify(rulePersistencePort).softDelete("r1", 1L);
 
             // Verify outbox event VALIDATION_RULE_DELETED is emitted via promix outbox
             verify(outboxService).createEvent(
@@ -666,7 +664,7 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.deleteRule("nonexistent", 1L))
                     .isInstanceOf(RuleNotFoundException.class);
 
-            verify(rulePersistencePort, never()).deleteById(any());
+            verify(rulePersistencePort, never()).softDelete(any(), anyLong());
         }
 
         @Test
@@ -682,8 +680,7 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
                     .isInstanceOf(RuleHasBindingsException.class);
 
-            verify(rulePersistencePort, never()).deleteById(any());
-            verify(rulePersistencePort, never()).deleteNodesByRuleId(any());
+            verify(rulePersistencePort, never()).softDelete(any(), anyLong());
         }
 
         @Test
@@ -698,7 +695,7 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
                     .isInstanceOf(RuleVersionConflictException.class);
 
-            verify(rulePersistencePort, never()).deleteById(any());
+            verify(rulePersistencePort, never()).softDelete(any(), anyLong());
         }
 
         @Test
@@ -706,16 +703,15 @@ class RuleServiceTest {
         void shouldAllowDelete_whenVersionIsNullInDb() {
             // Given
             Rule rule = draftRule("r1", "CODE_1", "Rule");
-            rule.setVersion(null); // No version set
+            rule.setVersion(null); // No version set — Step 3 version check is skipped
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
 
             // When
             sut.deleteRule("r1", 1L);
 
-            // Then — should proceed with delete
-            verify(rulePersistencePort).deleteNodesByRuleId("r1");
-            verify(rulePersistencePort).deleteById("r1");
+            // Then — should still proceed via soft-delete (archive to shadow tables)
+            verify(rulePersistencePort).softDelete("r1", 1L);
             verify(outboxService).createEvent(
                     eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC));
         }
@@ -729,9 +725,11 @@ class RuleServiceTest {
             rule.setVersion(1L);
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
-            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(0);
+            doThrow(new RuleVersionConflictException("r1"))
+                    .when(rulePersistencePort).softDelete("r1", 1L);
 
-            // When & Then — affected==0 → CONFLICTED, no outbox event emitted
+            // When & Then — versioned delete inside softDelete affected 0 rows → CONFLICTED,
+            // no outbox event emitted
             assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
                     .isInstanceOf(RuleVersionConflictException.class);
 
@@ -746,7 +744,6 @@ class RuleServiceTest {
             rule.setVersion(1L);
             when(rulePersistencePort.findById("r1")).thenReturn(Optional.of(rule));
             when(ruleBindingPort.countByRuleId("r1")).thenReturn(0L);
-            when(rulePersistencePort.deleteByIdAndVersion("r1", 1L)).thenReturn(1);
 
             // When
             sut.deleteRule("r1", 1L);
@@ -1113,7 +1110,7 @@ class RuleServiceTest {
                     .isInstanceOf(vn.viettel.vds.promotion.validation.domain.exception.SystemRuleProtectedException.class)
                     .hasMessageContaining("rule-sys-owner-only");
 
-            verify(rulePersistencePort, never()).deleteById(anyString());
+            verify(rulePersistencePort, never()).softDelete(anyString(), anyLong());
         }
 
         @Test
@@ -1157,12 +1154,10 @@ class RuleServiceTest {
 
             when(rulePersistencePort.findById("rule-regular-001")).thenReturn(Optional.of(regularRule));
             when(ruleBindingPort.countByRuleId("rule-regular-001")).thenReturn(0L);
-            when(rulePersistencePort.deleteByIdAndVersion("rule-regular-001", 1L)).thenReturn(1);
 
             sut.deleteRule("rule-regular-001", 1L);
 
-            verify(rulePersistencePort).deleteNodesByRuleId("rule-regular-001");
-            verify(rulePersistencePort).deleteByIdAndVersion("rule-regular-001", 1L);
+            verify(rulePersistencePort).softDelete("rule-regular-001", 1L);
         }
     }
 }

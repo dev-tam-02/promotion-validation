@@ -1,0 +1,128 @@
+databaseChangeLog:
+  # VRUL005 soft delete: deleting a rule must NOT hard-delete the row. Following the
+  # promix-starter SoftDeleteEntity convention, the rule (and its dependent rows) are
+  # moved to shadow tables suffixed "_deleted" carrying deleted_at/deleted_by, then
+  # physically removed from the live tables. RuleJpaAdapter.softDelete() does the
+  # INSERT ... SELECT * + DELETE (explicit because RuleJpaEntity has @ElementCollection
+  # fields the generic reflection-based softDelete() can't map). Column order here MUST
+  # mirror the live tables so "SELECT main.*, deleted_at, deleted_by" lines up.
+  - changeSet:
+      id: 076-create-validation-rules-deleted
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: validation_rules_deleted
+            remarks: Shadow/archive of soft-deleted validation rules
+            columns:
+              - column: { name: id, type: VARCHAR(36) }
+              - column: { name: code, type: VARCHAR(100) }
+              - column: { name: name, type: VARCHAR(200) }
+              - column: { name: rule_version, type: BIGINT }
+              - column: { name: logic, type: VARCHAR(50) }
+              - column: { name: dsl, type: TEXT }
+              - column: { name: bundle_hash, type: VARCHAR(200) }
+              - column: { name: published_at, type: TIMESTAMP NULL }
+              - column: { name: published_by, type: VARCHAR(100) }
+              - column: { name: created_at, type: TIMESTAMP NULL }
+              - column: { name: updated_at, type: TIMESTAMP NULL }
+              - column: { name: created_by, type: VARCHAR(100) }
+              - column: { name: updated_by, type: VARCHAR(100) }
+              - column: { name: version, type: BIGINT }
+              - column: { name: context, type: VARCHAR(100) }
+              - column: { name: description, type: VARCHAR(1000) }
+              - column: { name: is_system, type: TINYINT(1) }
+              - column: { name: current_version, type: INT }
+              - column: { name: fallback_error_message, type: VARCHAR(500) }
+              - column: { name: deleted_at, type: TIMESTAMP NULL }
+              - column: { name: deleted_by, type: VARCHAR(100) }
+        - createIndex:
+            tableName: validation_rules_deleted
+            indexName: idx_vr_deleted_id
+            columns:
+              - column: { name: id }
+        - createIndex:
+            tableName: validation_rules_deleted
+            indexName: idx_vr_deleted_at
+            columns:
+              - column: { name: deleted_at }
+      rollback:
+        - dropTable: { tableName: validation_rules_deleted }
+
+  - changeSet:
+      id: 076-create-rule-nodes-deleted
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_nodes_deleted
+            remarks: Shadow/archive of rule_nodes belonging to soft-deleted rules
+            columns:
+              - column: { name: id, type: VARCHAR(36) }
+              - column: { name: node_id, type: VARCHAR(100) }
+              - column: { name: type, type: VARCHAR(20) }
+              - column: { name: group_logic, type: VARCHAR(20) }
+              - column: { name: children_ids, type: TEXT }
+              - column: { name: node_order, type: INT }
+              - column: { name: operator_name, type: VARCHAR(100) }
+              - column: { name: params, type: TEXT }
+              - column: { name: reason_code, type: VARCHAR(100) }
+              - column: { name: validation_rule_id, type: VARCHAR(36) }
+              - column: { name: parent_id, type: VARCHAR(36) }
+              - column: { name: created_at, type: TIMESTAMP NULL }
+              - column: { name: updated_at, type: TIMESTAMP NULL }
+              - column: { name: created_by, type: VARCHAR(100) }
+              - column: { name: updated_by, type: VARCHAR(100) }
+              - column: { name: version, type: BIGINT }
+              - column: { name: display_order, type: INT }
+              - column: { name: violation_display_mode, type: VARCHAR(20) }
+              - column: { name: error_message, type: VARCHAR(1000) }
+              - column: { name: comparator, type: VARCHAR(50) }
+              - column: { name: deleted_at, type: TIMESTAMP NULL }
+              - column: { name: deleted_by, type: VARCHAR(100) }
+        - createIndex:
+            tableName: rule_nodes_deleted
+            indexName: idx_rn_deleted_rule
+            columns:
+              - column: { name: validation_rule_id }
+      rollback:
+        - dropTable: { tableName: rule_nodes_deleted }
+
+  - changeSet:
+      id: 076-create-rule-configuration-deleted
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_configuration_deleted
+            remarks: Shadow/archive of rule_configuration belonging to soft-deleted rules
+            columns:
+              - column: { name: rule_id, type: VARCHAR(36) }
+              - column: { name: config_key, type: VARCHAR(255) }
+              - column: { name: config_value, type: TEXT }
+              - column: { name: deleted_at, type: TIMESTAMP NULL }
+              - column: { name: deleted_by, type: VARCHAR(100) }
+        - createIndex:
+            tableName: rule_configuration_deleted
+            indexName: idx_rc_deleted_rule
+            columns:
+              - column: { name: rule_id }
+      rollback:
+        - dropTable: { tableName: rule_configuration_deleted }
+
+  - changeSet:
+      id: 076-create-rule-target-segments-deleted
+      author: harley hoang
+      changes:
+        - createTable:
+            tableName: rule_target_segments_deleted
+            remarks: Shadow/archive of rule_target_segments belonging to soft-deleted rules
+            columns:
+              - column: { name: rule_id, type: VARCHAR(36) }
+              - column: { name: segment, type: VARCHAR(255) }
+              - column: { name: deleted_at, type: TIMESTAMP NULL }
+              - column: { name: deleted_by, type: VARCHAR(100) }
+        - createIndex:
+            tableName: rule_target_segments_deleted
+            indexName: idx_rts_deleted_rule
+            columns:
+              - column: { name: rule_id }
+      rollback:
+        - dropTable: { tableName: rule_target_segments_deleted }

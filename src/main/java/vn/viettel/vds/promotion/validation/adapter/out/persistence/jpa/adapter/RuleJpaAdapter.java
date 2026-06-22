@@ -24,6 +24,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.RuleVersionConflictE
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -535,6 +536,90 @@ public class RuleJpaAdapter implements RulePersistencePort {
         logger.debug("[RULE_DELETE] Deleting nodes for rule: {}", ruleId);
         nodeRepository.deleteByValidationRuleId(ruleId);
         logger.info("[RULE_DELETE] Deleted nodes for rule: {}", ruleId);
+    }
+
+    @Override
+    public void softDelete(String ruleId, long version) {
+        logger.info("[RULE_SOFT_DELETE] Archiving rule + dependents to shadow tables: id={}, version={}",
+                ruleId, version);
+
+        // Detach anything currently managed (the rule + its lazy collections were just read
+        // by the caller) so the native archive/delete below operates purely at the SQL level
+        // and Hibernate's commit-time flush can't resurrect a stale managed row.
+        entityManager.flush();
+        entityManager.clear();
+
+        String deletedBy = resolveDeletedBy();
+        Instant now = Instant.now();
+
+        // 1. Dependent rows first (FK children of validation_rules): archive then delete.
+        archiveChildTable("rule_nodes", "rule_nodes_deleted", "validation_rule_id", ruleId, now, deletedBy);
+        archiveChildTable("rule_configuration", "rule_configuration_deleted", "rule_id", ruleId, now, deletedBy);
+        archiveChildTable("rule_target_segments", "rule_target_segments_deleted", "rule_id", ruleId, now, deletedBy);
+
+        // 2. The rule row: archive a copy, then version-checked physical delete. Column order
+        //    of *_deleted mirrors validation_rules so "SELECT vr.*, deleted_at, deleted_by" lines up.
+        entityManager.createNativeQuery(
+                        "INSERT INTO validation_rules_deleted "
+                                + "SELECT vr.*, ?1, ?2 FROM validation_rules vr WHERE vr.id = ?3")
+                .setParameter(1, now)
+                .setParameter(2, deletedBy)
+                .setParameter(3, ruleId)
+                .executeUpdate();
+
+        int deleted = entityManager.createNativeQuery(
+                        "DELETE FROM validation_rules WHERE id = ?1 AND version = ?2")
+                .setParameter(1, ruleId)
+                .setParameter(2, version)
+                .executeUpdate();
+
+        if (deleted == 0) {
+            // Version changed between the caller's read and this delete → concurrency conflict.
+            // @Transactional rolls back the shadow inserts above.
+            logger.warn("[RULE_SOFT_DELETE] Version conflict on soft delete: id={}, expected={}", ruleId, version);
+            throw new RuleVersionConflictException(ruleId);
+        }
+
+        logger.info("[RULE_SOFT_DELETE] Rule archived to shadow tables: id={}, deletedBy={}", ruleId, deletedBy);
+    }
+
+    /**
+     * Archive every row of {@code srcTable} whose {@code fkColumn} matches {@code ruleId}
+     * into {@code shadowTable} (same column order + deleted_at/deleted_by), then physically
+     * delete those rows from {@code srcTable}.
+     */
+    private void archiveChildTable(String srcTable, String shadowTable, String fkColumn,
+                                   String ruleId, Instant now, String deletedBy) {
+        entityManager.createNativeQuery(
+                        "INSERT INTO " + shadowTable + " SELECT t.*, ?1, ?2 FROM " + srcTable
+                                + " t WHERE t." + fkColumn + " = ?3")
+                .setParameter(1, now)
+                .setParameter(2, deletedBy)
+                .setParameter(3, ruleId)
+                .executeUpdate();
+        entityManager.createNativeQuery(
+                        "DELETE FROM " + srcTable + " WHERE " + fkColumn + " = ?1")
+                .setParameter(1, ruleId)
+                .executeUpdate();
+    }
+
+    /**
+     * Resolve the principal performing the delete from the security context, mirroring
+     * promix-starter's auditor resolution; falls back to {@code "system"} for unauthenticated
+     * / background flows.
+     */
+    private String resolveDeletedBy() {
+        try {
+            var authentication = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication();
+            if (authentication != null && authentication.getName() != null
+                    && !"anonymousUser".equals(authentication.getName())) {
+                return authentication.getName();
+            }
+        } catch (RuntimeException ignored) {
+            // No security context available — fall through to the system default.
+        }
+        return "system";
     }
 
     @Override

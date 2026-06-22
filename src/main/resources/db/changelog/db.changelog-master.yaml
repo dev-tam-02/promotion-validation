@@ -255,3 +255,9 @@ databaseChangeLog:
   # detail screen shows a consistent owner/updater (FE maps "system" -> "System").
   - include:
       file: db/changelog/changes/075-normalize-system-rule-updated-by.yaml
+
+  # VRUL005 soft delete: shadow tables (_deleted) so deleting a rule archives it
+  # instead of hard-deleting. RuleJpaAdapter.softDelete() moves the rule + nodes +
+  # configuration + target_segments into these tables with deleted_at/deleted_by.
+  - include:
+      file: db/changelog/changes/076-add-rule-soft-delete-shadow-tables.yaml
