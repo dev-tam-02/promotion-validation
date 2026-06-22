@@ -103,9 +103,10 @@ public class RuleJpaAdapter implements RulePersistencePort {
         ValidationRuleEntity ruleRef = entityManager.getReference(ValidationRuleEntity.class, ruleId);
         List<RuleNodeEntity> savedNodes = new ArrayList<>();
         Set<String> keptNodeIds = new HashSet<>();
+        NodeSaveContext ctx = new NodeSaveContext(nodeMap, ruleRef, existingByNodeId, keptNodeIds, savedNodes);
         int rootOrder = 0;
         for (String rootId : rootNodeIds) {
-            saveNodeDfs(rootId, nodeMap, ruleRef, null, rootOrder++, existingByNodeId, keptNodeIds, savedNodes);
+            saveNodeDfs(rootId, ctx, null, rootOrder++);
         }
 
         // Remove rows for nodes dropped from the tree (kept the rest in place above).
@@ -159,28 +160,36 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     /**
+     * Recursion-invariant state shared across a single {@code saveNodeDfs} tree walk.
+     * Bundling these keeps the recursive method's signature small (see PROM-1120 save flow).
+     */
+    private record NodeSaveContext(Map<String, RuleNode> nodeMap,
+                                   ValidationRuleEntity ruleRef,
+                                   Map<String, RuleNodeEntity> existingByNodeId,
+                                   Set<String> keptNodeIds,
+                                   List<RuleNodeEntity> savedEntities) {
+    }
+
+    /**
      * Save a node and its children recursively (DFS), setting proper parent references.
      */
-    private void saveNodeDfs(String nodeId, Map<String, RuleNode> nodeMap,
-                             ValidationRuleEntity ruleRef, RuleNodeEntity parentEntity,
-                             int order, Map<String, RuleNodeEntity> existingByNodeId,
-                             Set<String> keptNodeIds, List<RuleNodeEntity> savedEntities) {
-        RuleNode node = nodeMap.get(nodeId);
+    private void saveNodeDfs(String nodeId, NodeSaveContext ctx, RuleNodeEntity parentEntity, int order) {
+        RuleNode node = ctx.nodeMap().get(nodeId);
         if (node == null) return;
         RuleNodeEntity mapped = nodeMapper.toEntity(node, parentEntity);
 
-        RuleNodeEntity existing = existingByNodeId.get(node.getNodeId());
+        RuleNodeEntity existing = ctx.existingByNodeId().get(node.getNodeId());
         RuleNodeEntity toPersist;
         if (existing != null) {
             // Update in place — preserves id + created_at, @Version increments on flush.
             copyNodeFields(existing, mapped);
             existing.setParent(parentEntity);
-            existing.setValidationRule(ruleRef);
+            existing.setValidationRule(ctx.ruleRef());
             existing.setOrder(order);
             toPersist = existing;
         } else {
             mapped.setId(UUID.randomUUID().toString());
-            mapped.setValidationRule(ruleRef);
+            mapped.setValidationRule(ctx.ruleRef());
             // Persist sibling position so node_order reflects the order nodes were laid out
             // (roots by encounter order, children by their position within the GROUP).
             mapped.setOrder(order);
@@ -188,16 +197,15 @@ public class RuleJpaAdapter implements RulePersistencePort {
         }
 
         RuleNodeEntity persistedEntity = nodeRepository.save(toPersist);
-        keptNodeIds.add(node.getNodeId());
-        savedEntities.add(persistedEntity);
+        ctx.keptNodeIds().add(node.getNodeId());
+        ctx.savedEntities().add(persistedEntity);
         // Recursively save children of GROUP nodes
         if (node.getType() == RuleNode.NodeType.GROUP && node.getChildren() != null) {
             int childOrder = 0;
             for (RuleNode childPlaceholder : node.getChildren()) {
                 String childId = childPlaceholder.getNodeId();
-                if (childId != null && nodeMap.containsKey(childId)) {
-                    saveNodeDfs(childId, nodeMap, ruleRef, persistedEntity, childOrder++,
-                            existingByNodeId, keptNodeIds, savedEntities);
+                if (childId != null && ctx.nodeMap().containsKey(childId)) {
+                    saveNodeDfs(childId, ctx, persistedEntity, childOrder++);
                 }
             }
         }
