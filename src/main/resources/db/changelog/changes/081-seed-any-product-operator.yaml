@@ -1,0 +1,34 @@
+databaseChangeLog:
+  # ============================================================================
+  # Canonical rollout — Pha 4 (cont.) Part B #1: opt-any-order-item.
+  #
+  # The "any order item" exists-semantic was held in 079 (no engine key yet). The
+  # pp-rule-engine now registers the ANY/exists quantifier translator
+  # `order.item.any_product.IN` ("order contains AT LEAST ONE item whose productId
+  # is in the set"), distinct from:
+  #   order.item.product.IN      = EVERY/forall  (opt-every-order-item)
+  #   order.item.product.NOT_IN  = NONE          (opt-none-of-order-items)
+  # So opt-any-order-item is remapped off the legacy base `order.item.product.applicable`
+  # onto the real engine field-path `order.item.any_product` (comparator IN, set in 077).
+  # ============================================================================
+
+  - changeSet:
+      id: 081-remap-any-order-item-field-path
+      author: harley hoang
+      comment: "order.item.product.applicable -> order.item.any_product (engine order.item.any_product.IN = ANY/exists)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.any_product" }
+              - column: { name: available_comparators, value: '["IN"]' }
+              - column: { name: default_comparator, value: "IN" }
+            where: "id='opt-any-order-item'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.product.applicable" }
+              - column: { name: available_comparators, value: '["IN"]' }
+              - column: { name: default_comparator, value: "IN" }
+            where: "id='opt-any-order-item'"

@@ -1,0 +1,76 @@
+databaseChangeLog:
+  # ============================================================================
+  # Canonical rollout — Pha 8 (label data). Seed the generic `translations` table
+  # (entity_type/entity_key/field/locale, created in 064) with one row per
+  # canonical ConditionOperator label so the catalog API resolves operator labels
+  # from DATA, not hardcoded Java/FE maps.
+  #
+  #   entity_type = 'CONDITION_OPERATOR'
+  #   entity_key  = <CANONICAL>           (e.g. GREATER_THAN)
+  #   field       = 'label'               (default wording)
+  #               | 'label_date'          (override for DATE/DATETIME fields, §10)
+  #   locale      = 'vi' | 'en'
+  #
+  # Labels copied verbatim from FE OPERATOR_LABELS
+  # (frontend/campaign/src/shared/conditions/canonical.config.ts) to stay in sync.
+  # Adding a locale = adding rows (no schema change); changing wording = UPDATE.
+  # ============================================================================
+  - changeSet:
+      id: 078-seed-condition-operator-labels
+      author: harley hoang
+      comment: "Seed translations CONDITION_OPERATOR label/label_date (vi/en) for 20 canonical operators"
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              INSERT INTO translations (entity_type, entity_key, field, locale, value) VALUES
+                ('CONDITION_OPERATOR','EQUALS','label','vi','Bằng'),
+                ('CONDITION_OPERATOR','EQUALS','label','en','equals'),
+                ('CONDITION_OPERATOR','EQUALS','label_date','vi','Vào ngày'),
+                ('CONDITION_OPERATOR','NOT_EQUALS','label','vi','Khác'),
+                ('CONDITION_OPERATOR','NOT_EQUALS','label','en','not equals'),
+                ('CONDITION_OPERATOR','GREATER_THAN','label','vi','Lớn hơn'),
+                ('CONDITION_OPERATOR','GREATER_THAN','label','en','greater than'),
+                ('CONDITION_OPERATOR','GREATER_THAN','label_date','vi','Sau'),
+                ('CONDITION_OPERATOR','GREATER_OR_EQUAL','label','vi','Lớn hơn hoặc bằng'),
+                ('CONDITION_OPERATOR','GREATER_OR_EQUAL','label','en','at least'),
+                ('CONDITION_OPERATOR','GREATER_OR_EQUAL','label_date','vi','Từ ngày'),
+                ('CONDITION_OPERATOR','LESS_THAN','label','vi','Nhỏ hơn'),
+                ('CONDITION_OPERATOR','LESS_THAN','label','en','less than'),
+                ('CONDITION_OPERATOR','LESS_THAN','label_date','vi','Trước'),
+                ('CONDITION_OPERATOR','LESS_OR_EQUAL','label','vi','Nhỏ hơn hoặc bằng'),
+                ('CONDITION_OPERATOR','LESS_OR_EQUAL','label','en','at most'),
+                ('CONDITION_OPERATOR','LESS_OR_EQUAL','label_date','vi','Đến ngày'),
+                ('CONDITION_OPERATOR','BETWEEN','label','vi','Trong khoảng'),
+                ('CONDITION_OPERATOR','BETWEEN','label','en','between'),
+                ('CONDITION_OPERATOR','IN','label','vi','Thuộc'),
+                ('CONDITION_OPERATOR','IN','label','en','in'),
+                ('CONDITION_OPERATOR','NOT_IN','label','vi','Không thuộc'),
+                ('CONDITION_OPERATOR','NOT_IN','label','en','not in'),
+                ('CONDITION_OPERATOR','CONTAINS','label','vi','Chứa'),
+                ('CONDITION_OPERATOR','CONTAINS','label','en','contains'),
+                ('CONDITION_OPERATOR','NOT_CONTAINS','label','vi','Không chứa'),
+                ('CONDITION_OPERATOR','NOT_CONTAINS','label','en','not contains'),
+                ('CONDITION_OPERATOR','STARTS_WITH','label','vi','Bắt đầu bằng'),
+                ('CONDITION_OPERATOR','STARTS_WITH','label','en','starts with'),
+                ('CONDITION_OPERATOR','ENDS_WITH','label','vi','Kết thúc bằng'),
+                ('CONDITION_OPERATOR','ENDS_WITH','label','en','ends with'),
+                ('CONDITION_OPERATOR','IS_TRUE','label','vi','Đúng'),
+                ('CONDITION_OPERATOR','IS_TRUE','label','en','is true'),
+                ('CONDITION_OPERATOR','IS_FALSE','label','vi','Sai'),
+                ('CONDITION_OPERATOR','IS_FALSE','label','en','is false'),
+                ('CONDITION_OPERATOR','EXISTS','label','vi','Có tồn tại'),
+                ('CONDITION_OPERATOR','EXISTS','label','en','exists'),
+                ('CONDITION_OPERATOR','NOT_EXISTS','label','vi','Không tồn tại'),
+                ('CONDITION_OPERATOR','NOT_EXISTS','label','en','not exists'),
+                ('CONDITION_OPERATOR','SIZE_GTE','label','vi','Số phần tử ≥'),
+                ('CONDITION_OPERATOR','SIZE_GTE','label','en','size ≥'),
+                ('CONDITION_OPERATOR','SIZE_LTE','label','vi','Số phần tử ≤'),
+                ('CONDITION_OPERATOR','SIZE_LTE','label','en','size ≤'),
+                ('CONDITION_OPERATOR','MATCHES','label','vi','Khớp mẫu'),
+                ('CONDITION_OPERATOR','MATCHES','label','en','matches');
+      rollback:
+        - delete:
+            tableName: translations
+            where: "entity_type = 'CONDITION_OPERATOR'"

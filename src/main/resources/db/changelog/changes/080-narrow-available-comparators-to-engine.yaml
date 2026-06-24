@@ -1,0 +1,94 @@
+databaseChangeLog:
+  # ============================================================================
+  # Canonical rollout — Pha 4 (cont.): narrow operator_options.available_comparators
+  # so every comparator has a matching `<field-path>.<CANONICAL>` key in the
+  # pp-rule-engine registry (matrix §21: catalog must not exceed engine keys).
+  #
+  # Decisions confirmed by rule-engine + team-lead (2026-06-24) against the engine
+  # registry. 077 had re-seeded a wider canonical set than some fields support:
+  #   #2 opt-redeeming-user : engine has ONLY redemption.user.EQUALS (no .IN)
+  #   #4 opt-items-quantity : engine order.items.count has no .IN / .NOT_IN
+  #   #5 budget.* (17 rows) : engine budget.* registry is the .LESS_OR_EQUAL family only
+  #
+  # NOT narrowed: order.total keeps BETWEEN (engine registers order.total.BETWEEN and
+  # order.item.price.BETWEEN via NumericRangeFieldRegistry). No other live opt has a
+  # comparator outside the engine registry.
+  # Field-path remaps are in changeset 079; this changeset only touches comparators
+  # (plus opt-redeeming-user's field-path, which is inseparable from its comparator fix).
+  # ============================================================================
+
+  - changeSet:
+      id: 080-fix-redeeming-user-field-and-comparator
+      author: harley hoang
+      comment: "#2 redemption.user.equals -> redemption.user; available IN -> EQUALS (engine only has redemption.user.EQUALS)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "redemption.user" }
+              - column: { name: available_comparators, value: '["EQUALS"]' }
+              - column: { name: default_comparator, value: "EQUALS" }
+            where: "id='opt-redeeming-user'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "redemption.user.equals" }
+              - column: { name: available_comparators, value: '["IN"]' }
+              - column: { name: default_comparator, value: "IN" }
+            where: "id='opt-redeeming-user'"
+
+  - changeSet:
+      id: 080-drop-in-notin-items-quantity
+      author: harley hoang
+      comment: "#4 order.items.count has no .IN/.NOT_IN translator -> drop them (row is also inactive via 066)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["GREATER_THAN","GREATER_OR_EQUAL","EQUALS","LESS_THAN","LESS_OR_EQUAL"]' }
+              - column: { name: default_comparator, value: "GREATER_THAN" }
+            where: "id='opt-items-quantity'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["GREATER_THAN","GREATER_OR_EQUAL","EQUALS","LESS_THAN","LESS_OR_EQUAL","IN","NOT_IN"]' }
+              - column: { name: default_comparator, value: "GREATER_THAN" }
+            where: "id='opt-items-quantity'"
+
+  - changeSet:
+      id: 080-narrow-budget-comparators-to-lte
+      author: harley hoang
+      comment: "#5 budget.* registry is the .LESS_OR_EQUAL family only -> available_comparators=[LESS_OR_EQUAL] for all 17 budget rows"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["LESS_OR_EQUAL"]', default_comparator = 'LESS_OR_EQUAL'
+              WHERE category_id = 'cat-budget-constraints';
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["GREATER_THAN","EQUALS","LESS_THAN"]', default_comparator = 'LESS_THAN'
+              WHERE category_id = 'cat-budget-constraints';
+
+  - changeSet:
+      id: 080-narrow-code-holder-to-is-true
+      author: harley hoang
+      comment: "#6 engine registers only redemption.code_holder.IS_TRUE (no .IS_FALSE; IS_FALSE exists only on the generic metadata.access translator) -> narrow opt-redemption-code-holder-only to [IS_TRUE]"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["IS_TRUE"]' }
+              - column: { name: default_comparator, value: "IS_TRUE" }
+            where: "id='opt-redemption-code-holder-only'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["IS_TRUE","IS_FALSE"]' }
+              - column: { name: default_comparator, value: "IS_TRUE" }
+            where: "id='opt-redemption-code-holder-only'"

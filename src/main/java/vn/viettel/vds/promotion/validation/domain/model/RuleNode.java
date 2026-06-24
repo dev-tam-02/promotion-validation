@@ -127,7 +127,9 @@ public class RuleNode {
         if (operator == null) {
             return false;
         }
-        return operator.equals("IS_NULL") ||
+        return operator.equals("EXISTS") ||
+                operator.equals("NOT_EXISTS") ||
+                operator.equals("IS_NULL") ||
                 operator.equals("IS_NOT_NULL") ||
                 operator.equals("is_null") ||
                 operator.equals("is_not_null");

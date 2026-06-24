@@ -37,8 +37,13 @@ public class OperatorEvaluator {
             case "STARTS_WITH" -> evaluateStartsWith(fieldValue, expectedValue);
             case "ENDS_WITH" -> evaluateEndsWith(fieldValue, expectedValue);
             case "MATCHES", "REGEX" -> evaluateRegex(fieldValue, expectedValue);
-            case "IS_NULL" -> fieldValue == null;
-            case "IS_NOT_NULL" -> fieldValue != null;
+            // Canonical existence operators; IS_NULL/IS_NOT_NULL kept as aliases.
+            case "NOT_EXISTS", "IS_NULL" -> fieldValue == null;
+            case "EXISTS", "IS_NOT_NULL" -> fieldValue != null;
+            case "IS_TRUE" -> Boolean.TRUE.equals(toBoolean(fieldValue));
+            case "IS_FALSE" -> Boolean.FALSE.equals(toBoolean(fieldValue));
+            case "SIZE_GTE" -> evaluateSize(fieldValue, expectedValue) >= 0;
+            case "SIZE_LTE" -> evaluateSize(fieldValue, expectedValue) <= 0;
             case "IS_EMPTY" -> evaluateIsEmpty(fieldValue);
             case "IS_NOT_EMPTY" -> !evaluateIsEmpty(fieldValue);
             case OP_BETWEEN -> evaluateBetween(fieldValue, expectedValue);
@@ -192,6 +197,40 @@ public class OperatorEvaluator {
         }
 
         throw new InvalidOperatorException(OP_BETWEEN, "requires an array of 2 values");
+    }
+
+    private static Boolean toBoolean(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String string) {
+            if ("true".equalsIgnoreCase(string)) {
+                return Boolean.TRUE;
+            }
+            if ("false".equalsIgnoreCase(string)) {
+                return Boolean.FALSE;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Compare the size of a collection/array/string field value against an expected
+     * count. Returns the {@code Integer.compare(size, expected)} signum.
+     */
+    private static int evaluateSize(Object fieldValue, Object expectedValue) {
+        int size;
+        if (fieldValue instanceof Collection<?> collection) {
+            size = collection.size();
+        } else if (fieldValue != null && fieldValue.getClass().isArray()) {
+            size = ((Object[]) fieldValue).length;
+        } else if (fieldValue instanceof String string) {
+            size = string.length();
+        } else {
+            size = fieldValue == null ? 0 : 1;
+        }
+        int expected = expectedValue == null ? 0 : toBigDecimal(expectedValue).intValue();
+        return Integer.compare(size, expected);
     }
 
     private static boolean isNumeric(Object value) {

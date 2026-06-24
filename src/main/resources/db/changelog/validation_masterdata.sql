@@ -8,15 +8,15 @@ use promotion_validation;
 -- ============================================================================
 
 INSERT INTO operators (id, name, operator_version, context, json_schema, compiler_id, status, created_at, updated_at)
-VALUES ('01932b6f-0001-7000-8000-000000000001', 'order.total.gte', 1, 'order',
+VALUES ('01932b6f-0001-7000-8000-000000000001', 'order.total.GREATER_OR_EQUAL', 1, 'order',
         '{"type":"object","properties":{"amount":{"type":"number"},"currency":{"type":"string"}},"required":["amount"]}',
         'tpl_order_total_gte_v1', 'ACTIVE', '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 
-       ('01932b6f-0001-7000-8000-000000000002', 'customer.in_segment', 1, 'customer',
+       ('01932b6f-0001-7000-8000-000000000002', 'customer.segment.IN', 1, 'customer',
         '{"type":"object","properties":{"segments":{"type":"array","items":{"type":"string"}}},"required":["segments"]}',
         'tpl_customer_segment_v1', 'ACTIVE', '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 
-       ('01932b6f-0001-7000-8000-000000000003', 'time.window.active', 1, 'time',
+       ('01932b6f-0001-7000-8000-000000000003', 'time.window.IS_TRUE', 1, 'time',
         '{"type":"object","properties":{"startTime":{"type":"string","pattern":"^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"},"endTime":{"type":"string","pattern":"^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$"},"timezone":{"type":"string"},"daysOfWeek":{"type":"array","items":{"type":"string","enum":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"]}},"spansMidnight":{"type":"boolean"}},"required":["startTime","endTime"]}',
         'tpl_time_window_v1', 'ACTIVE', '2025-01-01 00:00:00', '2025-01-01 00:00:00');
 
@@ -94,7 +94,7 @@ VALUES ('01932b6f-0006-7000-8000-000000000010', 'n1', 'GROUP', 'ALL', '["n2"]', 
         '01932b6f-0005-7000-8000-000000000001', null, '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
                         validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
-VALUES ('01932b6f-0006-7000-8000-000000000011', 'n2', 'COND', null, null, 0, 'customer.in_segment',
+VALUES ('01932b6f-0006-7000-8000-000000000011', 'n2', 'COND', null, null, 0, 'customer.segment.IN',
         '{"segments":["BETTINGREFUND"]}', 'AUDIENCE_SEGMENT', '01932b6f-0005-7000-8000-000000000001',
         '01932b6f-0006-7000-8000-000000000010', '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 
@@ -106,7 +106,7 @@ VALUES ('01932b6f-0006-7000-8000-000000000012', 'n1', 'GROUP', 'ALL', '["n2"]', 
 
 INSERT INTO rule_nodes (id, node_id, type, group_logic, children_ids, node_order, operator_name, params, reason_code,
                         validation_rule_id, parent_id, created_at, updated_at, created_by, updated_by, version)
-VALUES ('01932b6f-0006-7000-8000-000000000013', 'n2', 'COND', null, null, 0, 'customer.in_segment',
+VALUES ('01932b6f-0006-7000-8000-000000000013', 'n2', 'COND', null, null, 0, 'customer.segment.IN',
         '{"segments":["FTTHCASHBACK"]}', 'AUDIENCE_SEGMENT', '01932b6f-0005-7000-8000-000000000002',
         '01932b6f-0006-7000-8000-000000000012', '2025-11-13 09:22:29', '2025-11-13 09:22:29', null, null, 0);
 
@@ -140,10 +140,10 @@ VALUES ('01932b6f-000a-7000-8000-000000000001', 'CDP Segments',
 -- 10. operator_registry - Sample operator registry
 -- ============================================================================
 INSERT INTO operator_registry (id, operator_id, context, json_schema, compiler_id)
-VALUES ('01932b6f-000b-7000-8000-000000000001', 'order.total.gte', 'order',
+VALUES ('01932b6f-000b-7000-8000-000000000001', 'order.total.GREATER_OR_EQUAL', 'order',
         '{"type":"object","properties":{"amount":{"type":"number"},"currency":{"type":"string"}},"required":["amount"]}',
         'tpl_order_total_gte_v1'),
 
-       ('01932b6f-000b-7000-8000-000000000002', 'customer.in_segment', 'customer',
+       ('01932b6f-000b-7000-8000-000000000002', 'customer.segment.IN', 'customer',
         '{"type":"object","properties":{"segments":{"type":"array","items":{"type":"string"}}},"required":["segments"]}',
         'tpl_customer_segment_v1');

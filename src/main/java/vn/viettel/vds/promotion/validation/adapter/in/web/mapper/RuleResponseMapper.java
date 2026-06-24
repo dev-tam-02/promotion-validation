@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleListItemResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleNodeDto;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleResponse;
-import vn.viettel.vds.promotion.validation.domain.model.ComparatorSuffix;
+import com.promix.platform.validation.condition.CanonicalOperatorName;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
@@ -158,8 +158,8 @@ public class RuleResponseMapper {
      * Resolve the UI comparator for a node so the FE can pre-fill on edit and
      * render the operator label without re-deriving it client-side.
      *
-     * <p>Numeric operators carry the comparator as an operator_name suffix
-     * (e.g. {@code "order.total.gte"} → {@code "is_more_than_or_equal_to"}).
+     * <p>Numeric operators carry the comparator as a canonical operator_name suffix
+     * (e.g. {@code "order.total.GREATER_OR_EQUAL"} → {@code "GREATER_OR_EQUAL"}).
      * Virtual operators like {@code metadata.access} have no suffix and store the
      * comparator in {@code params.comparator} (e.g. {@code "in"}/{@code "equals"}).
      * Returns null only when neither is present (suffix-less operators whose
@@ -173,9 +173,9 @@ public class RuleResponseMapper {
         if (node.getComparator() != null && !node.getComparator().isBlank()) {
             return node.getComparator();
         }
-        // 2. Numeric operators encode the comparator as the operator_name suffix.
+        // 2. Numeric operators encode the comparator as the canonical operator_name suffix.
         Optional<String> fromSuffix =
-                ComparatorSuffix.comparatorFromOperatorName(node.getOperatorName());
+                CanonicalOperatorName.comparatorFromOperatorName(node.getOperatorName());
         if (fromSuffix.isPresent()) {
             return fromSuffix.get();
         }
@@ -241,18 +241,19 @@ public class RuleResponseMapper {
     }
 
     /**
-     * Compose the effective operator_name from a canonical operatorName + UI comparator
-     * (e.g. {@code "order.total" + "is_more_than"} → {@code "order.total.gt"}).
+     * Compose the effective operator_name from a bare field-path operatorName + a
+     * canonical comparator (e.g. {@code "order.total" + "GREATER_OR_EQUAL"} →
+     * {@code "order.total.GREATER_OR_EQUAL"}). One vocabulary, zero alias: the
+     * comparator is already a {@code ConditionOperator} code, so composition is a
+     * plain {@code <field>.<CANONICAL>} concatenation.
      *
      * <p>Returns the operatorName unchanged when:
      * <ul>
      *   <li>comparator is null/blank,</li>
-     *   <li>operatorName already carries a known comparator suffix (.gt/.gte/.equals/.lt/.lte), or</li>
-     *   <li>comparator is not one of the 5 numeric comparators ({@code is_more_than},
-     *       {@code is_more_than_or_equal_to}, {@code is_exactly}, {@code is_less_than},
-     *       {@code is_less_than_or_equal_to}) — non-numeric operators like
-     *       {@code customer.in_segment} use {@code is}/{@code is_not}/{@code in} which
-     *       carry semantic in {@code operatorName} itself rather than a suffix.</li>
+     *   <li>operatorName already carries a canonical suffix (idempotent re-save), or</li>
+     *   <li>comparator is not a canonical operator code (e.g. {@code metadata.access}
+     *       virtual operator whose comparator lives in {@code params.comparator},
+     *       not in the operator_name).</li>
      * </ul>
      */
     private String resolveEffectiveOperatorName(String operatorName, String comparator) {
@@ -262,13 +263,13 @@ public class RuleResponseMapper {
         if (comparator == null || comparator.isBlank()) {
             return operatorName;
         }
-        if (ComparatorSuffix.hasComparatorSuffix(operatorName)) {
+        if (CanonicalOperatorName.hasCanonicalSuffix(operatorName)) {
             return operatorName;
         }
-        if (!ComparatorSuffix.isSupported(comparator)) {
+        if (!CanonicalOperatorName.isCanonical(comparator)) {
             return operatorName;
         }
-        return ComparatorSuffix.resolve(operatorName, comparator);
+        return CanonicalOperatorName.compose(operatorName, comparator);
     }
 
     /**

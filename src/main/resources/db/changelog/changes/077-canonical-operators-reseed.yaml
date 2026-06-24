@@ -1,0 +1,203 @@
+databaseChangeLog:
+  # ============================================================================
+  # Canonical Data-type + Operator rollout — Pha 4 (pp-validation re-seed).
+  #
+  # Decision (docs/canonical-rollout-plan.md, data-type-operator-matrix.md §6-§9):
+  #   ONE operator vocabulary = ConditionOperator (SCREAMING_SNAKE) used verbatim
+  #   as wire everywhere: FE -> catalog API -> operator_options.available_comparators
+  #   -> rule_nodes.operator_name (`<field>.<CANONICAL>`) -> engine. ZERO alias,
+  #   no translation layer (ComparatorSuffix removed in code).
+  #
+  # Data note: there is NO real rule_nodes data yet -> clear + re-seed, no migrate.
+  # This changeset rewrites every live operator_options row (seeded by 055, then
+  # adjusted by 062/066/069/074) so:
+  #   1. available_comparators  -> canonical codes
+  #   2. default_comparator     -> canonical code
+  #   3. operator_name          -> bare field-path (drop the `.gte`/`.lte` suffix
+  #                                that ComparatorSuffix used to compose at runtime;
+  #                                the suffix is now `.<CANONICAL>` built in code)
+  #
+  # Old -> canonical map applied below (matrix §8/§22):
+  #   is / in / from            -> IN          (LIST membership)
+  #   is_not / not_in           -> NOT_IN
+  #   is (boolean)              -> IS_TRUE
+  #   is_more_than              -> GREATER_THAN
+  #   is_more_than_or_equal_to  -> GREATER_OR_EQUAL
+  #   is_exactly                -> EQUALS
+  #   is_less_than              -> LESS_THAN
+  #   is_less_than_or_equal_to  -> LESS_OR_EQUAL
+  #   is_between                -> BETWEEN
+  #
+  # Rows whose category/option was disabled by 066 (Products, items_quantity,
+  # price_of_*, Redemptions) are still rewritten so a future re-activation keeps
+  # canonical data. params_schema is NOT touched here (its key names amount/count/
+  # min/max are value-shape, not operator names).
+  # ============================================================================
+
+  - changeSet:
+      id: 077-canonical-reseed-membership-comparators
+      author: harley hoang
+      comment: "available_comparators -> canonical IN/NOT_IN for LIST membership rows"
+      changes:
+        # customer_segment: is/is_not -> IN/NOT_IN
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["IN","NOT_IN"]' }
+              - column: { name: default_comparator, value: "IN" }
+            where: "id='opt-customer-segment'"
+        # 5 Products rows + redeeming_user: is/from -> IN
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["IN"]', default_comparator = 'IN'
+              WHERE id IN (
+                'opt-any-order-item','opt-every-order-item','opt-none-of-order-items',
+                'opt-most-expensive-order-item','opt-cheapest-order-item','opt-redeeming-user'
+              );
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is","is_not"]' }
+              - column: { name: default_comparator, value: "is" }
+            where: "id='opt-customer-segment'"
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["is"]', default_comparator = 'is'
+              WHERE id IN (
+                'opt-any-order-item','opt-every-order-item','opt-none-of-order-items',
+                'opt-most-expensive-order-item','opt-cheapest-order-item','opt-redeeming-user'
+              );
+
+  - changeSet:
+      id: 077-canonical-reseed-boolean-comparators
+      author: harley hoang
+      comment: "available_comparators -> canonical IS_TRUE/IS_FALSE for boolean row"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["IS_TRUE","IS_FALSE"]' }
+              - column: { name: default_comparator, value: "IS_TRUE" }
+            where: "id='opt-redemption-code-holder-only'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is"]' }
+              - column: { name: default_comparator, value: "is" }
+            where: "id='opt-redemption-code-holder-only'"
+
+  - changeSet:
+      id: 077-canonical-reseed-numeric-comparators
+      author: harley hoang
+      comment: "available_comparators -> canonical for numeric rows (prices, items, budget)"
+      changes:
+        # order.total carries the extra is_between (069) -> +BETWEEN
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["GREATER_THAN","EQUALS","LESS_THAN","BETWEEN"]' }
+              - column: { name: default_comparator, value: "GREATER_THAN" }
+            where: "id='opt-total-amount-after-discounts'"
+        # before/initial amount + the two disabled price rows: 3 scalar comparators
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["GREATER_THAN","EQUALS","LESS_THAN"]',
+                  default_comparator = 'GREATER_THAN'
+              WHERE id IN (
+                'opt-total-amount-before-discounts','opt-initial-amount',
+                'opt-price-of-each-item','opt-price-of-any-item'
+              );
+        # items_quantity (disabled): had 7 comparators incl in/not_in
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["GREATER_THAN","GREATER_OR_EQUAL","EQUALS","LESS_THAN","LESS_OR_EQUAL","IN","NOT_IN"]' }
+              - column: { name: default_comparator, value: "GREATER_THAN" }
+            where: "id='opt-items-quantity'"
+        # 17 budget rows: is_more_than/is_exactly/is_less_than -> canonical
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["GREATER_THAN","EQUALS","LESS_THAN"]',
+                  default_comparator = 'LESS_THAN'
+              WHERE category_id = 'cat-budget-constraints';
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is_more_than","is_exactly","is_less_than","is_between"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+            where: "id='opt-total-amount-after-discounts'"
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["is_more_than","is_exactly","is_less_than"]',
+                  default_comparator = 'is_more_than'
+              WHERE id IN (
+                'opt-total-amount-before-discounts','opt-initial-amount',
+                'opt-price-of-each-item','opt-price-of-any-item'
+              );
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: available_comparators, value: '["is_more_than","is_more_than_or_equal_to","is_exactly","is_less_than","is_less_than_or_equal_to","in","not_in"]' }
+              - column: { name: default_comparator, value: "is_more_than" }
+            where: "id='opt-items-quantity'"
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["is_more_than","is_exactly","is_less_than"]',
+                  default_comparator = 'is_less_than'
+              WHERE category_id = 'cat-budget-constraints';
+
+  - changeSet:
+      id: 077-strip-operator-name-suffix
+      author: harley hoang
+      comment: "operator_name -> bare field-path (drop trailing .gte/.lte); suffix now <field>.<CANONICAL> built in code"
+      changes:
+        # 055 left these numeric rows with a legacy comparator suffix in operator_name.
+        # The bare field-path is the canonical base; rule_nodes.operator_name is composed
+        # as `<field>.<CANONICAL>` by RuleResponseMapper. Strip the suffix here.
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.price.forall" } } ]
+            where: "id='opt-price-of-each-item'"
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.price" } } ]
+            where: "id='opt-price-of-any-item'"
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.items.count" } } ]
+            where: "id='opt-items-quantity'"
+        # 17 budget rows: strip the trailing `.lte` -> bare budget.* path.
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET operator_name = SUBSTRING(operator_name, 1, CHAR_LENGTH(operator_name) - 4)
+              WHERE category_id = 'cat-budget-constraints'
+                AND operator_name LIKE '%.lte';
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.price.forall.gte" } } ]
+            where: "id='opt-price-of-each-item'"
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.price.gte" } } ]
+            where: "id='opt-price-of-any-item'"
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.items.count.gte" } } ]
+            where: "id='opt-items-quantity'"
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET operator_name = CONCAT(operator_name, '.lte')
+              WHERE category_id = 'cat-budget-constraints'
+                AND operator_name NOT LIKE '%.lte';
