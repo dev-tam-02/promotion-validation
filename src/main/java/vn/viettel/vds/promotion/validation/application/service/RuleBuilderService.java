@@ -38,40 +38,30 @@ public class RuleBuilderService {
 
     private static final Logger logger = LoggerFactory.getLogger(RuleBuilderService.class);
     private static final String VERSION = "1.0.0";
-    private static final String OP_EQUALS = "equals";
-    private static final String OP_NOT_EQUALS = "not_equals";
-    private static final String OP_NOT_IN = "not_in";
-    private static final String OP_BETWEEN = "between";
-    private static final String OP_CONTAINS = "contains";
-    private static final String OP_NOT_CONTAINS = "not_contains";
-    private static final String OP_IS = "is";
-    private static final String OP_IS_NOT = "is_not";
-    private static final String OP_EXISTS = "exists";
-    private static final String OP_NOT_EXISTS = "not_exists";
-    private static final String OP_IS_EXACTLY = "is_exactly";
-    private static final String OP_IS_MORE_THAN = "is_more_than";
-    private static final String OP_IS_LESS_THAN = "is_less_than";
-    private static final String OP_IS_MORE_THAN_OR_EQUAL_TO = "is_more_than_or_equal_to";
-    private static final String OP_IS_LESS_THAN_OR_EQUAL_TO = "is_less_than_or_equal_to";
-    private static final String OP_IS_BEFORE = "is_before";
-    private static final String OP_IS_AFTER = "is_after";
-    private static final String OP_STARTS_WITH = "starts_with";
-    private static final String OP_BEFORE = "before";
-    private static final String OP_AFTER = "after";
+    // Canonical operator codes (mirror ConditionOperator), used verbatim as wire by
+    // the catalog (static operators AND metadata.access) — the engine
+    // (MetadataAccessOperatorTranslator) parses the comparator via
+    // ConditionOperator.valueOf(), so metadata.access MUST emit canonical too.
+    // Labels are resolved from the translations table via OperatorLabelService.
+    private static final String CANON_EQUALS = "EQUALS";
+    private static final String CANON_NOT_EQUALS = "NOT_EQUALS";
+    private static final String CANON_GREATER_THAN = "GREATER_THAN";
+    private static final String CANON_GREATER_OR_EQUAL = "GREATER_OR_EQUAL";
+    private static final String CANON_LESS_THAN = "LESS_THAN";
+    private static final String CANON_LESS_OR_EQUAL = "LESS_OR_EQUAL";
+    private static final String CANON_BETWEEN = "BETWEEN";
+    private static final String CANON_IN = "IN";
+    private static final String CANON_NOT_IN = "NOT_IN";
+    private static final String CANON_CONTAINS = "CONTAINS";
+    private static final String CANON_NOT_CONTAINS = "NOT_CONTAINS";
+    private static final String CANON_STARTS_WITH = "STARTS_WITH";
+    private static final String CANON_IS_TRUE = "IS_TRUE";
+    private static final String CANON_IS_FALSE = "IS_FALSE";
+
     private static final String TYPE_NUMBER = "NUMBER";
     private static final String TYPE_BOOLEAN = "BOOLEAN";
     private static final String TYPE_STRING = "STRING";
-    private static final String OP_IS_TRUE = "is_true";
-    private static final String OP_IS_FALSE = "is_false";
-    private static final String OP_LABEL_NOT_EQUALS = "not equals";
-    private static final String OP_LABEL_VI_EQUALS = "Bằng";
-    private static final String OP_LABEL_VI_NOT_EQUALS = "Không bằng";
-    private static final String OP_LABEL_VI_GTE = "Lớn hơn hoặc bằng";
-    private static final String OP_LABEL_VI_LTE = "Nhỏ hơn hoặc bằng";
-    private static final String OP_LABEL_IS_ANY_OF = "is any of";
-    private static final String OP_LABEL_IS_NONE_OF = "is none of";
 
-    private static final String OP_IN = "in";
     private static final String KEY_VALIDATION = "validation";
     private static final String KEY_STRING_VALIDATION = "stringValidation";
     private static final String KEY_EQUAL_TO_ANY_OF = "equalToAnyOf";
@@ -83,71 +73,19 @@ public class RuleBuilderService {
     private static final String DATA_SOURCE_STATIC = "STATIC";
     private static final String METADATA_ACCESS_OPERATOR = "metadata.access";
 
-    private static final Map<String, OperatorResponse> OPERATOR_MAP = buildOperatorMap();
-
-    private static Map<String, OperatorResponse> buildOperatorMap() {
-        Map<String, OperatorResponse> m = new LinkedHashMap<>();
-        m.put(OP_EQUALS, OperatorResponse.of(OP_EQUALS, OP_EQUALS, OP_LABEL_VI_EQUALS));
-        m.put(OP_NOT_EQUALS, OperatorResponse.of(OP_NOT_EQUALS, OP_LABEL_NOT_EQUALS, OP_LABEL_VI_NOT_EQUALS));
-        m.put("in", OperatorResponse.of("in", OP_LABEL_IS_ANY_OF, "Thuộc một trong"));
-        m.put(OP_NOT_IN, OperatorResponse.of(OP_NOT_IN, OP_LABEL_IS_NONE_OF, "Không thuộc bất kỳ"));
-        OperatorResponse gte = OperatorResponse.of("gte", "greater than or equal", OP_LABEL_VI_GTE);
-        m.put("gte", gte);
-        m.put("greater_than_or_equal", gte);
-        OperatorResponse gt = OperatorResponse.of("gt", "greater than", "Lớn hơn");
-        m.put("gt", gt);
-        m.put("greater_than", gt);
-        OperatorResponse lte = OperatorResponse.of("lte", "less than or equal", OP_LABEL_VI_LTE);
-        m.put("lte", lte);
-        m.put("less_than_or_equal", lte);
-        OperatorResponse lt = OperatorResponse.of("lt", "less than", "Nhỏ hơn");
-        m.put("lt", lt);
-        m.put("less_than", lt);
-        m.put(OP_BETWEEN, OperatorResponse.of(OP_BETWEEN, OP_BETWEEN, "Trong khoảng"));
-        m.put("not_between", OperatorResponse.of("not_between", "not between", "Ngoài khoảng"));
-        m.put(OP_CONTAINS, OperatorResponse.of(OP_CONTAINS, OP_CONTAINS, "Chứa"));
-        m.put(OP_NOT_CONTAINS, OperatorResponse.of(OP_NOT_CONTAINS, "does not contain", "Không chứa"));
-        m.put(OP_STARTS_WITH, OperatorResponse.of(OP_STARTS_WITH, "starts with", "Bắt đầu bằng"));
-        m.put("ends_with", OperatorResponse.of("ends_with", "ends with", "Kết thúc bằng"));
-        m.put(OP_IS_TRUE, OperatorResponse.of(OP_IS_TRUE, "is true", "Đúng"));
-        m.put(OP_IS_FALSE, OperatorResponse.of(OP_IS_FALSE, "is false", "Sai"));
-        // Membership-style rules (customer_segment, *_order_item, redeeming_user)
-        // dùng comparator is/is_not; nhãn VN hiển thị "Thuộc/Không thuộc" theo
-        // wireframe. Giữ nguyên value/labelEn để rule-engine + round-trip không đổi.
-        m.put(OP_IS, OperatorResponse.of(OP_IS, OP_IS, "Thuộc"));
-        m.put(OP_IS_NOT, OperatorResponse.of(OP_IS_NOT, "is not", "Không thuộc"));
-        m.put("is_any", OperatorResponse.of("is_any", OP_LABEL_IS_ANY_OF, "Là một trong"));
-        m.put("is_none", OperatorResponse.of("is_none", OP_LABEL_IS_NONE_OF, "Không là bất kỳ"));
-        m.put(OP_IS_MORE_THAN, OperatorResponse.of(OP_IS_MORE_THAN, "is more than", "Lớn hơn"));
-        m.put(OP_IS_LESS_THAN, OperatorResponse.of(OP_IS_LESS_THAN, "is less than", "Nhỏ hơn"));
-        m.put(OP_IS_EXACTLY, OperatorResponse.of(OP_IS_EXACTLY, "is exactly", "Đúng bằng"));
-        m.put("is_between", OperatorResponse.of("is_between", "is between", "Trong khoảng"));
-        m.put(OP_IS_MORE_THAN_OR_EQUAL_TO,
-                OperatorResponse.of(OP_IS_MORE_THAN_OR_EQUAL_TO, "is more than or equal to", OP_LABEL_VI_GTE));
-        m.put(OP_IS_LESS_THAN_OR_EQUAL_TO,
-                OperatorResponse.of(OP_IS_LESS_THAN_OR_EQUAL_TO, "is less than or equal to", OP_LABEL_VI_LTE));
-        m.put(OP_EXISTS, OperatorResponse.of(OP_EXISTS, OP_EXISTS, "Tồn tại"));
-        m.put(OP_NOT_EXISTS, OperatorResponse.of(OP_NOT_EXISTS, "does not exist", "Không tồn tại"));
-        m.put(OP_IS_BEFORE, OperatorResponse.of(OP_IS_BEFORE, "is before", "Trước"));
-        m.put(OP_IS_AFTER, OperatorResponse.of(OP_IS_AFTER, "is after", "Sau"));
-        // Engine-native comparators used by metadata.access (see MetadataAccessOperatorTranslator).
-        m.put(OP_BEFORE, OperatorResponse.of(OP_BEFORE, "is before", "Trước"));
-        m.put(OP_AFTER, OperatorResponse.of(OP_AFTER, "is after", "Sau"));
-        m.put("size_gte", OperatorResponse.of("size_gte", "size at least", "Số phần tử ≥"));
-        m.put("size_lte", OperatorResponse.of("size_lte", "size at most", "Số phần tử ≤"));
-        return Collections.unmodifiableMap(m);
-    }
-
     private final OperatorConfigService operatorConfigService;
     private final RuleOptionsLookupPort ruleOptionsLookupPort;
     private final MetadataServiceFeignClient metadataServiceFeignClient;
+    private final OperatorLabelService operatorLabelService;
 
     public RuleBuilderService(OperatorConfigService operatorConfigService,
                                RuleOptionsLookupPort ruleOptionsLookupPort,
-                               MetadataServiceFeignClient metadataServiceFeignClient) {
+                               MetadataServiceFeignClient metadataServiceFeignClient,
+                               OperatorLabelService operatorLabelService) {
         this.operatorConfigService = operatorConfigService;
         this.ruleOptionsLookupPort = ruleOptionsLookupPort;
         this.metadataServiceFeignClient = metadataServiceFeignClient;
+        this.operatorLabelService = operatorLabelService;
     }
 
     /**
@@ -158,8 +96,12 @@ public class RuleBuilderService {
 
         List<OperatorCategory> categories = operatorConfigService.getAllCategoriesWithOptions(tenantId);
 
+        // Load every operator label once per request (translations table) and reuse
+        // across all operators to avoid an N-query fan-out.
+        Map<String, Map<String, Map<String, String>>> labels = operatorLabelService.loadLabels();
+
         List<RuleCategoryResponse> categoryResponses = categories.stream()
-                .map(this::mapCategoryToResponse)
+                .map(category -> mapCategoryToResponse(category, labels))
                 .toList();
 
         return RuleCategoriesResponse.of(categoryResponses, VERSION);
@@ -427,17 +369,19 @@ public class RuleBuilderService {
      * one rule is synthesized per field. The data type drives the available
      * comparator list per spec.
      */
-    private RuleCategoryResponse mapCategoryToResponse(OperatorCategory category) {
+    private RuleCategoryResponse mapCategoryToResponse(
+            OperatorCategory category,
+            Map<String, Map<String, Map<String, String>>> labels) {
         List<RuleItemResponse> rules = new ArrayList<>();
 
         if (category.getOptions() != null) {
             category.getOptions().stream()
-                    .map(this::mapOptionToRuleItem)
+                    .map(option -> mapOptionToRuleItem(option, labels))
                     .forEach(rules::add);
         }
 
         if (category.isMetadataCategory() && category.getMetadataSchemaType() != null) {
-            rules.addAll(resolveMetadataRules(category));
+            rules.addAll(resolveMetadataRules(category, labels));
         }
 
         return RuleCategoryResponse.builder()
@@ -458,9 +402,11 @@ public class RuleBuilderService {
      * <p>Failure modes (pp-metadata down / no schema / no fields) all degrade
      * to an empty rule list — the category still renders, just empty.
      */
-    private List<RuleItemResponse> resolveMetadataRules(OperatorCategory category) {
+    private List<RuleItemResponse> resolveMetadataRules(
+            OperatorCategory category,
+            Map<String, Map<String, Map<String, String>>> labels) {
         return fetchMetadataFields(category).stream()
-                .map(f -> synthesizeMetadataRule(category, f))
+                .map(f -> synthesizeMetadataRule(category, f, labels))
                 .toList();
     }
 
@@ -604,19 +550,20 @@ public class RuleBuilderService {
     }
 
     // Comparators whose value represents a FULL field value — enum membership and
-    // length/range constraints apply. Partial (contains/starts_with), negative
-    // (not_equals/not_in) and ordinal (gte/lte/before/after) comparators only get
-    // a type check, because constraining a substring/exclusion/threshold against
-    // the field's own bounds would false-reject legitimate rules.
-    private static final Set<String> FULL_MATCH_COMPARATORS = Set.of(OP_EQUALS, OP_IN);
+    // length/range constraints apply. Partial (CONTAINS/STARTS_WITH), negative
+    // (NOT_EQUALS/NOT_IN) and ordinal (GREATER_*/LESS_*) comparators only get a
+    // type check, because constraining a substring/exclusion/threshold against the
+    // field's own bounds would false-reject legitimate rules. Canonical codes —
+    // the engine parses comparator via ConditionOperator.valueOf().
+    private static final Set<String> FULL_MATCH_COMPARATORS = Set.of(CANON_EQUALS, CANON_IN);
     // Comparators that carry no value at all.
-    private static final Set<String> NO_VALUE_COMPARATORS = Set.of(OP_IS_TRUE, OP_IS_FALSE);
+    private static final Set<String> NO_VALUE_COMPARATORS = Set.of(CANON_IS_TRUE, CANON_IS_FALSE);
 
     /**
      * Validate a metadata.access COND's comparison {@code value} against the field
      * definition. Type is always enforced; length/enum/range constraints apply only
-     * for full-match comparators (equals/in). A {@code null}/absent value is allowed
-     * (e.g. boolean is_true/is_false carry none).
+     * for full-match comparators (EQUALS/IN). A {@code null}/absent value is allowed
+     * (e.g. boolean IS_TRUE/IS_FALSE carry none).
      */
     private void validateMetadataValue(String condId, Map<String, Object> field,
                                        String dataType, Map<String, Object> params, String fieldKey) {
@@ -838,7 +785,8 @@ public class RuleBuilderService {
      * the engine comparator (no suffix composition).
      */
     private RuleItemResponse synthesizeMetadataRule(OperatorCategory category,
-                                                     Map<String, Object> field) {
+                                                     Map<String, Object> field,
+                                                     Map<String, Map<String, Map<String, String>>> labels) {
         String fieldName = stringOrEmpty(field.get("name"));
         String displayName = stringOrFallback(field.get("displayName"), fieldName);
         String rawType = stringOrFallback(field.get("type"), TYPE_STRING).toUpperCase();
@@ -852,7 +800,7 @@ public class RuleBuilderService {
         boolean stringEnum = TYPE_STRING.equals(dataType) && hasStringEnum(field);
         String feType = stringEnum ? "LIST" : dataType;
         List<String> comparators = stringEnum
-                ? List.of("in", OP_NOT_IN)
+                ? List.of(CANON_IN, CANON_NOT_IN)
                 : metadataComparatorsForType(dataType);
 
         Map<String, Object> operatorParams = new LinkedHashMap<>();
@@ -870,7 +818,9 @@ public class RuleBuilderService {
                 .defaultComparator(comparators.isEmpty() ? null : comparators.get(0))
                 .operatorParams(operatorParams)
                 .inputConfig(buildMetadataInputConfig(displayName, feType, field))
-                .operators(comparators.stream().map(this::mapComparatorToOperator).toList())
+                .operators(comparators.stream()
+                        .map(c -> mapComparatorToOperator(c, "DATE".equals(dataType), labels))
+                        .toList())
                 .build();
     }
 
@@ -1044,18 +994,21 @@ public class RuleBuilderService {
     }
 
     /**
-     * Engine-native comparator codes per metadata data type, matching the
-     * branches of {@code MetadataAccessOperatorTranslator}. Range comparators
-     * ({@code between}) are intentionally omitted because the generic rule
-     * modal renders a single value input per data type, not a min/max pair.
+     * Canonical comparator codes per metadata data type, matching the branches of
+     * {@code MetadataAccessOperatorTranslator} which parses the comparator via
+     * {@code ConditionOperator.valueOf()}. Date wording maps {@code before -> LESS_THAN}
+     * and {@code after -> GREATER_THAN} (matrix §22). Range comparators ({@code BETWEEN})
+     * are intentionally omitted because the generic rule modal renders a single value
+     * input per data type, not a min/max pair.
      */
     private List<String> metadataComparatorsForType(String dataType) {
         return switch (dataType) {
-            case TYPE_NUMBER -> List.of(OP_EQUALS, "gte", "lte");
-            case TYPE_BOOLEAN -> List.of(OP_IS_TRUE, OP_IS_FALSE);
-            case "DATE" -> List.of(OP_EQUALS, OP_BEFORE, OP_AFTER);
-            case "LIST" -> List.of(OP_CONTAINS, OP_NOT_CONTAINS);
-            default -> List.of(OP_EQUALS, OP_NOT_EQUALS, "in", OP_NOT_IN, OP_CONTAINS, OP_STARTS_WITH);
+            case TYPE_NUMBER -> List.of(CANON_EQUALS, CANON_GREATER_OR_EQUAL, CANON_LESS_OR_EQUAL);
+            case TYPE_BOOLEAN -> List.of(CANON_IS_TRUE, CANON_IS_FALSE);
+            case "DATE" -> List.of(CANON_EQUALS, CANON_LESS_THAN, CANON_GREATER_THAN);
+            case "LIST" -> List.of(CANON_CONTAINS, CANON_NOT_CONTAINS);
+            default -> List.of(CANON_EQUALS, CANON_NOT_EQUALS, CANON_IN, CANON_NOT_IN,
+                    CANON_CONTAINS, CANON_STARTS_WITH);
         };
     }
 
@@ -1070,7 +1023,9 @@ public class RuleBuilderService {
     /**
      * Map OperatorOption domain model to RuleItemResponse DTO.
      */
-    private RuleItemResponse mapOptionToRuleItem(OperatorOption option) {
+    private RuleItemResponse mapOptionToRuleItem(
+            OperatorOption option,
+            Map<String, Map<String, Map<String, String>>> labels) {
         String descEn = option.getDescription() != null ? option.getDescription() : "";
         String descVi = option.getDescriptionVi() != null ? option.getDescriptionVi() : descEn;
         return RuleItemResponse.builder()
@@ -1084,7 +1039,7 @@ public class RuleBuilderService {
                 .operatorName(option.getOperatorName())
                 .defaultComparator(option.getDefaultComparator())
                 .inputConfig(buildInputConfig(option))
-                .operators(buildOperators(option))
+                .operators(buildOperators(option, labels))
                 .build();
     }
 
@@ -1195,50 +1150,56 @@ public class RuleBuilderService {
     }
 
     /**
-     * Build operators list from option's available comparators.
+     * Build operators list from the option's available comparators (canonical codes
+     * after the Pha 4 re-seed). Labels are resolved from the translations table; the
+     * canonical code is emitted verbatim as the operator {@code value}.
      */
-    private List<OperatorResponse> buildOperators(OperatorOption option) {
+    private List<OperatorResponse> buildOperators(
+            OperatorOption option,
+            Map<String, Map<String, Map<String, String>>> labels) {
+        boolean dateLike = option.getValueType() == OperatorOption.ValueType.DATE;
         if (option.getAvailableComparators() == null || option.getAvailableComparators().isEmpty()) {
-            // Return default operators based on comparison type
-            return getDefaultOperators(option.getComparisonType());
+            // Return default operators based on comparison type.
+            return getDefaultOperators(option.getComparisonType(), dateLike, labels);
         }
 
         return option.getAvailableComparators().stream()
-                .map(this::mapComparatorToOperator)
+                .map(c -> mapComparatorToOperator(c, dateLike, labels))
                 .toList();
     }
 
     /**
-     * Get default operators based on comparison type.
+     * Get default canonical operators based on comparison type (used only when an
+     * option leaves available_comparators empty).
      */
-    private List<OperatorResponse> getDefaultOperators(OperatorOption.ComparisonType comparisonType) {
-        if (comparisonType == null) {
-            return defaultSingleOperators();
-        }
-        return switch (comparisonType) {
-            case RANGE -> List.of(
-                    OPERATOR_MAP.get(OP_EQUALS),
-                    OPERATOR_MAP.get(OP_NOT_EQUALS),
-                    OPERATOR_MAP.get("gte"),
-                    OPERATOR_MAP.get("lte"),
-                    OPERATOR_MAP.get(OP_BETWEEN)
-            );
-            case LIST -> List.of(OPERATOR_MAP.get("in"), OPERATOR_MAP.get(OP_NOT_IN));
-            case BOOLEAN -> List.of(OPERATOR_MAP.get(OP_IS_TRUE), OPERATOR_MAP.get(OP_IS_FALSE));
-            default -> defaultSingleOperators();
+    private List<OperatorResponse> getDefaultOperators(
+            OperatorOption.ComparisonType comparisonType,
+            boolean dateLike,
+            Map<String, Map<String, Map<String, String>>> labels) {
+        List<String> codes = switch (comparisonType == null
+                ? OperatorOption.ComparisonType.SINGLE : comparisonType) {
+            case RANGE -> List.of(CANON_EQUALS, CANON_NOT_EQUALS,
+                    CANON_GREATER_OR_EQUAL, CANON_LESS_OR_EQUAL, CANON_BETWEEN);
+            case LIST -> List.of(CANON_IN, CANON_NOT_IN);
+            case BOOLEAN -> List.of(CANON_IS_TRUE, CANON_IS_FALSE);
+            default -> List.of(CANON_EQUALS, CANON_NOT_EQUALS);
         };
-    }
-
-    private List<OperatorResponse> defaultSingleOperators() {
-        return List.of(OPERATOR_MAP.get(OP_EQUALS), OPERATOR_MAP.get(OP_NOT_EQUALS));
+        return codes.stream()
+                .map(c -> mapComparatorToOperator(c, dateLike, labels))
+                .toList();
     }
 
     /**
-     * Map comparator string to OperatorResponse.
-     * Falls back to passing the raw comparator through when it is not known.
+     * Map a comparator code to an {@link OperatorResponse} with its label resolved
+     * (localized) from the translations table. Canonical codes (EQUALS, GREATER_THAN…)
+     * resolve to seeded labels; non-canonical engine-native metadata codes
+     * (equals/gte/before…) fall through with the code as their own label until the
+     * engine adopts canonical (Pha 6).
      */
-    private OperatorResponse mapComparatorToOperator(String comparator) {
-        OperatorResponse mapped = OPERATOR_MAP.get(comparator.toLowerCase());
-        return mapped != null ? mapped : OperatorResponse.of(comparator, comparator, comparator);
+    private OperatorResponse mapComparatorToOperator(
+            String comparator,
+            boolean dateLike,
+            Map<String, Map<String, Map<String, String>>> labels) {
+        return operatorLabelService.toOperatorResponse(comparator, dateLike, labels);
     }
 }

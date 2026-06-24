@@ -40,6 +40,8 @@ class MetadataConditionValidationTest {
     private RuleOptionsLookupPort ruleOptionsLookupPort;
     @Mock
     private MetadataServiceFeignClient metadataServiceFeignClient;
+    @Mock
+    private vn.viettel.vds.promotion.validation.application.port.out.OperatorLabelPort operatorLabelPort;
 
     private RuleBuilderService sut;
 
@@ -47,7 +49,11 @@ class MetadataConditionValidationTest {
 
     @BeforeEach
     void setUp() {
-        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort, metadataServiceFeignClient);
+        org.mockito.Mockito.lenient().when(operatorLabelPort.loadOperatorLabels())
+                .thenReturn(java.util.Map.of());
+        OperatorLabelService operatorLabelService = new OperatorLabelService(operatorLabelPort);
+        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort,
+                metadataServiceFeignClient, operatorLabelService);
 
         OperatorCategory customerCat = OperatorCategory.builder()
                 .id("cat-customer-meta")
@@ -82,7 +88,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("unknown field_key -> rejected")
     void unknownField() {
-        RuleNode node = cond("customer", "no_such_field", "STRING", "equals", "x");
+        RuleNode node = cond("customer", "no_such_field", "STRING", "EQUALS", "x");
         assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -90,7 +96,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("unknown schema_type -> rejected")
     void unknownSchema() {
-        RuleNode node = cond("ghost", "tier", "STRING", "equals", "GOLD");
+        RuleNode node = cond("ghost", "tier", "STRING", "EQUALS", "GOLD");
         assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -98,7 +104,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("data_type mismatch -> rejected")
     void typeMismatch() {
-        RuleNode node = cond("customer", "is_merchant", "STRING", "equals", "x");
+        RuleNode node = cond("customer", "is_merchant", "STRING", "EQUALS", "x");
         assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -110,9 +116,9 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("enum: equals an allowed value passes; not-allowed rejected")
     void stringEnum() {
-        assertThatCode(() -> validate(cond("customer", "tier", "STRING", "equals", "GOLD")))
+        assertThatCode(() -> validate(cond("customer", "tier", "STRING", "EQUALS", "GOLD")))
                 .doesNotThrowAnyException();
-        RuleNode rejected = cond("customer", "tier", "STRING", "equals", "PURPLE");
+        RuleNode rejected = cond("customer", "tier", "STRING", "EQUALS", "PURPLE");
         assertThatThrownBy(() -> validate(rejected))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -120,19 +126,19 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("enum: negative comparator (not_equals) skips membership")
     void stringEnumNegativeSkipped() {
-        assertThatCode(() -> validate(cond("customer", "tier", "STRING", "not_equals", "PURPLE")))
+        assertThatCode(() -> validate(cond("customer", "tier", "STRING", "NOT_EQUALS", "PURPLE")))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("length: within bounds passes; too long/short rejected")
     void stringLength() {
-        assertThatCode(() -> validate(cond("customer", "code", "STRING", "equals", "AB")))
+        assertThatCode(() -> validate(cond("customer", "code", "STRING", "EQUALS", "AB")))
                 .doesNotThrowAnyException();
-        RuleNode tooLong = cond("customer", "code", "STRING", "equals", "TOOLONG");
+        RuleNode tooLong = cond("customer", "code", "STRING", "EQUALS", "TOOLONG");
         assertThatThrownBy(() -> validate(tooLong))
                 .isInstanceOf(InvalidRuleStructureException.class);
-        RuleNode tooShort = cond("customer", "code", "STRING", "equals", "A");
+        RuleNode tooShort = cond("customer", "code", "STRING", "EQUALS", "A");
         assertThatThrownBy(() -> validate(tooShort))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -140,7 +146,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("length: partial comparator (contains) skips length")
     void stringLengthPartialSkipped() {
-        assertThatCode(() -> validate(cond("customer", "code", "STRING", "contains", "TOOLONG")))
+        assertThatCode(() -> validate(cond("customer", "code", "STRING", "CONTAINS", "TOOLONG")))
                 .doesNotThrowAnyException();
     }
 
@@ -151,9 +157,9 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("number: equals within range passes; out of range rejected")
     void numberRange() {
-        assertThatCode(() -> validate(cond("customer", "age", "NUMBER", "equals", 50)))
+        assertThatCode(() -> validate(cond("customer", "age", "NUMBER", "EQUALS", 50)))
                 .doesNotThrowAnyException();
-        RuleNode outOfRange = cond("customer", "age", "NUMBER", "equals", 200);
+        RuleNode outOfRange = cond("customer", "age", "NUMBER", "EQUALS", 200);
         assertThatThrownBy(() -> validate(outOfRange))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -161,7 +167,7 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("number: non-numeric value rejected")
     void numberType() {
-        RuleNode node = cond("customer", "age", "NUMBER", "equals", "abc");
+        RuleNode node = cond("customer", "age", "NUMBER", "EQUALS", "abc");
         assertThatThrownBy(() -> validate(node))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -169,16 +175,16 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("number: ordinal comparator (gte) skips range — threshold may exceed bounds")
     void numberOrdinalSkipsRange() {
-        assertThatCode(() -> validate(cond("customer", "age", "NUMBER", "gte", 200)))
+        assertThatCode(() -> validate(cond("customer", "age", "NUMBER", "GREATER_OR_EQUAL", 200)))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("number enum: equals an allowed value passes; not-allowed rejected")
     void numberEnumAllowed() {
-        assertThatCode(() -> validate(cond("customer", "score", "NUMBER", "equals", 20)))
+        assertThatCode(() -> validate(cond("customer", "score", "NUMBER", "EQUALS", 20)))
                 .doesNotThrowAnyException();
-        RuleNode notAllowed = cond("customer", "score", "NUMBER", "equals", 25);
+        RuleNode notAllowed = cond("customer", "score", "NUMBER", "EQUALS", 25);
         assertThatThrownBy(() -> validate(notAllowed))
                 .isInstanceOf(InvalidRuleStructureException.class);
     }
@@ -186,17 +192,17 @@ class MetadataConditionValidationTest {
     @Test
     @DisplayName("number enum: excluded value rejected; other value passes")
     void numberEnumExcluded() {
-        RuleNode excluded = cond("customer", "level", "NUMBER", "equals", 0);
+        RuleNode excluded = cond("customer", "level", "NUMBER", "EQUALS", 0);
         assertThatThrownBy(() -> validate(excluded))
                 .isInstanceOf(InvalidRuleStructureException.class);
-        assertThatCode(() -> validate(cond("customer", "level", "NUMBER", "equals", 5)))
+        assertThatCode(() -> validate(cond("customer", "level", "NUMBER", "EQUALS", 5)))
                 .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("number enum: ordinal comparator (gte) skips enum membership")
     void numberEnumOrdinalSkipped() {
-        assertThatCode(() -> validate(cond("customer", "score", "NUMBER", "gte", 25)))
+        assertThatCode(() -> validate(cond("customer", "score", "NUMBER", "GREATER_OR_EQUAL", 25)))
                 .doesNotThrowAnyException();
     }
 
@@ -211,7 +217,7 @@ class MetadataConditionValidationTest {
         params.put("schema_type", "customer");
         params.put("field_key", "is_merchant");
         params.put("data_type", "BOOLEAN");
-        params.put("comparator", "is_true");
+        params.put("comparator", "IS_TRUE");
         assertThatCode(() -> validate(condNode(params))).doesNotThrowAnyException();
     }
 
@@ -220,7 +226,7 @@ class MetadataConditionValidationTest {
     void gracefulDegrade() {
         when(metadataServiceFeignClient.getSchemaById(SCHEMA_ID, 0, 100))
                 .thenReturn(schemaResponse(List.of()));
-        assertThatCode(() -> validate(cond("customer", "anything", "STRING", "equals", "x")))
+        assertThatCode(() -> validate(cond("customer", "anything", "STRING", "EQUALS", "x")))
                 .doesNotThrowAnyException();
     }
 

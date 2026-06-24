@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.OperatorOptionEntity;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorOptionJpaRepository;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
-import vn.viettel.vds.promotion.validation.domain.model.ComparatorSuffix;
+import com.promix.platform.validation.condition.CanonicalOperatorName;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
@@ -119,8 +119,11 @@ public class RuleNodeSchemaValidator {
 
         // metadata.access is a virtual operator: no operator_options row exists for
         // it, so the lookup below would always fail as "Unknown operator". Validate
-        // its params contract directly and stop.
-        if (METADATA_ACCESS_OPERATOR.equals(operatorName)) {
+        // its params contract directly and stop. The effective operator_name is
+        // composed as {@code metadata.access.<CANONICAL>} (e.g. "metadata.access.EQUALS")
+        // when the field carries a comparator, so match on the bare field-path after
+        // stripping any canonical suffix — not on the literal "metadata.access".
+        if (METADATA_ACCESS_OPERATOR.equals(stripComparatorSuffix(operatorName))) {
             validateMetadataAccessParams(cond);
             return;
         }
@@ -129,12 +132,12 @@ public class RuleNodeSchemaValidator {
 
         String canonical = stripComparatorSuffix(operatorName);
 
-        // PROM-985: thử khớp CHÍNH XÁC operatorName trước. Một số operator có hậu
-        // tố trông giống comparator (vd ".lte") nhưng thực ra là PHẦN của canonical
-        // name trong operator_options (vd "budget.redemptions.per_customer.in_campaign.lte").
-        // stripComparatorSuffix sẽ cắt nhầm ".lte" -> không tìm thấy -> báo
-        // "Invalid rule structure". Nếu khớp chính xác thất bại mới fallback về tên
-        // đã strip (operator thường: "order.total.is_more_than" -> "order.total").
+        // PROM-985: thử khớp CHÍNH XÁC operatorName trước. Một số field-path có đoạn
+        // cuối trông giống canonical (hiếm) nhưng thực ra là PHẦN của tên field trong
+        // operator_options. Vì canonical là SCREAMING_SNAKE (vd GREATER_OR_EQUAL),
+        // còn field-path là lower_snake (vd budget.redemptions...) nên va chạm gần như
+        // không xảy ra; vẫn thử khớp chính xác trước rồi mới fallback về tên đã strip
+        // ("order.total.GREATER_OR_EQUAL" -> "order.total").
         Optional<OperatorOptionEntity> optionOpt =
                 operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(operatorName);
         if (optionOpt.isEmpty()) {
@@ -229,8 +232,6 @@ public class RuleNodeSchemaValidator {
     }
 
     private String stripComparatorSuffix(String operatorName) {
-        return ComparatorSuffix.comparatorFromOperatorName(operatorName)
-                .map(c -> operatorName.substring(0, operatorName.lastIndexOf('.')))
-                .orElse(operatorName);
+        return CanonicalOperatorName.stripCanonicalSuffix(operatorName);
     }
 }

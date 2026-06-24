@@ -261,3 +261,31 @@ databaseChangeLog:
   # configuration + target_segments into these tables with deleted_at/deleted_by.
   - include:
       file: db/changelog/changes/076-add-rule-soft-delete-shadow-tables.yaml
+
+  # Canonical rollout Pha 4: re-seed operator_options.available_comparators +
+  # default_comparator to canonical ConditionOperator codes, and strip the legacy
+  # comparator suffix from operator_name (now composed `<field>.<CANONICAL>` in code).
+  - include:
+      file: db/changelog/changes/077-canonical-operators-reseed.yaml
+
+  # Canonical rollout Pha 8: seed translations (CONDITION_OPERATOR) operator labels
+  # so the catalog API resolves operator names from data, not hardcoded maps.
+  - include:
+      file: db/changelog/changes/078-seed-condition-operator-labels.yaml
+
+  # Canonical rollout Pha 4 Part B: remap operator_options.operator_name (field-path)
+  # to match the pp-rule-engine registry keys after predicate-decompose. Only the
+  # unambiguous remaps (field-path + every comparator present in the engine dump).
+  - include:
+      file: db/changelog/changes/079-remap-operator-name-to-engine-keys.yaml
+
+  # Canonical rollout Pha 4 Part B (cont.): narrow available_comparators so every
+  # comparator has a matching engine key (redeeming-user -> EQUALS, items.count drop
+  # IN/NOT_IN, budget -> LESS_OR_EQUAL). order.total keeps BETWEEN.
+  - include:
+      file: db/changelog/changes/080-narrow-available-comparators-to-engine.yaml
+
+  # opt-any-order-item -> order.item.any_product (engine ANY/exists quantifier key
+  # added after 079/080; held until the translator existed).
+  - include:
+      file: db/changelog/changes/081-seed-any-product-operator.yaml

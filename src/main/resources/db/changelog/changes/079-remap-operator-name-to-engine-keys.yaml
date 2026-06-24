@@ -1,0 +1,121 @@
+databaseChangeLog:
+  # ============================================================================
+  # Canonical rollout — Pha 4 (cont.) Part B: remap operator_options.operator_name
+  # (bare field-path) to match the pp-rule-engine registry EXACTLY after the engine
+  # predicate-decompose. Source of truth = engine key dump (team-lead, 2026-06-24).
+  #
+  # rule_nodes.operator_name is composed `<field-path>.<CANONICAL>` at runtime
+  # (RuleResponseMapper / CanonicalOperatorName). So the field-path here must be the
+  # engine key WITHOUT the trailing canonical operator. available_comparators stay
+  # the canonical codes re-seeded in 077 — ONLY when the engine key
+  # `<field-path>.<CANONICAL>` actually exists in the dump.
+  #
+  # This changeset applies ONLY the unambiguous remaps where both the field-path AND
+  # every canonical comparator exist in the dump. Opts with a missing engine key
+  # (e.g. order.total.BETWEEN, items_quantity.IN, budget.* non-LESS_OR_EQUAL,
+  # redemption.user.IN, code_holder.IS_FALSE, the "any order item" exists-semantic)
+  # are intentionally NOT touched here and reported back to coordination — no key is
+  # fabricated.
+  # ============================================================================
+
+  - changeSet:
+      id: 079-remap-customer-segment-field-path
+      author: harley hoang
+      comment: "customer.in_segment -> customer.segment (engine customer.segment.IN/NOT_IN)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "customer.segment" } } ]
+            where: "id='opt-customer-segment'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "customer.in_segment" } } ]
+            where: "id='opt-customer-segment'"
+
+  - changeSet:
+      id: 079-remap-code-holder-field-path
+      author: harley hoang
+      comment: "redemption.code_holder_only -> redemption.code_holder (engine redemption.code_holder.IS_TRUE)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "redemption.code_holder" } } ]
+            where: "id='opt-redemption-code-holder-only'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "redemption.code_holder_only" } } ]
+            where: "id='opt-redemption-code-holder-only'"
+
+  - changeSet:
+      id: 079-remap-every-order-item-field-path
+      author: harley hoang
+      comment: "order.item.product.applicable.all -> order.item.product (engine order.item.product.IN = ALL/forall)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.product" } } ]
+            where: "id='opt-every-order-item'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.product.applicable.all" } } ]
+            where: "id='opt-every-order-item'"
+
+  - changeSet:
+      id: 079-remap-none-order-items-field-path-and-comparator
+      author: harley hoang
+      comment: "order.item.product.applicable.none -> order.item.product + comparator NOT_IN (engine order.item.product.NOT_IN = NONE)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.product" }
+              - column: { name: available_comparators, value: '["NOT_IN"]' }
+              - column: { name: default_comparator, value: "NOT_IN" }
+            where: "id='opt-none-of-order-items'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns:
+              - column: { name: operator_name, value: "order.item.product.applicable.none" }
+              - column: { name: available_comparators, value: '["IN"]' }
+              - column: { name: default_comparator, value: "IN" }
+            where: "id='opt-none-of-order-items'"
+
+  - changeSet:
+      id: 079-remap-most-expensive-field-path
+      author: harley hoang
+      comment: "order.item.most_expensive.in -> order.item.most_expensive (engine order.item.most_expensive.IN)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.most_expensive" } } ]
+            where: "id='opt-most-expensive-order-item'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.most_expensive.in" } } ]
+            where: "id='opt-most-expensive-order-item'"
+
+  - changeSet:
+      id: 079-remap-cheapest-field-path
+      author: harley hoang
+      comment: "order.item.cheapest.in -> order.item.cheapest (engine order.item.cheapest.IN)"
+      changes:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.cheapest" } } ]
+            where: "id='opt-cheapest-order-item'"
+      rollback:
+        - update:
+            tableName: operator_options
+            columns: [ { column: { name: operator_name, value: "order.item.cheapest.in" } } ]
+            where: "id='opt-cheapest-order-item'"
+
+  # NOTE: the comparator narrows/fixes (opt-redeeming-user EQUALS, items.count drop
+  # IN/NOT_IN, budget -> LESS_OR_EQUAL) live in changeset 080. order.total KEEPS
+  # BETWEEN — the engine DOES register order.total.BETWEEN + order.item.price.BETWEEN
+  # via NumericRangeFieldRegistry (rule-engine confirmed; the earlier dump was
+  # truncated and omitted .BETWEEN), so 077's value stays as-is.

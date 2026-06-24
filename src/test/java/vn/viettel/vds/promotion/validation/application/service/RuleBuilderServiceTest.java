@@ -39,13 +39,22 @@ class RuleBuilderServiceTest {
     @Mock
     private vn.viettel.vds.promotion.validation.adapter.out.external.MetadataServiceFeignClient metadataServiceFeignClient;
 
+    @Mock
+    private vn.viettel.vds.promotion.validation.application.port.out.OperatorLabelPort operatorLabelPort;
+
     private RuleBuilderService sut;
 
     private static final String TENANT_ID = "tenant-001";
 
     @BeforeEach
     void setUp() {
-        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort, metadataServiceFeignClient);
+        // Empty translation index -> OperatorLabelService falls back to its
+        // compiled-in canonical labels (mirror of FE OPERATOR_LABELS).
+        org.mockito.Mockito.lenient().when(operatorLabelPort.loadOperatorLabels())
+                .thenReturn(java.util.Map.of());
+        OperatorLabelService operatorLabelService = new OperatorLabelService(operatorLabelPort);
+        sut = new RuleBuilderService(operatorConfigService, ruleOptionsLookupPort,
+                metadataServiceFeignClient, operatorLabelService);
     }
 
     // -------------------------------------------------------------------------

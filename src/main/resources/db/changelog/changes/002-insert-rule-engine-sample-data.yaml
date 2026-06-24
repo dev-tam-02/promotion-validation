@@ -12,7 +12,7 @@ databaseChangeLog:
                   value: 01932b6f-0001-7000-8000-000000000001
               - column:
                   name: name
-                  value: order.total.gte
+                  value: order.total.GREATER_OR_EQUAL
               - column:
                   name: operator_version
                   valueNumeric: 1
@@ -43,7 +43,7 @@ databaseChangeLog:
                   value: 01932b6f-0001-7000-8000-000000000002
               - column:
                   name: name
-                  value: customer.in_segment
+                  value: customer.segment.IN
               - column:
                   name: operator_version
                   valueNumeric: 1
@@ -74,7 +74,7 @@ databaseChangeLog:
                   value: 01932b6f-0001-7000-8000-000000000003
               - column:
                   name: name
-                  value: time.window.active
+                  value: time.window.IS_TRUE
               - column:
                   name: operator_version
                   valueNumeric: 1
@@ -313,7 +313,7 @@ databaseChangeLog:
                   value: COND
               - column:
                   name: operator_name
-                  value: order.total.gte
+                  value: order.total.GREATER_OR_EQUAL
               - column:
                   name: params
                   value: '{"amount":500000,"currency":"VND"}'
@@ -341,7 +341,7 @@ databaseChangeLog:
                   value: COND
               - column:
                   name: operator_name
-                  value: customer.in_segment
+                  value: customer.segment.IN
               - column:
                   name: params
                   value: '{"segments":["VIP"]}'
@@ -399,7 +399,7 @@ databaseChangeLog:
                   value: COND
               - column:
                   name: operator_name
-                  value: time.window.active
+                  value: time.window.IS_TRUE
               - column:
                   name: params
                   value: '{"startTime":"09:00:00","endTime":"17:00:00","timezone":"Asia/Bangkok","daysOfWeek":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"spansMidnight":false}'
@@ -427,7 +427,7 @@ databaseChangeLog:
                   value: COND
               - column:
                   name: operator_name
-                  value: order.total.gte
+                  value: order.total.GREATER_OR_EQUAL
               - column:
                   name: params
                   value: '{"amount":300000,"currency":"VND"}'
@@ -626,7 +626,7 @@ databaseChangeLog:
                   value: 01932b6f-000b-7000-8000-000000000001
               - column:
                   name: operator_id
-                  value: order.total.gte
+                  value: order.total.GREATER_OR_EQUAL
               - column:
                   name: context
                   value: order
@@ -645,7 +645,7 @@ databaseChangeLog:
                   value: 01932b6f-000b-7000-8000-000000000002
               - column:
                   name: operator_id
-                  value: customer.in_segment
+                  value: customer.segment.IN
               - column:
                   name: context
                   value: customer
