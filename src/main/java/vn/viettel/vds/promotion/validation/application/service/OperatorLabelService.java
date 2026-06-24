@@ -2,7 +2,6 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import org.springframework.stereotype.Service;
 import com.promix.platform.validation.condition.ConditionOperator;
-import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.I18nLabel;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.OperatorResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.OperatorLabelPort;
 
@@ -107,27 +106,40 @@ public class OperatorLabelService {
         }
         boolean en = EN.equals(locale);
         return switch (op) {
-            case EQUALS -> en ? "equals" : (dateLike ? "Vào ngày" : "Bằng");
-            case NOT_EQUALS -> en ? "not equals" : "Khác";
-            case GREATER_THAN -> en ? "greater than" : (dateLike ? "Sau" : "Lớn hơn");
-            case GREATER_OR_EQUAL -> en ? "at least" : (dateLike ? "Từ ngày" : "Lớn hơn hoặc bằng");
-            case LESS_THAN -> en ? "less than" : (dateLike ? "Trước" : "Nhỏ hơn");
-            case LESS_OR_EQUAL -> en ? "at most" : (dateLike ? "Đến ngày" : "Nhỏ hơn hoặc bằng");
-            case BETWEEN -> en ? "between" : "Trong khoảng";
-            case IN -> en ? "in" : "Thuộc";
-            case NOT_IN -> en ? "not in" : "Không thuộc";
-            case CONTAINS -> en ? "contains" : "Chứa";
-            case NOT_CONTAINS -> en ? "not contains" : "Không chứa";
-            case STARTS_WITH -> en ? "starts with" : "Bắt đầu bằng";
-            case ENDS_WITH -> en ? "ends with" : "Kết thúc bằng";
-            case IS_TRUE -> en ? "is true" : "Đúng";
-            case IS_FALSE -> en ? "is false" : "Sai";
-            case EXISTS -> en ? "exists" : "Có tồn tại";
-            case NOT_EXISTS -> en ? "not exists" : "Không tồn tại";
-            case SIZE_GTE -> en ? "size ≥" : "Số phần tử ≥";
-            case SIZE_LTE -> en ? "size ≤" : "Số phần tử ≤";
-            case MATCHES -> en ? "matches" : "Khớp mẫu";
+            case EQUALS -> dateAware(en, "equals", dateLike, "Vào ngày", "Bằng");
+            case NOT_EQUALS -> simple(en, "not equals", "Khác");
+            case GREATER_THAN -> dateAware(en, "greater than", dateLike, "Sau", "Lớn hơn");
+            case GREATER_OR_EQUAL -> dateAware(en, "at least", dateLike, "Từ ngày", "Lớn hơn hoặc bằng");
+            case LESS_THAN -> dateAware(en, "less than", dateLike, "Trước", "Nhỏ hơn");
+            case LESS_OR_EQUAL -> dateAware(en, "at most", dateLike, "Đến ngày", "Nhỏ hơn hoặc bằng");
+            case BETWEEN -> simple(en, "between", "Trong khoảng");
+            case IN -> simple(en, "in", "Thuộc");
+            case NOT_IN -> simple(en, "not in", "Không thuộc");
+            case CONTAINS -> simple(en, "contains", "Chứa");
+            case NOT_CONTAINS -> simple(en, "not contains", "Không chứa");
+            case STARTS_WITH -> simple(en, "starts with", "Bắt đầu bằng");
+            case ENDS_WITH -> simple(en, "ends with", "Kết thúc bằng");
+            case IS_TRUE -> simple(en, "is true", "Đúng");
+            case IS_FALSE -> simple(en, "is false", "Sai");
+            case EXISTS -> simple(en, "exists", "Có tồn tại");
+            case NOT_EXISTS -> simple(en, "not exists", "Không tồn tại");
+            case SIZE_GTE -> simple(en, "size ≥", "Số phần tử ≥");
+            case SIZE_LTE -> simple(en, "size ≤", "Số phần tử ≤");
+            case MATCHES -> simple(en, "matches", "Khớp mẫu");
         };
+    }
+
+    /** Pick the English or Vietnamese label for operators with no DATE variant. */
+    private String simple(boolean en, String enLabel, String viLabel) {
+        return en ? enLabel : viLabel;
+    }
+
+    /** Pick the label for operators whose Vietnamese form differs for DATE-like fields. */
+    private String dateAware(boolean en, String enLabel, boolean dateLike, String viDateLabel, String viLabel) {
+        if (en) {
+            return enLabel;
+        }
+        return dateLike ? viDateLabel : viLabel;
     }
 
     /**

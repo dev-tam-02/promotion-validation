@@ -5,6 +5,7 @@ import vn.viettel.vds.promotion.validation.domain.exception.InvalidOperatorExcep
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -40,8 +41,8 @@ public class OperatorEvaluator {
             // Canonical existence operators; IS_NULL/IS_NOT_NULL kept as aliases.
             case "NOT_EXISTS", "IS_NULL" -> fieldValue == null;
             case "EXISTS", "IS_NOT_NULL" -> fieldValue != null;
-            case "IS_TRUE" -> Boolean.TRUE.equals(toBoolean(fieldValue));
-            case "IS_FALSE" -> Boolean.FALSE.equals(toBoolean(fieldValue));
+            case "IS_TRUE" -> toBoolean(fieldValue).map(Boolean.TRUE::equals).orElse(false);
+            case "IS_FALSE" -> toBoolean(fieldValue).map(Boolean.FALSE::equals).orElse(false);
             case "SIZE_GTE" -> evaluateSize(fieldValue, expectedValue) >= 0;
             case "SIZE_LTE" -> evaluateSize(fieldValue, expectedValue) <= 0;
             case "IS_EMPTY" -> evaluateIsEmpty(fieldValue);
@@ -199,19 +200,19 @@ public class OperatorEvaluator {
         throw new InvalidOperatorException(OP_BETWEEN, "requires an array of 2 values");
     }
 
-    private static Boolean toBoolean(Object value) {
+    private static Optional<Boolean> toBoolean(Object value) {
         if (value instanceof Boolean bool) {
-            return bool;
+            return Optional.of(bool);
         }
         if (value instanceof String string) {
             if ("true".equalsIgnoreCase(string)) {
-                return Boolean.TRUE;
+                return Optional.of(Boolean.TRUE);
             }
             if ("false".equalsIgnoreCase(string)) {
-                return Boolean.FALSE;
+                return Optional.of(Boolean.FALSE);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
