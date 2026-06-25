@@ -40,6 +40,9 @@ import java.util.Optional;
 @Component
 public class RuleResponseMapper {
 
+    /** Default per-rule violation display when the client omits it (VRUL002_B02 control 6: hidden is the default). */
+    private static final String DEFAULT_VIOLATION_DISPLAY_MODE = "HIDDEN";
+
     /**
      * Converts a Rule domain model to RuleResponse DTO.
      *
@@ -234,10 +237,25 @@ public class RuleResponseMapper {
                 .params(dto.params())
                 .reasonCode(dto.reasonCode())
                 .comparator(dto.comparator())
-                .violationDisplayMode(dto.violationDisplayMode())
+                .violationDisplayMode(resolveViolationDisplayMode(dto))
                 .errorMessage(dto.errorMessage())
                 .children(idsToRuleNodes(dto.children()))
                 .build();
+    }
+
+    /**
+     * Resolve the per-rule violation display mode for an inbound node. COND nodes
+     * default to {@code HIDDEN} when the client omits the value, so a rule left at
+     * the default "Ẩn" choice persists an explicit HIDDEN instead of NULL. GROUP
+     * nodes carry no violation mode, so their value is passed through untouched.
+     */
+    @Nullable
+    private String resolveViolationDisplayMode(RuleNodeDto dto) {
+        if (!"COND".equalsIgnoreCase(dto.type())) {
+            return dto.violationDisplayMode();
+        }
+        String mode = dto.violationDisplayMode();
+        return (mode == null || mode.isBlank()) ? DEFAULT_VIOLATION_DISPLAY_MODE : mode;
     }
 
     /**
