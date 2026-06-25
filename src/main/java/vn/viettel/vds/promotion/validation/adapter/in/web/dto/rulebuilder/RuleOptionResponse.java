@@ -11,14 +11,14 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RuleOptionResponse(
         String value,
-        I18nLabel label,
-        I18nLabel description,
+        Map<String, String> label,
+        Map<String, String> description,
         Map<String, Object> metadata
 ) {
     public static RuleOptionResponse of(String value, String enLabel, String viLabel) {
         return new RuleOptionResponse(
                 value,
-                I18nLabel.of(enLabel, viLabel),
+                LocaleText.of(enLabel, viLabel),
                 null,
                 null
         );
@@ -27,7 +27,7 @@ public record RuleOptionResponse(
     public static RuleOptionResponse of(String value, String enLabel, String viLabel, Map<String, Object> metadata) {
         return new RuleOptionResponse(
                 value,
-                I18nLabel.of(enLabel, viLabel),
+                LocaleText.of(enLabel, viLabel),
                 null,
                 metadata
         );
@@ -36,8 +36,8 @@ public record RuleOptionResponse(
     public static RuleOptionResponse withDescription(String value, String enLabel, String viLabel, String enDesc, String viDesc) {
         return new RuleOptionResponse(
                 value,
-                I18nLabel.of(enLabel, viLabel),
-                I18nLabel.of(enDesc, viDesc),
+                LocaleText.of(enLabel, viLabel),
+                LocaleText.of(enDesc, viDesc),
                 null
         );
     }

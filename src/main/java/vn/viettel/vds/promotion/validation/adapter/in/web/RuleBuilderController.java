@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.OperatorResponse;
-import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.I18nLabel;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleCategoriesResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleOptionsResponse;
 import vn.viettel.vds.promotion.validation.application.port.in.RuleCatalogUseCase;
@@ -116,7 +115,7 @@ public class RuleBuilderController {
             @ApiResponse(responseCode = "200", description = "Display names returned successfully"),
     })
     @GetMapping("/operator-display-names")
-    public Map<String, I18nLabel> getOperatorDisplayNames(
+    public Map<String, Map<String, String>> getOperatorDisplayNames(
             @Parameter(description = "operatorName values to resolve")
             @RequestParam(required = false) List<String> operatorNames,
             @Parameter(description = "Tenant identifier", example = "default")

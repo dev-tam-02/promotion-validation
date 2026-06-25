@@ -1,0 +1,64 @@
+databaseChangeLog:
+  # ============================================================================
+  # Same migration as 082 (operator_options) applied to operator_categories: move
+  # the inline i18n columns into the generic `translations` table so the whole
+  # rule-builder catalog resolves display text from one data-driven i18n model.
+  #
+  #   entity_type = 'OPERATOR_CATEGORY'
+  #   entity_key  = operator_categories.id
+  #   field       = 'name' | 'description'
+  #   locale      = 'en' | 'vi'
+  #
+  # Column -> (field, locale):
+  #   name        -> (name, en)         name_vi        -> (name, vi)
+  #   description -> (description, en)  description_vi -> (description, vi)
+  #
+  # OperatorCategoryJpaAdapter overlays these rows back onto the OperatorCategory
+  # domain model, so the catalog response shape and values are unchanged.
+  # ============================================================================
+  - changeSet:
+      id: 083-backfill-operator-categories-translations
+      author: harley hoang
+      comment: "Copy operator_categories i18n columns (name/description, en+vi) into translations (OPERATOR_CATEGORY)"
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_CATEGORY', id, 'name', 'en', name
+              FROM operator_categories WHERE name IS NOT NULL AND name <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_CATEGORY', id, 'name', 'vi', name_vi
+              FROM operator_categories WHERE name_vi IS NOT NULL AND name_vi <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_CATEGORY', id, 'description', 'en', description
+              FROM operator_categories WHERE description IS NOT NULL AND description <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_CATEGORY', id, 'description', 'vi', description_vi
+              FROM operator_categories WHERE description_vi IS NOT NULL AND description_vi <> '';
+      rollback:
+        - delete:
+            tableName: translations
+            where: entity_type = 'OPERATOR_CATEGORY'
+
+  # Drop the now-redundant inline i18n columns. Runs after the backfill above.
+  - changeSet:
+      id: 083-drop-operator-categories-i18n-columns
+      author: harley hoang
+      comment: "Drop operator_categories inline i18n columns now sourced from translations"
+      changes:
+        - dropColumn:
+            tableName: operator_categories
+            columns:
+              - column:
+                  name: name
+              - column:
+                  name: name_vi
+              - column:
+                  name: description
+              - column:
+                  name: description_vi

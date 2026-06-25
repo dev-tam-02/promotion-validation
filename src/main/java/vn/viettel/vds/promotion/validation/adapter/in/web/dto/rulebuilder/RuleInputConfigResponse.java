@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Input configuration for a rule.
@@ -15,8 +16,8 @@ public record RuleInputConfigResponse(
         String dataSourceEndpoint,
         String dataLoaderType,
         String dataLoaderConfig,
-        I18nLabel label,
-        I18nLabel placeholder,
+        Map<String, String> label,
+        Map<String, String> placeholder,
         Boolean multiple,
         Boolean searchable,
         String inputType,
@@ -39,8 +40,8 @@ public record RuleInputConfigResponse(
         private String dataSourceEndpoint;
         private String dataLoaderType;
         private String dataLoaderConfig;
-        private I18nLabel label;
-        private I18nLabel placeholder;
+        private Map<String, String> label;
+        private Map<String, String> placeholder;
         private Boolean multiple;
         private Boolean searchable;
         private String inputType;
@@ -74,23 +75,13 @@ public record RuleInputConfigResponse(
             return this;
         }
 
-        public Builder label(I18nLabel label) {
-            this.label = label;
-            return this;
-        }
-
         public Builder label(String en, String vi) {
-            this.label = I18nLabel.of(en, vi);
-            return this;
-        }
-
-        public Builder placeholder(I18nLabel placeholder) {
-            this.placeholder = placeholder;
+            this.label = LocaleText.of(en, vi);
             return this;
         }
 
         public Builder placeholder(String en, String vi) {
-            this.placeholder = I18nLabel.of(en, vi);
+            this.placeholder = LocaleText.of(en, vi);
             return this;
         }
 

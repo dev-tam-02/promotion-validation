@@ -2,6 +2,8 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.Map;
+
 /**
  * Operator definition for a rule. One canonical vocabulary end-to-end: {@code value}
  * and {@code canonical} are the same {@code ConditionOperator} code (SCREAMING_SNAKE),
@@ -12,15 +14,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OperatorResponse(
         String value,
-        I18nLabel label,
-        I18nLabel description,
+        Map<String, String> label,
+        Map<String, String> description,
         String canonical,
         String valueShape
 ) {
     public static OperatorResponse of(String value, String enLabel, String viLabel) {
         return new OperatorResponse(
                 value,
-                I18nLabel.of(enLabel, viLabel),
+                LocaleText.of(enLabel, viLabel),
                 null,
                 null,
                 null
@@ -31,7 +33,7 @@ public record OperatorResponse(
                                       String canonical, String valueShape) {
         return new OperatorResponse(
                 value,
-                I18nLabel.of(enLabel, viLabel),
+                LocaleText.of(enLabel, viLabel),
                 null,
                 canonical,
                 valueShape

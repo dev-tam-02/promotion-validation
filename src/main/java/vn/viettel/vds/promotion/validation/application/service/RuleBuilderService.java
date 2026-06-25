@@ -331,8 +331,8 @@ public class RuleBuilderService {
      * this fills that gap so the field title shows the configured name instead of
      * a title-cased English fallback.
      */
-    public Map<String, I18nLabel> getOperatorDisplayNames(List<String> operatorNames) {
-        Map<String, I18nLabel> result = new LinkedHashMap<>();
+    public Map<String, Map<String, String>> getOperatorDisplayNames(List<String> operatorNames) {
+        Map<String, Map<String, String>> result = new LinkedHashMap<>();
         if (operatorNames == null) {
             return result;
         }
@@ -342,7 +342,7 @@ public class RuleBuilderService {
             }
             operatorConfigService.findOptionForResolution(operatorName).ifPresent(option -> {
                 String vi = option.getNameVi() != null ? option.getNameVi() : option.getName();
-                result.put(operatorName, I18nLabel.of(option.getName(), vi));
+                result.put(operatorName, LocaleText.of(option.getName(), vi));
             });
         }
         return result;

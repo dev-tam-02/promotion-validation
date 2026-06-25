@@ -3,6 +3,7 @@ package vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Rule category grouping related rules together.
@@ -12,7 +13,7 @@ import java.util.List;
 public record RuleCategoryResponse(
         String id,
         String code,
-        I18nLabel name,
+        Map<String, String> name,
         String icon,
         Integer order,
         List<RuleItemResponse> rules
@@ -24,7 +25,7 @@ public record RuleCategoryResponse(
     public static class Builder {
         private String id;
         private String code;
-        private I18nLabel name;
+        private Map<String, String> name;
         private String icon;
         private Integer order;
         private List<RuleItemResponse> rules;
@@ -39,13 +40,8 @@ public record RuleCategoryResponse(
             return this;
         }
 
-        public Builder name(I18nLabel name) {
-            this.name = name;
-            return this;
-        }
-
         public Builder name(String en, String vi) {
-            this.name = I18nLabel.of(en, vi);
+            this.name = LocaleText.of(en, vi);
             return this;
         }
 

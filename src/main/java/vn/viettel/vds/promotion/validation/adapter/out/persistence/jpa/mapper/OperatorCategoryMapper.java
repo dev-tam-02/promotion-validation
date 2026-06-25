@@ -50,9 +50,10 @@ public interface OperatorCategoryMapper {
                 .id(entity.getId())
                 .categoryId(entity.getCategory() != null ? entity.getCategory().getId() : null)
                 .code(entity.getCode())
-                .name(entity.getName())
+                // name / description / label / placeholder (all locales) are overlaid from
+                // the translations table in OperatorCategoryJpaAdapter (changelog 082) —
+                // the inline operator_options i18n columns were dropped.
                 .displayOrder(entity.getDisplayOrder())
-                .description(entity.getDescription())
                 .operatorName(entity.getOperatorName())
                 .operatorVersion(entity.getOperatorVersion())
                 .comparisonType(parseComparisonType(entity.getComparisonType()))
@@ -64,9 +65,6 @@ public interface OperatorCategoryMapper {
                 .minValue(entity.getMinValue())
                 .maxValue(entity.getMaxValue())
                 .pattern(entity.getPattern())
-                // I18n fields
-                .nameVi(entity.getNameVi())
-                .descriptionVi(entity.getDescriptionVi())
                 // Input configuration
                 .dataSourceType(entity.getDataSourceType())
                 .dataSourceEndpoint(entity.getDataSourceEndpoint())
@@ -78,10 +76,6 @@ public interface OperatorCategoryMapper {
                 .inputSearchable(entity.getInputSearchable())
                 .inputStep(entity.getInputStep())
                 .valueParamKey(entity.getValueParamKey())
-                .labelEn(entity.getLabelEn())
-                .labelVi(entity.getLabelVi())
-                .placeholderEn(entity.getPlaceholderEn())
-                .placeholderVi(entity.getPlaceholderVi())
                 // Auto-apply configuration
                 .autoApply(entity.getAutoApply())
                 .defaultOperator(entity.getDefaultOperator())
