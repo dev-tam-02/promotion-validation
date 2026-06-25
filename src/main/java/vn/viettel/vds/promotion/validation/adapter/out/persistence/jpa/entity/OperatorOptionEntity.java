@@ -37,14 +37,8 @@ public class OperatorOptionEntity {
     @Column(name = "code", length = 50, nullable = false)
     private String code;
 
-    @Column(name = "name", length = 100, nullable = false)
-    private String name;
-
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
-
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
 
     @Column(name = "operator_name", length = 100)
     private String operatorName;
@@ -82,13 +76,6 @@ public class OperatorOptionEntity {
     @Column(name = "value_param_key", length = 50)
     private String valueParamKey; // engine param key for a scalar numeric value (amount/count); null = FE resolves by comparator
 
-    // I18n fields
-    @Column(name = "name_vi", length = 100)
-    private String nameVi;
-
-    @Column(name = "description_vi", columnDefinition = "TEXT")
-    private String descriptionVi;
-
     // Input configuration fields
     @Column(name = "data_source_type", length = 50)
     private String dataSourceType;
@@ -116,18 +103,6 @@ public class OperatorOptionEntity {
 
     @Column(name = "input_step", length = 20)
     private String inputStep;
-
-    @Column(name = "label_en", length = 100)
-    private String labelEn;
-
-    @Column(name = "label_vi", length = 100)
-    private String labelVi;
-
-    @Column(name = "placeholder_en", length = 255)
-    private String placeholderEn;
-
-    @Column(name = "placeholder_vi", length = 255)
-    private String placeholderVi;
 
     // Auto-apply configuration
     @Column(name = "auto_apply")

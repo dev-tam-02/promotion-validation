@@ -1,0 +1,93 @@
+databaseChangeLog:
+  # ============================================================================
+  # Migrate operator_options inline i18n columns into the generic `translations`
+  # table (created in 064), aligning operator-option display text with the same
+  # data-driven i18n model already used by RULE_CONTEXT (064) and
+  # CONDITION_OPERATOR (078). After this, adding a locale = adding rows, no schema
+  # change, and the rule-builder catalog returns an open locale map per field.
+  #
+  #   entity_type = 'OPERATOR_OPTION'
+  #   entity_key  = operator_options.id
+  #   field       = 'name' | 'description' | 'label' | 'placeholder'
+  #   locale      = 'en' | 'vi'
+  #
+  # Column -> (field, locale):
+  #   name           -> (name, en)         name_vi        -> (name, vi)
+  #   description    -> (description, en)  description_vi -> (description, vi)
+  #   label_en       -> (label, en)        label_vi       -> (label, vi)
+  #   placeholder_en -> (placeholder, en)  placeholder_vi -> (placeholder, vi)
+  #
+  # The read path (OperatorCategoryJpaAdapter) overlays these rows back onto the
+  # OperatorOption domain model, so the response shape and values are unchanged.
+  # ============================================================================
+  - changeSet:
+      id: 082-backfill-operator-options-translations
+      author: harley hoang
+      comment: "Copy operator_options i18n columns (name/description/label/placeholder, en+vi) into translations (OPERATOR_OPTION)"
+      changes:
+        - sql:
+            splitStatements: true
+            stripComments: true
+            sql: |
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'name', 'en', name
+              FROM operator_options WHERE name IS NOT NULL AND name <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'name', 'vi', name_vi
+              FROM operator_options WHERE name_vi IS NOT NULL AND name_vi <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'description', 'en', description
+              FROM operator_options WHERE description IS NOT NULL AND description <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'description', 'vi', description_vi
+              FROM operator_options WHERE description_vi IS NOT NULL AND description_vi <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'label', 'en', label_en
+              FROM operator_options WHERE label_en IS NOT NULL AND label_en <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'label', 'vi', label_vi
+              FROM operator_options WHERE label_vi IS NOT NULL AND label_vi <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'placeholder', 'en', placeholder_en
+              FROM operator_options WHERE placeholder_en IS NOT NULL AND placeholder_en <> '';
+
+              INSERT INTO translations (entity_type, entity_key, field, locale, value)
+              SELECT 'OPERATOR_OPTION', id, 'placeholder', 'vi', placeholder_vi
+              FROM operator_options WHERE placeholder_vi IS NOT NULL AND placeholder_vi <> '';
+      rollback:
+        - delete:
+            tableName: translations
+            where: entity_type = 'OPERATOR_OPTION'
+
+  # Drop the now-redundant inline i18n columns. Runs after the backfill above, so
+  # the data is preserved in `translations` first.
+  - changeSet:
+      id: 082-drop-operator-options-i18n-columns
+      author: harley hoang
+      comment: "Drop operator_options inline i18n columns now sourced from translations"
+      changes:
+        - dropColumn:
+            tableName: operator_options
+            columns:
+              - column:
+                  name: name
+              - column:
+                  name: name_vi
+              - column:
+                  name: description
+              - column:
+                  name: description_vi
+              - column:
+                  name: label_en
+              - column:
+                  name: label_vi
+              - column:
+                  name: placeholder_en
+              - column:
+                  name: placeholder_vi

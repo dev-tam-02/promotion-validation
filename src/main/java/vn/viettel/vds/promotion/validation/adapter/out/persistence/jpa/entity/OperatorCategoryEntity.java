@@ -30,24 +30,15 @@ public class OperatorCategoryEntity {
     @Column(name = "code", length = 50, nullable = false, unique = true)
     private String code;
 
-    @Column(name = "name", length = 100, nullable = false)
-    private String name;
+    // name / description (all locales) are overlaid from the translations table in
+    // OperatorCategoryJpaAdapter (changelog 083) — the inline operator_categories
+    // i18n columns were dropped.
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 
     @Column(name = "icon", length = 50)
     private String icon;
-
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-
-    // I18n fields
-    @Column(name = "name_vi", length = 100)
-    private String nameVi;
-
-    @Column(name = "description_vi", columnDefinition = "TEXT")
-    private String descriptionVi;
 
     @Column(name = "is_metadata_category", nullable = false)
     private Boolean metadataCategory = false;

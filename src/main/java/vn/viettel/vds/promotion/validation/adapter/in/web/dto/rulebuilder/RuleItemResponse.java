@@ -13,8 +13,8 @@ import java.util.Map;
 public record RuleItemResponse(
         String id,
         String code,
-        I18nLabel name,
-        I18nLabel description,
+        Map<String, String> name,
+        Map<String, String> description,
         String type,
         Boolean autoApply,
         String defaultOperator,
@@ -37,8 +37,8 @@ public record RuleItemResponse(
     public static class Builder {
         private String id;
         private String code;
-        private I18nLabel name;
-        private I18nLabel description;
+        private Map<String, String> name;
+        private Map<String, String> description;
         private String type;
         private Boolean autoApply;
         private String defaultOperator;
@@ -58,23 +58,13 @@ public record RuleItemResponse(
             return this;
         }
 
-        public Builder name(I18nLabel name) {
-            this.name = name;
-            return this;
-        }
-
         public Builder name(String en, String vi) {
-            this.name = I18nLabel.of(en, vi);
-            return this;
-        }
-
-        public Builder description(I18nLabel description) {
-            this.description = description;
+            this.name = LocaleText.of(en, vi);
             return this;
         }
 
         public Builder description(String en, String vi) {
-            this.description = I18nLabel.of(en, vi);
+            this.description = LocaleText.of(en, vi);
             return this;
         }
 

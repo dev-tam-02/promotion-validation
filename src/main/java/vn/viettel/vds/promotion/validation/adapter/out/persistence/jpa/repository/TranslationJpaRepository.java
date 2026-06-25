@@ -20,4 +20,11 @@ public interface TranslationJpaRepository extends JpaRepository<TranslationEntit
      * Used to bulk-load display names for a lookup list in one query.
      */
     List<TranslationEntity> findByEntityTypeAndField(String entityType, String field);
+
+    /**
+     * Find every translation for an entity type across all keys, fields and locales.
+     * Used to bulk-load a multi-field entity's i18n (e.g. operator_options: name,
+     * description, label, placeholder) for a whole catalog request in one query.
+     */
+    List<TranslationEntity> findByEntityType(String entityType);
 }

@@ -289,3 +289,14 @@ databaseChangeLog:
   # added after 079/080; held until the translator existed).
   - include:
       file: db/changelog/changes/081-seed-any-product-operator.yaml
+
+  # Move operator_options inline i18n columns (name/description/label/placeholder,
+  # en+vi) into the generic `translations` table (OPERATOR_OPTION), then drop the
+  # columns. Catalog now returns an open locale map per field, resolved data-driven.
+  - include:
+      file: db/changelog/changes/082-migrate-operator-options-i18n-to-translations.yaml
+
+  # Same migration as 082 for operator_categories: inline i18n columns (name/
+  # description, en+vi) -> translations (OPERATOR_CATEGORY), then drop the columns.
+  - include:
+      file: db/changelog/changes/083-migrate-operator-categories-i18n-to-translations.yaml

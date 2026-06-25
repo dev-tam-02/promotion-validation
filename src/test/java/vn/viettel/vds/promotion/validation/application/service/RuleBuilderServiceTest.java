@@ -230,11 +230,11 @@ class RuleBuilderServiceTest {
             assertThat(response.options()).hasSize(3);
             // First option: i18n labels differ
             assertThat(response.options().get(0).value()).isEqualTo("paid");
-            assertThat(response.options().get(0).label().en()).isEqualTo("Paid");
-            assertThat(response.options().get(0).label().vi()).isEqualTo("Trả phí");
+            assertThat(response.options().get(0).label().get("en")).isEqualTo("Paid");
+            assertThat(response.options().get(0).label().get("vi")).isEqualTo("Trả phí");
             // Second option
-            assertThat(response.options().get(1).label().en()).isEqualTo("Organic");
-            assertThat(response.options().get(1).label().vi()).isEqualTo("Tự nhiên");
+            assertThat(response.options().get(1).label().get("en")).isEqualTo("Organic");
+            assertThat(response.options().get(1).label().get("vi")).isEqualTo("Tự nhiên");
             verifyNoInteractions(ruleOptionsLookupPort);
         }
 
@@ -321,8 +321,8 @@ class RuleBuilderServiceTest {
 
             // Verify value mapping
             assertThat(response.options().get(0).value()).isEqualTo("seg-001");
-            assertThat(response.options().get(0).label().en()).isEqualTo("VIP Customers");
-            assertThat(response.options().get(0).label().vi()).isEqualTo("VIP Customers");
+            assertThat(response.options().get(0).label().get("en")).isEqualTo("VIP Customers");
+            assertThat(response.options().get(0).label().get("vi")).isEqualTo("VIP Customers");
 
             assertThat(response.options().get(1).value()).isEqualTo("seg-002");
             assertThat(response.options().get(2).value()).isEqualTo("seg-003");
