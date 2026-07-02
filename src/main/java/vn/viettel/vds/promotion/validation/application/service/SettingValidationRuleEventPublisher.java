@@ -136,6 +136,8 @@ public class SettingValidationRuleEventPublisher {
                 ValidationRuleSettingAppliedEventPayload.AssignmentResult.builder()
                         .assignmentId(binding.getId())
                         .ruleId(binding.getRuleId())
+                        .ruleCode(result.getResolvedRule() != null ? result.getResolvedRule().getCode() : null)
+                        .description(result.getResolvedRule() != null ? result.getResolvedRule().getDescription() : null)
                         .bundleHash(binding.getBundleHash())
                         .sourceVersion(binding.getVersion())
                         .active(Boolean.TRUE.equals(binding.getActive()))
