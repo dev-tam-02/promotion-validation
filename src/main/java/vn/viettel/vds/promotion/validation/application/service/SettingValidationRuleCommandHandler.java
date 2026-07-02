@@ -310,7 +310,7 @@ public class SettingValidationRuleCommandHandler {
 
             // Create result
             logger.info("[SAGA-DEBUG] processCommand EXIT success: commandId={}, bindingId={}", commandId, ruleBinding.getId());
-            return CommandProcessingResult.success(ruleBinding, components.applicableToData(), components.timeframeData());
+            return CommandProcessingResult.success(ruleBinding, components.applicableToData(), components.timeframeData(), resolvedRule);
 
         } catch (Exception e) {
             logger.info("[SAGA-DEBUG] processCommand EXCEPTION: commandId={}, exceptionClass={}, message={}",
@@ -894,6 +894,7 @@ public class SettingValidationRuleCommandHandler {
         private final RuleBinding ruleBinding;
         private final ApplicabilityScope applicabilityData;
         private final TimeFrame timeframeData;
+        private final Rule resolvedRule;
 
         private CommandProcessingResult(Builder builder) {
             this.success = builder.success;
@@ -902,16 +903,19 @@ public class SettingValidationRuleCommandHandler {
             this.ruleBinding = builder.ruleBinding;
             this.applicabilityData = builder.applicabilityData;
             this.timeframeData = builder.timeframeData;
+            this.resolvedRule = builder.resolvedRule;
         }
 
         public static CommandProcessingResult success(RuleBinding binding,
                                                       ApplicabilityScope applicabilityData,
-                                                      TimeFrame timeframeData) {
+                                                      TimeFrame timeframeData,
+                                                      Rule resolvedRule) {
             return new Builder()
                     .success(true)
                     .ruleBinding(binding)
                     .applicabilityData(applicabilityData)
                     .timeframeData(timeframeData)
+                    .resolvedRule(resolvedRule)
                     .build();
         }
 
@@ -947,6 +951,10 @@ public class SettingValidationRuleCommandHandler {
             return timeframeData;
         }
 
+        public Rule getResolvedRule() {
+            return resolvedRule;
+        }
+
         public IdempotencyResultDto toIdempotencyDto() {
             String bindingId = ruleBinding != null ? ruleBinding.getId() : null;
             String ruleId = ruleBinding != null ? ruleBinding.getRuleId() : null;
@@ -960,6 +968,7 @@ public class SettingValidationRuleCommandHandler {
             private RuleBinding ruleBinding;
             private ApplicabilityScope applicabilityData;
             private TimeFrame timeframeData;
+            private Rule resolvedRule;
 
             Builder success(boolean success) {
                 this.success = success;
@@ -988,6 +997,11 @@ public class SettingValidationRuleCommandHandler {
 
             Builder timeframeData(TimeFrame timeframeData) {
                 this.timeframeData = timeframeData;
+                return this;
+            }
+
+            Builder resolvedRule(Rule resolvedRule) {
+                this.resolvedRule = resolvedRule;
                 return this;
             }
 
