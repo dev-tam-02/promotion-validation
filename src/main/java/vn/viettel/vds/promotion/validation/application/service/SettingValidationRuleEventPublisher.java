@@ -9,11 +9,15 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.TimeFrame;
 import vn.viettel.vds.promotion.validation.domain.exception.EventPublishingException;
+import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
+import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.event.*;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEventPayload.AssignmentResult.ReasonCodeConfig;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -137,6 +141,7 @@ public class SettingValidationRuleEventPublisher {
                         .active(Boolean.TRUE.equals(binding.getActive()))
                         .trafficPercent(binding.getTrafficPercent() != null ? binding.getTrafficPercent() : 100)
                         .priority(binding.getPriority() != null ? binding.getPriority() : 0)
+                        .reasonCodeConfig(buildReasonCodeConfig(result.getResolvedRule()))
                         .build();
 
         // Build Applicability Result — carry the canonical (subjectType, subjectKey)
@@ -181,6 +186,52 @@ public class SettingValidationRuleEventPublisher {
                 .payload(payload)
                 .metadata(metadata)
                 .build();
+    }
+
+    /**
+     * Build the per-reason-code display config map from the resolved rule's COND
+     * nodes, so pp-rule-engine can correlate a DRL failure-tracking reasonCode
+     * with how the violation should surface (HIDDEN/DISABLED + message).
+     * <p>
+     * {@code reasonCode} is not unique across nodes and may be null/blank —
+     * non-COND nodes and null/blank reasonCode nodes are skipped, and duplicate
+     * keys are merged using HIDDEN-priority (HIDDEN &gt; DISABLED &gt; null).
+     */
+    static Map<String, ReasonCodeConfig> buildReasonCodeConfig(Rule rule) {
+        if (rule == null || rule.getNodes() == null) {
+            return null;
+        }
+        Map<String, ReasonCodeConfig> map = new LinkedHashMap<>();
+        for (RuleNode node : rule.getNodes()) {
+            if (node.getType() != RuleNode.NodeType.COND) {
+                continue;
+            }
+            String reasonCode = node.getReasonCode();
+            if (reasonCode == null || reasonCode.isBlank()) {
+                continue;
+            }
+            ReasonCodeConfig incoming = ReasonCodeConfig.builder()
+                    .violationDisplayMode(node.getViolationDisplayMode())
+                    .errorMessage(node.getErrorMessage())
+                    .build();
+            map.merge(reasonCode, incoming, SettingValidationRuleEventPublisher::mergeHiddenPriority);
+        }
+        return map.isEmpty() ? null : map;
+    }
+
+    private static ReasonCodeConfig mergeHiddenPriority(ReasonCodeConfig existing, ReasonCodeConfig incoming) {
+        return rank(incoming.getViolationDisplayMode()) > rank(existing.getViolationDisplayMode())
+                ? incoming : existing;
+    }
+
+    private static int rank(String mode) {
+        if ("HIDDEN".equals(mode)) {
+            return 2;
+        }
+        if ("DISABLED".equals(mode)) {
+            return 1;
+        }
+        return 0;
     }
 
     /**
