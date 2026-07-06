@@ -201,15 +201,13 @@ public class SettingValidationRuleEventPublisher {
      */
     static Map<String, ReasonCodeConfig> buildReasonCodeConfig(Rule rule) {
         if (rule == null || rule.getNodes() == null) {
-            return null;
+            return Map.of();
         }
         Map<String, ReasonCodeConfig> map = new LinkedHashMap<>();
         for (RuleNode node : rule.getNodes()) {
-            if (node.getType() != RuleNode.NodeType.COND) {
-                continue;
-            }
             String reasonCode = node.getReasonCode();
-            if (reasonCode == null || reasonCode.isBlank()) {
+            if (node.getType() != RuleNode.NodeType.COND
+                    || reasonCode == null || reasonCode.isBlank()) {
                 continue;
             }
             ReasonCodeConfig incoming = ReasonCodeConfig.builder()
@@ -218,7 +216,7 @@ public class SettingValidationRuleEventPublisher {
                     .build();
             map.merge(reasonCode, incoming, SettingValidationRuleEventPublisher::mergeHiddenPriority);
         }
-        return map.isEmpty() ? null : map;
+        return map;
     }
 
     private static ReasonCodeConfig mergeHiddenPriority(ReasonCodeConfig existing, ReasonCodeConfig incoming) {
