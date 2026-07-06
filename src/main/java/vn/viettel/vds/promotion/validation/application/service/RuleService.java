@@ -2,6 +2,7 @@ package vn.viettel.vds.promotion.validation.application.service;
 
 import com.promix.platform.core.util.IdGenerator;
 import com.promix.platform.outbox.spi.OutboxService;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
+import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
+import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidationCompileRequest;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
@@ -44,6 +47,7 @@ public class RuleService {
     private final RuleService self;
     private final RuleLinter ruleLinter;
     private final RuleNodeSchemaValidator schemaValidator;
+    private final ValidationEngineClient validationEngineClient;
     private final String validationEventTopic;
 
     private static final String RULE_AGGREGATE_TYPE = "ValidationRule";
@@ -54,6 +58,7 @@ public class RuleService {
                        OutboxService outboxService,
                        @Lazy RuleService self,
                        RuleNodeSchemaValidator schemaValidator,
+                       ValidationEngineClient validationEngineClient,
                        @Value("${kafka.topics.validation-event}") String validationEventTopic) {
         this.rulePersistencePort = rulePersistencePort;
         this.ruleBindingPort = ruleBindingPort;
@@ -61,6 +66,7 @@ public class RuleService {
         this.self = self;
         this.ruleLinter = new RuleLinter();
         this.schemaValidator = schemaValidator;
+        this.validationEngineClient = validationEngineClient;
         this.validationEventTopic = validationEventTopic;
     }
 
@@ -160,6 +166,11 @@ public class RuleService {
                 "VALIDATION_RULE_CREATED",
                 buildRuleCreatedEvent(saved),
                 validationEventTopic);
+
+        // T12: eager-compile the shared VALIDATION bundle so pp-rule-engine's
+        // always-latest lookup reflects the new rule immediately (D3/D4), instead
+        // of waiting for the next campaign bind to trigger the combined compile.
+        triggerEagerValidationCompile(saved);
 
         logger.info("Rule created successfully: id={}", saved.getId());
         return saved;
@@ -296,6 +307,10 @@ public class RuleService {
                 "VALIDATION_RULE_UPDATED",
                 buildRuleUpdatedEvent(saved),
                 validationEventTopic);
+
+        // T12: eager-compile the shared VALIDATION bundle so pp-rule-engine's
+        // always-latest lookup reflects the edited conditions immediately (D3).
+        triggerEagerValidationCompile(saved);
 
         logger.info("Rule updated successfully: id={}", saved.getId());
         return saved;
@@ -638,6 +653,29 @@ public class RuleService {
                 .payload(payload)
                 .metadata(Map.of())
                 .build();
+    }
+
+    /**
+     * Eagerly (re)compile the shared standalone VALIDATION bundle for this rule
+     * right after create/update, calling pp-rule-engine's
+     * {@code POST /v1/compile/validation}. Best-effort: a transient rule-engine
+     * outage must NOT fail rule create/update — the combined compile path
+     * ({@code RulePublishingService}) still (re)compiles it the next time the
+     * rule is bound to a campaign, so a missed eager compile is only a
+     * temporary staleness, not data loss.
+     */
+    private void triggerEagerValidationCompile(Rule rule) {
+        if (validationEngineClient == null) {
+            // Null-guard for unit tests that construct RuleService directly without DI.
+            return;
+        }
+        try {
+            List<Map<String, Object>> nodes = RuleNodeDtoMapper.toNodeMaps(rule.getNodes());
+            validationEngineClient.compileValidation(new ValidationCompileRequest(rule.getId(), nodes));
+            logger.info("Eager validation compile triggered: ruleId={}, nodeCount={}", rule.getId(), nodes.size());
+        } catch (FeignException e) {
+            logger.warn("Eager validation compile failed (non-fatal), ruleId={}: {}", rule.getId(), e.getMessage());
+        }
     }
 
     /**

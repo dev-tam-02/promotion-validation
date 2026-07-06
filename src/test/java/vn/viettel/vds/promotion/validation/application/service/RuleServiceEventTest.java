@@ -55,10 +55,10 @@ class RuleServiceEventTest {
 
     private RuleService newServiceUnderTest() {
         RuleService withoutSelf =
-                new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, EVENT_TOPIC);
+                new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, null, EVENT_TOPIC);
         // RuleService uses @Lazy self-injection for transactional proxying; in a unit
         // test without a Spring context, the service itself stands in as its own proxy.
-        return new RuleService(rulePersistencePort, ruleBindingPort, outboxService, withoutSelf, null, EVENT_TOPIC);
+        return new RuleService(rulePersistencePort, ruleBindingPort, outboxService, withoutSelf, null, null, EVENT_TOPIC);
     }
 
     private static RuleNode condNode(String id, String operatorName, String reasonCode) {

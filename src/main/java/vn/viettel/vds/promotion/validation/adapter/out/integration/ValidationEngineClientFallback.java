@@ -61,6 +61,16 @@ public class ValidationEngineClientFallback implements ValidationEngineClient {
     }
 
     @Override
+    public ResponseTemplate<CompileResponse> compileValidation(ValidationCompileRequest request) {
+        logger.error("Fallback: Eager validation compile failed for ruleId={}", request.getRuleId());
+
+        CompileResponse fallbackResponse = new CompileResponse();
+        fallbackResponse.setOk(false);
+        fallbackResponse.setErrors(List.of(SERVICE_UNAVAILABLE_MESSAGE));
+        return createErrorResponse(fallbackResponse);
+    }
+
+    @Override
     public ResponseTemplate<WarmupResponse> warmup(WarmupRequest request) {
         logger.error("Fallback: Bundle warmup failed for bundleHash={}", request.getBundleHash());
         WarmupResponse fallbackResponse = new WarmupResponse();
