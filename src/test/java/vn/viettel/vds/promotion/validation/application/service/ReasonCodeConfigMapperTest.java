@@ -34,7 +34,7 @@ class ReasonCodeConfigMapperTest {
         Map<String, ReasonCodeConfig> map =
                 SettingValidationRuleEventPublisher.buildReasonCodeConfig(rule);
 
-        assertThat(map).isNull();
+        assertThat(map).isEmpty();
     }
 
     @Test
@@ -54,7 +54,7 @@ class ReasonCodeConfigMapperTest {
     }
 
     @Test
-    void nullRuleReturnsNull() {
-        assertThat(SettingValidationRuleEventPublisher.buildReasonCodeConfig(null)).isNull();
+    void nullRuleReturnsEmpty() {
+        assertThat(SettingValidationRuleEventPublisher.buildReasonCodeConfig(null)).isEmpty();
     }
 }
