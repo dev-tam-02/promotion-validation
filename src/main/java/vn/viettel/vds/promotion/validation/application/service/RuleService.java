@@ -17,6 +17,12 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.*;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleCreatedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleCreatedEventPayload;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEventPayload;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleUpdatedEvent;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleUpdatedEventPayload;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -41,6 +47,7 @@ public class RuleService {
     private final String validationEventTopic;
 
     private static final String RULE_AGGREGATE_TYPE = "ValidationRule";
+    private static final String RULE_EVENT_SOURCE = "pp-validation";
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
@@ -151,7 +158,7 @@ public class RuleService {
                 RULE_AGGREGATE_TYPE,
                 saved.getId(),
                 "VALIDATION_RULE_CREATED",
-                ruleEventPayload(saved, "createdAt"),
+                buildRuleCreatedEvent(saved),
                 validationEventTopic);
 
         logger.info("Rule created successfully: id={}", saved.getId());
@@ -287,7 +294,7 @@ public class RuleService {
                 RULE_AGGREGATE_TYPE,
                 saved.getId(),
                 "VALIDATION_RULE_UPDATED",
-                ruleEventPayload(saved, "updatedAt"),
+                buildRuleUpdatedEvent(saved),
                 validationEventTopic);
 
         logger.info("Rule updated successfully: id={}", saved.getId());
@@ -485,7 +492,7 @@ public class RuleService {
                 RULE_AGGREGATE_TYPE,
                 ruleId,
                 "VALIDATION_RULE_DELETED",
-                Map.of("ruleId", ruleId, "deletedAt", Instant.now().toString()),
+                buildRuleDeletedEvent(rule),
                 validationEventTopic);
 
         logger.info("Rule deleted successfully: id={}", ruleId);
@@ -558,15 +565,79 @@ public class RuleService {
     }
 
     /**
-     * Build the outbox payload for a rule lifecycle event. {@code timestampField}
-     * is the key for the event time (e.g. "createdAt" / "updatedAt").
+     * Build the typed {@code ValidationRuleCreatedEvent} outbox payload. Uses the
+     * pp-schema envelope (type discriminator = {@code "ValidationRuleCreatedEvent"},
+     * matching its {@code @JsonSubTypes} entry) so the pp-rule-engine consumer can
+     * deserialize it polymorphically as a {@code ValidationEvent} instead of a raw Map.
      */
-    private Map<String, Object> ruleEventPayload(Rule rule, String timestampField) {
-        return Map.of(
-                "ruleId", rule.getId(),
-                "code", rule.getCode() != null ? rule.getCode() : "",
-                "name", rule.getName() != null ? rule.getName() : "",
-                timestampField, Instant.now().toString());
+    private ValidationRuleCreatedEvent buildRuleCreatedEvent(Rule rule) {
+        ValidationRuleCreatedEventPayload payload = ValidationRuleCreatedEventPayload.builder()
+                .campaignId(rule.getCampaignId())
+                .validationRuleId(rule.getId())
+                .createdBy(rule.getCreatedBy())
+                .createdAt(Instant.now().toEpochMilli())
+                .build();
+
+        return ValidationRuleCreatedEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(RULE_AGGREGATE_TYPE)
+                .type("ValidationRuleCreatedEvent")
+                .source(RULE_EVENT_SOURCE)
+                .subject(rule.getId())
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(Map.of())
+                .build();
+    }
+
+    /**
+     * Build the typed {@code ValidationRuleUpdatedEvent} outbox payload (see
+     * {@link #buildRuleCreatedEvent(Rule)} for the polymorphic-deserialization rationale).
+     */
+    private ValidationRuleUpdatedEvent buildRuleUpdatedEvent(Rule rule) {
+        ValidationRuleUpdatedEventPayload payload = ValidationRuleUpdatedEventPayload.builder()
+                .campaignId(rule.getCampaignId())
+                .validationRuleId(rule.getId())
+                .updatedBy(rule.getUpdatedBy())
+                .updatedAt(Instant.now().toEpochMilli())
+                .build();
+
+        return ValidationRuleUpdatedEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(RULE_AGGREGATE_TYPE)
+                .type("ValidationRuleUpdatedEvent")
+                .source(RULE_EVENT_SOURCE)
+                .subject(rule.getId())
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(Map.of())
+                .build();
+    }
+
+    /**
+     * Build the typed {@code ValidationRuleDeletedEvent} outbox payload (see
+     * {@link #buildRuleCreatedEvent(Rule)} for the polymorphic-deserialization rationale).
+     */
+    private ValidationRuleDeletedEvent buildRuleDeletedEvent(Rule rule) {
+        ValidationRuleDeletedEventPayload payload = ValidationRuleDeletedEventPayload.builder()
+                .campaignId(rule.getCampaignId())
+                .validationRuleId(rule.getId())
+                .deletedAt(Instant.now().toEpochMilli())
+                .build();
+
+        return ValidationRuleDeletedEvent.builder()
+                .id(IdGenerator.generateId())
+                .aggregate(RULE_AGGREGATE_TYPE)
+                .type("ValidationRuleDeletedEvent")
+                .source(RULE_EVENT_SOURCE)
+                .subject(rule.getId())
+                .occurredAt(Instant.now())
+                .version(1)
+                .payload(payload)
+                .metadata(Map.of())
+                .build();
     }
 
     /**
