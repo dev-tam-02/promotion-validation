@@ -57,4 +57,26 @@ class ReasonCodeConfigMapperTest {
     void nullRuleReturnsEmpty() {
         assertThat(SettingValidationRuleEventPublisher.buildReasonCodeConfig(null)).isEmpty();
     }
+
+    @Test
+    void findsCondNestedUnderGroupTree() {
+        // A resolved rule loaded from persistence is a nested tree: root GROUP with
+        // COND children. buildReasonCodeConfig must recurse to reach the COND config.
+        RuleNode condChild = cond("ORDER_TOTAL", "HIDDEN", "Đơn tối thiểu 500.000đ");
+        RuleNode group = RuleNode.builder()
+                .type(RuleNode.NodeType.GROUP)
+                .groupLogic(Rule.LogicType.ALL)
+                .children(List.of(condChild))
+                .build();
+        Rule rule = Rule.builder().id("r").logic(Rule.LogicType.ALL)
+                .nodes(List.of(group))
+                .build();
+
+        Map<String, ReasonCodeConfig> map =
+                SettingValidationRuleEventPublisher.buildReasonCodeConfig(rule);
+
+        assertThat(map).containsOnlyKeys("ORDER_TOTAL");
+        assertThat(map.get("ORDER_TOTAL").getViolationDisplayMode()).isEqualTo("HIDDEN");
+        assertThat(map.get("ORDER_TOTAL").getErrorMessage()).isEqualTo("Đơn tối thiểu 500.000đ");
+    }
 }
