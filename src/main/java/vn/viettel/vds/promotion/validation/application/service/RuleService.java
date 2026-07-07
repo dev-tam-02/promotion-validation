@@ -20,6 +20,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.*;
+import vn.viettel.vds.promotion.validation.event.ValidationEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleCreatedEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleCreatedEventPayload;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent;
@@ -160,12 +161,18 @@ public class RuleService {
         // SRS VRUL002_B03 Bước 7 ③: emit a creation event to the promix outbox so the
         // change is propagated asynchronously to downstream services — the promix
         // outbox scheduler publishes it to Kafka (topic = destination).
+        // payloadType = ValidationEvent.class (base có @JsonTypeInfo): outbox relay dùng nó để
+        // deserialize payload string về typed object rồi để KafkaTemplate JsonSerializer serialize
+        // MỘT lần. Thiếu payloadType → relay gửi raw String → JsonSerializer double-encode thành
+        // "{...}" literal → consumer (@JsonTypeInfo EXISTING_PROPERTY) ném InvalidTypeIdException.
         outboxService.createEvent(
                 RULE_AGGREGATE_TYPE,
                 saved.getId(),
                 "VALIDATION_RULE_CREATED",
                 buildRuleCreatedEvent(saved),
-                validationEventTopic);
+                validationEventTopic,
+                null,
+                ValidationEvent.class);
 
         // T12: eager-compile the shared VALIDATION bundle so pp-rule-engine's
         // always-latest lookup reflects the new rule immediately (D3/D4), instead
@@ -306,7 +313,9 @@ public class RuleService {
                 saved.getId(),
                 "VALIDATION_RULE_UPDATED",
                 buildRuleUpdatedEvent(saved),
-                validationEventTopic);
+                validationEventTopic,
+                null,
+                ValidationEvent.class);
 
         // T12: eager-compile the shared VALIDATION bundle so pp-rule-engine's
         // always-latest lookup reflects the edited conditions immediately (D3).
@@ -508,7 +517,9 @@ public class RuleService {
                 ruleId,
                 "VALIDATION_RULE_DELETED",
                 buildRuleDeletedEvent(rule),
-                validationEventTopic);
+                validationEventTopic,
+                null,
+                ValidationEvent.class);
 
         logger.info("Rule deleted successfully: id={}", ruleId);
     }
