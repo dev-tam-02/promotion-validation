@@ -771,6 +771,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: operator_registry_id
+                  type: varchar(36)
+                  constraints:
+                    nullable: false
+              - column:
                   name: resource_id
                   type: varchar(36)
                   remarks: Foreign key to resources
@@ -858,6 +863,17 @@ databaseChangeLog:
             columns:
               - column:
                   name: context
+
+  - changeSet:
+      id: 001-add-fk-operator-resources
+      author: devtam
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_operator_resources_operator_registry
+            baseTableName: operator_resources
+            baseColumnNames: operator_registry_id
+            referencedTableName: operator_registry
+            referencedColumnNames: id
 
   # Reason codes
   - changeSet:
