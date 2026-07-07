@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
 import java.util.Map;
 
 @Getter
@@ -26,9 +25,6 @@ public class ReasonCodeEntity extends BaseEntity {
     @Column(name = "labels", columnDefinition = "TEXT")
     @SuppressWarnings("java:S1948") // Map content is converted to JSON by MapStringObjectConverter
     private Map<String, Object> labels;
-
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
 
     public enum Severity {
         INFO, WARN, ERROR

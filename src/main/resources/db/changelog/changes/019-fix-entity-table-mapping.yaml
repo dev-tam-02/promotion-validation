@@ -1,0 +1,431 @@
+databaseChangeLog:
+  # =========================================================================
+  # Reconcile database schema with JPA entities (ddl-auto: validate).
+  #
+  # The tables publish_jobs, rule_versions and time_links were created in
+  # changeset 001 with an outdated design that no longer matches the current
+  # JPA entities (PublishJobEntity, RuleVersionEntity, TimeLinkEntity).
+  # These tables have no sample data (002 does not insert into them), so they
+  # are safely dropped and recreated to match the entities.
+  #
+  # reason_codes and temporal_policy_windows are altered in place because they
+  # contain sample data.
+  # =========================================================================
+
+  # -------------------------------------------------------------------------
+  # reason_codes: add missing "labels" column mapped by ReasonCodeEntity
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-add-labels-to-reason-codes
+      author: system
+      comment: Add labels column mapped by ReasonCodeEntity (was missing in schema)
+      changes:
+        - addColumn:
+            tableName: reason_codes
+            columns:
+              - column:
+                  name: labels
+                  type: text
+                  remarks: Localized labels as JSON (mapped by ReasonCodeEntity.labels)
+      rollback:
+        - dropColumn:
+            tableName: reason_codes
+            columnName: labels
+
+  # -------------------------------------------------------------------------
+  # temporal_policy_windows: TemporalPolicyWindowEntity maps start_time/end_time
+  # as String ("HH:mm"), so the columns must be varchar, not time.
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-fix-policy-window-time-columns
+      author: system
+      comment: Change start_time/end_time from time to varchar to match String fields in TemporalPolicyWindowEntity
+      changes:
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: start_time
+            newDataType: varchar(10)
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: end_time
+            newDataType: varchar(10)
+      rollback:
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: start_time
+            newDataType: time
+        - modifyDataType:
+            tableName: temporal_policy_windows
+            columnName: end_time
+            newDataType: time
+
+  # -------------------------------------------------------------------------
+  # time_links: drop first (FK to rule_versions) before rebuilding rule_versions
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-drop-legacy-time-links
+      author: system
+      comment: Drop legacy time_links table (schema does not match TimeLinkEntity, no data)
+      changes:
+        - dropTable:
+            tableName: time_links
+            cascadeConstraints: true
+
+  # -------------------------------------------------------------------------
+  # rule_versions: rebuild to match RuleVersionEntity
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-rebuild-rule-versions
+      author: system
+      comment: Rebuild rule_versions to match RuleVersionEntity (no data in table)
+      changes:
+        - dropTable:
+            tableName: rule_versions
+            cascadeConstraints: true
+        - createTable:
+            tableName: rule_versions
+            remarks: Historical versions of rules (matches RuleVersionEntity)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rule_id
+                  type: varchar(100)
+                  remarks: Rule identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: varchar(100)
+                  remarks: Rule code
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rule_version
+                  type: int
+                  remarks: Version number
+                  constraints:
+                    nullable: false
+              - column:
+                  name: logic
+                  type: varchar(20)
+                  remarks: Root logic (ALL, ANY, NONE)
+              - column:
+                  name: limits
+                  type: text
+                  remarks: Usage limits snapshot as JSON
+              - column:
+                  name: nodes
+                  type: text
+                  remarks: Rule nodes snapshot as JSON
+              - column:
+                  name: operators_fingerprint
+                  type: varchar(200)
+                  remarks: Fingerprint of operators used
+              - column:
+                  name: dsl
+                  type: text
+                  remarks: DSL snapshot as JSON
+              - column:
+                  name: published_at
+                  type: timestamp
+                  remarks: When this version was published
+              - column:
+                  name: published_by
+                  type: varchar(100)
+                  remarks: Who published this version
+              - column:
+                  name: compile_status
+                  type: varchar(20)
+                  remarks: Compile status (SUCCESS, FAILED)
+              - column:
+                  name: compiler_id
+                  type: varchar(100)
+                  remarks: Compiler template ID
+              - column:
+                  name: bundle_hash
+                  type: varchar(200)
+                  remarks: Hash of the compiled bundle
+              - column:
+                  name: compile_logs
+                  type: text
+                  remarks: Compile logs as JSON
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(36)
+                  remarks: Creator
+              - column:
+                  name: updated_by
+                  type: varchar(36)
+                  remarks: Last updater
+              - column:
+                  name: version
+                  type: bigint
+                  remarks: Optimistic locking version
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_rule_versions_desc
+            tableName: rule_versions
+            unique: true
+            columns:
+              - column:
+                  name: rule_id
+              - column:
+                  name: rule_version
+                  descending: true
+
+        - createIndex:
+            indexName: idx_rule_versions_bundle_hash
+            tableName: rule_versions
+            columns:
+              - column:
+                  name: bundle_hash
+
+        - createIndex:
+            indexName: idx_rule_versions_code_version
+            tableName: rule_versions
+            columns:
+              - column:
+                  name: code
+              - column:
+                  name: rule_version
+      rollback:
+        - dropTable:
+            tableName: rule_versions
+
+  # -------------------------------------------------------------------------
+  # time_links: recreate to match TimeLinkEntity
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-recreate-time-links
+      author: system
+      comment: Recreate time_links to match TimeLinkEntity
+      changes:
+        - createTable:
+            tableName: time_links
+            remarks: Time links belonging to a rule version (matches TimeLinkEntity)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rule_version_id
+                  type: varchar(36)
+                  remarks: Foreign key to rule_versions
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_time_links_rule_version
+                    references: rule_versions(id)
+              - column:
+                  name: policy_id
+                  type: varchar(100)
+                  remarks: Temporal policy identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mode
+                  type: varchar(20)
+                  remarks: Link mode (ALLOW, DENY)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(36)
+                  remarks: Creator
+              - column:
+                  name: updated_by
+                  type: varchar(36)
+                  remarks: Last updater
+              - column:
+                  name: version
+                  type: bigint
+                  remarks: Optimistic locking version
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_time_links_rule_version
+            tableName: time_links
+            columns:
+              - column:
+                  name: rule_version_id
+      rollback:
+        - dropTable:
+            tableName: time_links
+
+  # -------------------------------------------------------------------------
+  # publish_jobs: rebuild to match PublishJobEntity
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-rebuild-publish-jobs
+      author: system
+      comment: Rebuild publish_jobs to match PublishJobEntity (no data in table)
+      changes:
+        - dropTable:
+            tableName: publish_jobs
+            cascadeConstraints: true
+        - createTable:
+            tableName: publish_jobs
+            remarks: Asynchronous publish job tracking (matches PublishJobEntity)
+            columns:
+              - column:
+                  name: id
+                  type: varchar(36)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: rule_id
+                  type: varchar(100)
+                  remarks: Rule identifier
+                  constraints:
+                    nullable: false
+              - column:
+                  name: target_version
+                  type: int
+                  remarks: Target rule version to publish
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(20)
+                  remarks: Job status (RUNNING, SUCCESS, FAILED)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_by
+                  type: varchar(100)
+                  remarks: User who requested publish
+              - column:
+                  name: requested_at
+                  type: timestamp
+                  remarks: When publish was requested
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: completed_at
+                  type: timestamp
+                  remarks: When job completed
+              - column:
+                  name: compiler_id
+                  type: varchar(100)
+                  remarks: Compiler template ID (embedded CompileJobInfo)
+              - column:
+                  name: operators_fingerprint
+                  type: varchar(200)
+                  remarks: Operators fingerprint (embedded CompileJobInfo)
+              - column:
+                  name: compile_logs
+                  type: text
+                  remarks: Compile logs as JSON (embedded CompileJobInfo)
+              - column:
+                  name: bundle_hash
+                  type: varchar(200)
+                  remarks: Compiled bundle hash (embedded CompileJobInfo)
+              - column:
+                  name: errors
+                  type: text
+                  remarks: Job errors as JSON
+              - column:
+                  name: created_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: varchar(36)
+                  remarks: Creator
+              - column:
+                  name: updated_by
+                  type: varchar(36)
+                  remarks: Last updater
+              - column:
+                  name: version
+                  type: bigint
+                  remarks: Optimistic locking version
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_publish_jobs_rule_ver
+            tableName: publish_jobs
+            columns:
+              - column:
+                  name: rule_id
+              - column:
+                  name: target_version
+
+        - createIndex:
+            indexName: idx_publish_jobs_status_time
+            tableName: publish_jobs
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: requested_at
+      rollback:
+        - dropTable:
+            tableName: publish_jobs
+
+  # -------------------------------------------------------------------------
+  # operator_registry: OperatorRegistryEntity does not map operator_id, which
+  # is NOT NULL. Make it nullable so entity-driven inserts do not fail.
+  # -------------------------------------------------------------------------
+  - changeSet:
+      id: 019-relax-operator-registry-operator-id
+      author: system
+      comment: Make operator_registry.operator_id nullable (not mapped by OperatorRegistryEntity)
+      changes:
+        - dropNotNullConstraint:
+            tableName: operator_registry
+            columnName: operator_id
+            columnDataType: varchar(100)
+      rollback:
+        - addNotNullConstraint:
+            tableName: operator_registry
+            columnName: operator_id
+            columnDataType: varchar(100)
