@@ -18,6 +18,7 @@ import vn.viettel.vds.promotion.validation.event.ValidationRuleSettingAppliedEve
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -138,6 +139,7 @@ public class SettingValidationRuleEventPublisher {
                         .ruleId(binding.getRuleId())
                         .ruleCode(result.getResolvedRule() != null ? result.getResolvedRule().getCode() : null)
                         .description(result.getResolvedRule() != null ? result.getResolvedRule().getDescription() : null)
+                        .fallbackErrorMessage(result.getResolvedRule() != null ? result.getResolvedRule().getFallbackErrorMessage() : null)
                         .bundleHash(binding.getBundleHash())
                         .sourceVersion(binding.getVersion())
                         .active(Boolean.TRUE.equals(binding.getActive()))
@@ -204,19 +206,35 @@ public class SettingValidationRuleEventPublisher {
             return Map.of();
         }
         Map<String, ReasonCodeConfig> map = new LinkedHashMap<>();
-        for (RuleNode node : rule.getNodes()) {
-            String reasonCode = node.getReasonCode();
-            if (node.getType() != RuleNode.NodeType.COND
-                    || reasonCode == null || reasonCode.isBlank()) {
+        collectReasonCodeConfig(rule.getNodes(), map);
+        return map;
+    }
+
+    /**
+     * Walk the node tree depth-first collecting per-reason-code display config from
+     * every COND node. A resolved rule loaded from persistence is a nested tree
+     * (root GROUP with COND children), so a flat top-level scan would miss the COND
+     * nodes and emit an empty map — recursion covers both flat and nested shapes.
+     */
+    private static void collectReasonCodeConfig(List<RuleNode> nodes, Map<String, ReasonCodeConfig> map) {
+        if (nodes == null) {
+            return;
+        }
+        for (RuleNode node : nodes) {
+            if (node == null) {
                 continue;
             }
-            ReasonCodeConfig incoming = ReasonCodeConfig.builder()
-                    .violationDisplayMode(node.getViolationDisplayMode())
-                    .errorMessage(node.getErrorMessage())
-                    .build();
-            map.merge(reasonCode, incoming, SettingValidationRuleEventPublisher::mergeHiddenPriority);
+            String reasonCode = node.getReasonCode();
+            if (node.getType() == RuleNode.NodeType.COND
+                    && reasonCode != null && !reasonCode.isBlank()) {
+                ReasonCodeConfig incoming = ReasonCodeConfig.builder()
+                        .violationDisplayMode(node.getViolationDisplayMode())
+                        .errorMessage(node.getErrorMessage())
+                        .build();
+                map.merge(reasonCode, incoming, SettingValidationRuleEventPublisher::mergeHiddenPriority);
+            }
+            collectReasonCodeConfig(node.getChildren(), map);
         }
-        return map;
     }
 
     private static ReasonCodeConfig mergeHiddenPriority(ReasonCodeConfig existing, ReasonCodeConfig incoming) {

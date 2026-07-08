@@ -20,6 +20,9 @@ public interface ValidationEngineClient {
     @PostMapping("/v1/compiler/compile")
     ResponseTemplate<CompileResponse> compile(@RequestBody CompileRequest request);
 
+    @PostMapping("/v1/compile/validation")
+    ResponseTemplate<CompileResponse> compileValidation(@RequestBody ValidationCompileRequest request);
+
     @PostMapping("/v1/execute")
     ResponseTemplate<ExecuteResponse> execute(@RequestBody ExecuteRequest request);
 

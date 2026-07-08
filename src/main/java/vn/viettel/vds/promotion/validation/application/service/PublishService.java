@@ -1,9 +1,7 @@
 package vn.viettel.vds.promotion.validation.application.service;
 
-import com.promix.platform.outbox.spi.OutboxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.application.port.out.PublishJobPersistencePort;
@@ -29,8 +27,6 @@ public class PublishService {
     private final PublishJobPersistencePort publishJobPersistencePort;
     private final OperatorService operatorService;
     private final RuleValidationService ruleValidationService;
-    private final OutboxService outboxService;
-    private final String validationEventTopic;
     private final PublishService self;
 
     public PublishService(RuleService ruleService,
@@ -38,16 +34,12 @@ public class PublishService {
                           PublishJobPersistencePort publishJobPersistencePort,
                           OperatorService operatorService,
                           RuleValidationService ruleValidationService,
-                          OutboxService outboxService,
-                          @Value("${kafka.topics.validation-event}") String validationEventTopic,
                           @org.springframework.context.annotation.Lazy PublishService self) {
         this.ruleService = ruleService;
         this.ruleVersionPersistencePort = ruleVersionPersistencePort;
         this.publishJobPersistencePort = publishJobPersistencePort;
         this.operatorService = operatorService;
         this.ruleValidationService = ruleValidationService;
-        this.outboxService = outboxService;
-        this.validationEventTopic = validationEventTopic;
         this.self = self;
     }
 
@@ -205,32 +197,10 @@ public class PublishService {
                         .build();
                 publishJobPersistencePort.save(completedJob);
 
-                // Publish outbox event — include all rule fields so downstream services
-                // (audit log, search index) have full context without a follow-up fetch.
-                // context / description / fallbackErrorMessage may be null for older rules.
-                Map<String, Object> eventPayload = new HashMap<>();
-                eventPayload.put("ruleId", rule.getId());
-                eventPayload.put("ruleVersion", job.getTargetVersion());
-                eventPayload.put("code", rule.getCode());
-                eventPayload.put("publishedBy", job.getRequestedBy());
-                eventPayload.put("publishedAt", job.getCompletedAt().toString());
-                if (rule.getContext() != null) {
-                    eventPayload.put("context", rule.getContext());
-                }
-                if (rule.getDescription() != null) {
-                    eventPayload.put("description", rule.getDescription());
-                }
-                if (rule.getFallbackErrorMessage() != null) {
-                    eventPayload.put("fallbackErrorMessage", rule.getFallbackErrorMessage());
-                }
-
-                outboxService.createEvent(
-                        "Rule",                          // aggregateType
-                        rule.getId(),                    // aggregateId
-                        "rule.published",                // eventType
-                        eventPayload,                    // payload
-                        validationEventTopic             // destination (Kafka topic)
-                );
+                // Không phát event "rule.published" nữa: đó là event orphan (payload Map thô,
+                // type không đăng ký trong ValidationEvent @JsonSubTypes, không consumer nào) —
+                // nếu phát sẽ gây lỗi consumer rule-engine trên topic validation dùng chung.
+                // Việc publish rule đã đổi trạng thái qua ruleService.markRuleAsPublished ở trên.
 
                 logger.info("Publish job completed successfully: id={}, version={}", jobId, job.getTargetVersion());
 

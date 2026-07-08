@@ -20,8 +20,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
-
-import java.util.Map;
+import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent;
 
 import java.time.Instant;
 import java.util.List;
@@ -116,9 +115,9 @@ class RuleServiceTest {
         // RuleService uses @Lazy self-injection for transactional proxying.
         // In unit tests without Spring context, we pass 'sut' itself as the self reference.
         // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, EVENT_TOPIC);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, null, EVENT_TOPIC);
         // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, sut, null, EVENT_TOPIC);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, sut, null, null, EVENT_TOPIC);
     }
 
     // ========================================================================
@@ -748,14 +747,17 @@ class RuleServiceTest {
             // When
             sut.deleteRule("r1", 1L);
 
-            // Then — the delete event payload carries the ruleId + deletedAt
+            // Then — the delete event is a typed ValidationRuleDeletedEvent envelope
+            // (type discriminator "ValidationRuleDeletedEvent") carrying the ruleId +
+            // deletedAt, not a raw Map missing the "type" field the consumer needs.
             verify(outboxService).createEvent(
                     eq("ValidationRule"),
                     eq("r1"),
                     eq("VALIDATION_RULE_DELETED"),
-                    argThat(p -> p instanceof Map
-                            && "r1".equals(((Map<?, ?>) p).get("ruleId"))
-                            && ((Map<?, ?>) p).containsKey("deletedAt")),
+                    argThat(p -> p instanceof ValidationRuleDeletedEvent event
+                            && "ValidationRuleDeletedEvent".equals(event.getType())
+                            && "r1".equals(event.getValidationRuleId())
+                            && event.getDeletedAt() != null),
                     eq(EVENT_TOPIC));
         }
     }

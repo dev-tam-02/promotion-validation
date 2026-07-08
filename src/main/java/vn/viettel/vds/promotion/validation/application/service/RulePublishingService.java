@@ -642,60 +642,13 @@ public class RulePublishingService {
     }
 
     /**
-     * Convert RuleNode tree to flat list of RuleNodeDto
-     * IMPORTANT: Must flatten the tree recursively to include ALL nodes
+     * Convert RuleNode tree to flat list of RuleNodeDto (recursively, to include
+     * ALL nodes). Delegates to {@link RuleNodeDtoMapper} so this combined-compile
+     * path and the eager standalone-validation compile path in {@link RuleService}
+     * build nodes with identical shape/keys.
      */
     private List<RuleNodeDto> convertToNodeDtos(List<RuleNode> nodes) {
-        List<RuleNodeDto> dtos = new ArrayList<>();
-
-        for (RuleNode node : nodes) {
-            // Add current node
-            List<String> childIds = convertChildrenToIds(node);
-            RuleNodeDto dto = createRuleNodeDto(node, childIds);
-            dtos.add(dto);
-
-            // Recursively add all children nodes (FLATTEN TREE)
-            if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-                List<RuleNodeDto> childDtos = convertToNodeDtos(node.getChildren());
-                dtos.addAll(childDtos);
-            }
-        }
-
-        return dtos;
-    }
-
-    private List<String> convertChildrenToIds(RuleNode node) {
-        List<String> childIds = null;
-        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
-            childIds = new ArrayList<>();
-            for (RuleNode child : node.getChildren()) {
-                childIds.add(child.getId());
-            }
-        }
-        return childIds;
-    }
-
-    private RuleNodeDto createRuleNodeDto(RuleNode node, List<String> childIds) {
-        RuleNodeDto dto = new RuleNodeDto();
-        dto.setId(node.getId());
-        dto.setType(node.getType() != null ? node.getType().name() : null);
-        dto.setGroupLogic(node.getGroupLogic() != null ? node.getGroupLogic().name() : null);
-        dto.setOperatorName(node.getOperatorName());
-
-        // Set operatorVersion = 1 for COND nodes (required by validation-engine)
-        if (node.getType() == RuleNode.NodeType.COND && node.getOperatorName() != null) {
-            dto.setOperatorVersion(1);
-        }
-
-        // Only set params if not null AND not empty (avoid empty {} for GROUP nodes)
-        if (node.getParams() != null && !node.getParams().isEmpty()) {
-            dto.setParams(node.getParams());
-        }
-
-        dto.setReasonCode(node.getReasonCode());
-        dto.setChildren(childIds);
-        dto.setOrder(null); // Not available in current model
-        return dto;
+        return RuleNodeDtoMapper.flatten(nodes);
     }
 
     private String generateOperatorFingerprint(List<RuleNode> nodes) {
