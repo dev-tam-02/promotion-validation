@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse;
+import vn.viettel.vds.promotion.validation.adapter.out.external.ExternalServiceFeignErrorDecoder.ExternalServiceException;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidationCompileRequest;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
@@ -684,7 +685,11 @@ public class RuleService {
             List<Map<String, Object>> nodes = RuleNodeDtoMapper.toNodeMaps(rule.getNodes());
             validationEngineClient.compileValidation(new ValidationCompileRequest(rule.getId(), nodes));
             logger.info("Eager validation compile triggered: ruleId={}, nodeCount={}", rule.getId(), nodes.size());
-        } catch (FeignException e) {
+        } catch (FeignException | ExternalServiceException e) {
+            // ExternalServiceFeignErrorDecoder maps a 4xx/5xx from pp-rule-engine to an
+            // ExternalServiceException (a RuntimeException, NOT a FeignException), so catching
+            // only FeignException let a compile rejection escape and turn a best-effort eager
+            // compile into a 500 on rule create/update. Keep it non-fatal per the method contract.
             logger.warn("Eager validation compile failed (non-fatal), ruleId={}: {}", rule.getId(), e.getMessage());
         }
     }
