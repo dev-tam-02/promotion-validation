@@ -13,6 +13,8 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Op
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorOptionJpaRepository;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import com.promix.platform.validation.condition.CanonicalOperatorName;
+import com.promix.platform.validation.condition.ConditionOperator;
+import com.promix.platform.validation.condition.ConditionValueValidator;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
 import java.util.List;
@@ -45,6 +47,10 @@ public class RuleNodeSchemaValidator {
      */
     private static final Set<String> METADATA_ACCESS_REQUIRED_PARAMS =
             Set.of("schema_type", "field_key", "data_type");
+
+    /** Key params chuẩn hoá theo ValueShape (SINGLE/RANGE → "value", MULTI → "values"). */
+    private static final String VALUE = "value";
+    private static final String VALUES = "values";
 
     private final OperatorOptionJpaRepository operatorOptionRepo;
     private final ObjectMapper objectMapper;
@@ -128,39 +134,43 @@ public class RuleNodeSchemaValidator {
             return;
         }
 
+        // Operator đã chuẩn hoá theo ValueShape: params mang "value"/"values" → validate
+        // shape bằng ConditionValueValidator (một nguồn chân lý duy nhất), bỏ qua
+        // params_schema cũ vốn khai theo key semantic (amount/segments/min/max). Operator
+        // CHƯA chuẩn hoá (aggregate/api_key/user/boolean...) rơi xuống path params_schema
+        // legacy bên dưới. metadata.access đã được bắt ở nhánh trên nên không lọt vào đây.
+        var params = cond.getParams();
+        boolean canonicalValueShape = params != null
+                && (params.containsKey(VALUE) || params.containsKey(VALUES));
+        Optional<String> comparatorOpt = CanonicalOperatorName.comparatorFromOperatorName(operatorName);
+        if (canonicalValueShape && comparatorOpt.isPresent()) {
+            ConditionOperator operator;
+            try {
+                operator = ConditionOperator.valueOf(comparatorOpt.get());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidRuleStructureException(cond.getId(),
+                        "Unknown comparator '" + comparatorOpt.get() + "' in operator '" + operatorName + "'");
+            }
+            ensureOperatorExists(cond, operatorName);
+            Object operand = switch (operator.valueShape()) {
+                case MULTI -> params.get(VALUES);
+                case SINGLE, RANGE -> params.get(VALUE);
+                case NONE -> null;
+            };
+            ConditionValueValidator.validate(operator, operand).ifPresent(msg -> {
+                throw new InvalidRuleStructureException(cond.getId(),
+                        "params invalid for operator '" + operatorName + "': " + msg);
+            });
+            return;
+        }
+
+        // --- Legacy path: operator chưa chuẩn hoá params (aggregate/api_key/user/boolean...) ---
         enforceRangeOrder(cond);
 
-        String canonical = stripComparatorSuffix(operatorName);
-
-        // PROM-985: thử khớp CHÍNH XÁC operatorName trước. Một số field-path có đoạn
-        // cuối trông giống canonical (hiếm) nhưng thực ra là PHẦN của tên field trong
-        // operator_options. Vì canonical là SCREAMING_SNAKE (vd GREATER_OR_EQUAL),
-        // còn field-path là lower_snake (vd budget.redemptions...) nên va chạm gần như
-        // không xảy ra; vẫn thử khớp chính xác trước rồi mới fallback về tên đã strip
-        // ("order.total.GREATER_OR_EQUAL" -> "order.total").
-        Optional<OperatorOptionEntity> optionOpt =
-                operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(operatorName);
-        if (optionOpt.isEmpty()) {
-            optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
-        }
-        if (optionOpt.isEmpty()) {
-            // A row may store a suffixed canonical (e.g. operator_name="order.total.gte").
-            // A different comparator on the same field (e.g. "order.total.between") shares
-            // the canonical base, so resolve by canonical prefix to reuse that row's
-            // params_schema instead of failing as "unknown operator".
-            optionOpt = operatorOptionRepo
-                    .findFirstByOperatorNameStartingWithOrderByDisplayOrderAsc(canonical + ".");
-        }
-        if (optionOpt.isEmpty()) {
-            throw new InvalidRuleStructureException(
-                    cond.getId(),
-                    "Unknown operator: '" + operatorName + "' (canonical='" + canonical + "' not found in operator_options)");
-        }
-
-        OperatorOptionEntity option = optionOpt.get();
+        OperatorOptionEntity option = ensureOperatorExists(cond, operatorName);
         String schemaJson = option.getParamsSchema();
         if (schemaJson == null || schemaJson.isBlank()) {
-            log.debug("No params_schema for operator={}, skipping schema validation", canonical);
+            log.debug("No params_schema for operator={}, skipping schema validation", operatorName);
             return;
         }
 
@@ -169,10 +179,10 @@ public class RuleNodeSchemaValidator {
             JsonNode schemaNode = objectMapper.readTree(schemaJson);
             schema = schemaFactory.getSchema(schemaNode);
         } catch (Exception e) {
-            log.error("Malformed params_schema for operator={}", canonical, e);
+            log.error("Malformed params_schema for operator={}", operatorName, e);
             throw new InvalidRuleStructureException(
                     cond.getId(),
-                    "Operator '" + canonical + "' has a malformed params_schema in the database (admin must fix)");
+                    "Operator '" + operatorName + "' has a malformed params_schema in the database (admin must fix)");
         }
 
         JsonNode paramsNode = objectMapper.valueToTree(cond.getParams() != null ? cond.getParams() : java.util.Map.of());
@@ -186,6 +196,30 @@ public class RuleNodeSchemaValidator {
                     cond.getId(),
                     "params do not match schema for operator '" + operatorName + "': " + msg);
         }
+    }
+
+    /**
+     * Resolve the {@link OperatorOptionEntity} backing this operator (exact name →
+     * canonical base → canonical-prefixed row), throwing when none exists. Shared by
+     * the canonical-shape path (existence check) and the legacy params_schema path.
+     */
+    private OperatorOptionEntity ensureOperatorExists(RuleNode cond, String operatorName) {
+        String canonical = stripComparatorSuffix(operatorName);
+        Optional<OperatorOptionEntity> optionOpt =
+                operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(operatorName);
+        if (optionOpt.isEmpty()) {
+            optionOpt = operatorOptionRepo.findFirstByOperatorNameOrderByDisplayOrderAsc(canonical);
+        }
+        if (optionOpt.isEmpty()) {
+            optionOpt = operatorOptionRepo
+                    .findFirstByOperatorNameStartingWithOrderByDisplayOrderAsc(canonical + ".");
+        }
+        if (optionOpt.isEmpty()) {
+            throw new InvalidRuleStructureException(
+                    cond.getId(),
+                    "Unknown operator: '" + operatorName + "' (canonical='" + canonical + "' not found in operator_options)");
+        }
+        return optionOpt.get();
     }
 
     /**
