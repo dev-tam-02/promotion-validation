@@ -172,9 +172,11 @@ class RuleServiceEagerCompileTest {
                 List.of(condNode("n1", "op-vip", "NOT_VIP")), "admin"))
                 .doesNotThrowAnyException();
 
-        // and the outbox event was still published (create is not rolled back)
+        // and the outbox event was still published (create is not rolled back).
+        // createRule uses the 7-arg overload carrying payloadType=ValidationEvent.class (see
+        // outbox double-encode fix) — the trailing any()/any() cover the nullable key + payloadType.
         verify(outboxService).createEvent(eq("ValidationRule"), anyString(),
-                eq("VALIDATION_RULE_CREATED"), any(), eq(EVENT_TOPIC));
+                eq("VALIDATION_RULE_CREATED"), any(), eq(EVENT_TOPIC), any(), any());
     }
 
     @Test
