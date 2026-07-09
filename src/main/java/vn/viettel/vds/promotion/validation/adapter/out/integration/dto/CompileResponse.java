@@ -38,6 +38,16 @@ public class CompileResponse {
     @JsonProperty("errors")
     private List<String> errors;
 
+    // The following two fields mirror pp-rule-engine's CompileResponse wire contract
+    // ({bundleHash, engine, size, logs, drlContent}). They are modelled explicitly so the
+    // strict (fail-on-unknown) ObjectMapper can decode the engine's response instead of failing.
+    @Schema(description = "Rule engine descriptor")
+    @JsonProperty("engine")
+    private Engine engine;
+
+    @Schema(description = "Compiled bundle size in bytes", example = "3404")
+    @JsonProperty("size")
+    private Long size;
 
     private String drlContent;
 
@@ -113,5 +123,48 @@ public class CompileResponse {
 
     public void setDrlContent(String drlContent) {
         this.drlContent = drlContent;
+    }
+
+    public Engine getEngine() {
+        return engine;
+    }
+
+    public void setEngine(Engine engine) {
+        this.engine = engine;
+    }
+
+    public Long getSize() {
+        return size;
+    }
+
+    public void setSize(Long size) {
+        this.size = size;
+    }
+
+    @Schema(description = "Rule engine descriptor (type + version)")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Engine {
+
+        @JsonProperty("type")
+        private String type;
+
+        @JsonProperty("droolsVersion")
+        private String droolsVersion;
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public String getDroolsVersion() {
+            return droolsVersion;
+        }
+
+        public void setDroolsVersion(String droolsVersion) {
+            this.droolsVersion = droolsVersion;
+        }
     }
 }
