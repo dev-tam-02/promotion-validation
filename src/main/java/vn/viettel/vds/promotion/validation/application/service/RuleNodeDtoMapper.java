@@ -56,7 +56,7 @@ final class RuleNodeDtoMapper {
 
     private static List<String> convertChildrenToIds(RuleNode node) {
         if (node.getChildren() == null || node.getChildren().isEmpty()) {
-            return null;
+            return List.of();
         }
         List<String> childIds = new ArrayList<>();
         for (RuleNode child : node.getChildren()) {
@@ -83,7 +83,9 @@ final class RuleNodeDtoMapper {
         }
 
         dto.setReasonCode(node.getReasonCode());
-        dto.setChildren(childIds);
+        // Preserve prior behavior: leaf/childless nodes serialize with children unset (null),
+        // not an empty "children":[] — the rule-engine COND shape depends on it.
+        dto.setChildren(childIds.isEmpty() ? null : childIds);
         return dto;
     }
 
