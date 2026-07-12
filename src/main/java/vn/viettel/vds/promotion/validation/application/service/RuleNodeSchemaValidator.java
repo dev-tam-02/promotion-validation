@@ -13,10 +13,12 @@ import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.Op
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository.OperatorOptionJpaRepository;
 import vn.viettel.vds.promotion.validation.domain.exception.InvalidRuleStructureException;
 import com.promix.platform.validation.condition.CanonicalOperatorName;
+import com.promix.platform.validation.condition.ConditionConstraintValidator;
 import com.promix.platform.validation.condition.ConditionOperator;
 import com.promix.platform.validation.condition.ConditionValueValidator;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -260,6 +262,14 @@ public class RuleNodeSchemaValidator {
         Object max = params.get("max");
         if (min instanceof Number minNum && max instanceof Number maxNum
                 && minNum.doubleValue() > maxNum.doubleValue()) {
+            throw new InvalidRuleStructureException(
+                    cond.getId(), "Range invalid: 'min' must be less than or equal to 'max'");
+        }
+        // Range NGÀY/NGÀY-GIỜ: min/max là chuỗi ngày → dùng CHUNG parser của promix
+        // (một nguồn định dạng ngày) để so sánh thứ tự nếu cả hai parse được.
+        LocalDateTime minDate = ConditionConstraintValidator.parseTemporal(min);
+        LocalDateTime maxDate = ConditionConstraintValidator.parseTemporal(max);
+        if (minDate != null && maxDate != null && minDate.isAfter(maxDate)) {
             throw new InvalidRuleStructureException(
                     cond.getId(), "Range invalid: 'min' must be less than or equal to 'max'");
         }
