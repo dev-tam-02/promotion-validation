@@ -29,7 +29,7 @@ class ErrorMessagesPropertiesTest {
     @Test
     void ruleHasBindingsKeyIsVietnameseAndPresent() throws Exception {
         assertThat(load().getProperty("RULE_HAS_BINDINGS"))
-                .isEqualTo("Không thể xóa quy tắc kiểm tra hợp lệ đang được gán cho chiến dịch.");
+                .isEqualTo("Quy tắc đã được gán cho chiến dịch, không thể xóa");
     }
 
     @Test
