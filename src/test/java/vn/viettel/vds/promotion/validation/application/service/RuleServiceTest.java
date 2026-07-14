@@ -20,6 +20,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.RulePersistenceP
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
+import vn.viettel.vds.promotion.validation.event.ValidationEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent;
 
 import java.time.Instant;
@@ -650,7 +651,8 @@ class RuleServiceTest {
 
             // Verify outbox event VALIDATION_RULE_DELETED is emitted via promix outbox
             verify(outboxService).createEvent(
-                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC));
+                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC),
+                    isNull(), eq(ValidationEvent.class));
         }
 
         @Test
@@ -712,7 +714,8 @@ class RuleServiceTest {
             // Then — should still proceed via soft-delete (archive to shadow tables)
             verify(rulePersistencePort).softDelete("r1", 1L);
             verify(outboxService).createEvent(
-                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC));
+                    eq("ValidationRule"), eq("r1"), eq("VALIDATION_RULE_DELETED"), any(), eq(EVENT_TOPIC),
+                    isNull(), eq(ValidationEvent.class));
         }
 
         @Test
@@ -732,7 +735,7 @@ class RuleServiceTest {
             assertThatThrownBy(() -> sut.deleteRule("r1", 1L))
                     .isInstanceOf(RuleVersionConflictException.class);
 
-            verify(outboxService, never()).createEvent(any(), any(), any(), any(), any());
+            verify(outboxService, never()).createEvent(any(), any(), any(), any(), any(), any(), any());
         }
 
         @Test
@@ -758,7 +761,8 @@ class RuleServiceTest {
                             && "ValidationRuleDeletedEvent".equals(event.getType())
                             && "r1".equals(event.getValidationRuleId())
                             && event.getDeletedAt() != null),
-                    eq(EVENT_TOPIC));
+                    eq(EVENT_TOPIC),
+                    isNull(), eq(ValidationEvent.class));
         }
     }
 

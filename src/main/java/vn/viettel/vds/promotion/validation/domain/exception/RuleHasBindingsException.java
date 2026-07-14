@@ -15,6 +15,6 @@ public class RuleHasBindingsException extends BadRequestException {
 
     public RuleHasBindingsException(String ruleId, long bindingCount) {
         super(ERROR_CODE,
-                String.format("Rule '%s' cannot be deleted: it is assigned to %d campaign(s)", ruleId, bindingCount));
+                "Quy tắc đã được gán cho chiến dịch, không thể xóa");
     }
 }

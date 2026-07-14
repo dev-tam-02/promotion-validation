@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -117,7 +118,8 @@ class RuleServiceEventTest {
         // then
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(outboxService).createEvent(eq("ValidationRule"), anyString(),
-                eq("VALIDATION_RULE_CREATED"), payloadCaptor.capture(), eq(EVENT_TOPIC));
+                eq("VALIDATION_RULE_CREATED"), payloadCaptor.capture(), eq(EVENT_TOPIC),
+                isNull(), eq(ValidationEvent.class));
         Object payload = payloadCaptor.getValue();
         assertThat(payload).isInstanceOf(ValidationRuleCreatedEvent.class);
 
@@ -145,7 +147,8 @@ class RuleServiceEventTest {
         // then
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(outboxService).createEvent(eq("ValidationRule"), eq("r1"),
-                eq("VALIDATION_RULE_UPDATED"), payloadCaptor.capture(), eq(EVENT_TOPIC));
+                eq("VALIDATION_RULE_UPDATED"), payloadCaptor.capture(), eq(EVENT_TOPIC),
+                isNull(), eq(ValidationEvent.class));
         Object payload = payloadCaptor.getValue();
         assertThat(payload).isInstanceOf(ValidationRuleUpdatedEvent.class);
 
@@ -171,7 +174,8 @@ class RuleServiceEventTest {
         // then
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(outboxService).createEvent(eq("ValidationRule"), eq("r1"),
-                eq("VALIDATION_RULE_DELETED"), payloadCaptor.capture(), eq(EVENT_TOPIC));
+                eq("VALIDATION_RULE_DELETED"), payloadCaptor.capture(), eq(EVENT_TOPIC),
+                isNull(), eq(ValidationEvent.class));
         Object payload = payloadCaptor.getValue();
         assertThat(payload).isInstanceOf(ValidationRuleDeletedEvent.class);
 
