@@ -730,7 +730,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
+            throw RuleNotFoundException.byField(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get the rule from binding (first active binding)
@@ -750,7 +750,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findByObject(objectType, objectId);
 
         if (bindings.isEmpty()) {
-            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
+            throw RuleNotFoundException.byField(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get all rules from bindings
@@ -784,7 +784,7 @@ public class RuleService {
         List<RuleBinding> bindings = ruleBindingPort.findActiveByObject(objectType, objectId);
         if (bindings.isEmpty()) {
             logger.warn("No active binding found for object: type={}, id={}", objectType, objectId);
-            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
+            throw RuleNotFoundException.byField(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         // Get first binding (highest priority active binding)
@@ -793,7 +793,7 @@ public class RuleService {
         // Check if binding has bundleHash
         if (binding.getBundleHash() == null || binding.getBundleHash().isEmpty()) {
             logger.warn("Binding has no bundleHash: bindingId={}", binding.getId());
-            throw new RuleNotFoundException(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
+            throw RuleNotFoundException.byField(OBJECT_RESOURCE_TYPE, objectType + ":" + objectId);
         }
 
         logger.debug("Found bundle hash {} for object {}:{}",

@@ -9,9 +9,10 @@ import com.promix.platform.core.exception.ResourceNotFoundException;
 public class RuleNotFoundException extends ResourceNotFoundException {
 
     private static final String ERROR_CODE = "VALIDATION_RULE_NOT_FOUND";
+    private static final String RESOURCE_TYPE = "ValidationRule";
 
     public RuleNotFoundException(String ruleId) {
-        super(ERROR_CODE, "ValidationRule", ruleId);
+        super(ERROR_CODE, RESOURCE_TYPE, ruleId);
     }
 
     /**
@@ -24,11 +25,17 @@ public class RuleNotFoundException extends ResourceNotFoundException {
      * copy here so it is what the client sees. (PROM-1229)
      */
     public RuleNotFoundException(String ruleId, String userMessage) {
-        super(ERROR_CODE, "ValidationRule", ruleId, userMessage);
+        super(ERROR_CODE, RESOURCE_TYPE, ruleId, userMessage);
     }
 
-    public RuleNotFoundException(String field, String value) {
-        super(ERROR_CODE, "ValidationRule", value,
+    /**
+     * Not-found described by an arbitrary lookup field/value pair (e.g. object
+     * type + id) instead of a rule id. Exposed as a static factory so it does
+     * not clash with the {@code (ruleId, userMessage)} constructor above, which
+     * shares the erased {@code (String, String)} signature.
+     */
+    public static RuleNotFoundException byField(String field, String value) {
+        return new RuleNotFoundException(value,
                 String.format("Rule not found with %s: %s", field, value));
     }
 }
