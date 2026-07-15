@@ -35,7 +35,7 @@ class ErrorMessagesPropertiesTest {
     @Test
     void conflictedKeyIsVietnameseAndPresent() throws Exception {
         assertThat(load().getProperty("CONFLICTED"))
-                .isEqualTo("Quy tắc kiểm tra hợp lệ đã bị thay đổi bởi người dùng khác. Vui lòng tải lại và thử lại.");
+                .isEqualTo("Dữ liệu đã bị thay đổi bởi người dùng khác. Vui lòng tải lại trang và thử lại.");
     }
 
     @Test
