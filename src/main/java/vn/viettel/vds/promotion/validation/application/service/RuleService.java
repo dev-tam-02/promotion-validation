@@ -55,6 +55,12 @@ public class RuleService {
     private static final String RULE_AGGREGATE_TYPE = "ValidationRule";
     private static final String RULE_EVENT_SOURCE = "pp-validation";
 
+    // SRS VRUL005 Bước 5 (PROM-1229): quy tắc không tồn tại/đã bị user khác xóa →
+    // toast tiếng Việt. Truyền tường minh vào exception vì BaseExceptionHandler ưu
+    // tiên message của exception hơn bundle error_messages.properties (mirror PROM-1230).
+    private static final String RULE_NOT_FOUND_MESSAGE =
+            "Quy tắc kiểm tra hợp lệ không tồn tại hoặc đã bị xóa.";
+
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
                        OutboxService outboxService,
@@ -479,7 +485,7 @@ public class RuleService {
         Rule rule = rulePersistencePort.findById(ruleId)
                 .orElseThrow(() -> {
                     logger.warn("Rule not found for delete: id={}", ruleId);
-                    return new RuleNotFoundException(ruleId);
+                    return new RuleNotFoundException(ruleId, RULE_NOT_FOUND_MESSAGE);
                 });
 
         // Step 2: Guard — system rules cannot be deleted

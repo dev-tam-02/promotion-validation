@@ -661,9 +661,12 @@ class RuleServiceTest {
             // Given
             when(rulePersistencePort.findById("nonexistent")).thenReturn(Optional.empty());
 
-            // When & Then
+            // When & Then — PROM-1229: message phải là copy tiếng Việt SRS VRUL005
+            // (BaseExceptionHandler leak message của exception ra toast CMS), không
+            // được là default "English + UUID" của ResourceNotFoundException 3-arg.
             assertThatThrownBy(() -> sut.deleteRule("nonexistent", 1L))
-                    .isInstanceOf(RuleNotFoundException.class);
+                    .isInstanceOf(RuleNotFoundException.class)
+                    .hasMessageContaining("Quy tắc kiểm tra hợp lệ không tồn tại hoặc đã bị xóa");
 
             verify(rulePersistencePort, never()).softDelete(any(), anyLong());
         }
