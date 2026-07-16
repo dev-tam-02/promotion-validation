@@ -2,6 +2,8 @@ package vn.viettel.vds.promotion.validation.domain.exception;
 
 import com.promix.platform.core.exception.BadRequestException;
 
+import java.util.Map;
+
 /**
  * Exception thrown when attempting to delete a rule that is still assigned to campaigns.
  * <p>
@@ -15,6 +17,7 @@ public class RuleHasBindingsException extends BadRequestException {
 
     public RuleHasBindingsException(String ruleId, long bindingCount) {
         super(ERROR_CODE,
-                "Quy tắc đã được gán cho chiến dịch, không thể xóa");
+                "Quy tắc đã được gán cho chiến dịch, không thể xóa",
+                Map.of("ruleId", ruleId, "bindingCount", bindingCount));
     }
 }
