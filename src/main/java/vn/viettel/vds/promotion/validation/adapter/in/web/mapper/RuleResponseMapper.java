@@ -78,6 +78,21 @@ public class RuleResponseMapper {
     }
 
     /**
+     * Overload for detail views that need the assignment count. The base
+     * {@link #toRuleResponse(Rule)} leaves {@code assignmentCount} null (the count
+     * is only computed on the list path via a correlated subquery), so the detail
+     * "Trạng thái" badge would always render "Chưa gán". Callers pass the active
+     * binding count so the badge reflects the real usage status.
+     */
+    public RuleResponse toRuleResponse(@Nullable Rule rule, long assignmentCount) {
+        RuleResponse response = toRuleResponse(rule);
+        if (response != null) {
+            response.setAssignmentCount(assignmentCount);
+        }
+        return response;
+    }
+
+    /**
      * Converts a Rule domain model to a light-weight {@link RuleListItemResponse} for list views.
      *
      * <p>Omits heavy fields (description, fallbackErrorMessage, nodes, notes, limits, logic)

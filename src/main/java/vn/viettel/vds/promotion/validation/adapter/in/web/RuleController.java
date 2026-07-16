@@ -143,7 +143,11 @@ public class RuleController {
         logger.info("Getting rule: id={}", trimmedRuleId);
 
         Rule rule = ruleService.getRuleById(trimmedRuleId);
-        return ruleMapper.toRuleResponse(rule);
+        // Populate assignmentCount so the detail "Trạng thái" badge reflects real
+        // usage (Đã gán/Chưa gán); the base mapper leaves it null, which would
+        // always render "Chưa gán" even when the rule is bound to campaigns.
+        long assignmentCount = ruleService.countBindingsForRule(trimmedRuleId);
+        return ruleMapper.toRuleResponse(rule, assignmentCount);
     }
 
     @Operation(summary = "List rules", description = "List rules with optional filtering and pagination")
