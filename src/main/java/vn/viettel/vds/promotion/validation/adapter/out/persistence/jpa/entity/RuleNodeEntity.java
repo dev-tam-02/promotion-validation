@@ -41,6 +41,11 @@ public class RuleNodeEntity extends BaseEntity {
     @Column(name = "node_order")
     private Integer order;
 
+    // Alias of node_order per spec v2 (changelog 026): sibling position within parent.
+    // Kept in sync with `order` on every save so the column is not left at DB default 0 (PROM-1350).
+    @Column(name = "display_order")
+    private Integer displayOrder;
+
     @Column(name = "operator_name", length = 100)
     private String operatorName; // (for COND type)
 
