@@ -121,7 +121,9 @@ public class RuleJpaAdapter implements RulePersistencePort {
     }
 
     private Map<String, RuleNode> buildNodeMap(List<RuleNode> nodes) {
-        Map<String, RuleNode> nodeMap = new HashMap<>();
+        // LinkedHashMap: preserve encounter order so root node_order is deterministic and
+        // follows the tree layout (a plain HashMap scrambled root order — PROM-1350).
+        Map<String, RuleNode> nodeMap = new LinkedHashMap<>();
         collectNodes(nodes, nodeMap);
         return nodeMap;
     }
@@ -186,6 +188,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
             existing.setParent(parentEntity);
             existing.setValidationRule(ctx.ruleRef());
             existing.setOrder(order);
+            existing.setDisplayOrder(order);
             toPersist = existing;
         } else {
             mapped.setId(UUID.randomUUID().toString());
@@ -193,6 +196,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
             // Persist sibling position so node_order reflects the order nodes were laid out
             // (roots by encounter order, children by their position within the GROUP).
             mapped.setOrder(order);
+            mapped.setDisplayOrder(order);
             toPersist = mapped;
         }
 
