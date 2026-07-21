@@ -1,0 +1,29 @@
+databaseChangeLog:
+  # ============================================================================
+  # PROM-1350: backfill rule_nodes.display_order.
+  #
+  # display_order is an alias of node_order (sibling position within the parent —
+  # see 026). RuleNodeEntity had no mapping for the column until the PROM-1350 fix,
+  # so every row written before it kept the DB default 0 while node_order was
+  # correct. New saves now write both, but existing rows stay wrong until the rule
+  # is edited again — this changeSet realigns them in place.
+  #
+  # Rows whose node_order is NULL (legacy, pre-026 data) are left untouched: there
+  # is no tree position to copy and 0 is as good a value as any.
+  # ============================================================================
+
+  - changeSet:
+      id: 084-backfill-rule-nodes-display-order
+      author: harley hoang
+      comment: "rule_nodes.display_order = node_order for rows saved before the PROM-1350 fix"
+      changes:
+        - sql:
+            sql: >-
+              UPDATE rule_nodes
+              SET display_order = node_order
+              WHERE node_order IS NOT NULL
+                AND (display_order IS NULL OR display_order <> node_order)
+      rollback:
+        # Irreversible by design: the pre-backfill value carried no information
+        # (it was the DB default, not a chosen order), so there is nothing to restore.
+        - empty

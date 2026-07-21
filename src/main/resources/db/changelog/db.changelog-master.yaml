@@ -300,3 +300,8 @@ databaseChangeLog:
   # description, en+vi) -> translations (OPERATOR_CATEGORY), then drop the columns.
   - include:
       file: db/changelog/changes/083-migrate-operator-categories-i18n-to-translations.yaml
+
+  # PROM-1350: realign rule_nodes.display_order with node_order for rows written
+  # before the entity mapped the column (they kept the DB default 0).
+  - include:
+      file: db/changelog/changes/084-backfill-rule-nodes-display-order.yaml

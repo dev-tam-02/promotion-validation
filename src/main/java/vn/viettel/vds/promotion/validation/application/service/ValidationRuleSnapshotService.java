@@ -361,6 +361,7 @@ public class ValidationRuleSnapshotService {
         snapshot.setGroupLogic(node.getGroupLogic());
         snapshot.setChildrenIds(node.getChildrenIds());
         snapshot.setOrder(node.getOrder());
+        snapshot.setDisplayOrder(node.getDisplayOrder());
         snapshot.setOperatorName(node.getOperatorName());
         snapshot.setParams(node.getParams());
         snapshot.setReasonCode(node.getReasonCode());
@@ -445,6 +446,11 @@ public class ValidationRuleSnapshotService {
                 node.setGroupLogic(nodeSnapshot.getGroupLogic());
                 node.setChildrenIds(nodeSnapshot.getChildrenIds());
                 node.setOrder(nodeSnapshot.getOrder());
+                // Snapshots taken before PROM-1350 carry no displayOrder; fall back to
+                // order so a revert never writes the column back to null/0.
+                node.setDisplayOrder(nodeSnapshot.getDisplayOrder() != null
+                        ? nodeSnapshot.getDisplayOrder()
+                        : nodeSnapshot.getOrder());
                 node.setOperatorName(nodeSnapshot.getOperatorName());
                 node.setParams(nodeSnapshot.getParams());
                 node.setReasonCode(nodeSnapshot.getReasonCode());

@@ -85,6 +85,9 @@ public class ValidationRuleSnapshotData {
         private String groupLogic;
         private List<String> childrenIds;
         private Integer order;
+        // Alias of order (rule_nodes.display_order). Captured/restored alongside it so a
+        // revert cannot leave the column behind at the DB default (PROM-1350).
+        private Integer displayOrder;
         private String operatorName;
         private Map<String, Object> params;
         private String reasonCode;
