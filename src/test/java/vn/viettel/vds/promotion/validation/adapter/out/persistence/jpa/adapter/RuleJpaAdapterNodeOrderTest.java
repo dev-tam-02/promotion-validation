@@ -101,12 +101,12 @@ class RuleJpaAdapterNodeOrderTest {
         org.mockito.Mockito.verify(nodeRepository, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
         List<RuleNodeEntity> saved = captor.getAllValues();
 
-        assertThat(saved).hasSize(5);
         // Every node: display_order set and equal to node_order (the fix).
-        assertThat(saved).allSatisfy(e -> {
-            assertThat(e.getDisplayOrder()).as("display_order must be persisted, not null").isNotNull();
-            assertThat(e.getDisplayOrder()).as("display_order must alias node_order").isEqualTo(e.getOrder());
-        });
+        assertThat(saved).hasSize(5)
+                .allSatisfy(e -> {
+                    assertThat(e.getDisplayOrder()).as("display_order must be persisted, not null").isNotNull();
+                    assertThat(e.getDisplayOrder()).as("display_order must alias node_order").isEqualTo(e.getOrder());
+                });
         // Sibling positions reflect the tree: not everything is 0 (the bug symptom).
         Map<String, Integer> orderByNode = saved.stream()
                 .collect(java.util.stream.Collectors.toMap(RuleNodeEntity::getNodeId, RuleNodeEntity::getOrder));
