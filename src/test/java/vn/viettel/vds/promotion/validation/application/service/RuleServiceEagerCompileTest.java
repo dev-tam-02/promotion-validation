@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidationCompileRequest;
+import vn.viettel.vds.promotion.validation.application.port.out.CampaignSchedulePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -55,17 +56,20 @@ class RuleServiceEagerCompileTest {
     private RuleBindingPersistencePort ruleBindingPort;
 
     @Mock
+    private CampaignSchedulePort campaignSchedulePort;
+
+    @Mock
     private com.promix.platform.outbox.spi.OutboxService outboxService;
 
     @Mock
     private ValidationEngineClient validationEngineClient;
 
     private RuleService newServiceUnderTest() {
-        RuleService withoutSelf = new RuleService(rulePersistencePort, ruleBindingPort, outboxService,
+        RuleService withoutSelf = new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService,
                 null, null, validationEngineClient, EVENT_TOPIC);
         // RuleService uses @Lazy self-injection for transactional proxying; in a unit
         // test without a Spring context, the service itself stands in as its own proxy.
-        return new RuleService(rulePersistencePort, ruleBindingPort, outboxService,
+        return new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService,
                 withoutSelf, null, validationEngineClient, EVENT_TOPIC);
     }
 
@@ -186,9 +190,9 @@ class RuleServiceEagerCompileTest {
         // other RuleService tests that pass null for optional collaborators).
         when(rulePersistencePort.existsByCode("RULE_003")).thenReturn(false);
         when(rulePersistencePort.save(any(Rule.class))).thenAnswer(inv -> inv.getArgument(0));
-        RuleService withoutSelf = new RuleService(rulePersistencePort, ruleBindingPort, outboxService,
+        RuleService withoutSelf = new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService,
                 null, null, null, EVENT_TOPIC);
-        RuleService service = new RuleService(rulePersistencePort, ruleBindingPort, outboxService,
+        RuleService service = new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService,
                 withoutSelf, null, null, EVENT_TOPIC);
 
         // when / then

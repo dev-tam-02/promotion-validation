@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleBindingEntity;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,6 +68,13 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
      * Find all active bindings for a specific rule
      */
     List<RuleBindingEntity> findByRuleIdAndActive(String ruleId, Boolean active);
+
+    /**
+     * Batch variant of {@link #findByRuleIdAndActive} — one query for a page of rules.
+     */
+    @Query("SELECT rb FROM RuleBindingEntity rb " +
+            "WHERE rb.ruleId IN :ruleIds AND rb.active = true")
+    List<RuleBindingEntity> findActiveByRuleIdIn(@Param("ruleIds") Collection<String> ruleIds);
 
     // ========== Find by Time Range ==========
 

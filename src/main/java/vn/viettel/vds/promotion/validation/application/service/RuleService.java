@@ -15,6 +15,7 @@ import vn.viettel.vds.promotion.validation.adapter.in.web.dto.BundleHashResponse
 import vn.viettel.vds.promotion.validation.adapter.out.external.ExternalServiceFeignErrorDecoder.ExternalServiceException;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.ValidationEngineClient;
 import vn.viettel.vds.promotion.validation.adapter.out.integration.dto.ValidationCompileRequest;
+import vn.viettel.vds.promotion.validation.application.port.out.CampaignSchedulePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
@@ -31,9 +32,13 @@ import vn.viettel.vds.promotion.validation.event.ValidationRuleUpdatedEventPaylo
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -45,6 +50,7 @@ public class RuleService {
 
     private final RulePersistencePort rulePersistencePort;
     private final RuleBindingPersistencePort ruleBindingPort;
+    private final CampaignSchedulePort campaignSchedulePort;
     private final OutboxService outboxService;
     private final RuleService self;
     private final RuleLinter ruleLinter;
@@ -63,6 +69,7 @@ public class RuleService {
 
     public RuleService(RulePersistencePort rulePersistencePort,
                        RuleBindingPersistencePort ruleBindingPort,
+                       CampaignSchedulePort campaignSchedulePort,
                        OutboxService outboxService,
                        @Lazy RuleService self,
                        RuleNodeSchemaValidator schemaValidator,
@@ -70,6 +77,7 @@ public class RuleService {
                        @Value("${kafka.topics.validation-event}") String validationEventTopic) {
         this.rulePersistencePort = rulePersistencePort;
         this.ruleBindingPort = ruleBindingPort;
+        this.campaignSchedulePort = campaignSchedulePort;
         this.outboxService = outboxService;
         this.self = self;
         this.ruleLinter = new RuleLinter();
@@ -220,6 +228,75 @@ public class RuleService {
     }
 
     /**
+     * Resolve which of the given rules may still be edited (SRS VRUL001 control 12,
+     * PROM-1112).
+     *
+     * <p>A rule is editable when it is not bound to any campaign, <em>or</em> every
+     * campaign it is bound to has not reached its effective start time yet. The
+     * binding row alone is not enough: {@code rule_bindings.active} is set to true
+     * the moment the rule is assigned, long before the campaign starts, so the
+     * campaign's own {@code start_from} (owned by pp-campaign) is the source of
+     * truth here — {@code rule_bindings.valid_from} is the coupon validity window
+     * and is frequently null.</p>
+     *
+     * <p>Fails closed: a campaign whose start time cannot be resolved (deleted, or
+     * pp-campaign unreachable) counts as already effective, so the rule stays locked.</p>
+     *
+     * @param ruleIds rules to evaluate
+     * @return the subset of {@code ruleIds} that may be edited
+     */
+    @Transactional(readOnly = true)
+    public Set<String> resolveEditableRuleIds(Collection<String> ruleIds) {
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return Set.of();
+        }
+
+        List<RuleBinding> activeBindings = ruleBindingPort.findActiveByRuleIdIn(ruleIds);
+        if (activeBindings.isEmpty()) {
+            return new HashSet<>(ruleIds);
+        }
+
+        Set<String> campaignIds = activeBindings.stream()
+                .map(RuleBinding::getObjectId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, Instant> startTimes = campaignSchedulePort.findStartTimes(campaignIds);
+
+        Instant now = Instant.now();
+        Map<String, List<RuleBinding>> bindingsByRule = activeBindings.stream()
+                .filter(binding -> binding.getRuleId() != null)
+                .collect(Collectors.groupingBy(RuleBinding::getRuleId));
+
+        Set<String> editable = new HashSet<>();
+        for (String ruleId : ruleIds) {
+            List<RuleBinding> bindings = bindingsByRule.get(ruleId);
+            if (bindings == null || bindings.isEmpty()
+                    || bindings.stream().allMatch(binding -> startsInFuture(binding, startTimes, now))) {
+                editable.add(ruleId);
+            }
+        }
+        return editable;
+    }
+
+    /**
+     * Single-rule variant of {@link #resolveEditableRuleIds(Collection)}.
+     */
+    @Transactional(readOnly = true)
+    public boolean isRuleEditable(String ruleId) {
+        return resolveEditableRuleIds(List.of(ruleId)).contains(ruleId);
+    }
+
+    /**
+     * True when the campaign behind this binding exists and has not started yet.
+     * An unknown campaign id resolves to false (fail closed) — see
+     * {@link #resolveEditableRuleIds(Collection)}.
+     */
+    private boolean startsInFuture(RuleBinding binding, Map<String, Instant> startTimes, Instant now) {
+        Instant startFrom = startTimes.get(binding.getObjectId());
+        return startFrom != null && startFrom.isAfter(now);
+    }
+
+    /**
      * Bulk count nodes for multiple rules in a single query. Used by the list
      * endpoint to populate {@code nodeCount} without loading every rule's tree.
      * Missing ids in the returned map mean zero nodes.
@@ -344,9 +421,11 @@ public class RuleService {
             throw new SystemRuleProtectedException(ruleId);
         }
 
-        // VRUL003: a rule assigned to a campaign (active binding) is locked from
-        // editing — reject with VALIDATION_RULE_NOT_EDITABLE.
-        if (ruleBindingPort.countActiveByRuleId(ruleId) > 0) {
+        // VRUL003: a rule assigned to a campaign that already reached its effective
+        // start time is locked from editing — reject with VALIDATION_RULE_NOT_EDITABLE.
+        // Rules bound only to campaigns that have not started yet stay editable (PROM-1112),
+        // matching the icon visibility on the list screen.
+        if (!isRuleEditable(ruleId)) {
             logger.warn("Rejected edit of assigned rule: id={}", ruleId);
             throw new RuleNotEditableException(ruleId);
         }

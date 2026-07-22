@@ -51,6 +51,11 @@ public class RuleResponse {
     @JsonProperty("assignmentCount")
     private Long assignmentCount;
 
+    @Schema(description = "Whether the rule may still be edited: not assigned at all, "
+            + "or assigned only to campaigns that have not reached their start time yet")
+    @JsonProperty("editable")
+    private Boolean editable;
+
     @Schema(description = "Optimistic locking version")
     @JsonProperty("version")
     private Long version;
@@ -143,6 +148,14 @@ public class RuleResponse {
 
     public void setAssignmentCount(Long assignmentCount) {
         this.assignmentCount = assignmentCount;
+    }
+
+    public Boolean getEditable() {
+        return editable;
+    }
+
+    public void setEditable(Boolean editable) {
+        this.editable = editable;
     }
 
     public Long getVersion() {

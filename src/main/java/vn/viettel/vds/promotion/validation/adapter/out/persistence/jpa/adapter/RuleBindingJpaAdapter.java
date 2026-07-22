@@ -12,6 +12,7 @@ import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersi
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -136,6 +137,16 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
     public List<RuleBinding> findActiveByRuleId(String ruleId) {
         log.debug("Finding active rule bindings by rule id: {}", ruleId);
         return mapper.toDomainList(repository.findByRuleIdAndActive(ruleId, true));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RuleBinding> findActiveByRuleIdIn(Collection<String> ruleIds) {
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return List.of();
+        }
+        log.debug("Finding active rule bindings for {} rule id(s)", ruleIds.size());
+        return mapper.toDomainList(repository.findActiveByRuleIdIn(ruleIds));
     }
 
     // ========== Find by Time Range ==========

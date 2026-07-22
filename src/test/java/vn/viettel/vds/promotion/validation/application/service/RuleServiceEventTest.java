@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import vn.viettel.vds.promotion.validation.application.port.out.CampaignSchedulePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
@@ -52,14 +53,17 @@ class RuleServiceEventTest {
     private RuleBindingPersistencePort ruleBindingPort;
 
     @Mock
+    private CampaignSchedulePort campaignSchedulePort;
+
+    @Mock
     private OutboxService outboxService;
 
     private RuleService newServiceUnderTest() {
         RuleService withoutSelf =
-                new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, null, EVENT_TOPIC);
+                new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService, null, null, null, EVENT_TOPIC);
         // RuleService uses @Lazy self-injection for transactional proxying; in a unit
         // test without a Spring context, the service itself stands in as its own proxy.
-        return new RuleService(rulePersistencePort, ruleBindingPort, outboxService, withoutSelf, null, null, EVENT_TOPIC);
+        return new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort, outboxService, withoutSelf, null, null, EVENT_TOPIC);
     }
 
     private static RuleNode condNode(String id, String operatorName, String reasonCode) {
