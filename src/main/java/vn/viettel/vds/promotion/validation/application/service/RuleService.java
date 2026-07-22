@@ -280,10 +280,15 @@ public class RuleService {
 
     /**
      * Single-rule variant of {@link #resolveEditableRuleIds(Collection)}.
+     *
+     * <p>Thin delegate, intentionally NOT {@code @Transactional}: it opens no
+     * transaction of its own and routes to {@link #resolveEditableRuleIds} through
+     * the injected self-proxy so that method's {@code @Transactional} boundary is
+     * honoured (a plain self-invocation would bypass the proxy) — same pattern as
+     * the {@code self.getRuleById(...)} calls elsewhere in this class.</p>
      */
-    @Transactional(readOnly = true)
     public boolean isRuleEditable(String ruleId) {
-        return resolveEditableRuleIds(List.of(ruleId)).contains(ruleId);
+        return self.resolveEditableRuleIds(List.of(ruleId)).contains(ruleId);
     }
 
     /**
