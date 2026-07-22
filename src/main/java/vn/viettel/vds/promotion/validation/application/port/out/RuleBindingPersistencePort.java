@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,6 +76,12 @@ public interface RuleBindingPersistencePort {
      * Find all active bindings for a rule
      */
     List<RuleBinding> findActiveByRuleId(String ruleId);
+
+    /**
+     * Find all active bindings of several rules in one query.
+     * Serves the rule list screen, which resolves editability for a whole page at once.
+     */
+    List<RuleBinding> findActiveByRuleIdIn(Collection<String> ruleIds);
 
     // ========== Find by Time Range ==========
 

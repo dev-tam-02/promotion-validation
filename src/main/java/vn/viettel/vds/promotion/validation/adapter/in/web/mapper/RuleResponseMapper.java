@@ -93,6 +93,20 @@ public class RuleResponseMapper {
     }
 
     /**
+     * Detail-view variant that also carries {@code editable} (VRUL001 control 12,
+     * PROM-1112) so the detail screen gates its "Chỉnh sửa" action on the same rule
+     * as the list screen — assignment alone does not lock a rule, only assignment to
+     * a campaign that already started does.
+     */
+    public RuleResponse toRuleResponse(@Nullable Rule rule, long assignmentCount, boolean editable) {
+        RuleResponse response = toRuleResponse(rule, assignmentCount);
+        if (response != null) {
+            response.setEditable(editable);
+        }
+        return response;
+    }
+
+    /**
      * Converts a Rule domain model to a light-weight {@link RuleListItemResponse} for list views.
      *
      * <p>Omits heavy fields (description, fallbackErrorMessage, nodes, notes, limits, logic)
@@ -121,6 +135,20 @@ public class RuleResponseMapper {
     public RuleListItemResponse toListItemResponse(@Nullable Rule rule,
                                                    @Nullable Long assignmentCount,
                                                    @Nullable Integer nodeCountOverride) {
+        return toListItemResponse(rule, assignmentCount, nodeCountOverride, null);
+    }
+
+    /**
+     * List-view variant carrying {@code editable} (VRUL001 control 12, PROM-1112).
+     * The flag is resolved per page by the caller because it needs the effective
+     * start time of every bound campaign, which lives in pp-campaign — it cannot be
+     * derived from {@code assignmentCount}.
+     */
+    @Nullable
+    public RuleListItemResponse toListItemResponse(@Nullable Rule rule,
+                                                   @Nullable Long assignmentCount,
+                                                   @Nullable Integer nodeCountOverride,
+                                                   @Nullable Boolean editable) {
         if (rule == null) return null;
 
         int nodeCount = resolveNodeCount(rule, nodeCountOverride);
@@ -134,6 +162,7 @@ public class RuleResponseMapper {
                 rule.getVersion(),                                                // version
                 nodeCount,                                                        // nodeCount
                 assignmentCount,                                                  // assignmentCount
+                editable,                                                         // editable
                 rule.getCreatedAt(),                                              // createdAt
                 rule.getCreatedBy(),                                              // createdBy
                 rule.getCreatedBy(),                                              // createdByName (fallback until Keycloak)

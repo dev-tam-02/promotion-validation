@@ -13,18 +13,21 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.promix.platform.outbox.spi.OutboxService;
+import vn.viettel.vds.promotion.validation.application.port.out.CampaignSchedulePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleBindingPersistencePort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.application.port.out.RulePersistencePort;
 import vn.viettel.vds.promotion.validation.domain.exception.*;
 import vn.viettel.vds.promotion.validation.domain.model.Rule;
+import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 import vn.viettel.vds.promotion.validation.domain.model.RuleNode;
 import vn.viettel.vds.promotion.validation.event.ValidationEvent;
 import vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +52,9 @@ class RuleServiceTest {
 
     @Mock
     private RuleBindingPersistencePort ruleBindingPort;
+
+    @Mock
+    private CampaignSchedulePort campaignSchedulePort;
 
     @Mock
     private OutboxService outboxService;
@@ -116,9 +122,11 @@ class RuleServiceTest {
         // RuleService uses @Lazy self-injection for transactional proxying.
         // In unit tests without Spring context, we pass 'sut' itself as the self reference.
         // This is safe because there's no proxy needed in unit tests.
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, null, null, null, EVENT_TOPIC);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort,
+                outboxService, null, null, null, EVENT_TOPIC);
         // Re-create with self reference
-        sut = new RuleService(rulePersistencePort, ruleBindingPort, outboxService, sut, null, null, EVENT_TOPIC);
+        sut = new RuleService(rulePersistencePort, ruleBindingPort, campaignSchedulePort,
+                outboxService, sut, null, null, EVENT_TOPIC);
     }
 
     // ========================================================================
@@ -1167,6 +1175,91 @@ class RuleServiceTest {
             sut.deleteRule("rule-regular-001", 1L);
 
             verify(rulePersistencePort).softDelete("rule-regular-001", 1L);
+        }
+    }
+
+    // ========================================================================
+    // resolveEditableRuleIds() — SRS VRUL001 control 12 (PROM-1112)
+    // ========================================================================
+
+    @Nested
+    @DisplayName("resolveEditableRuleIds()")
+    class ResolveEditableRuleIds {
+
+        private static final Instant NOW_ISH = Instant.now();
+
+        private RuleBinding binding(String ruleId, String campaignId) {
+            return RuleBinding.builder()
+                    .id("b-" + campaignId)
+                    .ruleId(ruleId)
+                    .objectType("CAMPAIGN")
+                    .objectId(campaignId)
+                    .active(true)
+                    .build();
+        }
+
+        @Test
+        @DisplayName("Should be editable when rule has no active binding")
+        void shouldBeEditable_whenUnassigned() {
+            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1"))).thenReturn(List.of());
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).containsExactly("r1");
+            verifyNoInteractions(campaignSchedulePort);
+        }
+
+        @Test
+        @DisplayName("Should be editable when every bound campaign has not started yet")
+        void shouldBeEditable_whenBoundCampaignNotStarted() {
+            // Đây là chính case PROM-1112: binding active=true nhưng chiến dịch chưa tới giờ chạy.
+            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c1"), binding("r1", "c2")));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of(
+                            "c1", NOW_ISH.plusSeconds(3600),
+                            "c2", NOW_ISH.plusSeconds(7200)));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).containsExactly("r1");
+        }
+
+        @Test
+        @DisplayName("Should NOT be editable when at least one bound campaign already started")
+        void shouldNotBeEditable_whenAnyCampaignAlreadyStarted() {
+            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c1"), binding("r1", "c2")));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of(
+                            "c1", NOW_ISH.minusSeconds(60),
+                            "c2", NOW_ISH.plusSeconds(7200)));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should NOT be editable when campaign start time cannot be resolved (fail closed)")
+        void shouldNotBeEditable_whenStartTimeUnknown() {
+            // pp-campaign lỗi / chiến dịch không còn / chưa cấu hình start_from → coi như đã hiệu lực.
+            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c1")));
+            when(campaignSchedulePort.findStartTimes(anyCollection())).thenReturn(Map.of());
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should resolve a whole page in one binding query and one campaign call")
+        void shouldResolvePageInBulk() {
+            List<String> ruleIds = List.of("r1", "r2", "r3");
+            when(ruleBindingPort.findActiveByRuleIdIn(ruleIds))
+                    .thenReturn(List.of(binding("r1", "c-past"), binding("r2", "c-future")));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of(
+                            "c-past", NOW_ISH.minusSeconds(60),
+                            "c-future", NOW_ISH.plusSeconds(60)));
+
+            // r1 gán chiến dịch đã chạy → khoá; r2 gán chiến dịch chưa chạy → mở; r3 chưa gán → mở.
+            assertThat(sut.resolveEditableRuleIds(ruleIds)).containsExactlyInAnyOrder("r2", "r3");
+            verify(ruleBindingPort, times(1)).findActiveByRuleIdIn(ruleIds);
+            verify(campaignSchedulePort, times(1)).findStartTimes(anyCollection());
         }
     }
 }

@@ -57,6 +57,11 @@ public record RuleListItemResponse(
         @JsonProperty("assignmentCount")
         Long assignmentCount,
 
+        @Schema(description = "Whether the rule may still be edited: not assigned at all, "
+                + "or assigned only to campaigns that have not reached their start time yet")
+        @JsonProperty("editable")
+        Boolean editable,
+
         @Schema(description = "Creation timestamp")
         @JsonProperty("createdAt")
         Instant createdAt,

@@ -31,6 +31,7 @@ import com.promix.platform.core.common.Range;
 import com.promix.platform.core.exception.BadRequestException;
 import com.promix.platform.mapper.TimeMapper;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleListFilter;
+import vn.viettel.vds.promotion.validation.application.port.out.RuleListRow;
 import vn.viettel.vds.promotion.validation.domain.exception.BindingNotFoundException;
 
 import java.time.OffsetDateTime;
@@ -147,7 +148,10 @@ public class RuleController {
         // usage (Đã gán/Chưa gán); the base mapper leaves it null, which would
         // always render "Chưa gán" even when the rule is bound to campaigns.
         long assignmentCount = ruleService.countBindingsForRule(trimmedRuleId);
-        return ruleMapper.toRuleResponse(rule, assignmentCount);
+        // editable is NOT assignmentCount == 0: a rule bound only to campaigns that
+        // have not started yet is still editable (VRUL001 control 12, PROM-1112).
+        boolean editable = ruleService.isRuleEditable(trimmedRuleId);
+        return ruleMapper.toRuleResponse(rule, assignmentCount, editable);
     }
 
     @Operation(summary = "List rules", description = "List rules with optional filtering and pagination")
@@ -191,8 +195,16 @@ public class RuleController {
 
         // Filtering, sorting, pagination AND the display counts (node + active
         // binding) are all resolved in a single database query per page.
-        Page<RuleListItemResponse> responses = ruleService.findRules(filter, pageable)
-                .map(row -> ruleMapper.toListItemResponse(row.rule(), row.assignmentCount(), row.nodeCount()));
+        Page<RuleListRow> rows = ruleService.findRules(filter, pageable);
+
+        // Editability needs the start time of every bound campaign (pp-campaign), so it
+        // is resolved once per page instead of per row (PROM-1112).
+        Set<String> editableRuleIds = ruleService.resolveEditableRuleIds(
+                rows.getContent().stream().map(row -> row.rule().getId()).toList());
+
+        Page<RuleListItemResponse> responses = rows.map(row -> ruleMapper.toListItemResponse(
+                row.rule(), row.assignmentCount(), row.nodeCount(),
+                editableRuleIds.contains(row.rule().getId())));
 
         return PageResponse.from(responses);
     }
