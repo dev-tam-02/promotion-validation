@@ -239,6 +239,15 @@ public class RuleService {
      * truth here — {@code rule_bindings.valid_from} is the coupon validity window
      * and is frequently null.</p>
      *
+     * <p><b>All</b> bindings are evaluated, not only the active ones (PROM-1362):
+     * pp-campaign deactivates the binding ({@code active = false}) when a campaign
+     * expires or is paused, but SRS VRUL001 keeps a rule locked from the campaign's
+     * effective start time onward "kể cả khi đang tạm dừng hay đã hết hiệu lực".
+     * Filtering by {@code active = true} would drop the expired/paused campaign and
+     * wrongly re-open the rule for editing (the bug reported here). A binding that
+     * became inactive because the assignment was truly removed still points to a
+     * campaign that has started, so the rule stays locked — matching "đã gán".</p>
+     *
      * <p>Fails closed: a campaign whose start time cannot be resolved (deleted, or
      * pp-campaign unreachable) counts as already effective, so the rule stays locked.</p>
      *
@@ -251,27 +260,27 @@ public class RuleService {
             return Set.of();
         }
 
-        List<RuleBinding> activeBindings = ruleBindingPort.findActiveByRuleIdIn(ruleIds);
-        if (activeBindings.isEmpty()) {
+        List<RuleBinding> bindings = ruleBindingPort.findByRuleIdIn(ruleIds);
+        if (bindings.isEmpty()) {
             return new HashSet<>(ruleIds);
         }
 
-        Set<String> campaignIds = activeBindings.stream()
+        Set<String> campaignIds = bindings.stream()
                 .map(RuleBinding::getObjectId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<String, Instant> startTimes = campaignSchedulePort.findStartTimes(campaignIds);
 
         Instant now = Instant.now();
-        Map<String, List<RuleBinding>> bindingsByRule = activeBindings.stream()
+        Map<String, List<RuleBinding>> bindingsByRule = bindings.stream()
                 .filter(binding -> binding.getRuleId() != null)
                 .collect(Collectors.groupingBy(RuleBinding::getRuleId));
 
         Set<String> editable = new HashSet<>();
         for (String ruleId : ruleIds) {
-            List<RuleBinding> bindings = bindingsByRule.get(ruleId);
-            if (bindings == null || bindings.isEmpty()
-                    || bindings.stream().allMatch(binding -> startsInFuture(binding, startTimes, now))) {
+            List<RuleBinding> ruleBindings = bindingsByRule.get(ruleId);
+            if (ruleBindings == null || ruleBindings.isEmpty()
+                    || ruleBindings.stream().allMatch(binding -> startsInFuture(binding, startTimes, now))) {
                 editable.add(ruleId);
             }
         }
