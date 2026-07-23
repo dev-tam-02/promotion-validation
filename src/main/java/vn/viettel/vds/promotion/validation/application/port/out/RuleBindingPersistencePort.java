@@ -83,6 +83,13 @@ public interface RuleBindingPersistencePort {
      */
     List<RuleBinding> findActiveByRuleIdIn(Collection<String> ruleIds);
 
+    /**
+     * Find ALL bindings (active and inactive) of several rules in one query.
+     * Editability resolution (PROM-1362) needs the inactive ones too: a binding
+     * deactivated when its campaign expired/paused must still lock the rule.
+     */
+    List<RuleBinding> findByRuleIdIn(Collection<String> ruleIds);
+
     // ========== Find by Time Range ==========
 
     /**

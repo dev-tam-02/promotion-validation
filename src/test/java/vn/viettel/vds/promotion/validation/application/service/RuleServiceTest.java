@@ -1189,19 +1189,23 @@ class RuleServiceTest {
         private static final Instant NOW_ISH = Instant.now();
 
         private RuleBinding binding(String ruleId, String campaignId) {
+            return binding(ruleId, campaignId, true);
+        }
+
+        private RuleBinding binding(String ruleId, String campaignId, boolean active) {
             return RuleBinding.builder()
                     .id("b-" + campaignId)
                     .ruleId(ruleId)
                     .objectType("CAMPAIGN")
                     .objectId(campaignId)
-                    .active(true)
+                    .active(active)
                     .build();
         }
 
         @Test
-        @DisplayName("Should be editable when rule has no active binding")
+        @DisplayName("Should be editable when rule has no binding")
         void shouldBeEditable_whenUnassigned() {
-            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1"))).thenReturn(List.of());
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1"))).thenReturn(List.of());
 
             assertThat(sut.resolveEditableRuleIds(List.of("r1"))).containsExactly("r1");
             verifyNoInteractions(campaignSchedulePort);
@@ -1211,7 +1215,7 @@ class RuleServiceTest {
         @DisplayName("Should be editable when every bound campaign has not started yet")
         void shouldBeEditable_whenBoundCampaignNotStarted() {
             // Đây là chính case PROM-1112: binding active=true nhưng chiến dịch chưa tới giờ chạy.
-            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
                     .thenReturn(List.of(binding("r1", "c1"), binding("r1", "c2")));
             when(campaignSchedulePort.findStartTimes(anyCollection()))
                     .thenReturn(Map.of(
@@ -1224,7 +1228,7 @@ class RuleServiceTest {
         @Test
         @DisplayName("Should NOT be editable when at least one bound campaign already started")
         void shouldNotBeEditable_whenAnyCampaignAlreadyStarted() {
-            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
                     .thenReturn(List.of(binding("r1", "c1"), binding("r1", "c2")));
             when(campaignSchedulePort.findStartTimes(anyCollection()))
                     .thenReturn(Map.of(
@@ -1235,10 +1239,42 @@ class RuleServiceTest {
         }
 
         @Test
+        @DisplayName("PROM-1362: NOT editable when bound campaign already ended and its binding is inactive")
+        void shouldNotBeEditable_whenBoundCampaignEndedAndBindingDeactivated() {
+            // Chiến dịch đã chạy xong → pp-campaign deactivate binding (active=false).
+            // Trước fix, binding này bị findActiveByRuleIdIn lọc mất → rule bị coi là chưa gán → editable.
+            // Sau fix, findByRuleIdIn lấy cả binding inactive; start_from < now → khoá.
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c-ended", false)));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of("c-ended", NOW_ISH.minusSeconds(86400)));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("PROM-1362: NOT editable when future campaigns are active but an ended one is deactivated")
+        void shouldNotBeEditable_whenActiveFutureButInactiveEnded() {
+            // Đúng data màn bug: 1 chiến dịch "đã chạy xong" (inactive) + 2 chiến dịch "chưa chạy" (active).
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(
+                            binding("r1", "c-ended", false),
+                            binding("r1", "c-future1", true),
+                            binding("r1", "c-future2", true)));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of(
+                            "c-ended", NOW_ISH.minusSeconds(86400),
+                            "c-future1", NOW_ISH.plusSeconds(3600),
+                            "c-future2", NOW_ISH.plusSeconds(7200)));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
+        }
+
+        @Test
         @DisplayName("Should NOT be editable when campaign start time cannot be resolved (fail closed)")
         void shouldNotBeEditable_whenStartTimeUnknown() {
             // pp-campaign lỗi / chiến dịch không còn / chưa cấu hình start_from → coi như đã hiệu lực.
-            when(ruleBindingPort.findActiveByRuleIdIn(List.of("r1")))
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
                     .thenReturn(List.of(binding("r1", "c1")));
             when(campaignSchedulePort.findStartTimes(anyCollection())).thenReturn(Map.of());
 
@@ -1249,7 +1285,7 @@ class RuleServiceTest {
         @DisplayName("Should resolve a whole page in one binding query and one campaign call")
         void shouldResolvePageInBulk() {
             List<String> ruleIds = List.of("r1", "r2", "r3");
-            when(ruleBindingPort.findActiveByRuleIdIn(ruleIds))
+            when(ruleBindingPort.findByRuleIdIn(ruleIds))
                     .thenReturn(List.of(binding("r1", "c-past"), binding("r2", "c-future")));
             when(campaignSchedulePort.findStartTimes(anyCollection()))
                     .thenReturn(Map.of(
@@ -1258,7 +1294,7 @@ class RuleServiceTest {
 
             // r1 gán chiến dịch đã chạy → khoá; r2 gán chiến dịch chưa chạy → mở; r3 chưa gán → mở.
             assertThat(sut.resolveEditableRuleIds(ruleIds)).containsExactlyInAnyOrder("r2", "r3");
-            verify(ruleBindingPort, times(1)).findActiveByRuleIdIn(ruleIds);
+            verify(ruleBindingPort, times(1)).findByRuleIdIn(ruleIds);
             verify(campaignSchedulePort, times(1)).findStartTimes(anyCollection());
         }
     }

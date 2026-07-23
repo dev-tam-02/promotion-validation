@@ -149,6 +149,16 @@ public class RuleBindingJpaAdapter implements RuleBindingPersistencePort {
         return mapper.toDomainList(repository.findActiveByRuleIdIn(ruleIds));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RuleBinding> findByRuleIdIn(Collection<String> ruleIds) {
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return List.of();
+        }
+        log.debug("Finding all rule bindings (active + inactive) for {} rule id(s)", ruleIds.size());
+        return mapper.toDomainList(repository.findByRuleIdIn(ruleIds));
+    }
+
     // ========== Find by Time Range ==========
 
     @Override

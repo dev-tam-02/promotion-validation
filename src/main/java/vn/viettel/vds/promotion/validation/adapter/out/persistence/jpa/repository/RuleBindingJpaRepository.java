@@ -76,6 +76,16 @@ public interface RuleBindingJpaRepository extends JpaRepository<RuleBindingEntit
             "WHERE rb.ruleId IN :ruleIds AND rb.active = true")
     List<RuleBindingEntity> findActiveByRuleIdIn(@Param("ruleIds") Collection<String> ruleIds);
 
+    /**
+     * Batch variant of {@link #findByRuleId} — one query for a page of rules,
+     * returning bindings regardless of {@code active}. Used by editability
+     * resolution (PROM-1362): a binding deactivated when its campaign expired /
+     * paused must still lock the rule from editing, so it cannot be filtered out
+     * by {@code active = true} like {@link #findActiveByRuleIdIn} does.
+     */
+    @Query("SELECT rb FROM RuleBindingEntity rb WHERE rb.ruleId IN :ruleIds")
+    List<RuleBindingEntity> findByRuleIdIn(@Param("ruleIds") Collection<String> ruleIds);
+
     // ========== Find by Time Range ==========
 
     /**
