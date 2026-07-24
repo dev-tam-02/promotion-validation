@@ -1221,8 +1221,51 @@ class RuleServiceTest {
                     .thenReturn(Map.of(
                             "c1", NOW_ISH.plusSeconds(3600),
                             "c2", NOW_ISH.plusSeconds(7200)));
+            when(campaignSchedulePort.findStatuses(anyCollection()))
+                    .thenReturn(Map.of("c1", "ACTIVE", "c2", "ACTIVE"));
 
             assertThat(sut.resolveEditableRuleIds(List.of("r1"))).containsExactly("r1");
+        }
+
+        @Test
+        @DisplayName("PROM-1369: NOT editable when bound campaign is PAUSED even if its start is in the future")
+        void shouldNotBeEditable_whenPausedCampaignStartsInFuture() {
+            // Campaign từng RUNNING → Tạm dừng (DisableSaga → binding active=false), rồi
+            // start_from bị sửa về tương lai. startsInFuture=true nhưng status=PAUSED → phải KHÓA.
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c-paused", false)));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of("c-paused", NOW_ISH.plusSeconds(86400)));
+            when(campaignSchedulePort.findStatuses(anyCollection()))
+                    .thenReturn(Map.of("c-paused", "PAUSED"));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("PROM-1369: editable is driven by campaign STATUS, not binding.active — ACTIVE future stays editable")
+        void shouldBeEditable_whenFutureActiveCampaign_regardlessOfBindingActiveFlag() {
+            // Ngay cả khi binding.active=false (cờ overload), status ACTIVE + start tương lai → còn sửa.
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c-future", false)));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of("c-future", NOW_ISH.plusSeconds(3600)));
+            when(campaignSchedulePort.findStatuses(anyCollection()))
+                    .thenReturn(Map.of("c-future", "ACTIVE"));
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).containsExactly("r1");
+        }
+
+        @Test
+        @DisplayName("PROM-1369: NOT editable when status cannot be resolved even if start is in the future (fail closed)")
+        void shouldNotBeEditable_whenStatusUnknownButFutureStart() {
+            when(ruleBindingPort.findByRuleIdIn(List.of("r1")))
+                    .thenReturn(List.of(binding("r1", "c1")));
+            when(campaignSchedulePort.findStartTimes(anyCollection()))
+                    .thenReturn(Map.of("c1", NOW_ISH.plusSeconds(3600)));
+            when(campaignSchedulePort.findStatuses(anyCollection())).thenReturn(Map.of());
+
+            assertThat(sut.resolveEditableRuleIds(List.of("r1"))).isEmpty();
         }
 
         @Test
@@ -1282,7 +1325,7 @@ class RuleServiceTest {
         }
 
         @Test
-        @DisplayName("Should resolve a whole page in one binding query and one campaign call")
+        @DisplayName("Should resolve a whole page in one binding query and one campaign call per lookup")
         void shouldResolvePageInBulk() {
             List<String> ruleIds = List.of("r1", "r2", "r3");
             when(ruleBindingPort.findByRuleIdIn(ruleIds))
@@ -1291,11 +1334,16 @@ class RuleServiceTest {
                     .thenReturn(Map.of(
                             "c-past", NOW_ISH.minusSeconds(60),
                             "c-future", NOW_ISH.plusSeconds(60)));
+            when(campaignSchedulePort.findStatuses(anyCollection()))
+                    .thenReturn(Map.of(
+                            "c-past", "RUNNING",
+                            "c-future", "ACTIVE"));
 
             // r1 gán chiến dịch đã chạy → khoá; r2 gán chiến dịch chưa chạy → mở; r3 chưa gán → mở.
             assertThat(sut.resolveEditableRuleIds(ruleIds)).containsExactlyInAnyOrder("r2", "r3");
             verify(ruleBindingPort, times(1)).findByRuleIdIn(ruleIds);
             verify(campaignSchedulePort, times(1)).findStartTimes(anyCollection());
+            verify(campaignSchedulePort, times(1)).findStatuses(anyCollection());
         }
     }
 }

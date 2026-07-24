@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import vn.viettel.vds.promotion.validation.adapter.out.external.dto.CampaignStartTimesDto;
+import vn.viettel.vds.promotion.validation.adapter.out.external.dto.CampaignStatusesDto;
 import vn.viettel.vds.promotion.validation.application.port.out.CampaignSchedulePort;
 
 import java.time.Instant;
@@ -70,6 +71,45 @@ public class CampaignScheduleAdapter implements CampaignSchedulePort {
         } catch (Exception e) {
             // Fail closed — an unresolved campaign is treated as already effective.
             log.warn("Failed to fetch campaign start times for {} id(s): {}", batch.size(), e.getMessage());
+        }
+    }
+
+    @Override
+    public Map<String, String> findStatuses(Collection<String> campaignIds) {
+        if (campaignIds == null || campaignIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> ids = campaignIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<String, String> statuses = new HashMap<>();
+        for (int from = 0; from < ids.size(); from += BATCH_SIZE) {
+            List<String> batch = ids.subList(from, Math.min(from + BATCH_SIZE, ids.size()));
+            collectStatusBatch(batch, statuses);
+        }
+        return statuses;
+    }
+
+    private void collectStatusBatch(List<String> batch, Map<String, String> target) {
+        try {
+            CampaignStatusesDto response = campaignClient.getStatuses(batch);
+            if (response == null || response.data() == null) {
+                return;
+            }
+            for (CampaignStatusesDto.Item item : response.data()) {
+                if (item != null && item.id() != null && item.status() != null) {
+                    target.put(item.id(), item.status());
+                }
+            }
+        } catch (Exception e) {
+            // Fail closed — an unresolved status is treated as "already live / locked".
+            log.warn("Failed to fetch campaign statuses for {} id(s): {}", batch.size(), e.getMessage());
         }
     }
 }
