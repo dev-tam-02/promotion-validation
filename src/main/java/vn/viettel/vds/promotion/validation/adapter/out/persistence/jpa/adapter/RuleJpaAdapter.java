@@ -326,8 +326,16 @@ public class RuleJpaAdapter implements RulePersistencePort {
      */
     private static final String NODE_COUNT_SUBQUERY =
             "(SELECT COUNT(*) FROM rule_nodes n WHERE n.validation_rule_id = r.id AND n.type = 'COND')";
+    // PROM-1368: count EVERY binding, not only active ones. A binding is
+    // deactivated (active=false) when its campaign finishes/pauses (see
+    // DisableValidationRuleCommandHandler), yet that campaign is still "đã gán"
+    // and is listed in the rule detail "Danh sách chiến dịch đã gán" tab (which
+    // queries /rule-bindings/search with active=null). Filtering active=true here
+    // made the list show 0 while the detail tab showed the campaign — the count
+    // must match its own drill-down. Distinct object_id guards against any legacy
+    // duplicate (object_id, rule_id) rows.
     private static final String ASSIGNMENT_COUNT_SUBQUERY =
-            "(SELECT COUNT(*) FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)";
+            "(SELECT COUNT(DISTINCT b.object_id) FROM rule_bindings b WHERE b.rule_id = r.id)";
 
     private static final String FIELD_CONTEXT = "context";
 
