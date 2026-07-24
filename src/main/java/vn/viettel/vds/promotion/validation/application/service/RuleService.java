@@ -248,8 +248,17 @@ public class RuleService {
      * became inactive because the assignment was truly removed still points to a
      * campaign that has started, so the rule stays locked — matching "đã gán".</p>
      *
-     * <p>Fails closed: a campaign whose start time cannot be resolved (deleted, or
-     * pp-campaign unreachable) counts as already effective, so the rule stays locked.</p>
+     * <p><b>Status, not just start time</b> (PROM-1369): {@code start_from} alone lets
+     * a campaign that already went live slip back into "editable". A campaign can only
+     * be paused while RUNNING, then its {@code start_from} may be edited to a future
+     * date — {@code startsInFuture} then wrongly reports "not started yet". A rule is
+     * therefore editable only when every bound campaign is BOTH in the future AND in a
+     * pre-live status ({@code INITIALIZING}/{@code ACTIVE}); a {@code PAUSED} /
+     * {@code RUNNING} / {@code EXPIRED} campaign keeps the rule locked regardless of
+     * its (possibly re-edited) {@code start_from}.</p>
+     *
+     * <p>Fails closed: a campaign whose start time or status cannot be resolved (deleted,
+     * or pp-campaign unreachable) counts as already effective, so the rule stays locked.</p>
      *
      * @param ruleIds rules to evaluate
      * @return the subset of {@code ruleIds} that may be edited
@@ -270,6 +279,7 @@ public class RuleService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<String, Instant> startTimes = campaignSchedulePort.findStartTimes(campaignIds);
+        Map<String, String> statuses = campaignSchedulePort.findStatuses(campaignIds);
 
         Instant now = Instant.now();
         Map<String, List<RuleBinding>> bindingsByRule = bindings.stream()
@@ -280,11 +290,37 @@ public class RuleService {
         for (String ruleId : ruleIds) {
             List<RuleBinding> ruleBindings = bindingsByRule.get(ruleId);
             if (ruleBindings == null || ruleBindings.isEmpty()
-                    || ruleBindings.stream().allMatch(binding -> startsInFuture(binding, startTimes, now))) {
+                    || ruleBindings.stream().allMatch(binding -> isEditableBinding(binding, startTimes, statuses, now))) {
                 editable.add(ruleId);
             }
         }
         return editable;
+    }
+
+    /**
+     * Campaign statuses in which a bound rule may still be edited — the campaign has
+     * NOT entered its running lifecycle yet (created, or enabled but not yet started).
+     * Any other status (RUNNING/PAUSED/EXPIRED/…) locks the rule (PROM-1369).
+     */
+    private static final Set<String> PRE_LIVE_CAMPAIGN_STATUSES = Set.of("INITIALIZING", "ACTIVE");
+
+    /**
+     * A binding keeps its rule editable only when the bound campaign is BOTH still in
+     * the future (PROM-1112) AND in a pre-live status (PROM-1369). Both fail closed:
+     * an unknown start time or unknown/non-pre-live status locks the rule.
+     */
+    private boolean isEditableBinding(RuleBinding binding, Map<String, Instant> startTimes,
+                                      Map<String, String> statuses, Instant now) {
+        return startsInFuture(binding, startTimes, now) && isPreLive(binding, statuses);
+    }
+
+    /**
+     * True when the campaign behind this binding is in a pre-live status. An unknown
+     * status resolves to false (fail closed) — see {@link #resolveEditableRuleIds(Collection)}.
+     */
+    private boolean isPreLive(RuleBinding binding, Map<String, String> statuses) {
+        String status = statuses.get(binding.getObjectId());
+        return status != null && PRE_LIVE_CAMPAIGN_STATUSES.contains(status);
     }
 
     /**

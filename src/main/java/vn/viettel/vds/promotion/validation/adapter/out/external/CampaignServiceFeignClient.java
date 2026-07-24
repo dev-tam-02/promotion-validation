@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import vn.viettel.vds.promotion.validation.adapter.out.external.dto.CampaignStartTimesDto;
+import vn.viettel.vds.promotion.validation.adapter.out.external.dto.CampaignStatusesDto;
 
 import java.util.List;
 
@@ -42,4 +43,14 @@ public interface CampaignServiceFeignClient {
      */
     @GetMapping("/api/v2/campaigns/start-times")
     CampaignStartTimesDto getStartTimes(@RequestParam("ids") List<String> ids);
+
+    /**
+     * Batch lookup of campaign lifecycle status (PROM-1369).
+     * IDs không tồn tại được pp-campaign bỏ qua, không báo lỗi.
+     *
+     * @param ids campaign IDs (tối đa 200 theo giới hạn của pp-campaign)
+     * @return payload đã bọc {@code data} của pp-campaign
+     */
+    @GetMapping("/api/v2/campaigns/statuses")
+    CampaignStatusesDto getStatuses(@RequestParam("ids") List<String> ids);
 }
