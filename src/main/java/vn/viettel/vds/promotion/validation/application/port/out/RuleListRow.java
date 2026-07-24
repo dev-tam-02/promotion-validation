@@ -8,7 +8,9 @@ import vn.viettel.vds.promotion.validation.domain.model.Rule;
  *
  * @param rule            the rule
  * @param nodeCount       number of condition nodes (rule_nodes)
- * @param assignmentCount number of active bindings (rule_bindings where active)
+ * @param assignmentCount number of assigned objects (distinct rule_bindings.object_id,
+ *                        regardless of active — a binding deactivated when its campaign
+ *                        finished is still an assignment; PROM-1368)
  */
 public record RuleListRow(Rule rule, int nodeCount, long assignmentCount) {
 }
