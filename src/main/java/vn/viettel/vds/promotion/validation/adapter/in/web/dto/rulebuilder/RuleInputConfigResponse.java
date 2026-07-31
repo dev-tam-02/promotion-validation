@@ -9,6 +9,12 @@ import java.util.Map;
 /**
  * Input configuration for a rule.
  * Defines how the UI should render the input field.
+ *
+ * <p>{@code minValue}/{@code maxValue} are INCLUSIVE bounds by default. A metadata
+ * field may instead declare a STRICT bound ({@code greaterThan}/{@code lessThan}),
+ * which the UI must reject at the boundary itself — {@code minExclusive}/
+ * {@code maxExclusive} carry that distinction (PROM-1389). They are only emitted
+ * when {@code true}; an absent flag means the bound is inclusive.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record RuleInputConfigResponse(
@@ -23,6 +29,8 @@ public record RuleInputConfigResponse(
         String inputType,
         String minValue,
         String maxValue,
+        Boolean minExclusive,
+        Boolean maxExclusive,
         String step,
         Integer minLength,
         Integer maxLength,
@@ -47,6 +55,8 @@ public record RuleInputConfigResponse(
         private String inputType;
         private String minValue;
         private String maxValue;
+        private Boolean minExclusive;
+        private Boolean maxExclusive;
         private String step;
         private Integer minLength;
         private Integer maxLength;
@@ -110,6 +120,24 @@ public record RuleInputConfigResponse(
             return this;
         }
 
+        /**
+         * Mark {@code minValue} as a STRICT lower bound (value must be greater than it).
+         * Pass {@code null}/{@code false} to keep the default inclusive semantics.
+         */
+        public Builder minExclusive(Boolean minExclusive) {
+            this.minExclusive = minExclusive;
+            return this;
+        }
+
+        /**
+         * Mark {@code maxValue} as a STRICT upper bound (value must be less than it).
+         * Pass {@code null}/{@code false} to keep the default inclusive semantics.
+         */
+        public Builder maxExclusive(Boolean maxExclusive) {
+            this.maxExclusive = maxExclusive;
+            return this;
+        }
+
         public Builder step(String step) {
             this.step = step;
             return this;
@@ -158,6 +186,8 @@ public record RuleInputConfigResponse(
                     inputType,
                     minValue,
                     maxValue,
+                    minExclusive,
+                    maxExclusive,
                     step,
                     minLength,
                     maxLength,

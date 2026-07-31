@@ -916,11 +916,6 @@ public class RuleBuilderService {
         }
     }
 
-    /**
-     * Pull min/max from the schema's NumberValidation. Prefers the inclusive
-     * bound ({@code greaterThanOrEqual}/{@code lessThanOrEqual}) and falls back
-     * to the exclusive one when only that is configured.
-     */
     @SuppressWarnings("unchecked")
     private void applyMetadataStringConstraints(RuleInputConfigResponse.Builder builder,
                                                 Map<String, Object> field) {
@@ -935,6 +930,16 @@ public class RuleBuilderService {
         builder.exactLength(toInteger(sv.get("exactLength")));
     }
 
+    /**
+     * Pull min/max from the schema's NumberValidation. Prefers the inclusive bound
+     * ({@code greaterThanOrEqual}/{@code lessThanOrEqual}) and falls back to the
+     * strict one ({@code greaterThan}/{@code lessThan}) when only that is configured.
+     *
+     * <p>When the strict bound is the one in effect, the matching {@code minExclusive}/
+     * {@code maxExclusive} flag is raised so the rule modal rejects the boundary value
+     * itself — otherwise the UI would accept a value that {@link #checkNumberBounds}
+     * rejects moments later at save time (PROM-1389).
+     */
     private void applyMetadataNumberConstraints(RuleInputConfigResponse.Builder builder,
                                                  Map<String, Object> field) {
         if (!(field.get(KEY_VALIDATION) instanceof Map<?, ?> validation)) {
@@ -943,13 +948,21 @@ public class RuleBuilderService {
         if (!(validation.get("numberValidation") instanceof Map<?, ?> number)) {
             return;
         }
-        Object min = firstNonNull(number.get("greaterThanOrEqual"), number.get("greaterThan"));
-        Object max = firstNonNull(number.get("lessThanOrEqual"), number.get("lessThan"));
+        Object greaterOrEqual = number.get("greaterThanOrEqual");
+        Object lessOrEqual = number.get("lessThanOrEqual");
+        Object min = firstNonNull(greaterOrEqual, number.get("greaterThan"));
+        Object max = firstNonNull(lessOrEqual, number.get("lessThan"));
         if (min != null) {
             builder.minValue(min.toString());
+            if (greaterOrEqual == null) {
+                builder.minExclusive(Boolean.TRUE);
+            }
         }
         if (max != null) {
             builder.maxValue(max.toString());
+            if (lessOrEqual == null) {
+                builder.maxExclusive(Boolean.TRUE);
+            }
         }
         List<BigDecimal> allowed = toBigDecimalList(number.get(KEY_EQUAL_TO_ANY_OF));
         if (!allowed.isEmpty()) {
