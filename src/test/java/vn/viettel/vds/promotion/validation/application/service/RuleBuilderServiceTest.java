@@ -7,13 +7,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleInputConfigResponse;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.rulebuilder.RuleOptionsResponse;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsLookupPort;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleOptionsPage;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorCategory;
 import vn.viettel.vds.promotion.validation.domain.model.OperatorOption;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -426,6 +429,95 @@ class RuleBuilderServiceTest {
             assertThat(response.options()).isEmpty();
             assertThat(response.totalElements()).isZero();
             verifyNoInteractions(ruleOptionsLookupPort);
+        }
+    }
+
+    // =========================================================================
+    // Metadata NUMBER bounds — strict vs inclusive (PROM-1389)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("inputConfig của thuộc tính metadata NUMBER — cận chặt vs cận bao gồm biên")
+    class MetadataNumberBounds {
+
+        /**
+         * Build the numberValidation map exactly as pp-metadata serialises it: all
+         * four bounds are present, the unused ones as explicit {@code null}.
+         */
+        private Map<String, Object> numberValidation(Object greaterThan, Object greaterThanOrEqual,
+                                                     Object lessThan, Object lessThanOrEqual) {
+            Map<String, Object> nv = new HashMap<>();
+            nv.put("greaterThan", greaterThan);
+            nv.put("greaterThanOrEqual", greaterThanOrEqual);
+            nv.put("lessThan", lessThan);
+            nv.put("lessThanOrEqual", lessThanOrEqual);
+            nv.put("equalToAnyOf", null);
+            nv.put("notEqualToAnyOf", null);
+            return nv;
+        }
+
+        private RuleInputConfigResponse inputConfigFor(Map<String, Object> numberValidation) {
+            OperatorCategory category = OperatorCategory.builder()
+                    .id("cat-md")
+                    .code("order_metadata")
+                    .name("Order metadata")
+                    .active(true)
+                    .metadataCategory(true)
+                    .metadataSchemaType("ORDER")
+                    .metadataSchemaId("standard-order")
+                    .build();
+            when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
+                    .thenReturn(List.of(category));
+            when(metadataServiceFeignClient.getSchemaById("standard-order", 0, 100))
+                    .thenReturn(Map.of("data", Map.of("definitions", Map.of("content", List.of(
+                            Map.of("name", "amount",
+                                    "type", "NUMBER",
+                                    "validation", Map.of("numberValidation", numberValidation))
+                    )))));
+
+            return sut.getAllCategories(TENANT_ID).categories().get(0).rules().get(0).inputConfig();
+        }
+
+        @Test
+        @DisplayName("greaterThan/lessThan (cận chặt) → bật minExclusive/maxExclusive")
+        void shouldFlagBothBounds_whenStrict() {
+            RuleInputConfigResponse config = inputConfigFor(numberValidation(10, null, 20, null));
+
+            assertThat(config.minValue()).isEqualTo("10");
+            assertThat(config.maxValue()).isEqualTo("20");
+            assertThat(config.minExclusive()).isTrue();
+            assertThat(config.maxExclusive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("greaterThanOrEqual/lessThanOrEqual → không cờ, giữ nghĩa bao gồm biên")
+        void shouldNotFlag_whenInclusive() {
+            RuleInputConfigResponse config = inputConfigFor(numberValidation(null, 30, null, 50));
+
+            assertThat(config.minValue()).isEqualTo("30");
+            assertThat(config.maxValue()).isEqualTo("50");
+            assertThat(config.minExclusive()).isNull();
+            assertThat(config.maxExclusive()).isNull();
+        }
+
+        @Test
+        @DisplayName("hỗn hợp greaterThanOrEqual + lessThan → chỉ bật maxExclusive")
+        void shouldFlagOnlyMax_whenLowerInclusiveUpperStrict() {
+            RuleInputConfigResponse config = inputConfigFor(numberValidation(null, 60, 80, null));
+
+            assertThat(config.minValue()).isEqualTo("60");
+            assertThat(config.maxValue()).isEqualTo("80");
+            assertThat(config.minExclusive()).isNull();
+            assertThat(config.maxExclusive()).isTrue();
+        }
+
+        @Test
+        @DisplayName("khai cả hai cận cùng phía → cận bao gồm biên thắng, không bật cờ")
+        void shouldPreferInclusive_whenBothLowerBoundsDeclared() {
+            RuleInputConfigResponse config = inputConfigFor(numberValidation(10, 30, null, null));
+
+            assertThat(config.minValue()).isEqualTo("30");
+            assertThat(config.minExclusive()).isNull();
         }
     }
 }
