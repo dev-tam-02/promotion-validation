@@ -29,3 +29,12 @@ application-local.yml
 
 # SonarQube scanner cache
 .scannerwork/
+
+# ==== Dotfiles/dotfolders: ignore tất cả, trừ những cái bắt buộc phải commit ====
+.*
+!.gitignore
+!.gitattributes
+!.gitkeep
+!.github/
+!.gitlab-ci.yml
+!.dockerignore
