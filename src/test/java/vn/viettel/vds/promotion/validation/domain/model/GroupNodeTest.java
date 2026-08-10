@@ -4,8 +4,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import static org.assertj.core.api.Assertions.*;
 
 @DisplayName("GroupNode Tests")
@@ -38,9 +36,9 @@ class GroupNodeTest {
         @Test
         @DisplayName("Should throw when id is null")
         void shouldThrowWhenIdNull() {
-            assertThatThrownBy(() -> GroupNode.builder()
-                    .groupLogic(GroupNode.GroupLogic.AND)
-                    .build())
+            GroupNode.Builder builder = GroupNode.builder()
+                    .groupLogic(GroupNode.GroupLogic.AND);
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("id");
         }
@@ -48,9 +46,9 @@ class GroupNodeTest {
         @Test
         @DisplayName("Should throw when groupLogic is null")
         void shouldThrowWhenGroupLogicNull() {
-            assertThatThrownBy(() -> GroupNode.builder()
-                    .id("group-1")
-                    .build())
+            GroupNode.Builder builder = GroupNode.builder()
+                    .id("group-1");
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("groupLogic");
         }

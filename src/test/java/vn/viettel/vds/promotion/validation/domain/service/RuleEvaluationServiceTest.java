@@ -110,7 +110,7 @@ class RuleEvaluationServiceTest {
             ValidationResult result = sut.evaluateRule(rule, context);
 
             // Then: Result should include processing time (>= 0)
-            assertThat(result.getProcessingTimeMs()).isGreaterThanOrEqualTo(0L);
+            assertThat(result.getProcessingTimeMs()).isNotNegative();
         }
 
         @Test
@@ -168,9 +168,10 @@ class RuleEvaluationServiceTest {
             List<ValidationResult> results = sut.evaluateRulesInParallel(rules, context);
 
             // Then: Should return one result per rule
-            assertThat(results).hasSize(2);
-            // r-2 (inactive) will have ruleId set, r-1 (active->error) may not
-            assertThat(results).anyMatch(r -> "r-2".equals(r.getRuleId()));
+            assertThat(results)
+                    .hasSize(2)
+                    // r-2 (inactive) will have ruleId set, r-1 (active->error) may not
+                    .anyMatch(r -> "r-2".equals(r.getRuleId()));
         }
 
         @Test
@@ -187,8 +188,9 @@ class RuleEvaluationServiceTest {
             List<ValidationResult> results = sut.evaluateRulesInParallel(rules, context);
 
             // Then: Should return results for all rules
-            assertThat(results).hasSize(3);
-            assertThat(results).allMatch(r -> r.getDecision() == ValidationResult.Decision.ERROR);
+            assertThat(results)
+                    .hasSize(3)
+                    .allMatch(r -> r.getDecision() == ValidationResult.Decision.ERROR);
         }
 
         @Test
@@ -326,7 +328,7 @@ class RuleEvaluationServiceTest {
                         rules, context, RuleEvaluationService.EvaluationStrategy.EVALUATE_ALL);
 
                 // Then: Processing time should be sum of all evaluations
-                assertThat(result.getProcessingTimeMs()).isGreaterThanOrEqualTo(0L);
+                assertThat(result.getProcessingTimeMs()).isNotNegative();
             }
         }
 
@@ -389,14 +391,17 @@ class RuleEvaluationServiceTest {
 
                 @Override
                 public void put(String key, ValidationResult result) {
+                    // no-op: test only exercises cache hit path
                 }
 
                 @Override
                 public void invalidate(String key) {
+                    // no-op: not relevant for cache hit test
                 }
 
                 @Override
                 public void clear() {
+                    // no-op: not relevant for cache hit test
                 }
             };
 
@@ -427,10 +432,12 @@ class RuleEvaluationServiceTest {
 
                 @Override
                 public void invalidate(String key) {
+                    // no-op: not relevant for cache miss test
                 }
 
                 @Override
                 public void clear() {
+                    // no-op: not relevant for cache miss test
                 }
             };
 
@@ -458,14 +465,17 @@ class RuleEvaluationServiceTest {
 
                 @Override
                 public void put(String key, ValidationResult result) {
+                    // no-op: test only inspects cache key from get()
                 }
 
                 @Override
                 public void invalidate(String key) {
+                    // no-op: not relevant for cache key test
                 }
 
                 @Override
                 public void clear() {
+                    // no-op: not relevant for cache key test
                 }
             };
 
@@ -475,9 +485,10 @@ class RuleEvaluationServiceTest {
             // Then: Cache key should include rule ID and context data
             assertThat(cacheKeys).hasSize(1);
             String cacheKey = cacheKeys.get(0);
-            assertThat(cacheKey).contains("r-1");
-            assertThat(cacheKey).contains("cust-1");
-            assertThat(cacheKey).contains("ord-1");
+            assertThat(cacheKey)
+                    .contains("r-1")
+                    .contains("cust-1")
+                    .contains("ord-1");
         }
 
         @Test
@@ -501,10 +512,12 @@ class RuleEvaluationServiceTest {
 
                 @Override
                 public void invalidate(String key) {
+                    // no-op: not relevant for put-tracking test
                 }
 
                 @Override
                 public void clear() {
+                    // no-op: not relevant for put-tracking test
                 }
             };
 

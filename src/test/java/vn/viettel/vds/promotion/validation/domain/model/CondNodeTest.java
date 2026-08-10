@@ -46,9 +46,9 @@ class CondNodeTest {
         @Test
         @DisplayName("Should throw when id is null")
         void shouldThrowWhenIdNull() {
-            assertThatThrownBy(() -> CondNode.builder()
-                    .operatorName("gte")
-                    .build())
+            CondNode.Builder builder = CondNode.builder()
+                    .operatorName("gte");
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("id");
         }
@@ -56,10 +56,10 @@ class CondNodeTest {
         @Test
         @DisplayName("Should throw when id is blank")
         void shouldThrowWhenIdBlank() {
-            assertThatThrownBy(() -> CondNode.builder()
+            CondNode.Builder builder = CondNode.builder()
                     .id("  ")
-                    .operatorName("gte")
-                    .build())
+                    .operatorName("gte");
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("id");
         }
@@ -67,9 +67,9 @@ class CondNodeTest {
         @Test
         @DisplayName("Should throw when operatorName is null")
         void shouldThrowWhenOperatorNameNull() {
-            assertThatThrownBy(() -> CondNode.builder()
-                    .id("cond-1")
-                    .build())
+            CondNode.Builder builder = CondNode.builder()
+                    .id("cond-1");
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("operatorName");
         }
@@ -77,10 +77,10 @@ class CondNodeTest {
         @Test
         @DisplayName("Should throw when operatorName is blank")
         void shouldThrowWhenOperatorNameBlank() {
-            assertThatThrownBy(() -> CondNode.builder()
+            CondNode.Builder builder = CondNode.builder()
                     .id("cond-1")
-                    .operatorName("")
-                    .build())
+                    .operatorName("");
+            assertThatThrownBy(builder::build)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("operatorName");
         }

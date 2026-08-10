@@ -98,10 +98,8 @@ class RuleJpaAdapterAssignmentCountTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("page select query not issued"));
         assertThat(pageSelect)
-                .as("assignment count must count all bindings for the rule")
-                .contains("COUNT(DISTINCT b.object_id) FROM rule_bindings b WHERE b.rule_id = r.id");
-        assertThat(pageSelect)
-                .as("assignment count must NOT filter active=true (PROM-1368)")
+                .as("assignment count must count all bindings without active filter (PROM-1368)")
+                .contains("COUNT(DISTINCT b.object_id) FROM rule_bindings b WHERE b.rule_id = r.id")
                 .doesNotContain("b.active = true");
     }
 }

@@ -324,9 +324,10 @@ class CommandMappingServiceTest {
             String string = stats.toString();
 
             // Then
-            assertThat(string).contains("included=2");
-            assertThat(string).contains("excluded=1");
-            assertThat(string).contains("includedAll=false");
+            assertThat(string)
+                    .contains("included=2")
+                    .contains("excluded=1")
+                    .contains("includedAll=false");
         }
 
         @Test
