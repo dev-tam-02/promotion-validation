@@ -5,6 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import vn.viettel.vds.promotion.validation.application.port.out.RuleContextPersistencePort;
@@ -124,46 +127,19 @@ class RuleContextServiceTest {
             verify(ruleContextPort).isActiveContext("GENERAL_USAGE");
         }
 
-        @Test
-        @DisplayName("Should return false for inactive context")
-        void shouldReturnFalseForInactive() {
+        @ParameterizedTest(name = "Should return false for context code: \"{0}\"")
+        @NullAndEmptySource
+        @ValueSource(strings = {"UNKNOWN"})
+        void shouldReturnFalseForInvalidContext(String contextCode) {
             // Given
-            when(ruleContextPort.isActiveContext("UNKNOWN")).thenReturn(false);
+            when(ruleContextPort.isActiveContext(contextCode)).thenReturn(false);
 
             // When
-            boolean result = sut.isActiveContext("UNKNOWN");
+            boolean result = sut.isActiveContext(contextCode);
 
             // Then
             assertThat(result).isFalse();
-            verify(ruleContextPort).isActiveContext("UNKNOWN");
-        }
-
-        @Test
-        @DisplayName("Should return false for null context code")
-        void shouldReturnFalseForNull() {
-            // Given
-            when(ruleContextPort.isActiveContext(null)).thenReturn(false);
-
-            // When
-            boolean result = sut.isActiveContext(null);
-
-            // Then
-            assertThat(result).isFalse();
-            verify(ruleContextPort).isActiveContext(null);
-        }
-
-        @Test
-        @DisplayName("Should return false for empty context code")
-        void shouldReturnFalseForEmpty() {
-            // Given
-            when(ruleContextPort.isActiveContext("")).thenReturn(false);
-
-            // When
-            boolean result = sut.isActiveContext("");
-
-            // Then
-            assertThat(result).isFalse();
-            verify(ruleContextPort).isActiveContext("");
+            verify(ruleContextPort).isActiveContext(contextCode);
         }
     }
 }

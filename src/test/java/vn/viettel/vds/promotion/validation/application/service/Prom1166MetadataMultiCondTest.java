@@ -51,8 +51,9 @@ class Prom1166MetadataMultiCondTest {
                 cond("c1", "LESS_OR_EQUAL", Map.of("value", 90)),
                 cond("c2", "EQUALS", Map.of("value", 1000))
         ));
+        List<RuleNode> nodes = List.of(group);
 
-        assertThatThrownBy(() -> sut.validate(List.of(group)))
+        assertThatThrownBy(() -> sut.validate(nodes))
                 .isInstanceOf(InvalidRuleStructureException.class)
                 .hasMessageContaining("schema_type");
     }

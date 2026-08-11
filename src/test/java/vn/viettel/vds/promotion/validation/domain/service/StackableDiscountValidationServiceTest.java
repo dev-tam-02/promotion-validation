@@ -174,7 +174,7 @@ class StackableDiscountValidationServiceTest {
             // Then: Should be approved
             assertThat(result.isApproved()).isTrue();
             assertThat(result.getValidatedCount()).isEqualTo(1);
-            assertThat(result.getRejectedCount()).isEqualTo(0);
+            assertThat(result.getRejectedCount()).isZero();
         }
 
         @Test
@@ -223,7 +223,7 @@ class StackableDiscountValidationServiceTest {
             // Then: Should be rejected
             assertThat(result.isRejected()).isTrue();
             assertThat(result.getRejectedCount()).isEqualTo(1);
-            assertThat(result.getValidatedCount()).isEqualTo(0);
+            assertThat(result.getValidatedCount()).isZero();
         }
 
         @Test
@@ -298,7 +298,7 @@ class StackableDiscountValidationServiceTest {
             StackingResult result = sut.validateStackingRules(validContext(discounts));
 
             // Then: Should have processing time
-            assertThat(result.getProcessingTimeMs()).isGreaterThanOrEqualTo(0L);
+            assertThat(result.getProcessingTimeMs()).isNotNegative();
         }
 
         @Test
