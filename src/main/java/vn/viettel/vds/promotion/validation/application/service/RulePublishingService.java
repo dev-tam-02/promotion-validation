@@ -65,6 +65,17 @@ public class RulePublishingService {
 
     public RulePublishResult publishRule(String ruleId, String assignmentId,
                                          vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
+        return publishRule(ruleId, assignmentId, null, applicableToData);
+    }
+
+    /**
+     * PROM-1437: overload nhận thẳng {@code binding} đang nằm trong bộ nhớ của caller.
+     * Bắt buộc dùng bản này khi binding CHƯA được ghi xuống DB (đường create), vì
+     * {@link #resolveBindingForCompile} chỉ tra được DB khi hàng đã tồn tại — tra hụt
+     * thì {@code timeLinks} rỗng và khung thời gian biến mất khỏi DRL.
+     */
+    public RulePublishResult publishRule(String ruleId, String assignmentId, RuleBinding binding,
+                                         vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
         logger.info("Publishing rule: ruleId={}, assignmentId={}, hasApplicability={}",
                 ruleId, assignmentId, applicableToData != null);
 
@@ -72,7 +83,7 @@ public class RulePublishingService {
             Rule rule = loadRuleForPublishing(ruleId);
             validateRuleForPublishing(rule);
 
-            CompileResponse compileResponse = compileRuleInEngine(rule, assignmentId, applicableToData);
+            CompileResponse compileResponse = compileRuleInEngine(rule, assignmentId, binding, applicableToData);
             if (!compileResponse.isOk()) {
                 return handleCompilationFailure(ruleId, compileResponse);
             }
@@ -101,6 +112,17 @@ public class RulePublishingService {
      * @return RulePublishResult with bundleHash if successful
      */
     public RulePublishResult publishAssignmentBundle(String assignmentId,
+                                                     vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData,
+                                                     boolean hasTemporalPolicy) {
+        return publishAssignmentBundle(assignmentId, null, applicableToData, hasTemporalPolicy);
+    }
+
+    /**
+     * PROM-1437: overload nhận thẳng {@code binding} đang nằm trong bộ nhớ của caller —
+     * xem lý do ở overload tương ứng của {@code publishRule}.
+     */
+    public RulePublishResult publishAssignmentBundle(String assignmentId,
+                                                     RuleBinding binding,
                                                      vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData,
                                                      boolean hasTemporalPolicy) {
         logger.info("Publishing assignment bundle (no ruleId): assignmentId={}, hasApplicability={}, hasTemporalPolicy={}",
@@ -134,7 +156,7 @@ public class RulePublishingService {
             }
 
             // Build compile request
-            CompileRequest compileRequest = buildAssignmentBundleCompileRequest(assignmentId, nodeDtos);
+            CompileRequest compileRequest = buildAssignmentBundleCompileRequest(assignmentId, binding, nodeDtos);
 
             // Log full compile request as JSON for debugging
             logCompileRequestAsJson(compileRequest, "assignment bundle");
@@ -176,7 +198,8 @@ public class RulePublishingService {
      * Build CompileRequest for assignment bundle (no business rule)
      * Now uses RuleBinding which contains embedded temporal data
      */
-    private CompileRequest buildAssignmentBundleCompileRequest(String bindingId, List<RuleNodeDto> nodeDtos) {
+    private CompileRequest buildAssignmentBundleCompileRequest(String bindingId, RuleBinding suppliedBinding,
+                                                               List<RuleNodeDto> nodeDtos) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
         compileRequest.setRuleId(bindingId);  // Use bindingId as bundle key
@@ -189,7 +212,7 @@ public class RulePublishingService {
         compileRequest.setOperatorsFingerprint("binding-bundle-" + bindingId);
 
         // Add temporal policy data from RuleBinding
-        ruleBindingPersistencePort.findById(bindingId).ifPresent(binding -> {
+        resolveBindingForCompile(bindingId, suppliedBinding).ifPresent(binding -> {
             if (binding.hasTemporalConstraints()) {
                 logger.info("Found temporal constraints for binding: bindingId={}", bindingId);
 
@@ -397,7 +420,7 @@ public class RulePublishingService {
         }
     }
 
-    private CompileResponse compileRuleInEngine(Rule rule, String assignmentId,
+    private CompileResponse compileRuleInEngine(Rule rule, String assignmentId, RuleBinding suppliedBinding,
                                                 vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
         // Build full nodes list: existing nodes + dynamic product applicability node
         List<RuleNodeDto> fullNodeDtos = buildFullNodeList(rule, applicableToData);
@@ -415,7 +438,7 @@ public class RulePublishingService {
                     assignmentId, version);
         }
 
-        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, fullNodeDtos, assignmentId);
+        CompileRequest compileRequest = buildCompileRequest(rule, version, logic, fullNodeDtos, assignmentId, suppliedBinding);
 
         // Log full compile request as JSON for debugging
         try {
@@ -446,7 +469,8 @@ public class RulePublishingService {
         return rule.getLogic() != null ? rule.getLogic().name() : "ALL";
     }
 
-    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos, String bindingId) {
+    private CompileRequest buildCompileRequest(Rule rule, Integer version, String logic, List<RuleNodeDto> nodeDtos,
+                                               String bindingId, RuleBinding suppliedBinding) {
         CompileRequest compileRequest = new CompileRequest();
         compileRequest.setTenantId(tenantProperties.getDefaultTenantId());
 
@@ -462,7 +486,7 @@ public class RulePublishingService {
 
         // Add temporal policy data if bindingId is provided
         if (bindingId != null) {
-            ruleBindingPersistencePort.findById(bindingId).ifPresent(binding -> {
+            resolveBindingForCompile(bindingId, suppliedBinding).ifPresent(binding -> {
                 if (binding.hasTemporalConstraints()) {
                     logger.info("Found temporal constraints for bindingId={}", bindingId);
 
@@ -487,6 +511,27 @@ public class RulePublishingService {
         }
 
         return compileRequest;
+    }
+
+    /**
+     * Nguồn RuleBinding để dựng {@code timeLinks} của CompileRequest.
+     *
+     * <p>PROM-1437: trước đây chỗ này LUÔN tra DB bằng {@code findById(bindingId)}. Đường tạo
+     * mới ({@code SettingValidationRuleCommandHandler}) lại deploy TRƯỚC khi
+     * {@code ruleBindingPort.save(...)}, nên hàng chưa tồn tại → tra hụt → CompileRequest đi
+     * KHÔNG có {@code timeLinks} → pp-rule-engine fallback policy rỗng và sinh ra bundle
+     * {@code temporal_check_allow_24_7} (ALLOW vô điều kiện). Hệ quả đo được: mọi binding có
+     * ràng buộc thời gian đều chung một bundleHash 24/7, campaign giới hạn "Thứ 5,6,7" vẫn được
+     * API #01 trả về vào Thứ 4.
+     *
+     * <p>Vì vậy caller nào đang cầm binding trong tay thì truyền thẳng vào; chỉ khi không có
+     * (publish lại từ RuleController, khi binding chắc chắn đã nằm trong DB) mới tra DB.
+     */
+    private Optional<RuleBinding> resolveBindingForCompile(String bindingId, RuleBinding suppliedBinding) {
+        if (suppliedBinding != null) {
+            return Optional.of(suppliedBinding);
+        }
+        return bindingId != null ? ruleBindingPersistencePort.findById(bindingId) : Optional.empty();
     }
 
     /**
