@@ -27,6 +27,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -176,12 +178,19 @@ class UpdateValidationRuleCommandHandlerTimeframeReplaceTest {
                 .thenReturn(List.of(existing));
         when(ruleBindingPort.save(any(RuleBinding.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
+        // PROM-1437: binding không có ruleId nhưng CÓ khung thời gian nay được biên dịch lại
+        // (trước đây nhánh này bị bỏ qua), nên có thêm một lần save ghi lại bundleHash.
+        when(rulePublishingService.publishAssignmentBundle(
+                any(), any(RuleBinding.class), any(), anyBoolean()))
+                .thenReturn(RulePublishingService.RulePublishResult.success(
+                        "binding-1", "sha256:redeployed", 100L));
 
         boolean result = handler.handleCommand(command);
         assertThat(result).isTrue();
 
         ArgumentCaptor<RuleBinding> captor = ArgumentCaptor.forClass(RuleBinding.class);
-        verify(ruleBindingPort).save(captor.capture());
-        return captor.getValue();
+        verify(ruleBindingPort, atLeastOnce()).save(captor.capture());
+        // Bản đầu tiên là kết quả của updateBinding — thứ mà các assertion timeframe soi vào.
+        return captor.getAllValues().get(0);
     }
 }

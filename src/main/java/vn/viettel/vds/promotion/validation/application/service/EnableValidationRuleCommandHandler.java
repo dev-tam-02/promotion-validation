@@ -211,13 +211,47 @@ public class EnableValidationRuleCommandHandler {
 
         logger.info("Enabled binding: bindingId={}", binding.getId());
 
-        if (binding.getRuleId() != null && !binding.getRuleId().isBlank()) {
-            RuleBinding redeployed = deployRuleToEngine(updated);
-            if (redeployed != null) {
-                updated = redeployed;
-            }
+        RuleBinding redeployed = binding.getRuleId() != null && !binding.getRuleId().isBlank()
+                ? deployRuleToEngine(updated)
+                : deployRuleLessBinding(updated);
+        if (redeployed != null) {
+            updated = redeployed;
         }
 
+        return updated;
+    }
+
+    /**
+     * PROM-1437: bật lại một binding KHÔNG gắn rule nghiệp vụ vẫn phải biên dịch lại bundle.
+     *
+     * <p>Nhánh này trước đây bị bỏ qua hoàn toàn, nên binding chỉ mang khung thời gian giữ mãi
+     * {@code bundleHash} sinh ra lúc tạo — mà lúc tạo binding chưa kịp lưu nên {@code timeLinks}
+     * rơi mất và rule-engine trả về bundle {@code temporal_check_allow_24_7} (ALLOW mọi ngày).
+     *
+     * @return binding kèm bundleHash mới, hoặc {@code null} khi không có gì để biên dịch / publish lỗi
+     */
+    private RuleBinding deployRuleLessBinding(RuleBinding binding) {
+        if (!binding.hasTemporalConstraints()) {
+            logger.info("Skipping deployment - no ruleId and no temporal policy: bindingId={}", binding.getId());
+            return null;
+        }
+
+        logger.info("Redeploying rule-less binding on enable: bindingId={}", binding.getId());
+
+        var publishResult = rulePublishingService.publishAssignmentBundle(binding.getId(), binding, null, true);
+
+        if (!publishResult.isSuccess()) {
+            logger.error("Failed to redeploy rule-less binding: bindingId={}, error={}",
+                    binding.getId(), publishResult.getErrorMessage());
+            return null;
+        }
+
+        RuleBinding updated = binding.toBuilder()
+                .bundleHash(publishResult.getBundleHash())
+                .build();
+        ruleBindingPort.save(updated);
+        logger.info("Rule-less binding redeployed: bindingId={}, bundleHash={}",
+                binding.getId(), publishResult.getBundleHash());
         return updated;
     }
 
