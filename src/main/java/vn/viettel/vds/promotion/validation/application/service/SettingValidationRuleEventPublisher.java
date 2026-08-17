@@ -389,7 +389,12 @@ public class SettingValidationRuleEventPublisher {
             String key) {
         try {
             // Use KafkaUtils to send with JSON serialization
-            logger.info("[SAGA-DEBUG] Kafka send APPLIED event: topic={}, key={}", eventTopic, key);
+            logger.info("[PROM-1457] Kafka send APPLIED event: topic={}, key={}, subjectType={}, subjectKey={}, ruleId={}, bundleHash={}",
+                    eventTopic, key,
+                    event.getPayload() != null && event.getPayload().getApplicabilityResult() != null ? event.getPayload().getApplicabilityResult().getSubjectType() : null,
+                    event.getPayload() != null && event.getPayload().getApplicabilityResult() != null ? event.getPayload().getApplicabilityResult().getSubjectKey() : null,
+                    event.getPayload() != null && event.getPayload().getAssignmentResult() != null ? event.getPayload().getAssignmentResult().getRuleId() : null,
+                    event.getPayload() != null && event.getPayload().getAssignmentResult() != null ? event.getPayload().getAssignmentResult().getBundleHash() : null);
             kafkaUtils.send(eventTopic, key, event)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {

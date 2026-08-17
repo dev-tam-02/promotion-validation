@@ -76,8 +76,10 @@ public class RulePublishingService {
      */
     public RulePublishResult publishRule(String ruleId, String assignmentId, RuleBinding binding,
                                          vn.viettel.vds.promotion.validation.command.SettingValidationRuleCommand.ApplicabilityScope applicableToData) {
-        logger.info("Publishing rule: ruleId={}, assignmentId={}, hasApplicability={}",
-                ruleId, assignmentId, applicableToData != null);
+        logger.info("[PROM-1457] Publishing rule: ruleId={}, assignmentId={}, hasApplicability={}, bindingObjectType={}, bindingObjectId={}",
+                ruleId, assignmentId, applicableToData != null,
+                binding != null ? binding.getObjectType() : null,
+                binding != null ? binding.getObjectId() : null);
 
         try {
             Rule rule = loadRuleForPublishing(ruleId);
@@ -450,8 +452,12 @@ public class RulePublishingService {
 
         com.promix.platform.web.template.ResponseTemplate<CompileResponse> responseTemplate = validationEngineClient.compile(compileRequest);
         if (responseTemplate == null || !responseTemplate.isSuccess() || responseTemplate.getData() == null) {
+            logger.error("[PROM-1457] Compile FAILED: ruleId={}, response={}", rule.getId(),
+                    responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE);
             throw new RuleCompilationException("Failed to compile rule: " + (responseTemplate != null ? responseTemplate.getMessage() : NULL_RESPONSE));
         }
+        logger.info("[PROM-1457] Compile OK: ruleId={}, bundleHash={}", rule.getId(),
+                responseTemplate.getData().getBundleHash());
         return responseTemplate.getData();
     }
 
