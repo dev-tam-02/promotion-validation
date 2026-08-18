@@ -243,8 +243,11 @@ public class RuleService {
     public Page<Rule> findRules(Rule.RuleState state, String codePattern,
                                 String namePattern, Pageable pageable) {
         if (state != null || codePattern != null || namePattern != null) {
+            logger.info("[SEARCH-RULES] find with filter");
+            logger.info("[SEARCH-RULES] state: {}, codePattern: {}, namePattern: {}", state, codePattern, namePattern);
             return rulePersistencePort.findWithFilters(state, codePattern, namePattern, pageable);
         } else {
+            logger.info("[SEARCH-RULES] find all");
             return rulePersistencePort.findAll(pageable);
         }
     }
