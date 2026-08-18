@@ -4,7 +4,6 @@ import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJ
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.entity.RuleJpaEntity;
@@ -136,21 +135,14 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public Page<Rule> findByState(Rule.RuleState state, Pageable pageable) {
-        List<RuleJpaEntity> all = repository.findByState(state.name());
-        return convertToPage(all, pageable);
+        return findWithFilters(state, null, null, pageable);
     }
 
     @Override
-    public Page<Rule> findWithFilters(Rule.RuleState state,
-                                      String codePattern, String namePattern, Pageable pageable) {
-        List<RuleJpaEntity> all = repository.findAll().stream()
-                .filter(e -> state == null || state.name().equals(e.getState()))
-                .filter(e -> codePattern == null ||
-                        (e.getCode() != null && e.getCode().toLowerCase().contains(codePattern.toLowerCase())))
-                .filter(e -> namePattern == null ||
-                        (e.getName() != null && e.getName().toLowerCase().contains(namePattern.toLowerCase())))
-                .toList();
-        return convertToPage(all, pageable);
+    public Page<Rule> findWithFilters(Rule.RuleState state, String codePattern, String namePattern, Pageable pageable) {
+        String stateName = state != null ? state.name() : null;
+        return repository.findWithFilters(stateName, codePattern, namePattern, pageable)
+                .map(mapper::toDomain);
     }
 
     @Override
@@ -218,8 +210,7 @@ public class RuleJpaAdapter implements RulePersistencePort {
 
     @Override
     public Page<Rule> findAll(Pageable pageable) {
-        List<RuleJpaEntity> all = repository.findAll();
-        return convertToPage(all, pageable);
+        return repository.findAll(pageable).map(mapper::toDomain);
     }
 
     @Override
@@ -235,97 +226,6 @@ public class RuleJpaAdapter implements RulePersistencePort {
     @Override
     public void deleteById(String id) {
         repository.deleteById(id);
-    }
-
-    private Page<Rule> convertToPage(List<RuleJpaEntity> entities, Pageable pageable) {
-        // Apply sorting from pageable
-        List<RuleJpaEntity> sortedEntities = applySorting(entities, pageable);
-
-        int start = (int) pageable.getOffset();
-        // Handle case when start is beyond the list size (return empty page)
-        if (start >= sortedEntities.size()) {
-            return new PageImpl<>(List.of(), pageable, sortedEntities.size());
-        }
-        int end = Math.min((start + pageable.getPageSize()), sortedEntities.size());
-        List<Rule> pageContent = sortedEntities.subList(start, end)
-                .stream()
-                .map(mapper::toDomain)
-                .toList();
-        return new PageImpl<>(pageContent, pageable, sortedEntities.size());
-    }
-
-    /**
-     * Apply sorting from Pageable to the entity list.
-     * Supports sorting by entity fields: id, code, name, state, ruleVersion,
-     * logic, publishedAt, publishedBy, createdAt, updatedAt, createdBy, updatedBy.
-     */
-    private List<RuleJpaEntity> applySorting(List<RuleJpaEntity> entities, Pageable pageable) {
-        if (pageable.getSort().isUnsorted() || entities.isEmpty()) {
-            return entities;
-        }
-
-        java.util.Comparator<RuleJpaEntity> comparator = null;
-
-        for (org.springframework.data.domain.Sort.Order order : pageable.getSort()) {
-            java.util.Comparator<RuleJpaEntity> fieldComparator = getFieldComparator(order.getProperty());
-
-            if (fieldComparator == null) {
-                logger.warn("Unknown sort field: {}, skipping", order.getProperty());
-                continue;
-            }
-
-            if (order.isDescending()) {
-                fieldComparator = fieldComparator.reversed();
-            }
-
-            if (comparator == null) {
-                comparator = fieldComparator;
-            } else {
-                comparator = comparator.thenComparing(fieldComparator);
-            }
-        }
-
-        if (comparator == null) {
-            return entities;
-        }
-
-        return entities.stream()
-                .sorted(comparator)
-                .toList();
-    }
-
-    /**
-     * Get comparator for a specific field.
-     * Returns null for unknown fields.
-     */
-    private java.util.Comparator<RuleJpaEntity> getFieldComparator(String field) {
-        return switch (field) {
-            case "id" -> java.util.Comparator.comparing(RuleJpaEntity::getId,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "code" -> java.util.Comparator.comparing(RuleJpaEntity::getCode,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "name" -> java.util.Comparator.comparing(RuleJpaEntity::getName,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "state" -> java.util.Comparator.comparing(RuleJpaEntity::getState,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "ruleVersion" -> java.util.Comparator.comparing(RuleJpaEntity::getRuleVersion,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "logic" -> java.util.Comparator.comparing(RuleJpaEntity::getLogic,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "publishedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedAt,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "publishedBy" -> java.util.Comparator.comparing(RuleJpaEntity::getPublishedBy,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "createdAt" -> java.util.Comparator.comparing(RuleJpaEntity::getCreatedAt,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "updatedAt" -> java.util.Comparator.comparing(RuleJpaEntity::getUpdatedAt,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "createdBy" -> java.util.Comparator.comparing(RuleJpaEntity::getCreatedBy,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            case "updatedBy" -> java.util.Comparator.comparing(RuleJpaEntity::getUpdatedBy,
-                    java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()));
-            default -> null;
-        };
     }
 
     /**

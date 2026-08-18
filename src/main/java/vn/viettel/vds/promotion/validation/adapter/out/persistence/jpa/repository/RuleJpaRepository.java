@@ -1,6 +1,8 @@
 package vn.viettel.vds.promotion.validation.adapter.out.persistence.jpa.repository;
 
 import com.promix.platform.data.jpa.autoconfigure.condition.ConditionalOnPromixJpa;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -74,4 +76,15 @@ public interface RuleJpaRepository extends JpaRepository<RuleJpaEntity, String> 
      */
     @Query("SELECT r FROM RuleJpaEntity r WHERE r.state = 'PUBLISHED' ORDER BY r.ruleVersion DESC")
     List<RuleJpaEntity> findPublishedRules();
+
+    @Query("""
+            SELECT r FROM RuleJpaEntity r
+            WHERE (:state IS NULL OR r.state = :state)
+              AND (:codePattern IS NULL OR LOWER(r.code) LIKE LOWER(CONCAT('%', :codePattern, '%')))
+              AND (:namePattern IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :namePattern, '%')))
+            """)
+    Page<RuleJpaEntity> findWithFilters(
+            @Param("state") String state, @Param("codePattern") String codePattern,
+            @Param("namePattern") String namePattern, Pageable pageable
+    );
 }
