@@ -145,6 +145,7 @@ public class RuleController {
         Rule.RuleState stateEnum = state != null ? Rule.RuleState.valueOf(state.toUpperCase()) : null;
 
         Page<Rule> rules = ruleService.findRules(stateEnum, code, name, pageable);
+        logger.info("[SEARCH-RULES] rules.size: {}, rules: {}", rules.getSize(), rules.getContent());
         Page<RuleResponse> responses = rules.map(ruleMapper::toRuleResponse);
 
         return PageResponse.from(responses);
