@@ -426,10 +426,16 @@ public class RuleJpaAdapter implements RulePersistencePort {
             where.append(" AND r.created_at <= :createdTo");
             params.put("createdTo", LocalDateTime.ofInstant(filter.createdTo(), ZoneOffset.UTC));
         }
+        // PROM-1479: "Trạng thái sử dụng" is defined ON the displayed column (SRS
+        // VRUL001 control 4: "Chưa gán" = Số lượng gán = 0), so this predicate must
+        // use the same notion of "đã gán" as ASSIGNMENT_COUNT_SUBQUERY — every
+        // binding, active or not. Keeping "AND b.active = true" here after PROM-1368
+        // widened the count made rules whose bindings were all deactivated (campaign
+        // finished/paused) show up under "Chưa gán" with a non-zero Số lượng gán.
         if (filter.usageStatus() == RuleListFilter.UsageStatus.ASSIGNED) {
-            where.append(" AND EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)");
+            where.append(" AND EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id)");
         } else if (filter.usageStatus() == RuleListFilter.UsageStatus.UNASSIGNED) {
-            where.append(" AND NOT EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id AND b.active = true)");
+            where.append(" AND NOT EXISTS (SELECT 1 FROM rule_bindings b WHERE b.rule_id = r.id)");
         }
     }
 
