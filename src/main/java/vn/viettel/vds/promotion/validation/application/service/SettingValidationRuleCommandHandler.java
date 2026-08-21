@@ -697,8 +697,10 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("Deploying binding bundle (no ruleId): bindingId={}, hasApplicability={}, hasTemporalPolicy={}",
                         binding.getId(), hasApplicability, hasTemporalPolicy);
 
+                // PROM-1437: truyền thẳng binding — hàng chưa được save nên tra DB sẽ hụt và
+                // khung thời gian (rrule/validFrom/validTo) rơi mất khỏi CompileRequest.
                 var publishResult = rulePublishingService.publishAssignmentBundle(
-                        binding.getId(), applicableToData, hasTemporalPolicy);
+                        binding.getId(), binding, applicableToData, hasTemporalPolicy);
 
                 return handlePublishResult(binding, publishResult);
             } else {
@@ -721,13 +723,13 @@ public class SettingValidationRuleCommandHandler {
                     logger.info("Rule has no business conditions, deploying temporal-only bundle: bindingId={}, ruleId={}",
                             binding.getId(), ruleId);
                     var publishResult = rulePublishingService.publishAssignmentBundle(
-                            binding.getId(), applicableToData, hasTemporalPolicy);
+                            binding.getId(), binding, applicableToData, hasTemporalPolicy);
                     return handlePublishResult(binding, publishResult);
                 }
 
                 logger.info("Deploying rule bundle: bindingId={}, ruleId={}", binding.getId(), ruleId);
 
-                var publishResult = rulePublishingService.publishRule(ruleId, binding.getId(), applicableToData);
+                var publishResult = rulePublishingService.publishRule(ruleId, binding.getId(), binding, applicableToData);
 
                 return handlePublishResult(binding, publishResult);
             }

@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleBindingRequest;
 import vn.viettel.vds.promotion.validation.adapter.in.web.dto.RuleBindingResponse;
+import vn.viettel.vds.promotion.validation.application.service.RuleBindingRedeployService;
 import vn.viettel.vds.promotion.validation.application.service.RuleBindingService;
 import vn.viettel.vds.promotion.validation.domain.model.RuleBinding;
 
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 public class RuleBindingController {
 
     private final RuleBindingService bindingService;
+    private final RuleBindingRedeployService redeployService;
 
     // ========== Create Operations ==========
 
@@ -226,6 +228,26 @@ public class RuleBindingController {
         RuleBinding updated = bindingService.updateBinding(id, updates, userId);
 
         return mapDomainToResponse(updated);
+    }
+
+    @Operation(summary = "Redeploy a rule binding's bundle",
+            description = "PROM-1437: biên dịch lại bundle từ trạng thái hiện tại của binding và "
+                    + "đồng bộ bundleHash mới sang pp-rule-engine. Dùng để sửa các binding tạo trước "
+                    + "bản vá — chúng đang pin bundle 24/7 nên khung thời gian không được áp dụng, và "
+                    + "không sửa được qua CMS vì chiến dịch đã ở trạng thái RUNNING.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Binding redeployed successfully"),
+            @ApiResponse(responseCode = "404", description = "Binding not found"),
+            @ApiResponse(responseCode = "422", description = "Binding has nothing to compile or is inactive")
+    })
+    @PostMapping("/{id}/redeploy")
+    @ResponseCode(code = "RULE_BINDING_REDEPLOYED")
+    public RuleBindingResponse redeployBinding(
+            @Parameter(description = "Binding ID") @PathVariable String id) {
+
+        log.info("Redeploying rule binding: id={}", id);
+
+        return mapDomainToResponse(redeployService.redeploy(id));
     }
 
     // ========== Delete Operations ==========

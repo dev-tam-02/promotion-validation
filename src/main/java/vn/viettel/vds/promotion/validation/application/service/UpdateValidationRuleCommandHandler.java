@@ -513,7 +513,7 @@ public class UpdateValidationRuleCommandHandler {
 
             String ruleId = binding.getRuleId();
             if (ruleId == null || ruleId.isBlank()) {
-                logger.info("Skipping deployment - no ruleId: bindingId={}", binding.getId());
+                deployRuleLessBinding(binding, applicableToData);
                 return;
             }
 
@@ -538,6 +538,48 @@ public class UpdateValidationRuleCommandHandler {
 
         } catch (Exception e) {
             logger.error("Error deploying rule to engine: bindingId={}", binding.getId(), e);
+        }
+    }
+
+    /**
+     * PROM-1437: biên dịch lại binding KHÔNG gắn rule nghiệp vụ (chỉ mang khung thời gian
+     * và/hoặc phạm vi áp dụng).
+     *
+     * <p>Trước đây nhánh này chỉ log "Skipping deployment - no ruleId" rồi thoát, nên binding
+     * rule-less giữ NGUYÊN {@code bundleHash} sinh ra lúc tạo cho tới hết đời — sửa khung thời
+     * gian trên CMS bao nhiêu lần cũng không đổi được bundle. Cộng với lỗi gốc PROM-1437
+     * (lúc tạo, binding chưa kịp lưu nên {@code timeLinks} rơi mất và rule-engine sinh bundle
+     * {@code temporal_check_allow_24_7}), hệ quả là chiến dịch giới hạn "Thứ 5,6,7" được API
+     * #01 trả về mọi ngày và không có đường nào tự chữa.
+     *
+     * <p>Ở đây binding ĐÃ được {@code updateBinding} lưu xuống DB trước khi deploy, nên vẫn
+     * truyền thẳng binding vào để {@code timeLinks} chắc chắn có mặt.
+     */
+    private void deployRuleLessBinding(RuleBinding binding, ApplicabilityScope applicableToData) {
+        boolean hasTemporalPolicy = binding.hasTemporalConstraints();
+        SettingValidationRuleCommand.ApplicabilityScope applicability = convertApplicabilityScope(applicableToData);
+
+        if (!hasTemporalPolicy && applicability == null) {
+            logger.info("Skipping deployment - no ruleId, no temporal policy and no applicability: bindingId={}",
+                    binding.getId());
+            return;
+        }
+
+        logger.info("Redeploying rule-less binding: bindingId={}, hasTemporalPolicy={}, hasApplicability={}",
+                binding.getId(), hasTemporalPolicy, applicability != null);
+
+        var publishResult = rulePublishingService.publishAssignmentBundle(
+                binding.getId(), binding, applicability, hasTemporalPolicy);
+
+        if (publishResult.isSuccess()) {
+            ruleBindingPort.save(binding.toBuilder()
+                    .bundleHash(publishResult.getBundleHash())
+                    .build());
+            logger.info("Rule-less binding redeployed: bindingId={}, bundleHash={}",
+                    binding.getId(), publishResult.getBundleHash());
+        } else {
+            logger.error("Failed to redeploy rule-less binding: bindingId={}, error={}",
+                    binding.getId(), publishResult.getErrorMessage());
         }
     }
 
