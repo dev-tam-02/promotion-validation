@@ -410,32 +410,53 @@ public class RuleService {
     public BundleHashResponse getBundleHashForObject(String objectType, String objectId) {
         logger.info("Getting bundle hash for object: type={}, id={}", objectType, objectId);
 
-        // Find active assignment for object
         var assignments = assignmentRepository.findByEntityTypeAndEntityIdAndActive(objectType, objectId, true);
         if (assignments.isEmpty()) {
             logger.warn("No active assignment found for object: type={}, id={}", objectType, objectId);
             throw new ResourceNotFoundException();
         }
 
-        // Get first assignment (there should only be one active)
         var assignmentEntity = assignments.get(0);
+        String bundleHash = assignmentEntity.getTemporalBundleHash();
+        Instant compiledAt = assignmentEntity.getUpdatedAt();
 
-        // Check if assignment has temporalBundleHash
-        if (assignmentEntity.getTemporalBundleHash() == null || assignmentEntity.getTemporalBundleHash().isEmpty()) {
-            logger.warn("Assignment has no temporalBundleHash: assignmentId={}", assignmentEntity.getId());
-            throw new ResourceNotFoundException();
+        if (bundleHash == null || bundleHash.isEmpty()) {
+            String ruleId = assignmentEntity.getRuleId();
+            if (ruleId == null || ruleId.isBlank()) {
+                logger.warn("Assignment has no temporalBundleHash and no ruleId: assignmentId={}",
+                        assignmentEntity.getId());
+                throw new ResourceNotFoundException();
+            }
+
+            Rule rule = rulePersistencePort.findById(ruleId)
+                    .orElseThrow(() -> {
+                        logger.warn("Rule not found for bundleHash fallback: assignmentId={}, ruleId={}",
+                                assignmentEntity.getId(), ruleId);
+                        return new ResourceNotFoundException();
+                    });
+
+            if (rule.getBundleHash() == null || rule.getBundleHash().isEmpty()) {
+                logger.warn("Neither assignment nor rule has bundleHash: assignmentId={}, ruleId={}",
+                        assignmentEntity.getId(), ruleId);
+                throw new ResourceNotFoundException();
+            }
+
+            bundleHash = rule.getBundleHash();
+            compiledAt = rule.getPublishedAt() != null ? rule.getPublishedAt() : rule.getUpdatedAt();
+
+            logger.warn("Fallback to rule-level bundleHash: assignmentId={}, ruleId={}, bundleHash={}",
+                    assignmentEntity.getId(), ruleId, bundleHash);
         }
 
-        logger.debug("Found temporal bundle hash {} for object {}:{}",
-                assignmentEntity.getTemporalBundleHash(), objectType, objectId);
+        logger.debug("Resolved bundle hash {} for object {}:{}", bundleHash, objectType, objectId);
 
         return BundleHashResponse.builder()
                 .objectType(objectType)
                 .objectId(objectId)
-                .bundleHash(assignmentEntity.getTemporalBundleHash())
+                .bundleHash(bundleHash)
                 .ruleVersion(null)
                 .assignmentVersion(1)
-                .compiledAt(assignmentEntity.getUpdatedAt())
+                .compiledAt(compiledAt)
                 .build();
     }
 }
