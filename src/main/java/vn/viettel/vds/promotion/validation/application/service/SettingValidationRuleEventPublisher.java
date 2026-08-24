@@ -492,7 +492,7 @@ public class SettingValidationRuleEventPublisher {
      */
     @SuppressWarnings("java:S2139")
     public void publishDeleteSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
-        String validationRuleId = binding != null ? binding.getId() : null;
+        String validationRuleId = resolveEventRuleId(binding);
         String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
@@ -569,7 +569,7 @@ public class SettingValidationRuleEventPublisher {
      */
     @SuppressWarnings("java:S2139")
     public void publishEnableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
-        String validationRuleId = binding != null ? binding.getId() : null;
+        String validationRuleId = resolveEventRuleId(binding);
         String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         String bundleHash = binding != null ? binding.getBundleHash() : null;
@@ -675,7 +675,7 @@ public class SettingValidationRuleEventPublisher {
      */
     @SuppressWarnings("java:S2139")
     public void publishDisableSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
-        String validationRuleId = binding != null ? binding.getId() : null;
+        String validationRuleId = resolveEventRuleId(binding);
         String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
         try {
@@ -738,6 +738,34 @@ public class SettingValidationRuleEventPublisher {
      */
     private String normalizeSubjectType(String objectType) {
         return objectType != null ? objectType.toUpperCase() : DEFAULT_SUBJECT_TYPE;
+    }
+
+    /**
+     * PROM-1462: khoá định danh rule mà data plane dùng để tra hàng {@code assignments}.
+     *
+     * <p>Ba event enable/disable/delete trước đây gắn thẳng {@code binding.getId()} (ID BINDING)
+     * vào trường {@code validationRuleId}. pp-rule-engine lại upsert/deactivate hàng
+     * {@code assignments} theo khoá {@code (subjectType, subjectKey, ruleId)}, nên bundleHash mới
+     * rơi vào MỘT HÀNG KHÁC với hàng do {@code ReconciliationService} duy trì (hàng đó mang
+     * {@code rule_id} = ruleId THẬT). {@code BundleLookupService#getLatestBundle} chọn theo
+     * {@code ORDER BY priority DESC} nên luôn trúng hàng của reconciliation — tức là bundle CŨ —
+     * cho tới lượt reconciliation kế tiếp (mặc định 15 phút). Hệ quả đo được: sửa khung thời gian
+     * rồi bật lại chiến dịch thì API #01/#02/#03 vẫn chấm bằng DRL cũ và trả
+     * {@code TEMPORAL_CONSTRAINT_NOT_MET}; tương tự, tạm dừng chiến dịch chỉ tắt hàng phụ nên
+     * hàng thật vẫn {@code active}.
+     *
+     * <p>Quy ước ở đây khớp với {@code ValidationRuleSettingAppliedEvent} (đã đúng từ trước):
+     * ưu tiên ruleId thật, chỉ lùi về ID binding khi binding KHÔNG gắn rule nghiệp vụ — nhóm
+     * binding rule-less bị {@code AssignmentSyncService#upsertFromBinding} bỏ qua (nó chặn
+     * {@code ruleId == null}) nên chỉ tồn tại dưới khoá ID binding; giữ nguyên fallback để
+     * không cắt đường đồng bộ duy nhất của nhóm đó.
+     */
+    private String resolveEventRuleId(RuleBinding binding) {
+        if (binding == null) {
+            return null;
+        }
+        String ruleId = binding.getRuleId();
+        return ruleId != null && !ruleId.isBlank() ? ruleId : binding.getId();
     }
 
     /**
