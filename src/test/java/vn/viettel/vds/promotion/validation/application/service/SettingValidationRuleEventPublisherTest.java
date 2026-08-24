@@ -85,4 +85,59 @@ class SettingValidationRuleEventPublisherTest {
         assertThat(event.getAssignmentResult().getRuleCode()).isNull();
         assertThat(event.getAssignmentResult().getDescription()).isNull();
     }
+
+    /**
+     * PROM-1462: enable/disable/delete phải phát ruleId THẬT, không phải ID binding.
+     * pp-rule-engine upsert hàng {@code assignments} theo khoá (subjectType, subjectKey, ruleId);
+     * phát nhầm ID binding làm bundleHash mới rơi vào một hàng khác hàng đang phục vụ.
+     */
+    @Test
+    void enableEvent_carries_realRuleId_notBindingId() {
+        RuleBinding binding = RuleBinding.builder()
+                .id("bind-1").ruleId("rule-1")
+                .objectType("DISCOUNT_COUPON").objectId("cmp-1")
+                .active(true).bundleHash("sha256:abc")
+                .build();
+
+        publisher.publishEnableSuccessEvent("cmd-1", "cmp-1", binding);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(kafkaUtils).send(eq("promotion_validation_event"), eq("cmp-1"), captor.capture());
+        var event = (vn.viettel.vds.promotion.validation.event.ValidationRuleEnabledEvent) captor.getValue();
+        assertThat(event.getPayload().getValidationRuleId()).isEqualTo("rule-1");
+        assertThat(event.getPayload().getBundleHash()).isEqualTo("sha256:abc");
+    }
+
+    @Test
+    void disableEvent_carries_realRuleId_notBindingId() {
+        RuleBinding binding = RuleBinding.builder()
+                .id("bind-1").ruleId("rule-1")
+                .objectType("DISCOUNT_COUPON").objectId("cmp-1")
+                .active(false)
+                .build();
+
+        publisher.publishDisableSuccessEvent("cmd-1", "cmp-1", binding);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(kafkaUtils).send(eq("promotion_validation_event"), eq("cmp-1"), captor.capture());
+        var event = (vn.viettel.vds.promotion.validation.event.ValidationRuleDisabledEvent) captor.getValue();
+        assertThat(event.getPayload().getValidationRuleId()).isEqualTo("rule-1");
+    }
+
+    /** Binding rule-less (ruleId null) vẫn phải lùi về ID binding — đó là khoá duy nhất của nhóm này. */
+    @Test
+    void enableEvent_ruleLessBinding_fallsBackToBindingId() {
+        RuleBinding binding = RuleBinding.builder()
+                .id("bind-2").ruleId(null)
+                .objectType("DISCOUNT_COUPON").objectId("cmp-2")
+                .active(true)
+                .build();
+
+        publisher.publishEnableSuccessEvent("cmd-2", "cmp-2", binding);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(kafkaUtils).send(eq("promotion_validation_event"), eq("cmp-2"), captor.capture());
+        var event = (vn.viettel.vds.promotion.validation.event.ValidationRuleEnabledEvent) captor.getValue();
+        assertThat(event.getPayload().getValidationRuleId()).isEqualTo("bind-2");
+    }
 }
