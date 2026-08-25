@@ -563,6 +563,13 @@ public class RuleController {
 
         RuleBinding b = binding.get();
 
+        // Binding tồn tại nhưng chưa gắn rule nào (vd campaign cashback chỉ dùng binding để lưu
+        // phạm vi sản phẩm/thời gian) là trường hợp HỢP LỆ — trả 404 đúng như contract của
+        // endpoint này, thay vì để findById(null) ném ra 500 "An unexpected error occurred".
+        if (b.getRuleId() == null) {
+            throw new BindingNotFoundException(objectType, objectId);
+        }
+
         // Get the rule
         Rule rule = ruleService.getRuleById(b.getRuleId());
 
