@@ -215,7 +215,7 @@ public class ReasonCodeService {
                         Map.of("en", "Order total below minimum", "vi", "Tổng đơn hàng chưa đạt tối thiểu")),
 
                 new DefaultReasonCode("CUSTOMER_SEGMENT_MISMATCH", "CUSTOMER", ReasonCode.Severity.WARN,
-                        Map.of("en", "Customer not in required segment", "vi", "Khách hàng không thuộc phân khúc yêu cầu")),
+                        Map.of("en", "Customer not in required segment", "vi", "Khách hàng không thuộc Tệp khách hàng yêu cầu")),
 
                 new DefaultReasonCode("TIME_WINDOW_INVALID", "TIME", ReasonCode.Severity.INFO,
                         Map.of("en", "Outside valid time window", "vi", "Ngoài khung thời gian có hiệu lực")),
