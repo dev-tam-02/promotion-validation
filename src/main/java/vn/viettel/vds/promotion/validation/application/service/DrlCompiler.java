@@ -36,6 +36,21 @@ public class DrlCompiler {
 
     private static final Logger log = LoggerFactory.getLogger(DrlCompiler.class);
 
+    /**
+     * Comparator DAY DU (ten operator ma CMS luu) → hau to VIET TAT (ten file template that).
+     *
+     * <p>Chi liet ke nhung comparator that su CO file trong {@code rule-templates/}: gte, gt, lte,
+     * lt, equals. Them mot dong o day ma khong them file template la tu dat bay cho chinh minh —
+     * loi se doi tu "khong tim thay template" thanh mot compilerId sai van khong tim thay, chi la
+     * kho lan hon.
+     */
+    private static final Map<String, String> VIET_TAT_COMPARATOR = Map.of(
+            "GREATER_OR_EQUAL", "gte",
+            "GREATER_THAN", "gt",
+            "LESS_OR_EQUAL", "lte",
+            "LESS_THAN", "lt",
+            "EQUALS", "equals");
+
     private final Handlebars handlebars;
 
     public DrlCompiler() {
@@ -130,12 +145,45 @@ public class DrlCompiler {
         if (operator != null && operator.getCompilerId() != null) {
             compilerId = operator.getCompilerId();
         } else {
-            // Fallback: derive compilerId from operatorName using naming convention tpl_{name}_v1
-            compilerId = "tpl_" + operatorName.replace(".", "_") + "_v1";
+            compilerId = suyCompilerIdTuTenOperator(operatorName);
             log.warn("No compilerId for operator={}, using fallback={}", operatorName, compilerId);
         }
 
         return renderCondTemplate(compilerId, node.getParams());
+    }
+
+    /**
+     * Suy {@code compilerId} tu ten operator khi registry khong co dong tuong ung.
+     *
+     * <p><b>Vi sao khong ghep thang {@code tpl_ + ten + _v1} nhu truoc (do that tren 229
+     * 28/08/2026):</b> ten operator ma CMS luu dung comparator DAY DU viet hoa
+     * ({@code order.total.GREATER_OR_EQUAL}), con file template lai dung dang VIET TAT viet thuong
+     * ({@code tpl_order_total_gte_v1.drl.mustache}). Ghep thang cho ra
+     * {@code tpl_order_total_GREATER_OR_EQUAL_v1} — mot file khong ton tai — va DrlCompiler nem
+     * "Cannot load or render DRL template", lam ca luot publish rule that bai:
+     *
+     * <pre>
+     * ERROR RuleManagementService republishSystemRules: failed for rule 01a0467f-e043-…:
+     *   Cannot load or render DRL template for compilerId=tpl_order_total_GREATER_OR_EQUAL_v1
+     * </pre>
+     *
+     * <p>Chi doi phan COMPARATOR o cuoi, va chi khi no nam trong bang duoi — mot operator khong
+     * theo khuon "tien to + comparator" (vd {@code customer.segment.IN}, ma template that ten
+     * {@code tpl_customer_in_segment_v1}) khong the suy ra bang quy tac nao, nen giu nguyen hanh
+     * vi cu: ghep thang roi de loi "khong tim thay template" no ra. Doan mo them o day se bien
+     * mot loi on ao thanh mot template SAI duoc nap am tham.
+     */
+    private String suyCompilerIdTuTenOperator(String operatorName) {
+        int viTriChamCuoi = operatorName.lastIndexOf('.');
+        if (viTriChamCuoi > 0) {
+            String comparator = operatorName.substring(viTriChamCuoi + 1);
+            String vietTat = VIET_TAT_COMPARATOR.get(comparator);
+            if (vietTat != null) {
+                String tienTo = operatorName.substring(0, viTriChamCuoi).replace(".", "_");
+                return "tpl_" + tienTo + "_" + vietTat + "_v1";
+            }
+        }
+        return "tpl_" + operatorName.replace(".", "_") + "_v1";
     }
 
     private String compileGroupNode(RuleNode node, Map<String, Operator> operators) {
