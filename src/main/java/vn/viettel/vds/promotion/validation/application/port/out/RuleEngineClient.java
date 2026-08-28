@@ -44,6 +44,30 @@ public interface RuleEngineClient {
     void delete(String ruleId);
 
     /**
+     * Bao rule-engine rang subject nay DA gan rule nhung bien dich THAT BAI — de no chan subject
+     * thay vi coi nhu "chua gan rule".
+     *
+     * <p><b>Lo hong ma no bit.</b> Khi saga gan rule hong o buoc bien dich
+     * ({@code COMPILE_DEPLOY_ERROR}), binding DA duoc luu voi {@code active = 1} nhung
+     * {@code ValidationRuleSettingAppliedEvent} chi phat khi THANH CONG — nen rule-engine khong he
+     * biet campaign nay co dieu kien. No tra {@code NO_RULE_CONFIGURED}, va pp-redemption CO Y
+     * fail-open voi ma do (da so campaign that su khong co dieu kien). Ket qua do that tren 229
+     * ngay 28/08/2026: campaign khai {@code order.total >= 100.000}, don 50.000d van nhan uu dai.
+     *
+     * <p>Duong vay duy nhat truoc day la reconcile dinh ky ben rule-engine — cua so toi 15 phut,
+     * va do tren 229 thi sau ~10 phut van con lot.
+     *
+     * <p><b>BEST-EFFORT:</b> hong thi chi log, KHONG duoc nem ra ngoai. Saga da that bai san roi;
+     * bien mot lan goi phu hong thanh exception moi chi lam mat thong diep loi that
+     * ({@code COMPILE_DEPLOY_ERROR}) ma nguoi dung can doc.
+     *
+     * @param subjectType loai subject ben rule-engine (vd {@code DISCOUNT_COUPON}, {@code CAMPAIGN})
+     * @param subjectKey  dinh danh subject (campaignId)
+     * @param ruleId      rule vua bien dich hong
+     */
+    void markBoundButNotReady(String subjectType, String subjectKey, String ruleId);
+
+    /**
      * Simulate rule evaluation against provided facts.
      *
      * <p>Calls {@code POST /v1/rules/evaluate} with {@code mode=SIMULATE}.
