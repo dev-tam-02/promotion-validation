@@ -162,6 +162,47 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
         }
     }
 
+    /**
+     * BEST-EFFORT theo dung hop dong o {@link RuleEngineClient#markBoundButNotReady}: moi that bai
+     * deu bi NUOT (chi log warn).
+     *
+     * <p><b>Vi sao khong nem, ke ca khi rule-engine chet:</b> ham nay chi duoc goi tren duong LOI
+     * (saga da that bai voi {@code COMPILE_DEPLOY_ERROR}). Nem tiep o day se thay thong diep loi
+     * that bang mot loi ha tang, va nguoi dung mat luon manh moi de biet vi sao campaign hong.
+     * Cai gia cua viec nuot: neu loi goi nay hong, subject roi lai vao trang thai cu (rule-engine
+     * khong biet gi) cho toi vong reconcile ke tiep — dung bang hanh vi truoc khi co ban va nay,
+     * khong te hon.
+     *
+     * <p>KHONG dat {@code @CircuitBreaker}: cac method khac trong lop nay dung fallback de tra gia
+     * tri thay the, con o day khong co gia tri nao de tra — va mot circuit dang mo se lam ta bo
+     * qua lan danh dau ma khong ai biet.
+     */
+    @Override
+    public void markBoundButNotReady(String subjectType, String subjectKey, String ruleId) {
+        log.info("Danh dau subject da gan rule nhung chua san sang: {}:{}, ruleId={}",
+                subjectType, subjectKey, ruleId);
+        try {
+            webClient.post()
+                    .uri("/v1/admin/assignments:mark-bound-not-ready")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of(
+                            "subjectType", subjectType,
+                            "subjectKey", subjectKey,
+                            "ruleId", ruleId))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .timeout(TIMEOUT)
+                    .block();
+            log.info("Da danh dau {}:{} la PENDING ben rule-engine — subject se bi CHAN thay vi"
+                    + " duoc coi la 'chua gan rule'", subjectType, subjectKey);
+        } catch (Exception ex) {
+            log.warn("Khong danh dau duoc {}:{} ben rule-engine ({}). Subject nay se bi coi la"
+                            + " 'chua gan rule' cho toi vong reconcile ke tiep — tuc uu dai cua no"
+                            + " co the duoc tra ra BAT KE dieu kien don hang.",
+                    subjectType, subjectKey, ex.toString());
+        }
+    }
+
     @Override
     @CircuitBreaker(name = "ruleEngine", fallbackMethod = "simulateFallback")
     public SimulateResponse simulate(String ruleId, Map<String, Object> facts) {

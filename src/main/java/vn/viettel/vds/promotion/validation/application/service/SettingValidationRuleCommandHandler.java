@@ -283,6 +283,17 @@ public class SettingValidationRuleCommandHandler {
             if (deployResult.outcome() == DeployOutcome.FAILED) {
                 logger.warn("Rule binding created but compilation to rule-engine failed: bindingId={}, ruleId={}",
                         ruleBinding.getId(), components.ruleId());
+                // Binding VUA duoc luu voi active = 1, tuc he thong dang khang dinh "campaign nay CO
+                // dieu kien". Nhung ValidationRuleSettingAppliedEvent chi phat khi THANH CONG, nen
+                // neu ta thoat o day ma khong bao gi, rule-engine khong co dong assignments nao va
+                // se tra NO_RULE_CONFIGURED = "campaign chua gan rule" — ma pp-redemption CO Y
+                // fail-open voi ma do. Do that tren 229 ngay 28/08/2026: campaign khai
+                // order.total >= 100.000, don 50.000d van nhan duoc uu dai.
+                //
+                // Danh dau PENDING de rule-engine tra RULE_BUNDLE_MISSING ⇒ CHAN. Best-effort: hong
+                // thi chi log, khong duoc che mat COMPILE_DEPLOY_ERROR ma nguoi dung can doc.
+                markBoundButNotReadyBestEffort(components.objectType(), components.objectId(),
+                        components.ruleId());
                 return CommandProcessingResult.failure("COMPILE_DEPLOY_ERROR",
                         "Rule binding created but compilation to rule-engine failed. RuleId: " + components.ruleId());
             }
@@ -665,6 +676,30 @@ public class SettingValidationRuleCommandHandler {
         } catch (Exception e) {
             logger.error("[SagaRegister] Failed to register rule {} into KieBase — T0 bootstrap will recover on restart",
                     rule.getId(), e);
+        }
+    }
+
+    /**
+     * Bao rule-engine biet subject da gan rule nhung chua dung duoc — xem
+     * {@link RuleEngineClient#markBoundButNotReady}.
+     *
+     * <p>Chi goi khi CO {@code ruleId}: binding khong gan rule ({@code ruleId == null}, Task 11b)
+     * von la trang thai HOP LE va khong co dieu kien nao de bao ve, danh dau no la chan oan.
+     *
+     * <p>Bat moi ngoai le tai day, khong de lot ra {@code processCommand}: adapter da nuot loi
+     * roi, nhung mot {@code RuntimeException} ngoai du kien (vd bean chua san sang) van co the
+     * bay len va lam saga tra ve PROCESSING_ERROR thay vi COMPILE_DEPLOY_ERROR — tuc doi mat
+     * thong diep loi that.
+     */
+    private void markBoundButNotReadyBestEffort(String objectType, String objectId, String ruleId) {
+        if (ruleId == null || objectType == null || objectId == null) {
+            return;
+        }
+        try {
+            ruleEngineClient.markBoundButNotReady(objectType, objectId, ruleId);
+        } catch (Exception e) {
+            logger.warn("Khong danh dau duoc binding {}:{} la PENDING ben rule-engine: {}",
+                    objectType, objectId, e.toString());
         }
     }
 
