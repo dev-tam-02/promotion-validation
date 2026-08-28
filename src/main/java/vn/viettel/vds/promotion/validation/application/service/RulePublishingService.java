@@ -718,15 +718,23 @@ public class RulePublishingService {
     }
 
     private void warmup(CompileResponse compileResponse) {
-        // Validate artifact bytes are present
+        // Thieu artifact KHONG con la loi — bo qua warmup thay vi lam hong ca luot publish.
+        //
+        // Kien truc lo cua rule-engine da bo han artifact .kjar cho tung rule
+        // (CompileService.saveValidationBundle: "artifact bi vut ngay", "NGUON CHAN LY moi: DRL
+        // text, khong phai kjar"); artifact thuc thi chi con o cap LO, va duong ban that dung
+        // container cua LO. Nem loi o day vi thieu mot thu KHONG CON AI SINH RA khien MOI campaign
+        // co validation rule roi vao ERROR — do that tren 229 ngay 28/08/2026: 4/4 campaign hong,
+        // trong khi log MinIO chi co "key=buckets/…" chu khong mot dong "bundles/….kjar" nao.
+        //
+        // Bo qua cung khong mat gi: endpoint /v1/compile/warmup ben rule-engine hien chi log
+        // ("Simplified warmup - actual implementation would load the bundle"), va container duoc
+        // nap o cap lo qua BucketResolver.
         if (compileResponse.getArtifactBytes() == null) {
-            String errorMsg = String.format(
-                    "Cannot warm up bundle: artifact bytes are missing. BundleHash=%s. " +
-                            "This indicates a storage retrieval failure in the validation engine.",
-                    compileResponse.getBundleHash()
-            );
-            logger.error(errorMsg);
-            throw new IllegalStateException(errorMsg);
+            logger.info("Bo qua warmup: khong co artifact per-rule cho bundleHash={} — dung voi"
+                            + " kien truc lo (artifact thuc thi nam o cap LO)",
+                    compileResponse.getBundleHash());
+            return;
         }
 
         try {
