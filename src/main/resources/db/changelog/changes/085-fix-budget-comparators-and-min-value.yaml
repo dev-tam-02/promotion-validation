@@ -1,0 +1,63 @@
+databaseChangeLog:
+  # ============================================================================
+  # Sua hai lech giua catalog operator va registry rule-engine cho nhom
+  # "Ngan sach & Gioi han". Do thuc te tren staging 229 ngay 2026-09-07 bang
+  # 21 campaign co lap.
+  #
+  # (1) COMPARATOR NGOAI .LESS_OR_EQUAL => campaign ERROR COMPILE_DEPLOY_ERROR.
+  #     Changeset 080-narrow-budget-comparators-to-lte da thu hep dung, nhung chi
+  #     quet `WHERE category_id = 'cat-budget-constraints'`. Nam hang do changeset
+  #     044-seed-counter-operators tao lai mang `category_id = 'cat-budget-001'`,
+  #     nen lot khoi ca 077 lan 080 va con giu token FE cu '["lte"]' — khong phai
+  #     canonical, nen catalog tra ve bo comparator rong hon engine dung duoc.
+  #     Do duoc: 8/8 rule dung GREATER_THAN / GREATER_OR_EQUAL / EQUALS /
+  #     LESS_THAN tren budget.redemptions.per_incentive.per_day va
+  #     budget.redemptions.per_customer.in_campaign deu compile fail.
+  #     Giu dung nguyen tac cua 080 — "catalog must not exceed engine keys":
+  #     registry pp-rule-engine chi co ho .LESS_OR_EQUAL (TKCT_Rule_Engine
+  #     §13 phu luc, operator 62-76; T13-seed-counter-operators).
+  #
+  # (2) NGUONG 0 => campaign ERROR COMPILE_DEPLOY_ERROR.
+  #     BudgetRedemptions*LteOperatorTranslator nem IllegalArgumentException khi
+  #     maxValue < 1 — dung theo T13 (`params_schema.value.minimum = 1`). Nhung
+  #     055-seed-operator-options-v2 dat `min_value = 0` cho ca 17 hang, nen CMS
+  #     cho nhap 0 roi saga chet ma nguoi dung khong biet vi sao. Cac hang do 044
+  #     tao von da co min_value = 1 — day chi la dong bo phan con lai.
+  # ============================================================================
+
+  - changeSet:
+      id: 085-narrow-budget-comparators-missed-by-080
+      author: harley hoang
+      comment: "Hang budget cua 044 (category cat-budget-001) lot khoi 080 -> ep ve [LESS_OR_EQUAL]"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["LESS_OR_EQUAL"]',
+                  default_comparator = 'LESS_OR_EQUAL'
+              WHERE operator_name LIKE 'budget.%'
+                AND available_comparators <> '["LESS_OR_EQUAL"]';
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET available_comparators = '["lte"]', default_comparator = 'lte'
+              WHERE category_id = 'cat-budget-001';
+
+  - changeSet:
+      id: 085-budget-min-value-one
+      author: harley hoang
+      comment: "Nguong ngan sach phai >= 1 (T13 params_schema.minimum=1); 055 dat min_value=0 lam campaign ERROR"
+      changes:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET min_value = 1
+              WHERE operator_name LIKE 'budget.%'
+                AND (min_value IS NULL OR min_value < 1);
+      rollback:
+        - sql:
+            sql: |
+              UPDATE operator_options
+              SET min_value = 0
+              WHERE category_id = 'cat-budget-constraints';
