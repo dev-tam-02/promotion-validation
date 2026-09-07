@@ -305,3 +305,9 @@ databaseChangeLog:
   # before the entity mapped the column (they kept the DB default 0).
   - include:
       file: db/changelog/changes/084-backfill-rule-nodes-display-order.yaml
+
+  # Dong bo catalog nhom "Ngan sach & Gioi han" voi registry rule-engine: cac hang
+  # do 044 tao (category cat-budget-001) lot khoi lan thu hep comparator o 080, va
+  # min_value=0 tu 055 lam campaign chet COMPILE_DEPLOY_ERROR khi nguong = 0.
+  - include:
+      file: db/changelog/changes/085-fix-budget-comparators-and-min-value.yaml
