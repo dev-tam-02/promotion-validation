@@ -661,7 +661,7 @@ public class RuleService {
     }
 
     /**
-     * Mark rule as published (called by PublishService)
+     * Mark rule as published
      */
     public Rule markRuleAsPublished(String ruleId, int newVersion) {
         logger.info("Marking rule as published: id={}, version={}", ruleId, newVersion);

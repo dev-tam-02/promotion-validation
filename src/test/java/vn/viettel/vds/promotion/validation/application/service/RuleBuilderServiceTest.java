@@ -418,16 +418,14 @@ class RuleBuilderServiceTest {
     class EdgeCases {
 
         @Test
-        @DisplayName("Should return empty paginated response when ruleId does not match any option")
+        @DisplayName("ruleId không khớp loại điều kiện nào → 404 OPERATOR_OPTION_NOT_FOUND (TKCT 3.5.1.2.2)")
         void shouldReturnEmpty_whenRuleIdNotFound() {
             when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID))
                     .thenReturn(List.of(categoryWith(staticOption("other_rule"))));
 
-            RuleOptionsResponse response = sut.getRuleOptions("nonexistent_rule", null, null, 0, 10, TENANT_ID);
-
-            assertThat(response.ruleId()).isEqualTo("nonexistent_rule");
-            assertThat(response.options()).isEmpty();
-            assertThat(response.totalElements()).isZero();
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                            () -> sut.getRuleOptions("nonexistent_rule", null, null, 0, 10, TENANT_ID))
+                    .isInstanceOf(com.promix.platform.core.exception.ResourceNotFoundException.class);
             verifyNoInteractions(ruleOptionsLookupPort);
         }
     }
@@ -519,5 +517,18 @@ class RuleBuilderServiceTest {
             assertThat(config.minValue()).isEqualTo("30");
             assertThat(config.minExclusive()).isNull();
         }
+    }
+
+    @org.junit.jupiter.api.Test
+    @DisplayName("TKCT 3.5.1.2.2: optionId không tồn tại (kể cả đường tra cứu quy tắc cũ) → 404 OPERATOR_OPTION_NOT_FOUND")
+    void unknownOption_notFound() {
+        org.mockito.Mockito.when(operatorConfigService.getAllCategoriesWithOptions(TENANT_ID)).thenReturn(java.util.List.of());
+        org.mockito.Mockito.when(operatorConfigService.findOptionForResolution("khong-ton-tai"))
+                .thenReturn(java.util.Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> sut.getRuleOptions("khong-ton-tai", null, null, 0, 20, TENANT_ID))
+                .isInstanceOfSatisfying(com.promix.platform.core.exception.ResourceNotFoundException.class,
+                        e -> org.assertj.core.api.Assertions.assertThat(e.getErrorCode()).isEqualTo("OPERATOR_OPTION_NOT_FOUND"));
     }
 }

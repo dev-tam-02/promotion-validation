@@ -1,0 +1,13 @@
+databaseChangeLog:
+  # ============================================================================
+  # Bang publish_jobs khong con cho nao ghi, khong job nao xu ly (cum PublishService da go).
+  # ============================================================================
+  - changeSet:
+      id: 089-drop-publish-jobs
+      author: promotion-validation
+      changes:
+        - sql:
+            sql: DROP TABLE IF EXISTS publish_jobs;
+      rollback:
+        - sql:
+            sql: SELECT 1;

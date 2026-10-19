@@ -1,0 +1,29 @@
+databaseChangeLog:
+  # ============================================================================
+  # Cot cu khong con entity hay cau SQL nao dung, TKCT 6.1 / TKCSDL khong ghi:
+  # - operator_categories.display_name, operators.display_name, reason_codes.display_message;
+  # - rule_bindings va rule_bindings_deleted: active_from, active_to, enabled, product_scope,
+  #   resource_id, resource_type, traffic_control (kem chi muc idx_rb_resource_active);
+  # - outbox_events: tenant_id, attempts, last_attempt_at, published_at (cot cu 071 de lai khi
+  #   chuyen sang outbox cua thu vien), kem chi muc idx_outbox_tenant_id, idx_outbox_status_attempts.
+  # ============================================================================
+  - changeSet:
+      id: 088-drop-unused-columns
+      author: promotion-validation
+      changes:
+        - sql:
+            splitStatements: true
+            sql: |
+              ALTER TABLE operator_categories DROP COLUMN IF EXISTS display_name;
+              ALTER TABLE operators DROP COLUMN IF EXISTS display_name;
+              ALTER TABLE reason_codes DROP COLUMN IF EXISTS display_message;
+              DROP INDEX IF EXISTS idx_rb_resource_active ON rule_bindings;
+              ALTER TABLE rule_bindings DROP COLUMN IF EXISTS active_from, DROP COLUMN IF EXISTS active_to, DROP COLUMN IF EXISTS enabled, DROP COLUMN IF EXISTS product_scope, DROP COLUMN IF EXISTS resource_id, DROP COLUMN IF EXISTS resource_type, DROP COLUMN IF EXISTS traffic_control;
+              DROP INDEX IF EXISTS idx_rb_resource_active ON rule_bindings_deleted;
+              ALTER TABLE rule_bindings_deleted DROP COLUMN IF EXISTS active_from, DROP COLUMN IF EXISTS active_to, DROP COLUMN IF EXISTS enabled, DROP COLUMN IF EXISTS product_scope, DROP COLUMN IF EXISTS resource_id, DROP COLUMN IF EXISTS resource_type, DROP COLUMN IF EXISTS traffic_control;
+              DROP INDEX IF EXISTS idx_outbox_tenant_id ON outbox_events;
+              DROP INDEX IF EXISTS idx_outbox_status_attempts ON outbox_events;
+              ALTER TABLE outbox_events DROP COLUMN IF EXISTS tenant_id, DROP COLUMN IF EXISTS attempts, DROP COLUMN IF EXISTS last_attempt_at, DROP COLUMN IF EXISTS published_at;
+      rollback:
+        - sql:
+            sql: SELECT 1;

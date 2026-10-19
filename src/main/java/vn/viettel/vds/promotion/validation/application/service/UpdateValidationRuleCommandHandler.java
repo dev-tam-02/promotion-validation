@@ -46,6 +46,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class UpdateValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+
     private static final Logger logger = LoggerFactory.getLogger(UpdateValidationRuleCommandHandler.class);
     private static final String SOURCE = "validation-service";
     private static final String DEFAULT_USER = "system";
@@ -96,12 +99,19 @@ public class UpdateValidationRuleCommandHandler {
                 return true;
             }
 
-            validateCommand(command);
+            // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
+            // thử lại (dữ liệu sai thì thử lại cũng không qua).
+            try {
+                validateCommand(command);
+            } catch (InvalidCommandDataException e) {
+                publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+                return false;
+            }
 
             UpdateValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Update command payload is null: commandId={}", commandId);
-                publishErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
+                publishErrorEvent(commandId, null, MISSING_PARAMETER, "Command payload is missing");
                 return false;
             }
 
@@ -165,7 +175,7 @@ public class UpdateValidationRuleCommandHandler {
     private void validateCommand(UpdateValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException(MISSING_PARAMETER, "Command or payload is null");
         }
 
         UpdateValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
@@ -189,7 +199,7 @@ public class UpdateValidationRuleCommandHandler {
             logger.error("UpdateValidationRuleCommand validation failed: commandId={}, errors={}",
                     command.getId(), errorDetails);
 
-            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
+            throw new InvalidCommandDataException(MISSING_PARAMETER, errorMessage);
         }
 
         logger.debug("UpdateValidationRuleCommand validation passed: commandId={}", command.getId());

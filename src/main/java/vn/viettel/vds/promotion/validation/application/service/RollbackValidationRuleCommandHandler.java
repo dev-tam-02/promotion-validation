@@ -31,9 +31,14 @@ import java.util.Set;
 @Transactional
 public class RollbackValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+
     private static final Logger logger = LoggerFactory.getLogger(RollbackValidationRuleCommandHandler.class);
     // Canonical object types that can be bound to a campaign-level object.
     private static final List<String> CAMPAIGN_OBJECT_TYPES = List.of("CAMPAIGN", "DISCOUNT_COUPON", "CASHBACK");
+    /** rollbackReason do CashbackCampaignDeleteSaga gửi khi xoá chiến dịch từ CMS. */
+    static final String DELETE_CAMPAIGN_REASON = "DELETE_CAMPAIGN";
     private final RuleBindingPersistencePort ruleBindingPort;
     private final RulePersistencePort rulePort;
     private final SettingValidationRuleEventPublisher eventPublisher;
@@ -68,12 +73,19 @@ public class RollbackValidationRuleCommandHandler {
                 return true;
             }
 
-            validateCommand(command);
+            // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
+            // thử lại (dữ liệu sai thì thử lại cũng không qua).
+            try {
+                validateCommand(command);
+            } catch (InvalidCommandDataException e) {
+                publishRollbackErrorEvent(commandId, MISSING_PARAMETER, e.getMessage());
+                return false;
+            }
 
             RollbackValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Rollback command payload is null: commandId={}", commandId);
-                publishRollbackErrorEvent(commandId, "INVALID_PAYLOAD", "Command payload is missing");
+                publishRollbackErrorEvent(commandId, MISSING_PARAMETER, "Command payload is missing");
                 return false;
             }
 
@@ -84,6 +96,11 @@ public class RollbackValidationRuleCommandHandler {
             logger.info("Rollback request: campaignId={}, validationRuleId={}, rollbackAll={}",
                     campaignId, validationRuleId, rollbackAll);
 
+            // Xoá chiến dịch từ CMS: ghi nhận binding trước khi xoá cứng để báo Rule Engine ngừng áp dụng
+            // (ValidationRuleDisabledEvent → assignment active = false), giống luồng xoá DISCOUNT_COUPON.
+            boolean deleteCampaign = rollbackAll && DELETE_CAMPAIGN_REASON.equals(payload.getRollbackReason());
+            List<RuleBinding> removedBindings = deleteCampaign ? findCampaignBindings(campaignId) : List.of();
+
             boolean success = executeRollback(campaignId, validationRuleId, rollbackAll);
 
             if (!success) {
@@ -91,7 +108,11 @@ public class RollbackValidationRuleCommandHandler {
                 String errorMessage = "Failed to rollback validation rule binding";
                 publishRollbackErrorEvent(commandId, errorCode, errorMessage);
                 logger.error("Failed to process RollbackValidationRuleCommand: commandId={}", commandId);
-                throw new InvalidCommandDataException(errorCode, errorMessage);
+                return false;
+            }
+
+            for (RuleBinding binding : removedBindings) {
+                eventPublisher.publishDisableSuccessEvent(commandId, campaignId, binding);
             }
 
             idempotencyService.markAsProcessed(commandId, "Rollback completed successfully");
@@ -113,7 +134,7 @@ public class RollbackValidationRuleCommandHandler {
     private void validateCommand(RollbackValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException(MISSING_PARAMETER, "Command or payload is null");
         }
 
         RollbackValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
@@ -137,10 +158,18 @@ public class RollbackValidationRuleCommandHandler {
             logger.error("RollbackValidationRuleCommand validation failed: commandId={}, errors={}",
                     command.getId(), errorDetails);
 
-            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
+            throw new InvalidCommandDataException(MISSING_PARAMETER, errorMessage);
         }
 
         logger.debug("RollbackValidationRuleCommand validation passed: commandId={}", command.getId());
+    }
+
+    private List<RuleBinding> findCampaignBindings(String campaignId) {
+        List<RuleBinding> bindings = new ArrayList<>();
+        for (String objectType : CAMPAIGN_OBJECT_TYPES) {
+            bindings.addAll(ruleBindingPort.findByObjectIgnoreCase(objectType, campaignId));
+        }
+        return bindings;
     }
 
     private boolean executeRollback(String campaignId, String validationRuleId, boolean rollbackAll) {

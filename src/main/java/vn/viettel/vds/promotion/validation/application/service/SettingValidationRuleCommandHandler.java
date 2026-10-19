@@ -38,6 +38,11 @@ import java.util.stream.Collectors;
 @Service
 public class SettingValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+    /** TKCT Validation 3.4.3: deploy rule sang Rule Engine thất bại. */
+    static final String RULE_ENGINE_DEPLOY_FAILED = "RULE_ENGINE_DEPLOY_FAILED";
+
     private static final Logger logger = LoggerFactory.getLogger(SettingValidationRuleCommandHandler.class);
 
     private static final String PROCESSING_ERROR = "PROCESSING_ERROR";
@@ -109,12 +114,19 @@ public class SettingValidationRuleCommandHandler {
             }
 
             // Validate command
-            validateCommand(command);
+            // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
+            // thử lại (dữ liệu sai thì thử lại cũng không qua).
+            try {
+                validateCommand(command);
+            } catch (InvalidCommandDataException e) {
+                publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+                return false;
+            }
 
             SettingValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Command payload is null: commandId={}", commandId);
-                publishErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
+                publishErrorEvent(commandId, null, MISSING_PARAMETER, "Command payload is missing");
                 logger.info("[SAGA-DEBUG] EXIT handleCommand (null payload): commandId={}, success=false", commandId);
                 return false;
             }
@@ -193,7 +205,7 @@ public class SettingValidationRuleCommandHandler {
     private void validateCommand(SettingValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException(MISSING_PARAMETER, "Command or payload is null");
         }
 
         SettingValidationRuleCommandDTO dto = dtoMapper.toDTO(command);
@@ -217,7 +229,7 @@ public class SettingValidationRuleCommandHandler {
             logger.error("SettingValidationRuleCommand validation failed: commandId={}, errorCount={}, errors={}",
                     command.getId(), violations.size(), errorDetails);
 
-            throw new InvalidCommandDataException("METHOD_ARGUMENT_NOT_VALID", errorMessage);
+            throw new InvalidCommandDataException(MISSING_PARAMETER, errorMessage);
         }
 
         logger.debug("SettingValidationRuleCommand validation passed: commandId={}", command.getId());
@@ -279,7 +291,7 @@ public class SettingValidationRuleCommandHandler {
 
             // Only a genuine deploy FAILURE blocks the saga. A SKIPPED deploy (rule has no
             // conditions/constraints — nothing to compile) is a valid success path and must NOT
-            // be reported as COMPILE_DEPLOY_ERROR.
+            // be reported as RULE_ENGINE_DEPLOY_FAILED.
             if (deployResult.outcome() == DeployOutcome.FAILED) {
                 logger.warn("Rule binding created but compilation to rule-engine failed: bindingId={}, ruleId={}",
                         ruleBinding.getId(), components.ruleId());
@@ -291,10 +303,10 @@ public class SettingValidationRuleCommandHandler {
                 // order.total >= 100.000, don 50.000d van nhan duoc uu dai.
                 //
                 // Danh dau PENDING de rule-engine tra RULE_BUNDLE_MISSING ⇒ CHAN. Best-effort: hong
-                // thi chi log, khong duoc che mat COMPILE_DEPLOY_ERROR ma nguoi dung can doc.
+                // thi chi log, khong duoc che mat RULE_ENGINE_DEPLOY_FAILED ma nguoi dung can doc.
                 markBoundButNotReadyBestEffort(components.objectType(), components.objectId(),
                         components.ruleId());
-                return CommandProcessingResult.failure("COMPILE_DEPLOY_ERROR",
+                return CommandProcessingResult.failure(RULE_ENGINE_DEPLOY_FAILED,
                         "Rule binding created but compilation to rule-engine failed. RuleId: " + components.ruleId());
             }
 
@@ -688,7 +700,7 @@ public class SettingValidationRuleCommandHandler {
      *
      * <p>Bat moi ngoai le tai day, khong de lot ra {@code processCommand}: adapter da nuot loi
      * roi, nhung mot {@code RuntimeException} ngoai du kien (vd bean chua san sang) van co the
-     * bay len va lam saga tra ve PROCESSING_ERROR thay vi COMPILE_DEPLOY_ERROR — tuc doi mat
+     * bay len va lam saga tra ve PROCESSING_ERROR thay vi RULE_ENGINE_DEPLOY_FAILED — tuc doi mat
      * thong diep loi that.
      */
     private void markBoundButNotReadyBestEffort(String objectType, String objectId, String ruleId) {

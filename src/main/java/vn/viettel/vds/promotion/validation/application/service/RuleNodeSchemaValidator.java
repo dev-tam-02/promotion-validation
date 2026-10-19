@@ -45,10 +45,11 @@ public class RuleNodeSchemaValidator {
 
     /**
      * Params required by {@code MetadataAccessOperatorTranslator} (pp-rule-engine)
-     * to render a metadata.access condition into DRL.
+     * to render a metadata.access condition into DRL. Dùng List để kiểm theo thứ tự cố định: thứ tự duyệt của
+     * {@code Set.of} đổi theo từng lần chạy JVM, làm thông báo lỗi khi thiếu nhiều tham số không ổn định.
      */
-    private static final Set<String> METADATA_ACCESS_REQUIRED_PARAMS =
-            Set.of("schema_type", "field_key", "data_type");
+    private static final List<String> METADATA_ACCESS_REQUIRED_PARAMS =
+            List.of("schema_type", "field_key", "data_type");
 
     /** Key params chuẩn hoá theo ValueShape (SINGLE/RANGE → "value", MULTI → "values"). */
     private static final String VALUE = "value";

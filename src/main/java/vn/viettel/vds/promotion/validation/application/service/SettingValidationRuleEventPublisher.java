@@ -490,8 +490,19 @@ public class SettingValidationRuleEventPublisher {
      * lets us carry those canonical coordinates without a second repository
      * lookup inside the publisher.
      */
-    @SuppressWarnings("java:S2139")
     public void publishDeleteSuccessEvent(String commandId, String campaignId, RuleBinding binding) {
+        publishDeleteSuccessEvent(commandId, campaignId, binding, serviceName, Instant.now());
+    }
+
+    /**
+     * Như {@link #publishDeleteSuccessEvent(String, String, RuleBinding)} nhưng ghi rõ người xoá vào payload — luồng
+     * lưu trữ chiến dịch hết hạn gửi {@code SYSTEM_ARCHIVE} (PRM_KBNV_EVT_ARCH_002 Mục 4.1) để Rule Engine Service
+     * biết cần xoá mềm assignment, cấu hình Fast Check của chiến dịch (Bước 6). {@code deletedAt} là thời điểm xoá
+     * mềm (luồng lưu trữ truyền {@code sent_at} của lệnh — Rule Engine dùng làm {@code deleted_at} của bảng xoá mềm).
+     */
+    @SuppressWarnings("java:S2139")
+    public void publishDeleteSuccessEvent(String commandId, String campaignId, RuleBinding binding, String deletedBy,
+                                          Instant deletedAt) {
         String validationRuleId = resolveEventRuleId(binding);
         String subjectType = binding != null ? normalizeSubjectType(binding.getObjectType()) : DEFAULT_SUBJECT_TYPE;
         String subjectKey = binding != null && binding.getObjectId() != null ? binding.getObjectId() : campaignId;
@@ -505,8 +516,8 @@ public class SettingValidationRuleEventPublisher {
                     .subjectType(subjectType)
                     .subjectKey(subjectKey)
                     .validationRuleId(validationRuleId)
-                    .deletedBy(serviceName)
-                    .deletedAt(Instant.now().toEpochMilli())
+                    .deletedBy(deletedBy)
+                    .deletedAt((deletedAt != null ? deletedAt : Instant.now()).toEpochMilli())
                     .build();
 
             ValidationRuleDeletedEvent event = ValidationRuleDeletedEvent.builder()

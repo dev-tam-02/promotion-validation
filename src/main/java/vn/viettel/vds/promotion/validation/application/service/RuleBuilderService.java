@@ -36,6 +36,8 @@ import java.util.function.Predicate;
 @Service
 public class RuleBuilderService {
 
+    static final String OPERATOR_OPTION_NOT_FOUND = "OPERATOR_OPTION_NOT_FOUND";
+
     private static final Logger logger = LoggerFactory.getLogger(RuleBuilderService.class);
     private static final String VERSION = "1.0.0";
     // Canonical operator codes (mirror ConditionOperator), used verbatim as wire by
@@ -155,7 +157,10 @@ public class RuleBuilderService {
                 : allOptions.get(0);
 
         if (option == null) {
-            return RuleOptionsResponse.paginated(ruleId, Collections.emptyList(), 0, 0, 20);
+            // TKCT Validation 3.5.1.2.2: loại điều kiện không tồn tại → 404 OPERATOR_OPTION_NOT_FOUND. Loại điều kiện
+            // đã ngừng nhưng còn tồn tại vẫn tra được ở đường findOptionForResolution phía trên.
+            throw new com.promix.platform.core.exception.ResourceNotFoundException(OPERATOR_OPTION_NOT_FOUND,
+                    "Loại điều kiện không tồn tại hoặc đã ngừng sử dụng");
         }
 
         String dataSourceType = option.getDataSourceType();

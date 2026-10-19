@@ -14,13 +14,13 @@ import java.util.Map;
 public class CreateRuleRequest {
 
     @Schema(description = "Rule code (unique identifier, auto-generated if blank)", example = "WEEKEND_VIP_500K")
-    @Size(max = 100, message = "Rule code must not exceed 100 characters")
+    @Size(max = 100, message = "RULE_CODE_LENGTH_EXCEEDED")
     @JsonProperty("code")
     private String code;
 
     @Schema(description = "Rule name", example = "Weekend VIP ≥500k promotion")
-    @NotBlank(message = "Rule name is required")
-    @Size(max = 200, message = "Rule name must not exceed 200 characters")
+    @NotBlank(message = "FIELD_REQUIRED")
+    @Size(max = 200, message = "RULE_NAME_LENGTH_EXCEEDED")
     @JsonProperty("name")
     private String name;
 
@@ -36,7 +36,7 @@ public class CreateRuleRequest {
     private String context;
 
     @Schema(description = "Human-readable description of the rule purpose")
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
+    @Size(max = 1000, message = "RULE_DESCRIPTION_LENGTH_EXCEEDED")
     @JsonProperty("description")
     private String description;
 
@@ -51,7 +51,7 @@ public class CreateRuleRequest {
 
     @Schema(description = "Generic fallback error message shown to users when the rule fails",
             example = "Đơn hàng không đáp ứng điều kiện khuyến mãi VIP")
-    @Size(max = 500, message = "Fallback error message must not exceed 500 characters")
+    @Size(max = 500, message = "RULE_FALLBACK_MESSAGE_LENGTH_EXCEEDED")
     @JsonProperty("fallbackErrorMessage")
     private String fallbackErrorMessage;
 

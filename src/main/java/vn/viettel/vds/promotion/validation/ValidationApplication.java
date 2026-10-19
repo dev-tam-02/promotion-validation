@@ -11,7 +11,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import vn.viettel.vds.promotion.validation.config.ValidationModuleProperties;
 
-// Promix outbox (JPA) is now the single outbox: RuleService/PublishService write
+// Promix outbox (JPA) is now the single outbox: RuleService writes
 // via OutboxService and the promix scheduler publishes to Kafka. The previous
 // exclude of PromixOutboxJpaAutoConfiguration (custom HTTP outbox) was removed.
 @SpringBootApplication(exclude = {
