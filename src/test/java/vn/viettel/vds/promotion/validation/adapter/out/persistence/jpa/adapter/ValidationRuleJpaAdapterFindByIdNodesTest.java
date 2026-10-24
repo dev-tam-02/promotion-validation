@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
  * PA1 regression: {@link ValidationRuleJpaAdapter#findById} must hydrate the rule's nodes from
  * the {@code rule_nodes} table. Previously it only mapped the base row, so a rule WITH conditions
  * was seen as empty by the coupon-creation saga's deployRuleToEngine → wrongly skipped → falsely
- * reported as COMPILE_DEPLOY_ERROR (campaigns GEN-2024-001123123, TT123).
+ * reported as RULE_ENGINE_DEPLOY_FAILED (campaigns GEN-2024-001123123, TT123).
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ValidationRuleJpaAdapter.findById node hydration")

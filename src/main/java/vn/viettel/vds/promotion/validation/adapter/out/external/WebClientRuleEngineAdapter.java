@@ -167,7 +167,7 @@ public class WebClientRuleEngineAdapter implements RuleEngineClient {
      * deu bi NUOT (chi log warn).
      *
      * <p><b>Vi sao khong nem, ke ca khi rule-engine chet:</b> ham nay chi duoc goi tren duong LOI
-     * (saga da that bai voi {@code COMPILE_DEPLOY_ERROR}). Nem tiep o day se thay thong diep loi
+     * (saga da that bai voi {@code RULE_ENGINE_DEPLOY_FAILED}). Nem tiep o day se thay thong diep loi
      * that bang mot loi ha tang, va nguoi dung mat luon manh moi de biet vi sao campaign hong.
      * Cai gia cua viec nuot: neu loi goi nay hong, subject roi lai vao trang thai cu (rule-engine
      * khong biet gi) cho toi vong reconcile ke tiep — dung bang hanh vi truoc khi co ban va nay,

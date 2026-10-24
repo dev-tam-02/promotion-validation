@@ -311,3 +311,16 @@ databaseChangeLog:
   # min_value=0 tu 055 lam campaign chet COMPILE_DEPLOY_ERROR khi nguong = 0.
   - include:
       file: db/changelog/changes/085-fix-budget-comparators-and-min-value.yaml
+
+  # PRM_KBNV_EVT_ARCH_002 Buoc 5: bang xoa mem rule_bindings_deleted + nhat ky
+  # chong trung lenh luu tru chien dich het han.
+  - include:
+      file: db/changelog/changes/087-campaign-archive-rule-bindings-deleted.yaml
+
+  # Bo cot cu khong con dung (operator/reason_code display, cot cu cua rule_bindings va outbox_events).
+  - include:
+      file: db/changelog/changes/088-drop-unused-columns.yaml
+
+  # Bo bang publish_jobs (khong con dung).
+  - include:
+      file: db/changelog/changes/089-drop-publish-jobs.yaml

@@ -1,5 +1,6 @@
 package vn.viettel.vds.promotion.validation.adapter.in.web;
 
+import com.promix.platform.core.exception.ExternalServiceException;
 import com.promix.platform.web.annotation.ResponseWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +27,8 @@ import java.util.Map;
 @ResponseWrapper
 @Tag(name = "Rule Publishing", description = "Rule publishing and deployment management API")
 public class RulePublishingController {
+
+    static final String RULE_ENGINE_DEPLOY_FAILED = "RULE_ENGINE_DEPLOY_FAILED";
 
     private static final Logger logger = LoggerFactory.getLogger(RulePublishingController.class);
 
@@ -64,10 +67,15 @@ public class RulePublishingController {
                 logger.info("Rule published successfully: ruleId={}, bundleHash={}", ruleId, result.getBundleHash());
             } else {
                 logger.warn("Rule publishing failed: ruleId={}, error={}", ruleId, result.getErrorMessage());
+                // TKCT Validation 3.4.3: deploy sang Rule Engine thất bại → 502 RULE_ENGINE_DEPLOY_FAILED.
+                throw new ExternalServiceException(RULE_ENGINE_DEPLOY_FAILED,
+                        "Deploy quy tắc sang Rule Engine thất bại: " + result.getErrorMessage());
             }
 
             return response;
 
+        } catch (ExternalServiceException e) {
+            throw e;
         } catch (IllegalArgumentException e) {
             logger.warn("Invalid rule publishing request: ruleId={}, error={}", ruleId, e.getMessage());
             return RulePublishResponse.failed(ruleId, e.getMessage());

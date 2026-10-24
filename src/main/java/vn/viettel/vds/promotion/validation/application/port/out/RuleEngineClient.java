@@ -48,7 +48,7 @@ public interface RuleEngineClient {
      * thay vi coi nhu "chua gan rule".
      *
      * <p><b>Lo hong ma no bit.</b> Khi saga gan rule hong o buoc bien dich
-     * ({@code COMPILE_DEPLOY_ERROR}), binding DA duoc luu voi {@code active = 1} nhung
+     * ({@code RULE_ENGINE_DEPLOY_FAILED}), binding DA duoc luu voi {@code active = 1} nhung
      * {@code ValidationRuleSettingAppliedEvent} chi phat khi THANH CONG — nen rule-engine khong he
      * biet campaign nay co dieu kien. No tra {@code NO_RULE_CONFIGURED}, va pp-redemption CO Y
      * fail-open voi ma do (da so campaign that su khong co dieu kien). Ket qua do that tren 229
@@ -59,7 +59,7 @@ public interface RuleEngineClient {
      *
      * <p><b>BEST-EFFORT:</b> hong thi chi log, KHONG duoc nem ra ngoai. Saga da that bai san roi;
      * bien mot lan goi phu hong thanh exception moi chi lam mat thong diep loi that
-     * ({@code COMPILE_DEPLOY_ERROR}) ma nguoi dung can doc.
+     * ({@code RULE_ENGINE_DEPLOY_FAILED}) ma nguoi dung can doc.
      *
      * @param subjectType loai subject ben rule-engine (vd {@code DISCOUNT_COUPON}, {@code CAMPAIGN})
      * @param subjectKey  dinh danh subject (campaignId)

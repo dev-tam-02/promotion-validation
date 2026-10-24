@@ -24,6 +24,9 @@ import java.util.List;
 @Transactional
 public class DisableValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+
     private static final Logger logger = LoggerFactory.getLogger(DisableValidationRuleCommandHandler.class);
 
     private final RuleBindingPersistencePort ruleBindingPort;
@@ -51,12 +54,19 @@ public class DisableValidationRuleCommandHandler {
                 return true;
             }
 
-            validateCommand(command);
+            // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
+            // thử lại (dữ liệu sai thì thử lại cũng không qua).
+            try {
+                validateCommand(command);
+            } catch (InvalidCommandDataException e) {
+                publishDisableErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+                return false;
+            }
 
             DisableValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Disable command payload is null: commandId={}", commandId);
-                publishDisableErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
+                publishDisableErrorEvent(commandId, null, MISSING_PARAMETER, "Command payload is missing");
                 return false;
             }
 
@@ -96,7 +106,7 @@ public class DisableValidationRuleCommandHandler {
     private void validateCommand(DisableValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException(MISSING_PARAMETER, "Command or payload is null");
         }
 
         DisableValidationRuleCommandPayload payload = command.getPayload();

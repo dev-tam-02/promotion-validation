@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -145,6 +146,88 @@ class RollbackValidationRuleCommandHandlerTest {
 
             assertThat(result).isTrue();
         }
+
+        @Test
+        @DisplayName("Không phải lệnh xoá chiến dịch (bù trừ luồng tạo/cập nhật): không phát ValidationRuleDisabledEvent")
+        void rollbackAll_compensation_doesNotPublishDisabled() {
+            String campaignId = "campaign-comp";
+            String commandId = "cmd-comp";
+            RollbackValidationRuleCommand cmd = buildCommand(commandId, campaignId, true);
+            stubValidation(cmd, makeDto(commandId, campaignId, true));
+            when(ruleBindingPort.deleteByObjectIgnoreCase(anyString(), eq(campaignId))).thenReturn(1);
+
+            assertThat(handler.handleRollback(cmd)).isTrue();
+
+            verify(ruleBindingPort, never()).findByObjectIgnoreCase(anyString(), anyString());
+            verify(eventPublisher, never()).publishDisableSuccessEvent(anyString(), anyString(), any());
+        }
+    }
+
+    // ====== Xoá chiến dịch Cashback từ CMS (rollbackReason = DELETE_CAMPAIGN) ======
+
+    @Nested
+    @DisplayName("rollbackAll=true, rollbackReason=DELETE_CAMPAIGN")
+    class DeleteCampaign {
+
+        private RollbackValidationRuleCommand deleteCommand(String commandId, String campaignId) {
+            RollbackValidationRuleCommand cmd = buildCommand(commandId, campaignId, true);
+            cmd.getPayload().setRollbackReason("DELETE_CAMPAIGN");
+            return cmd;
+        }
+
+        private RuleBinding binding(String id, String objectType, String objectId, String ruleId) {
+            RuleBinding b = new RuleBinding();
+            b.setId(id);
+            b.setObjectType(objectType);
+            b.setObjectId(objectId);
+            b.setRuleId(ruleId);
+            return b;
+        }
+
+        @Test
+        @DisplayName("Phát ValidationRuleDisabledEvent cho từng binding sau khi xoá cứng thành công")
+        void deleteCampaign_publishesDisabledPerBindingAfterDelete() {
+            String campaignId = "cashback-del-1";
+            String commandId = "cmd-del-1";
+            RollbackValidationRuleCommand cmd = deleteCommand(commandId, campaignId);
+            stubValidation(cmd, makeDto(commandId, campaignId, true));
+            RuleBinding b1 = binding("b1", "CASHBACK", campaignId, "rule-1");
+            RuleBinding b2 = binding("b2", "CASHBACK", campaignId, "rule-2");
+            when(ruleBindingPort.findByObjectIgnoreCase("CAMPAIGN", campaignId)).thenReturn(List.of());
+            when(ruleBindingPort.findByObjectIgnoreCase("DISCOUNT_COUPON", campaignId)).thenReturn(List.of());
+            when(ruleBindingPort.findByObjectIgnoreCase("CASHBACK", campaignId)).thenReturn(List.of(b1, b2));
+            when(ruleBindingPort.deleteByObjectIgnoreCase(anyString(), eq(campaignId))).thenReturn(1);
+
+            assertThat(handler.handleRollback(cmd)).isTrue();
+
+            var order = inOrder(ruleBindingPort, eventPublisher);
+            order.verify(ruleBindingPort).findByObjectIgnoreCase("CASHBACK", campaignId);
+            order.verify(ruleBindingPort).deleteByObjectIgnoreCase("CASHBACK", campaignId);
+            order.verify(eventPublisher).publishDisableSuccessEvent(commandId, campaignId, b1);
+            order.verify(eventPublisher).publishDisableSuccessEvent(commandId, campaignId, b2);
+            order.verify(eventPublisher).publishRollbackSuccessEvent(eq(commandId), eq(campaignId), any());
+        }
+
+        @Test
+        @DisplayName("Xoá cứng lỗi: trả false, chỉ phát một sự kiện lỗi ROLLBACK_FAILED, không phát ValidationRuleDisabledEvent")
+        void deleteCampaign_deleteFails_noDisabledEvent() {
+            String campaignId = "cashback-del-2";
+            String commandId = "cmd-del-2";
+            RollbackValidationRuleCommand cmd = deleteCommand(commandId, campaignId);
+            stubValidation(cmd, makeDto(commandId, campaignId, true));
+            when(ruleBindingPort.findByObjectIgnoreCase(anyString(), eq(campaignId)))
+                    .thenReturn(List.of(binding("b1", "CASHBACK", campaignId, "rule-1")));
+            when(ruleBindingPort.deleteByObjectIgnoreCase(anyString(), eq(campaignId)))
+                    .thenThrow(new RuntimeException("db down"));
+
+            boolean result = handler.handleRollback(cmd);
+
+            assertThat(result).isFalse();
+            verify(eventPublisher).publishRollbackErrorEvent(eq(commandId), eq("ROLLBACK_FAILED"), anyString());
+            verify(eventPublisher, times(1)).publishRollbackErrorEvent(anyString(), anyString(), anyString());
+            verify(eventPublisher, never()).publishDisableSuccessEvent(anyString(), anyString(), any());
+            verify(eventPublisher, never()).publishRollbackSuccessEvent(anyString(), anyString(), any());
+        }
     }
 
     // ====== rollbackAll=false (specific ruleId) tests ======
@@ -248,5 +331,24 @@ class RollbackValidationRuleCommandHandlerTest {
             verify(ruleBindingPort).deleteById("binding-correct");
             verify(ruleBindingPort, never()).deleteById(ruleId); // wrongBinding.getId() must NOT be deleted
         }
+    }
+
+    @Test
+    @DisplayName("TKCT 21b: command thiếu payload → sự kiện lỗi MISSING_PARAMETER, không ném ra để thử lại")
+    void missingPayload_publishesMissingParameter() {
+        RollbackValidationRuleCommand cmd = RollbackValidationRuleCommand.builder()
+                .id("cmd-missing")
+                .type("RollbackValidationRuleCommand")
+                .source("campaign-saga")
+                .subject("campaign-x")
+                .occurredAt(Instant.now())
+                .build();
+        when(idempotencyService.isProcessed("cmd-missing")).thenReturn(false);
+
+        boolean result = handler.handleRollback(cmd);
+
+        assertThat(result).isFalse();
+        verify(eventPublisher).publishRollbackErrorEvent(eq("cmd-missing"), eq("MISSING_PARAMETER"), anyString());
+        verify(ruleBindingPort, never()).deleteByObjectIgnoreCase(anyString(), anyString());
     }
 }

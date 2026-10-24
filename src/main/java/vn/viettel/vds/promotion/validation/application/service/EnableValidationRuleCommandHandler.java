@@ -26,6 +26,9 @@ import java.util.List;
 @Transactional
 public class EnableValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+
     private static final Logger logger = LoggerFactory.getLogger(EnableValidationRuleCommandHandler.class);
 
     private final RuleBindingPersistencePort ruleBindingPort;
@@ -59,12 +62,19 @@ public class EnableValidationRuleCommandHandler {
                 return true;
             }
 
-            validateCommand(command);
+            // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
+            // thử lại (dữ liệu sai thì thử lại cũng không qua).
+            try {
+                validateCommand(command);
+            } catch (InvalidCommandDataException e) {
+                publishEnableErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+                return false;
+            }
 
             EnableValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 logger.error("Enable command payload is null: commandId={}", commandId);
-                publishEnableErrorEvent(commandId, null, "INVALID_PAYLOAD", "Command payload is missing");
+                publishEnableErrorEvent(commandId, null, MISSING_PARAMETER, "Command payload is missing");
                 return false;
             }
 
@@ -118,7 +128,7 @@ public class EnableValidationRuleCommandHandler {
     private void validateCommand(EnableValidationRuleCommand command) {
         if (command == null || command.getPayload() == null) {
             logger.error("Received null command or null payload");
-            throw new InvalidCommandDataException("INVALID_COMMAND", "Command or payload is null");
+            throw new InvalidCommandDataException(MISSING_PARAMETER, "Command or payload is null");
         }
 
         EnableValidationRuleCommandPayload payload = command.getPayload();

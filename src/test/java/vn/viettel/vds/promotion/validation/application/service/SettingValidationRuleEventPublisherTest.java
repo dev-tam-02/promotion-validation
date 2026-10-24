@@ -140,4 +140,23 @@ class SettingValidationRuleEventPublisherTest {
         var event = (vn.viettel.vds.promotion.validation.event.ValidationRuleEnabledEvent) captor.getValue();
         assertThat(event.getPayload().getValidationRuleId()).isEqualTo("bind-2");
     }
+
+    @Test
+    void deleteEvent_archiveFlowCarriesSentAtAndSystemArchive() {
+        // PRM_KBNV_EVT_ARCH_002 Mục 4.1: luồng lưu trữ gửi deletedBy = SYSTEM_ARCHIVE và
+        // deletedAt = sent_at của lệnh (Rule Engine dùng làm deleted_at của bảng xoá mềm), không phải thời điểm phát.
+        RuleBinding binding = new RuleBinding();
+        binding.setId("b1");
+        binding.setObjectType("DISCOUNT_COUPON");
+        binding.setObjectId("camp-1");
+        java.time.Instant sentAt = java.time.Instant.parse("2026-12-31T19:00:00Z");
+
+        publisher.publishDeleteSuccessEvent("cmd-1", "camp-1", binding, "SYSTEM_ARCHIVE", sentAt);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        verify(kafkaUtils).send(eq("promotion_validation_event"), any(), captor.capture());
+        var event = (vn.viettel.vds.promotion.validation.event.ValidationRuleDeletedEvent) captor.getValue();
+        assertThat(event.getPayload().getDeletedBy()).isEqualTo("SYSTEM_ARCHIVE");
+        assertThat(event.getPayload().getDeletedAt()).isEqualTo(sentAt.toEpochMilli());
+    }
 }

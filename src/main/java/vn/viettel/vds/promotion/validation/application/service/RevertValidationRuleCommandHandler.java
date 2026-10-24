@@ -41,6 +41,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RevertValidationRuleCommandHandler {
 
+    /** TKCT Validation (18, 21a, 21b): command thiếu id/type/subject/payload hoặc trường bắt buộc của payload. */
+    static final String MISSING_PARAMETER = "MISSING_PARAMETER";
+
     private static final String SOURCE = "validation-service";
 
     private final ValidationRuleSnapshotService snapshotService;
@@ -75,7 +78,7 @@ public class RevertValidationRuleCommandHandler {
             RevertValidationRuleCommandPayload payload = command.getPayload();
             if (payload == null) {
                 log.error("Command payload is null: commandId={}", commandId);
-                throw new InvalidCommandDataException("INVALID_PAYLOAD", "Command payload is missing");
+                throw new InvalidCommandDataException(MISSING_PARAMETER, "Command payload is missing");
             }
 
             String validationRuleId = payload.getValidationRuleId();

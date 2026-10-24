@@ -1,0 +1,32 @@
+databaseChangeLog:
+  # ============================================================================
+  # PRM_KBNV_EVT_ARCH_002 Buoc 5, Muc 4.1, 4.2 STT 1: luu tru chien dich het han.
+  # Validation Service xoa mem rule binding cua chien dich: chep nguyen ban ghi
+  # sang rule_bindings_deleted (them deleted_at, deleted_by = SYSTEM_ARCHIVE) roi
+  # xoa khoi rule_bindings.
+  # campaign_archive_command_log: chong xu ly trung theo ID lenh luu tru (Buoc 4).
+  # ============================================================================
+  - changeSet:
+      id: 087-campaign-archive-rule-bindings-deleted
+      author: promotion-validation
+      changes:
+        - sql:
+            splitStatements: true
+            sql: |
+              CREATE TABLE IF NOT EXISTS rule_bindings_deleted LIKE rule_bindings;
+              ALTER TABLE rule_bindings_deleted ADD COLUMN IF NOT EXISTS deleted_at DATETIME(6) NULL;
+              ALTER TABLE rule_bindings_deleted ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(255) NULL;
+              CREATE INDEX IF NOT EXISTS idx_rbd_object ON rule_bindings_deleted (object_type, object_id);
+              CREATE TABLE IF NOT EXISTS campaign_archive_command_log (
+                  command_id     VARCHAR(64)  NOT NULL PRIMARY KEY,
+                  campaign_id    VARCHAR(100) NOT NULL,
+                  result         VARCHAR(20)  NOT NULL,
+                  deleted_counts TEXT         NULL,
+                  error_message  TEXT         NULL,
+                  created_at     DATETIME(6)  NOT NULL
+              );
+      rollback:
+        - sql:
+            sql: |
+              DROP TABLE IF EXISTS campaign_archive_command_log;
+              DROP TABLE IF EXISTS rule_bindings_deleted;
