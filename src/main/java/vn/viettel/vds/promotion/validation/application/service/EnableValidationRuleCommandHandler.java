@@ -64,10 +64,7 @@ public class EnableValidationRuleCommandHandler {
 
             // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
             // thử lại (dữ liệu sai thì thử lại cũng không qua).
-            try {
-                validateCommand(command);
-            } catch (InvalidCommandDataException e) {
-                publishEnableErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+            if (!isCommandValid(command, commandId)) {
                 return false;
             }
 
@@ -121,6 +118,16 @@ public class EnableValidationRuleCommandHandler {
             logger.error("Unexpected error: commandId={}", commandId, e);
             String campaignId = command.getPayload() != null ? command.getPayload().getCampaignId() : null;
             publishEnableErrorEvent(commandId, campaignId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isCommandValid(EnableValidationRuleCommand command, String commandId) {
+        try {
+            validateCommand(command);
+            return true;
+        } catch (InvalidCommandDataException e) {
+            publishEnableErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
             return false;
         }
     }

@@ -101,10 +101,7 @@ public class UpdateValidationRuleCommandHandler {
 
             // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
             // thử lại (dữ liệu sai thì thử lại cũng không qua).
-            try {
-                validateCommand(command);
-            } catch (InvalidCommandDataException e) {
-                publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+            if (!isCommandValid(command, commandId)) {
                 return false;
             }
 
@@ -168,6 +165,16 @@ public class UpdateValidationRuleCommandHandler {
             logger.error("Unexpected error: commandId={}", commandId, e);
             String objectId = command.getPayload() != null ? command.getPayload().getObjectId() : null;
             publishErrorEvent(commandId, objectId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isCommandValid(UpdateValidationRuleCommand command, String commandId) {
+        try {
+            validateCommand(command);
+            return true;
+        } catch (InvalidCommandDataException e) {
+            publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
             return false;
         }
     }

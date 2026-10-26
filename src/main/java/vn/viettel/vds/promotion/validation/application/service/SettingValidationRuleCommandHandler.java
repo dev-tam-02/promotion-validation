@@ -116,10 +116,7 @@ public class SettingValidationRuleCommandHandler {
             // Validate command
             // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
             // thử lại (dữ liệu sai thì thử lại cũng không qua).
-            try {
-                validateCommand(command);
-            } catch (InvalidCommandDataException e) {
-                publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
+            if (!isCommandValid(command, commandId)) {
                 return false;
             }
 
@@ -198,6 +195,16 @@ public class SettingValidationRuleCommandHandler {
                 logger.info("[SAGA-DEBUG] CATCH suppressed error event (already processed): commandId={}", commandId);
             }
             logger.info("[SAGA-DEBUG] EXIT handleCommand (exception): commandId={}, success=false", commandId);
+            return false;
+        }
+    }
+
+    private boolean isCommandValid(SettingValidationRuleCommand command, String commandId) {
+        try {
+            validateCommand(command);
+            return true;
+        } catch (InvalidCommandDataException e) {
+            publishErrorEvent(commandId, null, MISSING_PARAMETER, e.getMessage());
             return false;
         }
     }

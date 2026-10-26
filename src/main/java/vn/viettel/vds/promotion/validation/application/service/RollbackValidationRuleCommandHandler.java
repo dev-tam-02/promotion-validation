@@ -75,10 +75,7 @@ public class RollbackValidationRuleCommandHandler {
 
             // TKCT Validation (18, 21a, 21b): command thiếu trường bắt buộc → sự kiện lỗi MISSING_PARAMETER ngay, không
             // thử lại (dữ liệu sai thì thử lại cũng không qua).
-            try {
-                validateCommand(command);
-            } catch (InvalidCommandDataException e) {
-                publishRollbackErrorEvent(commandId, MISSING_PARAMETER, e.getMessage());
+            if (!isCommandValid(command, commandId)) {
                 return false;
             }
 
@@ -127,6 +124,16 @@ public class RollbackValidationRuleCommandHandler {
         } catch (Exception e) {
             logger.error("Unexpected error: commandId={}", commandId, e);
             publishRollbackErrorEvent(commandId, "PROCESSING_ERROR", "Unexpected error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isCommandValid(RollbackValidationRuleCommand command, String commandId) {
+        try {
+            validateCommand(command);
+            return true;
+        } catch (InvalidCommandDataException e) {
+            publishRollbackErrorEvent(commandId, MISSING_PARAMETER, e.getMessage());
             return false;
         }
     }

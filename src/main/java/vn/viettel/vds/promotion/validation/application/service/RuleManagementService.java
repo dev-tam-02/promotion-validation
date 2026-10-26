@@ -58,7 +58,7 @@ public class RuleManagementService implements RuleManagementUseCase {
                                  DrlCompiler drlCompiler,
                                  RuleEngineClient ruleEngineClient,
                                  OperatorPersistencePort operatorPort) {
-        this(rulePort, ruleValidator, dslGenerator, drlCompiler,
+        this(rulePort, assembler, ruleValidator, dslGenerator, drlCompiler,
                 ruleEngineClient, operatorPort, Optional.empty());
     }
 
@@ -72,16 +72,6 @@ public class RuleManagementService implements RuleManagementUseCase {
                                  RuleEngineClient ruleEngineClient,
                                  OperatorPersistencePort operatorPort,
                                  Optional<RuleHistoryPersistencePort> historyPort) {
-        this(rulePort, ruleValidator, dslGenerator, drlCompiler, ruleEngineClient, operatorPort, historyPort);
-    }
-
-    private RuleManagementService(RulePersistencePort rulePort,
-                                  RuleValidator ruleValidator,
-                                  DslGenerator dslGenerator,
-                                  DrlCompiler drlCompiler,
-                                  RuleEngineClient ruleEngineClient,
-                                  OperatorPersistencePort operatorPort,
-                                  Optional<RuleHistoryPersistencePort> historyPort) {
         this.rulePort = rulePort;
         this.ruleValidator = ruleValidator;
         this.dslGenerator = dslGenerator;
