@@ -38,3 +38,11 @@ application-local.yml
 !.github/
 !.gitlab-ci.yml
 !.dockerignore
+
+# Skill AI dùng chung cho team (rà Sonar trước commit) — chỉ track CLAUDE.md và skills/ trong .claude,
+# các file cá nhân (settings.local.json, worktrees/...) vẫn bị bỏ qua.
+!/.claude/
+/.claude/*
+!/.claude/CLAUDE.md
+!/.claude/skills/
+!/.claude/skills/**
